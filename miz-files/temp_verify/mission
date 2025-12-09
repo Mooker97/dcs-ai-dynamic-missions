@@ -1,0 +1,3338 @@
+mission = 
+{
+	["groundControl"] = 
+	{
+		["passwords"] = 
+		{
+			["artillery_commander"] = {},
+			["instructor"] = {},
+			["observer"] = {},
+			["forward_observer"] = {},
+		}, -- end of ["passwords"]
+		["roles"] = 
+		{
+			["artillery_commander"] = 
+			{
+				["neutrals"] = 0,
+				["blue"] = 0,
+				["red"] = 0,
+			}, -- end of ["artillery_commander"]
+			["instructor"] = 
+			{
+				["neutrals"] = 0,
+				["blue"] = 0,
+				["red"] = 0,
+			}, -- end of ["instructor"]
+			["observer"] = 
+			{
+				["neutrals"] = 0,
+				["blue"] = 0,
+				["red"] = 0,
+			}, -- end of ["observer"]
+			["forward_observer"] = 
+			{
+				["neutrals"] = 0,
+				["blue"] = 0,
+				["red"] = 0,
+			}, -- end of ["forward_observer"]
+		}, -- end of ["roles"]
+		["isPilotControlVehicles"] = false,
+	}, -- end of ["groundControl"]
+	["requiredModules"] = {},
+	["date"] = 
+	{
+		["Day"] = 1,
+		["Year"] = 2020,
+		["Month"] = 6,
+	}, -- end of ["date"]
+	["trig"] = 
+	{
+		["actions"] = {},
+		["events"] = {},
+		["custom"] = {},
+		["func"] = {},
+		["flag"] = {},
+		["conditions"] = {},
+		["customStartup"] = {},
+		["funcStartup"] = {},
+	}, -- end of ["trig"]
+	["maxDictId"] = 5,
+	["result"] = 
+	{
+		["offline"] = 
+		{
+			["conditions"] = {},
+			["actions"] = {},
+			["func"] = {},
+		}, -- end of ["offline"]
+		["total"] = 0,
+		["blue"] = 
+		{
+			["conditions"] = {},
+			["actions"] = {},
+			["func"] = {},
+		}, -- end of ["blue"]
+		["red"] = 
+		{
+			["conditions"] = {},
+			["actions"] = {},
+			["func"] = {},
+		}, -- end of ["red"]
+	}, -- end of ["result"]
+	["pictureFileNameN"] = {},
+	["descriptionNeutralsTask"] = "DictKey_descriptionNeutralsTask_4",
+	["pictureFileNameServer"] = {},
+	["weather"] = 
+	{
+		["wind"] = 
+		{
+			["at8000"] = 
+			{
+				["speed"] = 0,
+				["dir"] = 0,
+			}, -- end of ["at8000"]
+			["atGround"] = 
+			{
+				["speed"] = 0,
+				["dir"] = 0,
+			}, -- end of ["atGround"]
+			["at2000"] = 
+			{
+				["speed"] = 0,
+				["dir"] = 0,
+			}, -- end of ["at2000"]
+		}, -- end of ["wind"]
+		["enable_fog"] = false,
+		["season"] = 
+		{
+			["temperature"] = 20,
+		}, -- end of ["season"]
+		["qnh"] = 760,
+		["cyclones"] = {},
+		["dust_density"] = 0,
+		["enable_dust"] = false,
+		["clouds"] = 
+		{
+			["thickness"] = 200,
+			["density"] = 0,
+			["preset"] = "Preset2",
+			["base"] = 2500,
+			["iprecptns"] = 0,
+		}, -- end of ["clouds"]
+		["atmosphere_type"] = 0,
+		["groundTurbulence"] = 0,
+		["halo"] = 
+		{
+			["preset"] = "auto",
+		}, -- end of ["halo"]
+		["type_weather"] = 0,
+		["modifiedTime"] = false,
+		["name"] = "Winter, clean sky",
+		["fog"] = 
+		{
+			["visibility"] = 0,
+			["thickness"] = 0,
+		}, -- end of ["fog"]
+		["visibility"] = 
+		{
+			["distance"] = 80000,
+		}, -- end of ["visibility"]
+	}, -- end of ["weather"]
+	["theatre"] = "PersianGulf",
+	["triggers"] = 
+	{
+		["zones"] = {},
+	}, -- end of ["triggers"]
+	["map"] = 
+	{
+		["centerY"] = -25000.493706923,
+		["zoom"] = 596200.7742496,
+		["centerX"] = 28164.567184789,
+	}, -- end of ["map"]
+	["coalitions"] = 
+	{
+		["neutrals"] = 
+		{
+			[1] = 91,
+			[2] = 70,
+			[3] = 83,
+			[4] = 65,
+			[5] = 86,
+			[6] = 64,
+			[7] = 63,
+			[8] = 76,
+			[9] = 84,
+			[10] = 90,
+			[11] = 29,
+			[12] = 62,
+			[13] = 78,
+			[14] = 87,
+			[15] = 61,
+			[16] = 33,
+			[17] = 60,
+			[18] = 17,
+			[19] = 34,
+			[20] = 35,
+			[21] = 69,
+			[22] = 36,
+			[23] = 59,
+			[24] = 37,
+			[25] = 71,
+			[26] = 79,
+			[27] = 58,
+			[28] = 57,
+			[29] = 56,
+			[30] = 55,
+			[31] = 92,
+			[32] = 88,
+			[33] = 38,
+			[34] = 73,
+			[35] = 39,
+			[36] = 89,
+			[37] = 54,
+			[38] = 77,
+			[39] = 72,
+			[40] = 42,
+			[41] = 85,
+			[42] = 75,
+			[43] = 45,
+			[44] = 53,
+			[45] = 22,
+			[46] = 52,
+			[47] = 66,
+			[48] = 51,
+			[49] = 74,
+			[50] = 82,
+			[51] = 7,
+			[52] = 68,
+			[53] = 50,
+			[54] = 49,
+			[55] = 48,
+			[56] = 67,
+		}, -- end of ["neutrals"]
+		["blue"] = 
+		{
+			[1] = 21,
+			[2] = 23,
+			[3] = 11,
+			[4] = 25,
+			[5] = 8,
+			[6] = 80,
+			[7] = 28,
+			[8] = 26,
+			[9] = 13,
+			[10] = 30,
+			[11] = 5,
+			[12] = 16,
+			[13] = 6,
+			[14] = 31,
+			[15] = 32,
+			[16] = 15,
+			[17] = 20,
+			[18] = 12,
+			[19] = 40,
+			[20] = 41,
+			[21] = 44,
+			[22] = 9,
+			[23] = 46,
+			[24] = 10,
+			[25] = 3,
+			[26] = 4,
+			[27] = 1,
+			[28] = 2,
+		}, -- end of ["blue"]
+		["red"] = 
+		{
+			[1] = 18,
+			[2] = 24,
+			[3] = 27,
+			[4] = 81,
+			[5] = 0,
+			[6] = 43,
+			[7] = 19,
+			[8] = 47,
+		}, -- end of ["red"]
+	}, -- end of ["coalitions"]
+	["descriptionText"] = "DictKey_descriptionText_1",
+	["pictureFileNameR"] = {},
+	["descriptionBlueTask"] = "DictKey_descriptionBlueTask_3",
+	["goals"] = {},
+	["descriptionRedTask"] = "DictKey_descriptionRedTask_2",
+	["pictureFileNameB"] = {},
+	["coalition"] = 
+	{
+		["neutrals"] = 
+		{
+			["bullseye"] = 
+			{
+				["y"] = 0,
+				["x"] = 0,
+			}, -- end of ["bullseye"]
+			["nav_points"] = {},
+			["name"] = "neutrals",
+			["country"] = {},
+		}, -- end of ["neutrals"]
+		["blue"] = 
+		{
+			["bullseye"] = 
+			{
+				["y"] = 0,
+				["x"] = 0,
+			}, -- end of ["bullseye"]
+			["nav_points"] = {},
+			["name"] = "blue",
+			["country"] = 
+			{
+				[1] = 
+				{
+					["id"] = 2,
+					["name"] = "USA",
+					["plane"] = 
+					{
+						["group"] = 
+						{
+							[1] = 
+							{
+								["dynSpawnTemplate"] = false,
+								["modulation"] = 0,
+								["tasks"] = {},
+								["radioSet"] = false,
+								["task"] = "CAS",
+								["uncontrolled"] = false,
+								["taskSelected"] = true,
+								["route"] = 
+								{
+									["points"] = 
+									{
+										[1] = 
+										{
+											["alt"] = 7473.696,
+											["action"] = "Turning Point",
+											["alt_type"] = "BARO",
+											["speed"] = 220.97222222222,
+											["task"] = 
+											{
+												["id"] = "ComboTask",
+												["params"] = 
+												{
+													["tasks"] = 
+													{
+														[1] = 
+														{
+															["enabled"] = true,
+															["key"] = "CAS",
+															["id"] = "EngageTargets",
+															["number"] = 1,
+															["auto"] = true,
+															["params"] = 
+															{
+																["targetTypes"] = 
+																{
+																	[1] = "Helicopters",
+																	[2] = "Ground Units",
+																	[3] = "Light armed ships",
+																}, -- end of ["targetTypes"]
+																["priority"] = 0,
+															}, -- end of ["params"]
+														}, -- end of [1]
+														[2] = 
+														{
+															["enabled"] = true,
+															["auto"] = true,
+															["id"] = "WrappedAction",
+															["number"] = 2,
+															["params"] = 
+															{
+																["action"] = 
+																{
+																	["id"] = "Option",
+																	["params"] = 
+																	{
+																		["value"] = 2,
+																		["name"] = 1,
+																	}, -- end of ["params"]
+																}, -- end of ["action"]
+															}, -- end of ["params"]
+														}, -- end of [2]
+														[3] = 
+														{
+															["enabled"] = true,
+															["auto"] = true,
+															["id"] = "WrappedAction",
+															["number"] = 3,
+															["params"] = 
+															{
+																["action"] = 
+																{
+																	["id"] = "Option",
+																	["params"] = 
+																	{
+																		["value"] = 1,
+																		["name"] = 3,
+																	}, -- end of ["params"]
+																}, -- end of ["action"]
+															}, -- end of ["params"]
+														}, -- end of [3]
+														[4] = 
+														{
+															["enabled"] = true,
+															["auto"] = true,
+															["id"] = "WrappedAction",
+															["number"] = 4,
+															["params"] = 
+															{
+																["action"] = 
+																{
+																	["id"] = "Option",
+																	["params"] = 
+																	{
+																		["variantIndex"] = 2,
+																		["name"] = 5,
+																		["formationIndex"] = 2,
+																		["value"] = 131074,
+																	}, -- end of ["params"]
+																}, -- end of ["action"]
+															}, -- end of ["params"]
+														}, -- end of [4]
+														[5] = 
+														{
+															["enabled"] = true,
+															["auto"] = true,
+															["id"] = "WrappedAction",
+															["number"] = 5,
+															["params"] = 
+															{
+																["action"] = 
+																{
+																	["id"] = "Option",
+																	["params"] = 
+																	{
+																		["value"] = true,
+																		["name"] = 15,
+																	}, -- end of ["params"]
+																}, -- end of ["action"]
+															}, -- end of ["params"]
+														}, -- end of [5]
+														[6] = 
+														{
+															["enabled"] = true,
+															["auto"] = true,
+															["id"] = "WrappedAction",
+															["number"] = 6,
+															["params"] = 
+															{
+																["action"] = 
+																{
+																	["id"] = "Option",
+																	["params"] = 
+																	{
+																		["targetTypes"] = {},
+																		["name"] = 21,
+																		["value"] = "none;",
+																		["noTargetTypes"] = 
+																		{
+																			[1] = "Fighters",
+																			[2] = "Multirole fighters",
+																			[3] = "Bombers",
+																			[4] = "Helicopters",
+																			[5] = "UAVs",
+																			[6] = "Infantry",
+																			[7] = "Fortifications",
+																			[8] = "Tanks",
+																			[9] = "IFV",
+																			[10] = "APC",
+																			[11] = "Artillery",
+																			[12] = "Unarmed vehicles",
+																			[13] = "AAA",
+																			[14] = "SR SAM",
+																			[15] = "MR SAM",
+																			[16] = "LR SAM",
+																			[17] = "Aircraft Carriers",
+																			[18] = "Cruisers",
+																			[19] = "Destroyers",
+																			[20] = "Frigates",
+																			[21] = "Corvettes",
+																			[22] = "Light armed ships",
+																			[23] = "Unarmed ships",
+																			[24] = "Submarines",
+																			[25] = "Cruise missiles",
+																			[26] = "Antiship Missiles",
+																			[27] = "AA Missiles",
+																			[28] = "AG Missiles",
+																			[29] = "SA Missiles",
+																		}, -- end of ["noTargetTypes"]
+																	}, -- end of ["params"]
+																}, -- end of ["action"]
+															}, -- end of ["params"]
+														}, -- end of [6]
+														[7] = 
+														{
+															["enabled"] = true,
+															["auto"] = true,
+															["id"] = "WrappedAction",
+															["number"] = 7,
+															["params"] = 
+															{
+																["action"] = 
+																{
+																	["id"] = "Option",
+																	["params"] = 
+																	{
+																		["value"] = true,
+																		["name"] = 19,
+																	}, -- end of ["params"]
+																}, -- end of ["action"]
+															}, -- end of ["params"]
+														}, -- end of [7]
+														[8] = 
+														{
+															["enabled"] = true,
+															["auto"] = true,
+															["id"] = "WrappedAction",
+															["number"] = 8,
+															["params"] = 
+															{
+																["action"] = 
+																{
+																	["id"] = "EPLRS",
+																	["params"] = 
+																	{
+																		["value"] = true,
+																		["groupId"] = 1,
+																	}, -- end of ["params"]
+																}, -- end of ["action"]
+															}, -- end of ["params"]
+														}, -- end of [8]
+														[9] = 
+														{
+															["enabled"] = true,
+															["auto"] = true,
+															["id"] = "WrappedAction",
+															["number"] = 9,
+															["params"] = 
+															{
+																["action"] = 
+																{
+																	["id"] = "Option",
+																	["params"] = 
+																	{
+																		["value"] = true,
+																		["name"] = 35,
+																	}, -- end of ["params"]
+																}, -- end of ["action"]
+															}, -- end of ["params"]
+														}, -- end of [9]
+													}, -- end of ["tasks"]
+												}, -- end of ["params"]
+											}, -- end of ["task"]
+											["type"] = "Turning Point",
+											["ETA"] = 0,
+											["ETA_locked"] = true,
+											["y"] = -35050.735329988,
+											["x"] = -43124.011107628,
+											["speed_locked"] = true,
+											["formation_template"] = "",
+										}, -- end of [1]
+										[2] = 
+										{
+											["alt"] = 7473.696,
+											["action"] = "Turning Point",
+											["alt_type"] = "BARO",
+											["speed"] = 220.97222222222,
+											["task"] = 
+											{
+												["id"] = "ComboTask",
+												["params"] = 
+												{
+													["tasks"] = {},
+												}, -- end of ["params"]
+											}, -- end of ["task"]
+											["type"] = "Turning Point",
+											["ETA"] = 322.040620331,
+											["ETA_locked"] = false,
+											["y"] = -130.40426679662,
+											["x"] = 18880.869414331,
+											["speed_locked"] = true,
+											["formation_template"] = "",
+										}, -- end of [2]
+										[3] = 
+										{
+											["alt"] = 2000,
+											["action"] = "Turning Point",
+											["alt_type"] = "BARO",
+											["speed"] = 220.97222222222,
+											["task"] = 
+											{
+												["id"] = "ComboTask",
+												["params"] = 
+												{
+													["tasks"] = {},
+												}, -- end of ["params"]
+											}, -- end of ["task"]
+											["type"] = "Turning Point",
+											["ETA"] = 555.28903236143,
+											["ETA_locked"] = false,
+											["y"] = -18315.29059956,
+											["x"] = 67107.707151227,
+											["speed_locked"] = true,
+											["formation_template"] = "",
+										}, -- end of [3]
+										[4] = 
+										{
+											["alt"] = 2000,
+											["action"] = "Turning Point",
+											["alt_type"] = "BARO",
+											["speed"] = 220.97222222222,
+											["task"] = 
+											{
+												["id"] = "ComboTask",
+												["params"] = 
+												{
+													["tasks"] = {},
+												}, -- end of ["params"]
+											}, -- end of ["task"]
+											["type"] = "Turning Point",
+											["ETA"] = 755.47507595605,
+											["ETA_locked"] = false,
+											["y"] = -61977.494240209,
+											["x"] = 60008.672602459,
+											["speed_locked"] = true,
+											["formation_template"] = "",
+										}, -- end of [4]
+										[5] = 
+										{
+											["alt"] = 2000,
+											["action"] = "Turning Point",
+											["alt_type"] = "BARO",
+											["speed"] = 220.97222222222,
+											["task"] = 
+											{
+												["id"] = "ComboTask",
+												["params"] = 
+												{
+													["tasks"] = {},
+												}, -- end of ["params"]
+											}, -- end of ["task"]
+											["type"] = "Turning Point",
+											["ETA"] = 2065.2117493145,
+											["ETA_locked"] = false,
+											["y"] = -58087.589925961,
+											["x"] = -124483.82012365,
+											["speed_locked"] = true,
+											["formation_template"] = "",
+										}, -- end of [5]
+										[6] = 
+										{
+											["alt"] = 2000,
+											["action"] = "Turning Point",
+											["alt_type"] = "BARO",
+											["speed"] = 220.97222222222,
+											["task"] = 
+											{
+												["id"] = "ComboTask",
+												["params"] = 
+												{
+													["tasks"] = {},
+												}, -- end of ["params"]
+											}, -- end of ["task"]
+											["type"] = "Turning Point",
+											["ETA"] = 2108.3332881952,
+											["ETA_locked"] = false,
+											["y"] = -65794.350255109,
+											["x"] = -126021.79939343,
+											["speed_locked"] = true,
+											["formation_template"] = "",
+										}, -- end of [6]
+										[7] = 
+										{
+											["alt"] = 55,
+											["action"] = "Landing",
+											["alt_type"] = "BARO",
+											["speed"] = 220.97222222222,
+											["task"] = 
+											{
+												["id"] = "ComboTask",
+												["params"] = 
+												{
+													["tasks"] = {},
+												}, -- end of ["params"]
+											}, -- end of ["task"]
+											["type"] = "Land",
+											["ETA"] = 2334.5703984831,
+											["ETA_locked"] = false,
+											["y"] = -89133.46875,
+											["x"] = -126013.714844,
+											["speed_locked"] = true,
+											["formation_template"] = "",
+											["airdromeId"] = 12,
+										}, -- end of [7]
+									}, -- end of ["points"]
+								}, -- end of ["route"]
+								["groupId"] = 6,
+								["hidden"] = false,
+								["units"] = 
+								{
+									[1] = 
+									{
+										["alt"] = 7473.696,
+										["alt_type"] = "BARO",
+										["livery_id"] = "18th agrs arctic splinter",
+										["skill"] = "High",
+										["speed"] = 220.97222222222,
+										["AddPropAircraft"] = 
+										{
+											["STN_L16"] = "00206",
+											["VoiceCallsignNumber"] = "11",
+											["VoiceCallsignLabel"] = "ED",
+										}, -- end of ["AddPropAircraft"]
+										["type"] = "F-16C_50",
+										["unitId"] = 6,
+										["psi"] = -0.51291104065202,
+										["onboard_num"] = "010",
+										["y"] = -35050.735329988,
+										["x"] = -43124.011107628,
+										["name"] = "Aerial-1-1",
+										["payload"] = 
+										{
+											["pylons"] = 
+											{
+												[1] = 
+												{
+													["CLSID"] = "{40EF17B7-F508-45de-8566-6FFECC0C1AB8}",
+												}, -- end of [1]
+						[10] = [1] = 
+				{
+					["id"] = 2,
+					["name"] = "Aerial-1-1 Copy",
+					["plane"] = 
+					{
+						["group"] = 
+						{
+							[1] = 
+							{
+								["dynSpawnTemplate"] = false,
+								["modulation"] = 0,
+								["tasks"] = {},
+								["radioSet"] = false,
+								["task"] = "CAS",
+								["uncontrolled"] = false,
+								["taskSelected"] = true,
+								["route"] = 
+								{
+									["points"] = 
+									{
+										[1] = 
+										{
+											["alt"] = 7473.696,
+											["action"] = "Turning Point",
+											["alt_type"] = "BARO",
+											["speed"] = 220.97222222222,
+											["task"] = 
+											{
+												["id"] = "ComboTask",
+												["params"] = 
+												{
+													["tasks"] = 
+													{
+														[1] = 
+														{
+															["enabled"] = true,
+															["key"] = "CAS",
+															["id"] = "EngageTargets",
+															["number"] = 1,
+															["auto"] = true,
+															["params"] = 
+															{
+																["targetTypes"] = 
+																{
+																	[1] = "Helicopters",
+																	[2] = "Ground Units",
+																	[3] = "Light armed ships",
+																}, -- end of ["targetTypes"]
+																["priority"] = 0,
+															}, -- end of ["params"]
+														}, -- end of [1]
+														[2] = 
+														{
+															["enabled"] = true,
+															["auto"] = true,
+															["id"] = "WrappedAction",
+															["number"] = 2,
+															["params"] = 
+															{
+																["action"] = 
+																{
+																	["id"] = "Option",
+																	["params"] = 
+																	{
+																		["value"] = 2,
+																		["name"] = 1,
+																	}, -- end of ["params"]
+																}, -- end of ["action"]
+															}, -- end of ["params"]
+														}, -- end of [2]
+														[3] = 
+														{
+															["enabled"] = true,
+															["auto"] = true,
+															["id"] = "WrappedAction",
+															["number"] = 3,
+															["params"] = 
+															{
+																["action"] = 
+																{
+																	["id"] = "Option",
+																	["params"] = 
+																	{
+																		["value"] = 1,
+																		["name"] = 3,
+																	}, -- end of ["params"]
+																}, -- end of ["action"]
+															}, -- end of ["params"]
+														}, -- end of [3]
+														[4] = 
+														{
+															["enabled"] = true,
+															["auto"] = true,
+															["id"] = "WrappedAction",
+															["number"] = 4,
+															["params"] = 
+															{
+																["action"] = 
+																{
+																	["id"] = "Option",
+																	["params"] = 
+																	{
+																		["variantIndex"] = 2,
+																		["name"] = 5,
+																		["formationIndex"] = 2,
+																		["value"] = 131074,
+																	}, -- end of ["params"]
+																}, -- end of ["action"]
+															}, -- end of ["params"]
+														}, -- end of [4]
+														[5] = 
+														{
+															["enabled"] = true,
+															["auto"] = true,
+															["id"] = "WrappedAction",
+															["number"] = 5,
+															["params"] = 
+															{
+																["action"] = 
+																{
+																	["id"] = "Option",
+																	["params"] = 
+																	{
+																		["value"] = true,
+																		["name"] = 15,
+																	}, -- end of ["params"]
+																}, -- end of ["action"]
+															}, -- end of ["params"]
+														}, -- end of [5]
+														[6] = 
+														{
+															["enabled"] = true,
+															["auto"] = true,
+															["id"] = "WrappedAction",
+															["number"] = 6,
+															["params"] = 
+															{
+																["action"] = 
+																{
+																	["id"] = "Option",
+																	["params"] = 
+																	{
+																		["targetTypes"] = {},
+																		["name"] = 21,
+																		["value"] = "none;",
+																		["noTargetTypes"] = 
+																		{
+																			[1] = "Fighters",
+																			[2] = "Multirole fighters",
+																			[3] = "Bombers",
+																			[4] = "Helicopters",
+																			[5] = "UAVs",
+																			[6] = "Infantry",
+																			[7] = "Fortifications",
+																			[8] = "Tanks",
+																			[9] = "IFV",
+																			[10] = "APC",
+																			[11] = "Artillery",
+																			[12] = "Unarmed vehicles",
+																			[13] = "AAA",
+																			[14] = "SR SAM",
+																			[15] = "MR SAM",
+																			[16] = "LR SAM",
+																			[17] = "Aircraft Carriers",
+																			[18] = "Cruisers",
+																			[19] = "Destroyers",
+																			[20] = "Frigates",
+																			[21] = "Corvettes",
+																			[22] = "Light armed ships",
+																			[23] = "Unarmed ships",
+																			[24] = "Submarines",
+																			[25] = "Cruise missiles",
+																			[26] = "Antiship Missiles",
+																			[27] = "AA Missiles",
+																			[28] = "AG Missiles",
+																			[29] = "SA Missiles",
+																		}, -- end of ["noTargetTypes"]
+																	}, -- end of ["params"]
+																}, -- end of ["action"]
+															}, -- end of ["params"]
+														}, -- end of [6]
+														[7] = 
+														{
+															["enabled"] = true,
+															["auto"] = true,
+															["id"] = "WrappedAction",
+															["number"] = 7,
+															["params"] = 
+															{
+																["action"] = 
+																{
+																	["id"] = "Option",
+																	["params"] = 
+																	{
+																		["value"] = true,
+																		["name"] = 19,
+																	}, -- end of ["params"]
+																}, -- end of ["action"]
+															}, -- end of ["params"]
+														}, -- end of [7]
+														[8] = 
+														{
+															["enabled"] = true,
+															["auto"] = true,
+															["id"] = "WrappedAction",
+															["number"] = 8,
+															["params"] = 
+															{
+																["action"] = 
+																{
+																	["id"] = "EPLRS",
+																	["params"] = 
+																	{
+																		["value"] = true,
+																		["groupId"] = 12,
+																	}, -- end of ["params"]
+																}, -- end of ["action"]
+															}, -- end of ["params"]
+														}, -- end of [8]
+														[9] = 
+														{
+															["enabled"] = true,
+															["auto"] = true,
+															["id"] = "WrappedAction",
+															["number"] = 9,
+															["params"] = 
+															{
+																["action"] = 
+																{
+																	["id"] = "Option",
+																	["params"] = 
+																	{
+																		["value"] = true,
+																		["name"] = 35,
+																	}, -- end of ["params"]
+																}, -- end of ["action"]
+															}, -- end of ["params"]
+														}, -- end of [9]
+													}, -- end of ["tasks"]
+												}, -- end of ["params"]
+											}, -- end of ["task"]
+											["type"] = "Turning Point",
+											["ETA"] = 0,
+											["ETA_locked"] = true,
+											["y"] = -35050.735329988,
+											["x"] = -43124.011107628,
+											["speed_locked"] = true,
+											["formation_template"] = "",
+										}, -- end of [1]
+										[2] = 
+										{
+											["alt"] = 7473.696,
+											["action"] = "Turning Point",
+											["alt_type"] = "BARO",
+											["speed"] = 220.97222222222,
+											["task"] = 
+											{
+												["id"] = "ComboTask",
+												["params"] = 
+												{
+													["tasks"] = {},
+												}, -- end of ["params"]
+											}, -- end of ["task"]
+											["type"] = "Turning Point",
+											["ETA"] = 322.040620331,
+											["ETA_locked"] = false,
+											["y"] = -130.40426679662,
+											["x"] = 18880.869414331,
+											["speed_locked"] = true,
+											["formation_template"] = "",
+										}, -- end of [2]
+										[3] = 
+										{
+											["alt"] = 2000,
+											["action"] = "Turning Point",
+											["alt_type"] = "BARO",
+											["speed"] = 220.97222222222,
+											["task"] = 
+											{
+												["id"] = "ComboTask",
+												["params"] = 
+												{
+													["tasks"] = {},
+												}, -- end of ["params"]
+											}, -- end of ["task"]
+											["type"] = "Turning Point",
+											["ETA"] = 555.28903236143,
+											["ETA_locked"] = false,
+											["y"] = -18315.29059956,
+											["x"] = 67107.707151227,
+											["speed_locked"] = true,
+											["formation_template"] = "",
+										}, -- end of [3]
+										[4] = 
+										{
+											["alt"] = 2000,
+											["action"] = "Turning Point",
+											["alt_type"] = "BARO",
+											["speed"] = 220.97222222222,
+											["task"] = 
+											{
+												["id"] = "ComboTask",
+												["params"] = 
+												{
+													["tasks"] = {},
+												}, -- end of ["params"]
+											}, -- end of ["task"]
+											["type"] = "Turning Point",
+											["ETA"] = 755.47507595605,
+											["ETA_locked"] = false,
+											["y"] = -61977.494240209,
+											["x"] = 60008.672602459,
+											["speed_locked"] = true,
+											["formation_template"] = "",
+										}, -- end of [4]
+										[5] = 
+										{
+											["alt"] = 2000,
+											["action"] = "Turning Point",
+											["alt_type"] = "BARO",
+											["speed"] = 220.97222222222,
+											["task"] = 
+											{
+												["id"] = "ComboTask",
+												["params"] = 
+												{
+													["tasks"] = {},
+												}, -- end of ["params"]
+											}, -- end of ["task"]
+											["type"] = "Turning Point",
+											["ETA"] = 2065.2117493145,
+											["ETA_locked"] = false,
+											["y"] = -58087.589925961,
+											["x"] = -124483.82012365,
+											["speed_locked"] = true,
+											["formation_template"] = "",
+										}, -- end of [5]
+										[6] = 
+										{
+											["alt"] = 2000,
+											["action"] = "Turning Point",
+											["alt_type"] = "BARO",
+											["speed"] = 220.97222222222,
+											["task"] = 
+											{
+												["id"] = "ComboTask",
+												["params"] = 
+												{
+													["tasks"] = {},
+												}, -- end of ["params"]
+											}, -- end of ["task"]
+											["type"] = "Turning Point",
+											["ETA"] = 2108.3332881952,
+											["ETA_locked"] = false,
+											["y"] = -65794.350255109,
+											["x"] = -126021.79939343,
+											["speed_locked"] = true,
+											["formation_template"] = "",
+										}, -- end of [6]
+										[7] = 
+										{
+											["alt"] = 55,
+											["action"] = "Landing",
+											["alt_type"] = "BARO",
+											["speed"] = 220.97222222222,
+											["task"] = 
+											{
+												["id"] = "ComboTask",
+												["params"] = 
+												{
+													["tasks"] = {},
+												}, -- end of ["params"]
+											}, -- end of ["task"]
+											["type"] = "Land",
+											["ETA"] = 2334.5703984831,
+											["ETA_locked"] = false,
+											["y"] = -89133.46875,
+											["x"] = -126013.714844,
+											["speed_locked"] = true,
+											["formation_template"] = "",
+											["airdromeId"] = 12,
+										}, -- end of [7]
+									}, -- end of ["points"]
+								}, -- end of ["route"]
+								["groupId"] = 12,
+								["hidden"] = false,
+								["units"] = 
+								{
+									[1] = 
+									{
+										["alt"] = 7473.696,
+										["alt_type"] = "BARO",
+										["livery_id"] = "18th agrs arctic splinter",
+										["skill"] = "High",
+										["speed"] = 220.97222222222,
+										["AddPropAircraft"] = 
+										{
+											["STN_L16"] = "00206",
+											["VoiceCallsignNumber"] = "11",
+											["VoiceCallsignLabel"] = "ED",
+										}, -- end of ["AddPropAircraft"]
+										["type"] = "F-16C_50",
+										["unitId"] = 13,
+										["psi"] = -0.51291104065202,
+										["onboard_num"] = "010",
+										["y"] = -35050.735329988,
+										["x"] = -43124.011107628,
+										["name"] = "Aerial-1-1",
+										["payload"] = 
+										{
+											["pylons"] = 
+											{
+												[1] = 
+												{
+													["CLSID"] = "{40EF17B7-F508-45de-8566-6FFECC0C1AB8}",
+												}, -- end of [10]
+												[2] = 
+												{
+													["CLSID"] = "{5CE2FF2A-645A-4197-B48D-8720AC69394F}",
+													["settings"] = 
+													{
+														["NFP_VIS_DrawArgNo_57"] = 0.1,
+														["NFP_PRESID"] = "MDRN_M_A_AIM9",
+													}, -- end of ["settings"]
+												}, -- end of [2]
+												[3] = 
+												{
+													["CLSID"] = "{51F9AAE5-964F-4D21-83FB-502E3BFE5F8A}",
+													["settings"] = 
+													{
+														["NFP_VIS_DrawArgNo_57"] = 0,
+														["laser_code"] = 1688,
+														["NFP_PRESID"] = "MDRN_B_A",
+														["01_prfx_arm_delay_ctrl_FMU139CB_LD"] = 4,
+														["NFP_fuze_type_tail"] = "FMU139CB_LD",
+														["NFP_PRESVER"] = 2,
+														["01_prfx_function_delay_ctrl_FMU139CB_LD"] = 0,
+													}, -- end of ["settings"]
+												}, -- end of [3]
+												[4] = 
+												{
+													["CLSID"] = "{DB769D48-67D7-42ED-A2BE-108D566C8B1E}",
+													["settings"] = 
+													{
+														["NFP_VIS_DrawArgNo_57"] = 0,
+														["laser_code"] = 1688,
+														["NFP_PRESID"] = "MDRN_B_A",
+														["01_prfx_arm_delay_ctrl_FMU139CB_LD"] = 4,
+														["NFP_fuze_type_tail"] = "FMU139CB_LD",
+														["NFP_PRESVER"] = 2,
+														["01_prfx_function_delay_ctrl_FMU139CB_LD"] = 0,
+													}, -- end of ["settings"]
+												}, -- end of [4]
+												[5] = 
+												{
+													["CLSID"] = "{8A0BE8AE-58D4-4572-9263-3144C0D06364}",
+												}, -- end of [5]
+												[6] = 
+												{
+													["CLSID"] = "{DB769D48-67D7-42ED-A2BE-108D566C8B1E}",
+													["settings"] = 
+													{
+														["NFP_VIS_DrawArgNo_57"] = 0,
+														["laser_code"] = 1688,
+														["NFP_PRESID"] = "MDRN_B_A",
+														["01_prfx_arm_delay_ctrl_FMU139CB_LD"] = 4,
+														["NFP_fuze_type_tail"] = "FMU139CB_LD",
+														["NFP_PRESVER"] = 2,
+														["01_prfx_function_delay_ctrl_FMU139CB_LD"] = 0,
+													}, -- end of ["settings"]
+												}, -- end of [6]
+												[7] = 
+												{
+													["CLSID"] = "{51F9AAE5-964F-4D21-83FB-502E3BFE5F8A}",
+													["settings"] = 
+													{
+														["NFP_VIS_DrawArgNo_57"] = 0,
+														["laser_code"] = 1688,
+														["NFP_PRESID"] = "MDRN_B_A",
+														["01_prfx_arm_delay_ctrl_FMU139CB_LD"] = 4,
+														["NFP_fuze_type_tail"] = "FMU139CB_LD",
+														["NFP_PRESVER"] = 2,
+														["01_prfx_function_delay_ctrl_FMU139CB_LD"] = 0,
+													}, -- end of ["settings"]
+												}, -- end of [7]
+												[8] = 
+												{
+													["CLSID"] = "{5CE2FF2A-645A-4197-B48D-8720AC69394F}",
+													["settings"] = 
+													{
+														["NFP_VIS_DrawArgNo_57"] = 0.1,
+														["NFP_PRESID"] = "MDRN_M_A_AIM9",
+													}, -- end of ["settings"]
+												}, -- end of [8]
+												[9] = 
+												{
+													["CLSID"] = "{40EF17B7-F508-45de-8566-6FFECC0C1AB8}",
+												}, -- end of [9]
+												[11] = 
+												{
+													["CLSID"] = "{AN_AAQ_33}",
+												}, -- end of [11]
+											}, -- end of ["pylons"]
+											["fuel"] = 3249,
+											["flare"] = 60,
+											["ammo_type"] = 5,
+											["chaff"] = 60,
+											["gun"] = 100,
+										}, -- end of ["payload"]
+										["heading"] = 0.51291104065202,
+										["callsign"] = 
+										{
+											[1] = 1,
+											[2] = 1,
+											["name"] = "Enfield11",
+											[3] = 1,
+										}, -- end of ["callsign"]
+										["datalinks"] = 
+										{
+											["Link16"] = 
+											{
+												["settings"] = 
+												{
+													["flightLead"] = true,
+													["transmitPower"] = 3,
+													["specialChannel"] = 1,
+													["fighterChannel"] = 1,
+													["missionChannel"] = 1,
+												}, -- end of ["settings"]
+												["network"] = 
+												{
+													["teamMembers"] = 
+													{
+														[1] = 
+														{
+															["TDOA"] = true,
+															["missionUnitId"] = 6,
+														}, -- end of [1]
+													}, -- end of ["teamMembers"]
+													["donors"] = {},
+												}, -- end of ["network"]
+											}, -- end of ["Link16"]
+										}, -- end of ["datalinks"]
+									}, -- end of [1]
+								}, -- end of ["units"]
+								["y"] = -35050.735329988,
+								["x"] = -43124.011107628,
+								["name"] = "Aerial-1",
+								["communication"] = true,
+								["start_time"] = 0,
+								["frequency"] = 305,
+							}, -- end of [1]
+							[2] = 
+							{
+								["dynSpawnTemplate"] = false,
+								["modulation"] = 0,
+								["tasks"] = {},
+								["radioSet"] = false,
+								["task"] = "AWACS",
+								["uncontrolled"] = false,
+								["route"] = 
+								{
+									["points"] = 
+									{
+										[1] = 
+										{
+											["alt"] = 2000,
+											["action"] = "Turning Point",
+											["alt_type"] = "BARO",
+											["speed"] = 220.97222222222,
+											["task"] = 
+											{
+												["id"] = "ComboTask",
+												["params"] = 
+												{
+													["tasks"] = 
+													{
+														[1] = 
+														{
+															["number"] = 1,
+															["auto"] = true,
+															["id"] = "AWACS",
+															["enabled"] = true,
+															["params"] = {},
+														}, -- end of [1]
+														[2] = 
+														{
+															["number"] = 2,
+															["auto"] = true,
+															["id"] = "WrappedAction",
+															["enabled"] = true,
+															["params"] = 
+															{
+																["action"] = 
+																{
+																	["id"] = "EPLRS",
+																	["params"] = 
+																	{
+																		["value"] = true,
+																		["groupId"] = 2,
+																	}, -- end of ["params"]
+																}, -- end of ["action"]
+															}, -- end of ["params"]
+														}, -- end of [2]
+														[3] = 
+														{
+															["number"] = 3,
+															["auto"] = true,
+															["id"] = "WrappedAction",
+															["enabled"] = true,
+															["params"] = 
+															{
+																["action"] = 
+																{
+																	["id"] = "Option",
+																	["params"] = 
+																	{
+																		["value"] = true,
+																		["name"] = 35,
+																	}, -- end of ["params"]
+																}, -- end of ["action"]
+															}, -- end of ["params"]
+														}, -- end of [3]
+													}, -- end of ["tasks"]
+												}, -- end of ["params"]
+											}, -- end of ["task"]
+											["type"] = "Turning Point",
+											["ETA"] = 0,
+											["ETA_locked"] = true,
+											["y"] = -156714.46148638,
+											["x"] = -163500.37343606,
+											["speed_locked"] = true,
+											["formation_template"] = "",
+										}, -- end of [1]
+										[2] = 
+										{
+											["alt"] = 2000,
+											["action"] = "Turning Point",
+											["alt_type"] = "BARO",
+											["speed"] = 220.97222222222,
+											["task"] = 
+											{
+												["id"] = "ComboTask",
+												["params"] = 
+												{
+													["tasks"] = {},
+												}, -- end of ["params"]
+											}, -- end of ["task"]
+											["type"] = "Turning Point",
+											["ETA"] = 324.32876977608,
+											["ETA_locked"] = false,
+											["y"] = -105253.97475455,
+											["x"] = -113619.81392845,
+											["speed_locked"] = true,
+											["formation_template"] = "",
+										}, -- end of [2]
+										[3] = 
+										{
+											["alt"] = 2000,
+											["action"] = "Turning Point",
+											["alt_type"] = "BARO",
+											["speed"] = 220.97222222222,
+											["task"] = 
+											{
+												["id"] = "ComboTask",
+												["params"] = 
+												{
+													["tasks"] = 
+													{
+														[1] = 
+														{
+															["number"] = 1,
+															["auto"] = false,
+															["id"] = "WrappedAction",
+															["enabled"] = true,
+															["params"] = 
+															{
+																["action"] = 
+																{
+																	["id"] = "SwitchWaypoint",
+																	["params"] = 
+																	{
+																		["goToWaypointIndex"] = 2,
+																		["fromWaypointIndex"] = 3,
+																	}, -- end of ["params"]
+																}, -- end of ["action"]
+															}, -- end of ["params"]
+														}, -- end of [1]
+														[2] = 
+														{
+															["number"] = 2,
+															["auto"] = false,
+															["id"] = "WrappedAction",
+															["enabled"] = true,
+															["params"] = 
+															{
+																["action"] = 
+																{
+																	["id"] = "Option",
+																	["params"] = 
+																	{
+																		["value"] = 2,
+																		["name"] = 6,
+																	}, -- end of ["params"]
+																}, -- end of ["action"]
+															}, -- end of ["params"]
+														}, -- end of [2]
+													}, -- end of ["tasks"]
+												}, -- end of ["params"]
+											}, -- end of ["task"]
+											["type"] = "Turning Point",
+											["ETA"] = 878.50530532133,
+											["ETA_locked"] = false,
+											["y"] = 13691.974840531,
+											["x"] = -142735.61563199,
+											["speed_locked"] = true,
+											["formation_template"] = "",
+										}, -- end of [3]
+									}, -- end of ["points"]
+								}, -- end of ["route"]
+								["groupId"] = 11,
+								["hidden"] = false,
+								["units"] = 
+								{
+									[1] = 
+									{
+										["alt"] = 2000,
+										["alt_type"] = "BARO",
+										["livery_id"] = "nato",
+										["skill"] = "High",
+										["speed"] = 220.97222222222,
+										["AddPropAircraft"] = 
+										{
+											["VoiceCallsignLabel"] = "OD",
+											["VoiceCallsignNumber"] = "11",
+											["STN_L16"] = "00214",
+										}, -- end of ["AddPropAircraft"]
+										["type"] = "E-3A",
+										["unitId"] = 12,
+										["psi"] = -0.80098710093834,
+										["onboard_num"] = "011",
+										["y"] = -156714.46148638,
+										["x"] = -163500.37343606,
+										["name"] = "Aerial-2-1",
+										["payload"] = 
+										{
+											["pylons"] = {},
+											["fuel"] = "65000",
+											["flare"] = 60,
+											["chaff"] = 120,
+											["gun"] = 100,
+										}, -- end of ["payload"]
+										["heading"] = 0.80098710093834,
+										["callsign"] = 
+										{
+											[1] = 1,
+											[2] = 1,
+											["name"] = "Overlord11",
+											[3] = 1,
+										}, -- end of ["callsign"]
+									}, -- end of [1]
+								}, -- end of ["units"]
+								["y"] = -156714.46148638,
+								["x"] = -163500.37343606,
+								["name"] = "Aerial-2",
+								["communication"] = true,
+								["start_time"] = 0,
+								["frequency"] = 305,
+							}, -- end of [2]
+						}, -- end of ["group"]
+					}, -- end of ["plane"]
+				}, -- end of [1]
+			}, -- end of ["country"]
+		}, -- end of ["blue"]
+		["red"] = 
+		{
+			["bullseye"] = 
+			{
+				["y"] = 0,
+				["x"] = 0,
+			}, -- end of ["bullseye"]
+			["nav_points"] = {},
+			["name"] = "red",
+			["country"] = 
+			{
+				[1] = 
+				{
+					["helicopter"] = 
+					{
+						["group"] = 
+						{
+							[1] = 
+							{
+								["dynSpawnTemplate"] = false,
+								["modulation"] = 0,
+								["tasks"] = {},
+								["radioSet"] = false,
+								["task"] = "Transport",
+								["uncontrolled"] = false,
+								["route"] = 
+								{
+									["points"] = 
+									{
+										[1] = 
+										{
+											["alt"] = 3,
+											["action"] = "From Ground Area Hot",
+											["alt_type"] = "BARO",
+											["speed"] = 46.25,
+											["task"] = 
+											{
+												["id"] = "ComboTask",
+												["params"] = 
+												{
+													["tasks"] = {},
+												}, -- end of ["params"]
+											}, -- end of ["task"]
+											["type"] = "TakeOffGroundHot",
+											["ETA"] = 0,
+											["ETA_locked"] = true,
+											["y"] = -31215.273260592,
+											["x"] = 57244.636879983,
+											["speed_locked"] = true,
+											["formation_template"] = "",
+										}, -- end of [1]
+										[2] = 
+										{
+											["alt"] = 106.68,
+											["action"] = "Turning Point",
+											["alt_type"] = "BARO",
+											["speed"] = 46.25,
+											["task"] = 
+											{
+												["id"] = "ComboTask",
+												["params"] = 
+												{
+													["tasks"] = {},
+												}, -- end of ["params"]
+											}, -- end of ["task"]
+											["type"] = "Turning Point",
+											["ETA"] = 134.42042890245,
+											["ETA_locked"] = false,
+											["y"] = -37186.578838043,
+											["x"] = 58974.929573071,
+											["speed_locked"] = true,
+											["formation_template"] = "",
+										}, -- end of [2]
+										[3] = 
+										{
+											["alt"] = 106.68,
+											["action"] = "Turning Point",
+											["alt_type"] = "BARO",
+											["speed"] = 46.25,
+											["task"] = 
+											{
+												["id"] = "ComboTask",
+												["params"] = 
+												{
+													["tasks"] = {},
+												}, -- end of ["params"]
+											}, -- end of ["task"]
+											["type"] = "Turning Point",
+											["ETA"] = 882.90912815132,
+											["ETA_locked"] = false,
+											["y"] = -71777.931316383,
+											["x"] = 60322.789175414,
+											["speed_locked"] = true,
+											["formation_template"] = "",
+										}, -- end of [3]
+										[4] = 
+										{
+											["alt"] = 106.68,
+											["action"] = "Turning Point",
+											["alt_type"] = "BARO",
+											["speed"] = 46.25,
+											["task"] = 
+											{
+												["id"] = "ComboTask",
+												["params"] = 
+												{
+													["tasks"] = {},
+												}, -- end of ["params"]
+											}, -- end of ["task"]
+											["type"] = "Turning Point",
+											["ETA"] = 1441.302096125,
+											["ETA_locked"] = false,
+											["y"] = -97553.664646689,
+											["x"] = 59025.994316431,
+											["speed_locked"] = true,
+											["formation_template"] = "",
+										}, -- end of [4]
+										[5] = 
+										{
+											["alt"] = 106.68,
+											["action"] = "Turning Point",
+											["alt_type"] = "BARO",
+											["speed"] = 46.25,
+											["task"] = 
+											{
+												["id"] = "ComboTask",
+												["params"] = 
+												{
+													["tasks"] = {},
+												}, -- end of ["params"]
+											}, -- end of ["task"]
+											["type"] = "Turning Point",
+											["ETA"] = 1865.8619877848,
+											["ETA_locked"] = false,
+											["y"] = -115209.52266791,
+											["x"] = 50433.029195835,
+											["speed_locked"] = true,
+											["formation_template"] = "",
+										}, -- end of [5]
+										[6] = 
+										{
+											["alt"] = 23,
+											["action"] = "Landing",
+											["alt_type"] = "BARO",
+											["speed"] = 41.666666666667,
+											["task"] = 
+											{
+												["id"] = "ComboTask",
+												["params"] = 
+												{
+													["tasks"] = {},
+												}, -- end of ["params"]
+											}, -- end of ["task"]
+											["type"] = "Land",
+											["ETA"] = 2455.480520879,
+											["ETA_locked"] = false,
+											["y"] = -140987.327942,
+											["x"] = 41536.408234,
+											["speed_locked"] = true,
+											["formation_template"] = "",
+											["airdromeId"] = 3,
+										}, -- end of [6]
+									}, -- end of ["points"]
+								}, -- end of ["route"]
+								["groupId"] = 8,
+								["hidden"] = false,
+								["units"] = 
+								{
+									[1] = 
+									{
+										["alt"] = 3,
+										["hardpoint_racks"] = true,
+										["alt_type"] = "BARO",
+										["livery_id"] = "Russia_VVS_Standard",
+										["skill"] = "High",
+										["ropeLength"] = 15,
+										["speed"] = 46.25,
+										["AddPropAircraft"] = 
+										{
+											["ExhaustScreen"] = true,
+											["CargoHalfdoor"] = true,
+											["GunnersAISkill"] = 90,
+											["AdditionalArmor"] = true,
+											["NS430allow"] = true,
+										}, -- end of ["AddPropAircraft"]
+										["type"] = "Mi-8MT",
+										["unitId"] = 8,
+										["psi"] = -0,
+										["onboard_num"] = "010",
+										["y"] = -31215.273260592,
+										["x"] = 57244.636879983,
+										["name"] = "Rotary-1-1",
+										["payload"] = 
+										{
+											["pylons"] = {},
+											["fuel"] = "1929",
+											["flare"] = 128,
+											["chaff"] = 0,
+											["gun"] = 100,
+										}, -- end of ["payload"]
+										["heading"] = 0,
+										["callsign"] = 102,
+									}, -- end of [1]
+								}, -- end of ["units"]
+								["y"] = -31215.273260592,
+								["x"] = 57244.636879983,
+								["name"] = "Rotary-1",
+								["communication"] = true,
+								["start_time"] = 0,
+								["frequency"] = 127.5,
+							}, -- end of [1]
+						}, -- end of ["group"]
+					}, -- end of ["helicopter"]
+					["name"] = "Russia",
+					["ship"] = 
+					{
+						["group"] = 
+						{
+							[1] = 
+							{
+								["visible"] = false,
+								["tasks"] = {},
+								["uncontrollable"] = false,
+								["route"] = 
+								{
+									["points"] = 
+									{
+										[1] = 
+										{
+											["alt"] = 0,
+											["type"] = "Turning Point",
+											["ETA"] = 0,
+											["alt_type"] = "BARO",
+											["formation_template"] = "",
+											["y"] = -123861.65345745,
+											["x"] = 18146.404540114,
+											["ETA_locked"] = true,
+											["speed"] = 0,
+											["action"] = "Turning Point",
+											["task"] = 
+											{
+												["id"] = "ComboTask",
+												["params"] = 
+												{
+													["tasks"] = {},
+												}, -- end of ["params"]
+											}, -- end of ["task"]
+											["speed_locked"] = true,
+										}, -- end of [1]
+										[2] = 
+										{
+											["alt"] = 0,
+											["type"] = "Turning Point",
+											["ETA"] = 13.75314283136,
+											["alt_type"] = "BARO",
+											["formation_template"] = "",
+											["y"] = -31376.767609605,
+											["x"] = 56969.905118437,
+											["ETA_locked"] = false,
+											["speed"] = 7.20222,
+											["action"] = "Turning Point",
+											["task"] = 
+											{
+												["id"] = "ComboTask",
+												["params"] = 
+												{
+													["tasks"] = {},
+												}, -- end of ["params"]
+											}, -- end of ["task"]
+											["speed_locked"] = true,
+										}, -- end of [2]
+									}, -- end of ["points"]
+								}, -- end of ["route"]
+								["groupId"] = 7,
+								["hidden"] = false,
+								["units"] = 
+								{
+									[1] = 
+									{
+										["modulation"] = 0,
+										["skill"] = "Average",
+										["type"] = "CHAP_Project22160",
+										["unitId"] = 7,
+										["y"] = -123861.65345745,
+										["x"] = 18146.404540114,
+										["name"] = "Naval-1-1",
+										["heading"] = 1.1733535667967,
+										["frequency"] = 127500000,
+									}, -- end of [1]
+								}, -- end of ["units"]
+								["y"] = -123861.65345745,
+								["x"] = 18146.404540114,
+								["name"] = "Naval-1",
+								["start_time"] = 0,
+							}, -- end of [1]
+						}, -- end of ["group"]
+					}, -- end of ["ship"]
+					["id"] = 0,
+					["vehicle"] = 
+					{
+						["group"] = 
+						{
+							[1] = 
+							{
+								["visible"] = false,
+								["tasks"] = {},
+								["uncontrollable"] = false,
+								["task"] = "Ground Nothing",
+								["taskSelected"] = true,
+								["route"] = 
+								{
+									["spans"] = 
+									{
+										[1] = 
+										{
+											[127] = 
+											{
+												["y"] = -23365.552999307,
+												["x"] = 63533.586380274,
+											}, -- end of [127]
+											[158] = 
+											{
+												["y"] = -25477.650250277,
+												["x"] = 62265.227050715,
+											}, -- end of [158]
+											[190] = 
+											{
+												["y"] = -26643.96134652,
+												["x"] = 60833.458625438,
+											}, -- end of [190]
+											[222] = 
+											{
+												["y"] = -26653.811209979,
+												["x"] = 59701.861034326,
+											}, -- end of [222]
+											[1] = 
+											{
+												["y"] = -17877.355147227,
+												["x"] = 66921.826316617,
+											}, -- end of [1]
+											[2] = 
+											{
+												["y"] = -18230.537705488,
+												["x"] = 67032.047268299,
+											}, -- end of [2]
+											[3] = 
+											{
+												["y"] = -18249.984551566,
+												["x"] = 67036.702751316,
+											}, -- end of [3]
+											[4] = 
+											{
+												["y"] = -18264.758671864,
+												["x"] = 67039.292348656,
+											}, -- end of [4]
+											[5] = 
+											{
+												["y"] = -18279.658552126,
+												["x"] = 67040.991929189,
+											}, -- end of [5]
+											[6] = 
+											{
+												["y"] = -18289.64803838,
+												["x"] = 67041.409302193,
+											}, -- end of [6]
+											[7] = 
+											{
+												["y"] = -18299.646072703,
+												["x"] = 67041.275919595,
+											}, -- end of [7]
+											[8] = 
+											{
+												["y"] = -18314.612005579,
+												["x"] = 67040.295291856,
+											}, -- end of [8]
+											[10] = 
+											{
+												["y"] = -18369.021165951,
+												["x"] = 67032.405380415,
+											}, -- end of [10]
+											[12] = 
+											{
+												["y"] = -18407.840600544,
+												["x"] = 67022.843876959,
+											}, -- end of [12]
+											[14] = 
+											{
+												["y"] = -18435.920392382,
+												["x"] = 67012.334557647,
+											}, -- end of [14]
+											[16] = 
+											{
+												["y"] = -18462.516398668,
+												["x"] = 66998.493935533,
+											}, -- end of [16]
+											[20] = 
+											{
+												["y"] = -18517.39017762,
+												["x"] = 66955.287772948,
+											}, -- end of [20]
+											[24] = 
+											{
+												["y"] = -19358.044682208,
+												["x"] = 65817.533819761,
+											}, -- end of [24]
+											[28] = 
+											{
+												["y"] = -19451.334316134,
+												["x"] = 65720.282085483,
+											}, -- end of [28]
+											[32] = 
+											{
+												["y"] = -19553.621171186,
+												["x"] = 65657.881474832,
+											}, -- end of [32]
+											[40] = 
+											{
+												["y"] = -20008.089245475,
+												["x"] = 65457.233411997,
+											}, -- end of [40]
+											[48] = 
+											{
+												["y"] = -21157.102648631,
+												["x"] = 64666.933937821,
+											}, -- end of [48]
+											[56] = 
+											{
+												["y"] = -21386.227439283,
+												["x"] = 64317.235543964,
+											}, -- end of [56]
+											[64] = 
+											{
+												["y"] = -21666.304740137,
+												["x"] = 64086.164740707,
+											}, -- end of [64]
+											[80] = 
+											{
+												["y"] = -22448.659306032,
+												["x"] = 63818.593528663,
+											}, -- end of [80]
+											[96] = 
+											{
+												["y"] = -22618.323209611,
+												["x"] = 63788.76881554,
+											}, -- end of [96]
+											[112] = 
+											{
+												["y"] = -23042.153999174,
+												["x"] = 63644.776396572,
+											}, -- end of [112]
+											[128] = 
+											{
+												["y"] = -23372.845227806,
+												["x"] = 63526.746210586,
+											}, -- end of [128]
+											[160] = 
+											{
+												["y"] = -25484.833905863,
+												["x"] = 62258.296493616,
+											}, -- end of [160]
+											[192] = 
+											{
+												["y"] = -26620.790643975,
+												["x"] = 60778.145009881,
+											}, -- end of [192]
+											[224] = 
+											{
+												["y"] = -27239.676312931,
+												["x"] = 59142.620302729,
+											}, -- end of [224]
+											[256] = 
+											{
+												["y"] = -30721.64455163,
+												["x"] = 57962.152417468,
+											}, -- end of [256]
+											[257] = 
+											{
+												["y"] = -30710.24842744,
+												["x"] = 57939.903820898,
+											}, -- end of [257]
+											[129] = 
+											{
+												["y"] = -23380.533291807,
+												["x"] = 63520.353462416,
+											}, -- end of [129]
+											[161] = 
+											{
+												["y"] = -25488.839951352,
+												["x"] = 62255.305447325,
+											}, -- end of [161]
+											[193] = 
+											{
+												["y"] = -26604.776514712,
+												["x"] = 60747.027678045,
+											}, -- end of [193]
+											[225] = 
+											{
+												["y"] = -27352.934668353,
+												["x"] = 59044.287842238,
+											}, -- end of [225]
+											[258] = 
+											{
+												["y"] = -30692.642576674,
+												["x"] = 57909.659105669,
+											}, -- end of [258]
+											[65] = 
+											{
+												["y"] = -21717.988893264,
+												["x"] = 64055.702034861,
+											}, -- end of [65]
+											[81] = 
+											{
+												["y"] = -22471.946212697,
+												["x"] = 63827.685151413,
+											}, -- end of [81]
+											[97] = 
+											{
+												["y"] = -22623.823847894,
+												["x"] = 63780.420004359,
+											}, -- end of [97]
+											[113] = 
+											{
+												["y"] = -23072.076425419,
+												["x"] = 63642.67451805,
+											}, -- end of [113]
+											[130] = 
+											{
+												["y"] = -23388.54951141,
+												["x"] = 63514.377139958,
+											}, -- end of [130]
+											[162] = 
+											{
+												["y"] = -25493.017930602,
+												["x"] = 62252.560035541,
+											}, -- end of [162]
+											[194] = 
+											{
+												["y"] = -26582.181091958,
+												["x"] = 60708.117745812,
+											}, -- end of [194]
+											[226] = 
+											{
+												["y"] = -27697.514503866,
+												["x"] = 58804.236757737,
+											}, -- end of [226]
+											[260] = 
+											{
+												["y"] = -30627.313654367,
+												["x"] = 57803.163142061,
+											}, -- end of [260]
+											[261] = 
+											{
+												["y"] = -30623.544750374,
+												["x"] = 57793.904975804,
+											}, -- end of [261]
+											[131] = 
+											{
+												["y"] = -23401.030912588,
+												["x"] = 63506.062106911,
+											}, -- end of [131]
+											[163] = 
+											{
+												["y"] = -25501.72524952,
+												["x"] = 62247.647588359,
+											}, -- end of [163]
+											[195] = 
+											{
+												["y"] = -26541.515874844,
+												["x"] = 60645.107338371,
+											}, -- end of [195]
+											[227] = 
+											{
+												["y"] = -27899.566729158,
+												["x"] = 58640.790850819,
+											}, -- end of [227]
+											[262] = 
+											{
+												["y"] = -30622.085754241,
+												["x"] = 57789.124373663,
+											}, -- end of [262]
+											[33] = 
+											{
+												["y"] = -19576.30677135,
+												["x"] = 65647.384125686,
+											}, -- end of [33]
+											[41] = 
+											{
+												["y"] = -20058.398275104,
+												["x"] = 65416.085469428,
+											}, -- end of [41]
+											[49] = 
+											{
+												["y"] = -21185.127408277,
+												["x"] = 64638.396755302,
+											}, -- end of [49]
+											[57] = 
+											{
+												["y"] = -21394.998486105,
+												["x"] = 64305.06897844,
+											}, -- end of [57]
+											[66] = 
+											{
+												["y"] = -21806.130522854,
+												["x"] = 64008.481669655,
+											}, -- end of [66]
+											[82] = 
+											{
+												["y"] = -22485.525262659,
+												["x"] = 63834.046897792,
+											}, -- end of [82]
+											[98] = 
+											{
+												["y"] = -22629.977249443,
+												["x"] = 63772.541127327,
+											}, -- end of [98]
+											[114] = 
+											{
+												["y"] = -23107.06740034,
+												["x"] = 63642.037314064,
+											}, -- end of [114]
+											[132] = 
+											{
+												["y"] = -23418.210876769,
+												["x"] = 63495.824732809,
+											}, -- end of [132]
+											[164] = 
+											{
+												["y"] = -25510.732871035,
+												["x"] = 62243.308183195,
+											}, -- end of [164]
+											[196] = 
+											{
+												["y"] = -26512.424064421,
+												["x"] = 60604.449276494,
+											}, -- end of [196]
+											[228] = 
+											{
+												["y"] = -27952.365165261,
+												["x"] = 58602.889143467,
+											}, -- end of [228]
+											[264] = 
+											{
+												["y"] = -30620.365136672,
+												["x"] = 57779.284281578,
+											}, -- end of [264]
+											[265] = 
+											{
+												["y"] = -30585.969112625,
+												["x"] = 57420.933989318,
+											}, -- end of [265]
+											[133] = 
+											{
+												["y"] = -23453.618445714,
+												["x"] = 63477.224059426,
+											}, -- end of [133]
+											[165] = 
+											{
+												["y"] = -25556.071349023,
+												["x"] = 62222.25148608,
+											}, -- end of [165]
+											[197] = 
+											{
+												["y"] = -26484.238712826,
+												["x"] = 60569.375354963,
+											}, -- end of [197]
+											[229] = 
+											{
+												["y"] = -27977.710098815,
+												["x"] = 58586.846860381,
+											}, -- end of [229]
+											[266] = 
+											{
+												["y"] = -30585.833860701,
+												["x"] = 57410.937982203,
+											}, -- end of [266]
+											[67] = 
+											{
+												["y"] = -21833.373390223,
+												["x"] = 63995.930581205,
+											}, -- end of [67]
+											[83] = 
+											{
+												["y"] = -22503.175732813,
+												["x"] = 63843.448576785,
+											}, -- end of [83]
+											[99] = 
+											{
+												["y"] = -22633.326267904,
+												["x"] = 63768.829435335,
+											}, -- end of [99]
+											[115] = 
+											{
+												["y"] = -23207.011959964,
+												["x"] = 63645.147166317,
+											}, -- end of [115]
+											[134] = 
+											{
+												["y"] = -23542.911308337,
+												["x"] = 63432.222215641,
+											}, -- end of [134]
+											[166] = 
+											{
+												["y"] = -25577.92676407,
+												["x"] = 62210.11781457,
+											}, -- end of [166]
+											[198] = 
+											{
+												["y"] = -26449.494498005,
+												["x"] = 60526.74719056,
+											}, -- end of [198]
+											[230] = 
+											{
+												["y"] = -28952.603110359,
+												["x"] = 58056.143055991,
+											}, -- end of [230]
+											[268] = 
+											{
+												["y"] = -30587.160291886,
+												["x"] = 57390.989624144,
+											}, -- end of [268]
+											[269] = 
+											{
+												["y"] = -30588.035516317,
+												["x"] = 57386.069635733,
+											}, -- end of [269]
+											[135] = 
+											{
+												["y"] = -23551.500821556,
+												["x"] = 63427.104195415,
+											}, -- end of [135]
+											[167] = 
+											{
+												["y"] = -25607.662396107,
+												["x"] = 62191.664342383,
+											}, -- end of [167]
+											[199] = 
+											{
+												["y"] = -26437.848469448,
+												["x"] = 60510.492720408,
+											}, -- end of [199]
+											[231] = 
+											{
+												["y"] = -29111.905458335,
+												["x"] = 57972.369638586,
+											}, -- end of [231]
+											[17] = 
+											{
+												["y"] = -18475.130023857,
+												["x"] = 66990.380566546,
+											}, -- end of [17]
+											[21] = 
+											{
+												["y"] = -18531.254858615,
+												["x"] = 66940.876666995,
+											}, -- end of [21]
+											[25] = 
+											{
+												["y"] = -19397.283472496,
+												["x"] = 65772.15129567,
+											}, -- end of [25]
+											[29] = 
+											{
+												["y"] = -19467.40140634,
+												["x"] = 65708.376016101,
+											}, -- end of [29]
+											[34] = 
+											{
+												["y"] = -19599.568719121,
+												["x"] = 65638.234397178,
+											}, -- end of [34]
+											[42] = 
+											{
+												["y"] = -20319.953156587,
+												["x"] = 65183.621650585,
+											}, -- end of [42]
+											[50] = 
+											{
+												["y"] = -21208.47191303,
+												["x"] = 64612.324038646,
+											}, -- end of [50]
+											[58] = 
+											{
+												["y"] = -21407.550714889,
+												["x"] = 64289.501696491,
+											}, -- end of [58]
+											[68] = 
+											{
+												["y"] = -22201.827578101,
+												["x"] = 63853.593061171,
+											}, -- end of [68]
+											[84] = 
+											{
+												["y"] = -22524.631812432,
+												["x"] = 63856.273037416,
+											}, -- end of [84]
+											[100] = 
+											{
+												["y"] = -22636.866144895,
+												["x"] = 63765.29847967,
+											}, -- end of [100]
+											[116] = 
+											{
+												["y"] = -23251.89323812,
+												["x"] = 63648.321019483,
+											}, -- end of [116]
+											[136] = 
+											{
+												["y"] = -23559.796424642,
+												["x"] = 63421.521555875,
+											}, -- end of [136]
+											[168] = 
+											{
+												["y"] = -25640.529524421,
+												["x"] = 62168.873284054,
+											}, -- end of [168]
+											[200] = 
+											{
+												["y"] = -26424.342592974,
+												["x"] = 60489.450967346,
+											}, -- end of [200]
+											[232] = 
+											{
+												["y"] = -29139.301403481,
+												["x"] = 57960.154932574,
+											}, -- end of [232]
+											[272] = 
+											{
+												["y"] = -30593.051099904,
+												["x"] = 57371.976066415,
+											}, -- end of [272]
+											[273] = 
+											{
+												["y"] = -30595.493458828,
+												["x"] = 57367.614933831,
+											}, -- end of [273]
+											[137] = 
+											{
+												["y"] = -23567.790343483,
+												["x"] = 63415.515015348,
+											}, -- end of [137]
+											[169] = 
+											{
+												["y"] = -25756.069581423,
+												["x"] = 62081.271777311,
+											}, -- end of [169]
+											[201] = 
+											{
+												["y"] = -26421.944080091,
+												["x"] = 60485.065349517,
+											}, -- end of [201]
+											[233] = 
+											{
+												["y"] = -29158.043292346,
+												["x"] = 57953.183308258,
+											}, -- end of [233]
+											[274] = 
+											{
+												["y"] = -30598.266465035,
+												["x"] = 57363.454683185,
+											}, -- end of [274]
+											[69] = 
+											{
+												["y"] = -22296.186128908,
+												["x"] = 63820.512307685,
+											}, -- end of [69]
+											[85] = 
+											{
+												["y"] = -22566.561638701,
+												["x"] = 63883.471099913,
+											}, -- end of [85]
+											[101] = 
+											{
+												["y"] = -22640.593654698,
+												["x"] = 63761.967631249,
+											}, -- end of [101]
+											[117] = 
+											{
+												["y"] = -23261.759401522,
+												["x"] = 63649.929785928,
+											}, -- end of [117]
+											[138] = 
+											{
+												["y"] = -23575.450709506,
+												["x"] = 63409.089537737,
+											}, -- end of [138]
+											[170] = 
+											{
+												["y"] = -25771.180970429,
+												["x"] = 62068.176199949,
+											}, -- end of [170]
+											[202] = 
+											{
+												["y"] = -26419.842091106,
+												["x"] = 60480.534573024,
+											}, -- end of [202]
+											[234] = 
+											{
+												["y"] = -29177.182975843,
+												["x"] = 57947.390260602,
+											}, -- end of [234]
+											[276] = 
+											{
+												["y"] = -30604.620918612,
+												["x"] = 57355.743272634,
+											}, -- end of [276]
+											[277] = 
+											{
+												["y"] = -30608.120896379,
+												["x"] = 57352.173323779,
+											}, -- end of [277]
+											[139] = 
+											{
+												["y"] = -23582.761490088,
+												["x"] = 63402.268375273,
+											}, -- end of [139]
+											[171] = 
+											{
+												["y"] = -25785.515981594,
+												["x"] = 62054.232883613,
+											}, -- end of [171]
+											[203] = 
+											{
+												["y"] = -26418.078873631,
+												["x"] = 60475.856456404,
+											}, -- end of [203]
+											[235] = 
+											{
+												["y"] = -29196.606760577,
+												["x"] = 57942.631476692,
+											}, -- end of [235]
+											[278] = 
+											{
+												["y"] = -30615.600971007,
+												["x"] = 57345.540999472,
+											}, -- end of [278]
+											[35] = 
+											{
+												["y"] = -19855.038465963,
+												["x"] = 65551.071974552,
+											}, -- end of [35]
+											[43] = 
+											{
+												["y"] = -20352.174749652,
+												["x"] = 65159.92640935,
+											}, -- end of [43]
+											[51] = 
+											{
+												["y"] = -21224.18955791,
+												["x"] = 64592.887847458,
+											}, -- end of [51]
+											[59] = 
+											{
+												["y"] = -21420.931142887,
+												["x"] = 64274.639939473,
+											}, -- end of [59]
+											[70] = 
+											{
+												["y"] = -22320.214672584,
+												["x"] = 63813.621252298,
+											}, -- end of [70]
+											[86] = 
+											{
+												["y"] = -22570.952928213,
+												["x"] = 63881.920763484,
+											}, -- end of [86]
+											[102] = 
+											{
+												["y"] = -22644.502059793,
+												["x"] = 63758.849991558,
+											}, -- end of [102]
+											[118] = 
+											{
+												["y"] = -23266.590453807,
+												["x"] = 63651.208178008,
+											}, -- end of [118]
+											[140] = 
+											{
+												["y"] = -23593.15756521,
+												["x"] = 63391.457829656,
+											}, -- end of [140]
+											[172] = 
+											{
+												["y"] = -25802.494635309,
+												["x"] = 62035.888327664,
+											}, -- end of [172]
+											[204] = 
+											{
+												["y"] = -26416.645028242,
+												["x"] = 60471.066754735,
+											}, -- end of [204]
+											[236] = 
+											{
+												["y"] = -29221.186880653,
+												["x"] = 57938.086455794,
+											}, -- end of [236]
+											[280] = 
+											{
+												["y"] = -30631.869077776,
+												["x"] = 57333.929374377,
+											}, -- end of [280]
+											[281] = 
+											{
+												["y"] = -30644.738386202,
+												["x"] = 57326.226640289,
+											}, -- end of [281]
+											[141] = 
+											{
+												["y"] = -23609.399641326,
+												["x"] = 63372.456062275,
+											}, -- end of [141]
+											[173] = 
+											{
+												["y"] = -26593.012869355,
+												["x"] = 61093.593511024,
+											}, -- end of [173]
+											[205] = 
+											{
+												["y"] = -26415.51199948,
+												["x"] = 60466.198091124,
+											}, -- end of [205]
+											[237] = 
+											{
+												["y"] = -29255.855658015,
+												["x"] = 57933.305723729,
+											}, -- end of [237]
+											[282] = 
+											{
+												["y"] = -30666.81093197,
+												["x"] = 57314.491422624,
+											}, -- end of [282]
+											[71] = 
+											{
+												["y"] = -22334.844355761,
+												["x"] = 63810.319335775,
+											}, -- end of [71]
+											[87] = 
+											{
+												["y"] = -22574.159204197,
+												["x"] = 63878.002238507,
+											}, -- end of [87]
+											[103] = 
+											{
+												["y"] = -22648.578688344,
+												["x"] = 63755.955786553,
+											}, -- end of [103]
+											[119] = 
+											{
+												["y"] = -23271.277772426,
+												["x"] = 63652.944765374,
+											}, -- end of [119]
+											[142] = 
+											{
+												["y"] = -23923.995216803,
+												["x"] = 62977.475576912,
+											}, -- end of [142]
+											[174] = 
+											{
+												["y"] = -26626.558249524,
+												["x"] = 61050.016062203,
+											}, -- end of [174]
+											[206] = 
+											{
+												["y"] = -26414.637086928,
+												["x"] = 60461.276431747,
+											}, -- end of [206]
+											[238] = 
+											{
+												["y"] = -29285.74239966,
+												["x"] = 57930.751651398,
+											}, -- end of [238]
+											[284] = 
+											{
+												["y"] = -30978.926637836,
+												["x"] = 57179.743031173,
+											}, -- end of [284]
+											[285] = 
+											{
+												["y"] = -30988.427431294,
+												["x"] = 57176.626288475,
+											}, -- end of [285]
+											[9] = 
+											{
+												["y"] = -18339.438008201,
+												["x"] = 67037.373536272,
+											}, -- end of [9]
+											[11] = 
+											{
+												["y"] = -18393.411089604,
+												["x"] = 67026.936039703,
+											}, -- end of [11]
+											[13] = 
+											{
+												["y"] = -18422.036039833,
+												["x"] = 67018.003722943,
+											}, -- end of [13]
+											[15] = 
+											{
+												["y"] = -18449.429840044,
+												["x"] = 67005.819852154,
+											}, -- end of [15]
+											[18] = 
+											{
+												["y"] = -18487.257899106,
+												["x"] = 66981.557061888,
+											}, -- end of [18]
+											[22] = 
+											{
+												["y"] = -18547.637786811,
+												["x"] = 66921.996319228,
+											}, -- end of [22]
+											[26] = 
+											{
+												["y"] = -19421.464842627,
+												["x"] = 65746.850979291,
+											}, -- end of [26]
+											[30] = 
+											{
+												["y"] = -19488.25002513,
+												["x"] = 65694.584510274,
+											}, -- end of [30]
+											[36] = 
+											{
+												["y"] = -19877.743667931,
+												["x"] = 65540.616418557,
+											}, -- end of [36]
+											[44] = 
+											{
+												["y"] = -20398.055240239,
+												["x"] = 65129.605079331,
+											}, -- end of [44]
+											[52] = 
+											{
+												["y"] = -21238.865198907,
+												["x"] = 64572.651184869,
+											}, -- end of [52]
+											[60] = 
+											{
+												["y"] = -21438.575388631,
+												["x"] = 64256.932637511,
+											}, -- end of [60]
+											[72] = 
+											{
+												["y"] = -22344.71564267,
+												["x"] = 63808.730027344,
+											}, -- end of [72]
+											[88] = 
+											{
+												["y"] = -22582.66524416,
+												["x"] = 63865.648975364,
+											}, -- end of [88]
+											[104] = 
+											{
+												["y"] = -22652.807637116,
+												["x"] = 63753.290129423,
+											}, -- end of [104]
+											[120] = 
+											{
+												["y"] = -23275.790629025,
+												["x"] = 63655.093648789,
+											}, -- end of [120]
+											[144] = 
+											{
+												["y"] = -24035.821604216,
+												["x"] = 62870.226329036,
+											}, -- end of [144]
+											[176] = 
+											{
+												["y"] = -26648.79751217,
+												["x"] = 61016.791910795,
+											}, -- end of [176]
+											[208] = 
+											{
+												["y"] = -26412.747369654,
+												["x"] = 60436.36660308,
+											}, -- end of [208]
+											[240] = 
+											{
+												["y"] = -29350.712429742,
+												["x"] = 57930.485710396,
+											}, -- end of [240]
+											[145] = 
+											{
+												["y"] = -24080.984970427,
+												["x"] = 62830.736458437,
+											}, -- end of [145]
+											[177] = 
+											{
+												["y"] = -26653.486850124,
+												["x"] = 61007.960609331,
+											}, -- end of [177]
+											[209] = 
+											{
+												["y"] = -26412.825434922,
+												["x"] = 60421.367060922,
+											}, -- end of [209]
+											[241] = 
+											{
+												["y"] = -29390.602471496,
+												["x"] = 57933.394485876,
+											}, -- end of [241]
+											[73] = 
+											{
+												["y"] = -22354.673315063,
+												["x"] = 63807.851975339,
+											}, -- end of [73]
+											[89] = 
+											{
+												["y"] = -22587.745112681,
+												["x"] = 63857.036879756,
+											}, -- end of [89]
+											[105] = 
+											{
+												["y"] = -22657.170891839,
+												["x"] = 63750.850407354,
+											}, -- end of [105]
+											[121] = 
+											{
+												["y"] = -23285.017702191,
+												["x"] = 63658.822128462,
+											}, -- end of [121]
+											[146] = 
+											{
+												["y"] = -24092.994133824,
+												["x"] = 62821.752583607,
+											}, -- end of [146]
+											[178] = 
+											{
+												["y"] = -26657.658213897,
+												["x"] = 60998.874043815,
+											}, -- end of [178]
+											[210] = 
+											{
+												["y"] = -26413.624826449,
+												["x"] = 60406.389267754,
+											}, -- end of [210]
+											[242] = 
+											{
+												["y"] = -29450.126706867,
+												["x"] = 57940.886228175,
+											}, -- end of [242]
+											[147] = 
+											{
+												["y"] = -24101.331320022,
+												["x"] = 62816.232987486,
+											}, -- end of [147]
+											[179] = 
+											{
+												["y"] = -26661.201730874,
+												["x"] = 60989.525343257,
+											}, -- end of [179]
+											[211] = 
+											{
+												["y"] = -26415.241111058,
+												["x"] = 60391.48011506,
+											}, -- end of [211]
+											[243] = 
+											{
+												["y"] = -30559.08965958,
+												["x"] = 58096.149768056,
+											}, -- end of [243]
+											[37] = 
+											{
+												["y"] = -19904.308529475,
+												["x"] = 65526.683143556,
+											}, -- end of [37]
+											[45] = 
+											{
+												["y"] = -21103.700375487,
+												["x"] = 64712.063081534,
+											}, -- end of [45]
+											[53] = 
+											{
+												["y"] = -21252.376085704,
+												["x"] = 64551.62122493,
+											}, -- end of [53]
+											[61] = 
+											{
+												["y"] = -21472.085911241,
+												["x"] = 64226.904622273,
+											}, -- end of [61]
+											[74] = 
+											{
+												["y"] = -22364.671770334,
+												["x"] = 63807.718836321,
+											}, -- end of [74]
+											[90] = 
+											{
+												["y"] = -22589.993234643,
+												["x"] = 63852.572652259,
+											}, -- end of [90]
+											[106] = 
+											{
+												["y"] = -22666.195336248,
+												["x"] = 63746.547467395,
+											}, -- end of [106]
+											[122] = 
+											{
+												["y"] = -23288.977831722,
+												["x"] = 63656.353763139,
+											}, -- end of [122]
+											[148] = 
+											{
+												["y"] = -24109.960999802,
+												["x"] = 62811.183437626,
+											}, -- end of [148]
+											[180] = 
+											{
+												["y"] = -26664.010883871,
+												["x"] = 60979.930425074,
+											}, -- end of [180]
+											[212] = 
+											{
+												["y"] = -26416.890394515,
+												["x"] = 60381.620051032,
+											}, -- end of [212]
+											[244] = 
+											{
+												["y"] = -30738.367632998,
+												["x"] = 58112.922201607,
+											}, -- end of [244]
+											[149] = 
+											{
+												["y"] = -24118.864438411,
+												["x"] = 62806.633013258,
+											}, -- end of [149]
+											[181] = 
+											{
+												["y"] = -26665.072738124,
+												["x"] = 60975.045278688,
+											}, -- end of [181]
+											[213] = 
+											{
+												["y"] = -26420.242642436,
+												["x"] = 60367.000252451,
+											}, -- end of [213]
+											[245] = 
+											{
+												["y"] = -30743.103968404,
+												["x"] = 58111.915055186,
+											}, -- end of [245]
+											[75] = 
+											{
+												["y"] = -22389.647434711,
+												["x"] = 63808.758581102,
+											}, -- end of [75]
+											[91] = 
+											{
+												["y"] = -22592.002546105,
+												["x"] = 63847.996151747,
+											}, -- end of [91]
+											[107] = 
+											{
+												["y"] = -22675.481125495,
+												["x"] = 63742.839450129,
+											}, -- end of [107]
+											[123] = 
+											{
+												["y"] = -23291.709309571,
+												["x"] = 63652.132338055,
+											}, -- end of [123]
+											[150] = 
+											{
+												["y"] = -24132.593209678,
+												["x"] = 62800.596002698,
+											}, -- end of [150]
+											[182] = 
+											{
+												["y"] = -26666.643165464,
+												["x"] = 60965.170457492,
+											}, -- end of [182]
+											[214] = 
+											{
+												["y"] = -26566.57586806,
+												["x"] = 59857.615527572,
+											}, -- end of [214]
+											[246] = 
+											{
+												["y"] = -30745.152459203,
+												["x"] = 58107.508125001,
+											}, -- end of [246]
+											[151] = 
+											{
+												["y"] = -25432.521501169,
+												["x"] = 62308.544572663,
+											}, -- end of [151]
+											[183] = 
+											{
+												["y"] = -26668.078185918,
+												["x"] = 60950.24206387,
+											}, -- end of [183]
+											[215] = 
+											{
+												["y"] = -26576.323821035,
+												["x"] = 59829.245205871,
+											}, -- end of [215]
+											[247] = 
+											{
+												["y"] = -30745.79098378,
+												["x"] = 58102.516345161,
+											}, -- end of [247]
+											[19] = 
+											{
+												["y"] = -18502.727476825,
+												["x"] = 66968.884036036,
+											}, -- end of [19]
+											[23] = 
+											{
+												["y"] = -18581.429862775,
+												["x"] = 66878.608289259,
+											}, -- end of [23]
+											[27] = 
+											{
+												["y"] = -19436.019638625,
+												["x"] = 65733.138599069,
+											}, -- end of [27]
+											[31] = 
+											{
+												["y"] = -19522.667623801,
+												["x"] = 65674.210302163,
+											}, -- end of [31]
+											[38] = 
+											{
+												["y"] = -19934.472312677,
+												["x"] = 65508.938273535,
+											}, -- end of [38]
+											[46] = 
+											{
+												["y"] = -21119.766930347,
+												["x"] = 64700.158961685,
+											}, -- end of [46]
+											[54] = 
+											{
+												["y"] = -21284.364520114,
+												["x"] = 64495.042398221,
+											}, -- end of [54]
+											[62] = 
+											{
+												["y"] = -21506.940219319,
+												["x"] = 64198.450364281,
+											}, -- end of [62]
+											[76] = 
+											{
+												["y"] = -22409.554413689,
+												["x"] = 63810.646058106,
+											}, -- end of [76]
+											[92] = 
+											{
+												["y"] = -22595.497385254,
+												["x"] = 63838.626871223,
+											}, -- end of [92]
+											[108] = 
+											{
+												["y"] = -22689.702902749,
+												["x"] = 63738.075031261,
+											}, -- end of [108]
+											[124] = 
+											{
+												["y"] = -23346.52589306,
+												["x"] = 63556.720465813,
+											}, -- end of [124]
+											[152] = 
+											{
+												["y"] = -25450.410604655,
+												["x"] = 62299.605335284,
+											}, -- end of [152]
+											[184] = 
+											{
+												["y"] = -26668.361462488,
+												["x"] = 60940.249488993,
+											}, -- end of [184]
+											[216] = 
+											{
+												["y"] = -26583.897785827,
+												["x"] = 59810.739953405,
+											}, -- end of [216]
+											[248] = 
+											{
+												["y"] = -30748.288771087,
+												["x"] = 58072.623386019,
+											}, -- end of [248]
+											[153] = 
+											{
+												["y"] = -25459.039506886,
+												["x"] = 62294.529409539,
+											}, -- end of [153]
+											[185] = 
+											{
+												["y"] = -26668.012409491,
+												["x"] = 60930.258302263,
+											}, -- end of [185]
+											[217] = 
+											{
+												["y"] = -26594.696870547,
+												["x"] = 59788.19866884,
+											}, -- end of [217]
+											[249] = 
+											{
+												["y"] = -30748.643986808,
+												["x"] = 58057.629919713,
+											}, -- end of [249]
+											[77] = 
+											{
+												["y"] = -22429.337282789,
+												["x"] = 63813.576381564,
+											}, -- end of [77]
+											[93] = 
+											{
+												["y"] = -22602.213998817,
+												["x"] = 63819.79084077,
+											}, -- end of [93]
+											[109] = 
+											{
+												["y"] = -22958.66775277,
+												["x"] = 63660.260173804,
+											}, -- end of [109]
+											[125] = 
+											{
+												["y"] = -23352.371520823,
+												["x"] = 63548.609157071,
+											}, -- end of [125]
+											[154] = 
+											{
+												["y"] = -25462.628444441,
+												["x"] = 62291.098170423,
+											}, -- end of [154]
+											[186] = 
+											{
+												["y"] = -26667.07666039,
+												["x"] = 60920.301798749,
+											}, -- end of [186]
+											[218] = 
+											{
+												["y"] = -26609.047417952,
+												["x"] = 59761.85586231,
+											}, -- end of [218]
+											[250] = 
+											{
+												["y"] = -30748.260415287,
+												["x"] = 58047.637157621,
+											}, -- end of [250]
+											[155] = 
+											{
+												["y"] = -25465.420009992,
+												["x"] = 62286.974859115,
+											}, -- end of [155]
+											[187] = 
+											{
+												["y"] = -26665.598452823,
+												["x"] = 60910.413865364,
+											}, -- end of [187]
+											[219] = 
+											{
+												["y"] = -26616.938731858,
+												["x"] = 59749.100813879,
+											}, -- end of [219]
+											[251] = 
+											{
+												["y"] = -30747.188017299,
+												["x"] = 58037.699145792,
+											}, -- end of [251]
+											[39] = 
+											{
+												["y"] = -19967.849848859,
+												["x"] = 65486.902311124,
+											}, -- end of [39]
+											[47] = 
+											{
+												["y"] = -21135.1237543,
+												["x"] = 64687.34882229,
+											}, -- end of [47]
+											[55] = 
+											{
+												["y"] = -21364.657020779,
+												["x"] = 64350.915988546,
+											}, -- end of [55]
+											[63] = 
+											{
+												["y"] = -21603.981377463,
+												["x"] = 64127.872599775,
+											}, -- end of [63]
+											[78] = 
+											{
+												["y"] = -22439.133439784,
+												["x"] = 63815.57677732,
+											}, -- end of [78]
+											[94] = 
+											{
+												["y"] = -22606.219359669,
+												["x"] = 63810.629632232,
+											}, -- end of [94]
+											[110] = 
+											{
+												["y"] = -22992.747381989,
+												["x"] = 63652.301892674,
+											}, -- end of [110]
+											[126] = 
+											{
+												["y"] = -23358.717018697,
+												["x"] = 63540.882187989,
+											}, -- end of [126]
+											[156] = 
+											{
+												["y"] = -25467.752945302,
+												["x"] = 62282.542329597,
+											}, -- end of [156]
+											[188] = 
+											{
+												["y"] = -26662.482901873,
+												["x"] = 60895.742686851,
+											}, -- end of [188]
+											[220] = 
+											{
+												["y"] = -26628.316265302,
+												["x"] = 59732.65529665,
+											}, -- end of [220]
+											[252] = 
+											{
+												["y"] = -30745.414995425,
+												["x"] = 58027.858391422,
+											}, -- end of [252]
+											[143] = 
+											{
+												["y"] = -23951.755466514,
+												["x"] = 62948.684509695,
+											}, -- end of [143]
+											[286] = 
+											{
+												["y"] = -31031.876256012,
+												["x"] = 57164.926949488,
+											}, -- end of [286]
+											[283] = 
+											{
+												["y"] = -30712.067500384,
+												["x"] = 57293.244904191,
+											}, -- end of [283]
+											[279] = 
+											{
+												["y"] = -30623.563399982,
+												["x"] = 57339.494408497,
+											}, -- end of [279]
+											[159] = 
+											{
+												["y"] = -25481.06960942,
+												["x"] = 62261.584528236,
+											}, -- end of [159]
+											[175] = 
+											{
+												["y"] = -26643.627913846,
+												["x"] = 61025.350739137,
+											}, -- end of [175]
+											[191] = 
+											{
+												["y"] = -26633.122922476,
+												["x"] = 60805.488733243,
+											}, -- end of [191]
+											[207] = 
+											{
+												["y"] = -26413.488105714,
+												["x"] = 60451.34600343,
+											}, -- end of [207]
+											[223] = 
+											{
+												["y"] = -26696.081858163,
+												["x"] = 59659.286522517,
+											}, -- end of [223]
+											[239] = 
+											{
+												["y"] = -29315.723777144,
+												["x"] = 57929.778954954,
+											}, -- end of [239]
+											[157] = 
+											{
+												["y"] = -25474.670853995,
+												["x"] = 62269.239295305,
+											}, -- end of [157]
+											[189] = 
+											{
+												["y"] = -26651.739660222,
+												["x"] = 60857.215366093,
+											}, -- end of [189]
+											[221] = 
+											{
+												["y"] = -26640.627163992,
+												["x"] = 59716.897258126,
+											}, -- end of [221]
+											[253] = 
+											{
+												["y"] = -30743.017730632,
+												["x"] = 58018.152150469,
+											}, -- end of [253]
+											[254] = 
+											{
+												["y"] = -30738.525503738,
+												["x"] = 58003.84468702,
+											}, -- end of [254]
+											[255] = 
+											{
+												["y"] = -30729.675046037,
+												["x"] = 57980.466165431,
+											}, -- end of [255]
+											[259] = 
+											{
+												["y"] = -30631.775023746,
+												["x"] = 57812.111175175,
+											}, -- end of [259]
+											[263] = 
+											{
+												["y"] = -30621.026296633,
+												["x"] = 57784.238998871,
+											}, -- end of [263]
+											[267] = 
+											{
+												["y"] = -30586.602854021,
+												["x"] = 57395.959674215,
+											}, -- end of [267]
+											[270] = 
+											{
+												["y"] = -30589.307299384,
+												["x"] = 57381.234950108,
+											}, -- end of [270]
+											[271] = 
+											{
+												["y"] = -30590.980702404,
+												["x"] = 57376.523093069,
+											}, -- end of [271]
+											[275] = 
+											{
+												["y"] = -30601.323400101,
+												["x"] = 57359.499749269,
+											}, -- end of [275]
+											[79] = 
+											{
+												["y"] = -22443.948478961,
+												["x"] = 63816.916403896,
+											}, -- end of [79]
+											[95] = 
+											{
+												["y"] = -22610.775668067,
+												["x"] = 63801.730303499,
+											}, -- end of [95]
+											[111] = 
+											{
+												["y"] = -23017.350834215,
+												["x"] = 63647.885134111,
+											}, -- end of [111]
+											[287] = 
+											{
+												["y"] = -31092.63090384,
+												["x"] = 57149.741955386,
+											}, -- end of [287]
+										}, -- end of [1]
+										[2] = 
+										{
+											[1] = 
+											{
+												["y"] = -31092.196287038,
+												["x"] = 57148.046781762,
+											}, -- end of [1]
+											[2] = 
+											{
+												["y"] = -31092.196287038,
+												["x"] = 57148.046781762,
+											}, -- end of [2]
+										}, -- end of [2]
+									}, -- end of ["spans"]
+									["points"] = 
+									{
+										[1] = 
+										{
+											["alt"] = 6,
+											["type"] = "Turning Point",
+											["ETA"] = 0,
+											["alt_type"] = "BARO",
+											["formation_template"] = "",
+											["y"] = -17877.950000065,
+											["x"] = 66919.957907523,
+											["ETA_locked"] = true,
+											["speed"] = 0,
+											["action"] = "On Road",
+											["task"] = 
+											{
+												["id"] = "ComboTask",
+												["params"] = 
+												{
+													["tasks"] = {},
+												}, -- end of ["params"]
+											}, -- end of ["task"]
+											["speed_locked"] = true,
+										}, -- end of [1]
+										[2] = 
+										{
+											["alt"] = 3,
+											["type"] = "Turning Point",
+											["ETA"] = 3358.8144442307,
+											["alt_type"] = "BARO",
+											["formation_template"] = "",
+											["y"] = -31092.196287038,
+											["x"] = 57148.046781762,
+											["ETA_locked"] = false,
+											["speed"] = 5.5555555555556,
+											["action"] = "On Road",
+											["task"] = 
+											{
+												["id"] = "ComboTask",
+												["params"] = 
+												{
+													["tasks"] = {},
+												}, -- end of ["params"]
+											}, -- end of ["task"]
+											["speed_locked"] = true,
+										}, -- end of [2]
+									}, -- end of ["points"]
+								}, -- end of ["route"]
+								["groupId"] = 10,
+								["hidden"] = false,
+								["units"] = 
+								{
+									[1] = 
+									{
+										["skill"] = "Average",
+										["coldAtStart"] = false,
+										["type"] = "T-72B",
+										["unitId"] = 10,
+										["y"] = -17877.950000065,
+										["x"] = 66919.957907523,
+										["name"] = "Ground-1-1",
+										["heading"] = 5.0201902848521,
+										["playerCanDrive"] = true,
+									}, -- end of [1]
+									[2] = 
+									{
+										["skill"] = "Average",
+										["coldAtStart"] = false,
+										["type"] = "T-72B",
+										["unitId"] = 11,
+										["y"] = -17849.363821086,
+										["x"] = 66910.856797293,
+										["name"] = "Ground-1-2",
+										["heading"] = 5.0206167131333,
+										["playerCanDrive"] = true,
+									}, -- end of [2]
+								}, -- end of ["units"]
+								["y"] = -17877.950000065,
+								["x"] = 66919.957907523,
+								["name"] = "Ground-1",
+								["start_time"] = 0,
+							}, -- end of [1]
+						}, -- end of ["group"]
+					}, -- end of ["vehicle"]
+				}, -- end of [1]
+			}, -- end of ["country"]
+		}, -- end of ["red"]
+	}, -- end of ["coalition"]
+	["sortie"] = "DictKey_sortie_5",
+	["version"] = 23,
+	["trigrules"] = {},
+	["currentKey"] = 1084,
+	["failures"] = {},
+	["forcedOptions"] = {},
+	["start_time"] = 28800,
+} -- end of mission

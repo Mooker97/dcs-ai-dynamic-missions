@@ -3,6 +3,13 @@ Loadout modification functions for DCS mission files.
 
 This module provides functions to modify aircraft loadouts, including changing
 weapons on pylons, adjusting chaff/flare quantities, modifying gun ammunition, and fuel.
+
+WEAPON CLSID REFERENCE:
+To find valid CLSID values for weapons, consult the DCS Stores List:
+https://www.airgoons.com/w/DCS_Reference/Stores_List
+
+This database contains all weapon identifiers, pylon compatibility,
+and aircraft-specific loadout configurations.
 """
 
 import re
@@ -36,26 +43,27 @@ def modify_pylon(
         unit_name: Name of the unit to modify
         pylon_index: Pylon number (1-based index)
         clsid: Weapon CLSID identifier (e.g., "{40EF17B7-F508-45de-8566-6FFECC0C1AB8}")
+               Find CLSIDs at: https://www.airgoons.com/w/DCS_Reference/Stores_List
         settings: Optional settings block for the weapon (as Lua string)
 
     Returns:
         Modified mission content as string
 
     Example:
-        # Change pylon 3 to AIM-120C
+        # Change pylon 3 to AIM-120C (CLSID from DCS Stores List)
         content = modify_pylon(
             content,
             "Viper-1-1",
             3,
-            "{40EF17B7-F508-45de-8566-6FFECC0C1AB8}"
+            "{40EF17B7-F508-45de-8566-6FFECC0C1AB8}"  # AIM-120C
         )
 
-        # Change with custom settings
+        # Change with custom settings (e.g., GBU-12 with laser code)
         content = modify_pylon(
             content,
             "Viper-1-1",
             5,
-            "{51F9AAE5-964F-4D21-83FB-502E3BFE5F8A}",
+            "{51F9AAE5-964F-4D21-83FB-502E3BFE5F8A}",  # GBU-12
             settings='["laser_code"] = 1688'
         )
     """

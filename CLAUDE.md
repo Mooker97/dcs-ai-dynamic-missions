@@ -346,9 +346,18 @@ The future MCP server will expose these tools to Claude:
 
 ## Key Resources
 
+### DCS Reference Documentation
+- **[DCS Stores/Weapons List](https://www.airgoons.com/w/DCS_Reference/Stores_List)** - Complete reference of all weapons, stores, and CLSIDs for every aircraft
+  - Essential for loadout operations and weapon configuration
+  - Includes weapon names, CLSID identifiers, pylon compatibility
+  - Reference when implementing `modify_pylon()` and loadout generation
+- [DCS Mission Structure Wiki](https://wiki.hoggitworld.com/view/Miz_mission_structure)
+
+### Library Documentation
 - [pydcs Documentation](https://dcs.readthedocs.io/)
 - [pydcs GitHub](https://github.com/pydcs/dcs)
-- [DCS Mission Structure Wiki](https://wiki.hoggitworld.com/view/Miz_mission_structure)
+
+### Project Documentation
 - Project specs: `SpecSheet.md`
 - Development plan: `MVP-Plan.md`
 

@@ -1,8 +1,8 @@
 """
-Aircraft utilities for DCS mission files.
+Player/Client utilities for DCS mission files.
 
-Functions for identifying player, client, and AI-controlled aircraft,
-and working with aircraft-specific properties.
+Functions for identifying player, client, and AI-controlled aircraft.
+Determines which units are playable vs AI-controlled based on skill field.
 """
 
 import re

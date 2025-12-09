@@ -3,6 +3,16 @@ Loadout operations for DCS mission files.
 
 This module provides functions for reading and modifying aircraft loadouts,
 including pylons, weapons, chaff/flare quantities, gun ammunition, and fuel.
+
+IMPORTANT REFERENCE:
+For valid weapon CLSIDs and aircraft compatibility, consult:
+https://www.airgoons.com/w/DCS_Reference/Stores_List
+
+This reference contains:
+- All weapon CLSID identifiers (required for modify_pylon)
+- Pylon configurations for each aircraft
+- Weapon names, types, and descriptions
+- Store compatibility information
 """
 
 from .list import (

@@ -1,5 +1,5 @@
 """
-Test script for utils/aircraft.py
+Test script for utils/players.py
 
 Tests aircraft control type detection (Player/Client/AI).
 """
@@ -11,7 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from parsing.miz_parser import MizParser
-from utils.aircraft import (
+from utils.players import (
     is_player_aircraft,
     is_client_aircraft,
     is_playable_aircraft,

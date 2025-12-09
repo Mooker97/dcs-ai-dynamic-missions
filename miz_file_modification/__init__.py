@@ -26,5 +26,6 @@ __version__ = "0.1.0"
 from . import core
 from . import utils
 from . import loadouts
+from . import groups
 
-__all__ = ['core', 'utils', 'loadouts']
+__all__ = ['core', 'utils', 'loadouts', 'groups']

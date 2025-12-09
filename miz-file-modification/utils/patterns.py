@@ -328,3 +328,52 @@ WAYPOINT_ACTIONS = [
 
 # Valid altitude types
 ALT_TYPES = ['BARO', 'RADIO']
+
+# ============================================================================
+# LOADOUT PATTERNS
+# ============================================================================
+
+# Find payload section within a unit
+# Captures: (payload_content)
+PAYLOAD_SECTION_PATTERN = r'\["payload"\]\s*=\s*\{(.*?)\},\s*--\s*end\s*of\s*\["payload"\]'
+PAYLOAD_SECTION_PATTERN_COMPILED = re.compile(PAYLOAD_SECTION_PATTERN, re.DOTALL)
+
+# Find pylons section within payload
+# Captures: (pylons_content)
+PYLONS_SECTION_PATTERN = r'\["pylons"\]\s*=\s*\{(.*?)\},\s*--\s*end\s*of\s*\["pylons"\]'
+PYLONS_SECTION_PATTERN_COMPILED = re.compile(PYLONS_SECTION_PATTERN, re.DOTALL)
+
+# Find individual pylon block
+# Captures: (pylon_index, pylon_content)
+PYLON_BLOCK_PATTERN = r'\[(\d+)\]\s*=\s*\{(.*?)\},\s*--\s*end\s*of\s*\[\d+\]'
+PYLON_BLOCK_PATTERN_COMPILED = re.compile(PYLON_BLOCK_PATTERN, re.DOTALL)
+
+# Find CLSID (weapon identifier) field
+# Captures: (clsid)
+CLSID_PATTERN = r'\["CLSID"\]\s*=\s*"([^"]+)"'
+CLSID_PATTERN_COMPILED = re.compile(CLSID_PATTERN)
+
+# Find weapon settings section within a pylon
+# Captures: (settings_content)
+WEAPON_SETTINGS_PATTERN = r'\["settings"\]\s*=\s*\{(.*?)\},\s*--\s*end\s*of\s*\["settings"\]'
+WEAPON_SETTINGS_PATTERN_COMPILED = re.compile(WEAPON_SETTINGS_PATTERN, re.DOTALL)
+
+# Find chaff quantity field
+# Captures: (chaff_count)
+CHAFF_PATTERN = r'\["chaff"\]\s*=\s*(\d+)'
+CHAFF_PATTERN_COMPILED = re.compile(CHAFF_PATTERN)
+
+# Find flare quantity field
+# Captures: (flare_count)
+FLARE_PATTERN = r'\["flare"\]\s*=\s*(\d+)'
+FLARE_PATTERN_COMPILED = re.compile(FLARE_PATTERN)
+
+# Find gun ammunition field
+# Captures: (gun_ammo)
+GUN_AMMO_PATTERN = r'\["gun"\]\s*=\s*(\d+)'
+GUN_AMMO_PATTERN_COMPILED = re.compile(GUN_AMMO_PATTERN)
+
+# Find fuel quantity field
+# Captures: (fuel)
+FUEL_PATTERN = r'\["fuel"\]\s*=\s*([+-]?\d+\.?\d*)'
+FUEL_PATTERN_COMPILED = re.compile(FUEL_PATTERN)

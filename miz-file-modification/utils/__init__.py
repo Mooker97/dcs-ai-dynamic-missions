@@ -11,5 +11,8 @@ IMPORTANT: Always use these utilities instead of duplicating logic!
 
 # Import commonly used items for convenience
 from . import patterns
+from . import validation
+from . import id_manager
+from . import aircraft
 
-__all__ = ['patterns']
+__all__ = ['patterns', 'validation', 'id_manager', 'aircraft']

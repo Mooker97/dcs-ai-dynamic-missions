@@ -60,3 +60,4 @@ claude_desktop_config.json
 .env
 .env.local
 miz-files/*
+claudedocs/*

@@ -83,9 +83,10 @@ WAYPOINT_ACTION_PATTERN_COMPILED = re.compile(WAYPOINT_ACTION_PATTERN)
 # COORDINATE PATTERNS
 # ============================================================================
 
-# Find x,y position (matches both in groups and waypoints)
-# Captures: (x, y)
-POSITION_PATTERN = r'\["x"\]\s*=\s*([+-]?\d+\.?\d*),\s*\["y"\]\s*=\s*([+-]?\d+\.?\d*)'
+# Find y,x position (matches both in groups and waypoints)
+# NOTE: DCS mission files use ["y"] THEN ["x"] order, often on separate lines
+# Captures: (y, x) - Note the order!
+POSITION_PATTERN = r'\["y"\]\s*=\s*([+-]?\d+\.?\d*),?\s*\n?\s*\["x"\]\s*=\s*([+-]?\d+\.?\d*)'
 POSITION_PATTERN_COMPILED = re.compile(POSITION_PATTERN)
 
 # Find x coordinate only

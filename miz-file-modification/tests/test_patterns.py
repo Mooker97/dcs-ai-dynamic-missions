@@ -54,7 +54,7 @@ def test_group_pattern():
     content = load_test_mission()
 
     matches = list(GROUP_PATTERN_COMPILED.finditer(content))
-    assert len(matches) > 0, "Should find at least one group in test.miz"
+    assert len(matches) == 5, f"Should find exactly 5 groups in test.miz, found {len(matches)}"
 
     # Test first match
     units_content = matches[0].group(1)
@@ -64,6 +64,7 @@ def test_group_pattern():
     assert len(units_content) > 0, "Group should have units content"
 
     print(f"[OK] Group pattern test passed - Found {len(matches)} groups")
+    print(f"     Groups: {[m.group(2) for m in matches]}")
     print(f"     First group: '{group_name}'")
 
 

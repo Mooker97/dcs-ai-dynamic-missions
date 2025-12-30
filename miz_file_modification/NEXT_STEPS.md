@@ -1,6 +1,6 @@
 # MIZ File Modifier - Next Steps
 
-**Current Status**: Phase 1 Complete, Phase 2 In Progress (~40% overall completion)
+**Current Status**: Wave 2 Complete (~65% overall completion)
 
 ---
 
@@ -21,42 +21,48 @@
 - `get_waypoint_coordinates(mission_content, group_name, waypoint_index)` → `{"x": float, "y": float, "alt": float, "speed": float}`
 - Convenience wrappers: `*_file()` versions for all functions
 **Result**: All functions tested and working
+**Tests**: `tests/test_coordinates.py` - 3 tests (group coords, unit coords, all positions)
 
-### Step 3: Test Phase 2 Modules
+### Step 3: Test Phase 2 Modules ✅ COMPLETE
 **Files**:
-- Create `tests/test_groups_list.py`
-- Create `tests/test_groups_remove.py`
-- Create `tests/test_groups_duplicate.py`
-- Create `tests/test_coordinates.py`
+- ~~Create `tests/test_groups_list.py`~~ ✅ DONE (6 tests passing)
+- ~~Create `tests/test_groups_remove.py`~~ ✅ DONE (5 tests passing)
+- ~~Create `tests/test_groups_duplicate.py`~~ ✅ DONE (6 tests passing)
+- ~~Create `tests/test_coordinates.py`~~ ✅ DONE (3 tests passing)
 
-**Time**: 45 minutes
+**Result**: All 20 tests passing across 4 test files
 
-**Wave 1 Total**: ~1.5 hours → Gets to 50% completion
+**Wave 1 Total**: COMPLETE → 50% completion achieved
 
 ---
 
-## 🚀 High Value Features (Wave 2)
+## 🚀 High Value Features (Wave 2) ✅ COMPLETE
 
-### Step 4: Implement Group Addition
+### Step 4: Implement Group Addition ✅ COMPLETE
 **File**: `groups/add.py`
-**Functions Needed**:
-- `add_group(mission_content, group_name, unit_type_category, unit_type, coalition, country, position, num_units=1, route=None, skill="Good")` → modified content
+**Functions Implemented**:
+- `add_group(mission_content, group_name, unit_type_category, unit_type, coalition, country, position, num_units=1, route=None, skill="Average", heading=0.0)` → modified content
 - `add_group_file()` wrapper
+- `get_available_countries(coalition)` → list of country names
+- `get_country_id(coalition, country)` → country ID
+- `COUNTRY_IDS` constant - mapping of coalition → country → ID
+- `UNIT_TYPE_DEFAULTS` constant - default values per unit type
 
-**Time**: 1 hour
+**Result**: All functions tested and working
 
-### Step 5: Implement Group Modification
+### Step 5: Implement Group Modification ✅ COMPLETE
 **File**: `groups/modify.py`
-**Functions Needed**:
+**Functions Implemented**:
 - `rename_group(mission_content, old_name, new_name)` → modified content
 - `move_group(mission_content, group_name, new_position)` → modified content
 - `change_group_coalition(mission_content, group_name, new_coalition, new_country)` → modified content
 - `modify_group_skill(mission_content, group_name, skill)` → modified content
-- Convenience wrappers for each
+- `modify_group_heading(mission_content, group_name, heading)` → modified content (bonus!)
+- All convenience wrappers: `*_file()` versions
 
-**Time**: 1 hour
+**Result**: All functions tested and working
 
-**Wave 2 Total**: ~2 hours → Gets to 65% completion
+**Wave 2 Total**: COMPLETE → 65% completion achieved
 
 ---
 
@@ -158,38 +164,34 @@
 
 ## 📊 Summary
 
-| Wave | Focus | Time | Completion |
-|------|-------|------|------------|
-| Current | - | - | 40% |
-| Wave 1 | Fix & Complete Phase 2 | 1.5 hrs | 50% |
-| Wave 2 | Group Operations | 2 hrs | 65% |
-| Wave 3 | Unit Operations | 2 hrs | 80% |
-| Wave 4 | Waypoint Operations | 2.5 hrs | 95% |
-| Wave 5 | Polish & Testing | 1.5 hrs | 100% |
-| **Total** | **Full Implementation** | **~10 hrs** | **100%** |
+| Wave | Focus | Time | Completion | Status |
+|------|-------|------|------------|--------|
+| Wave 1 | Fix & Complete Phase 2 | 1.5 hrs | 50% | ✅ COMPLETE |
+| Wave 2 | Group Operations | 2 hrs | 65% | ✅ COMPLETE |
+| Wave 3 | Unit Operations | 2 hrs | 80% | Next |
+| Wave 4 | Waypoint Operations | 2.5 hrs | 95% | Pending |
+| Wave 5 | Polish & Testing | 1.5 hrs | 100% | Pending |
+| **Total** | **Full Implementation** | **~10 hrs** | **100%** | **65% Done** |
 
 ---
 
-## 🎯 Recommended Execution
+## 🎯 Current Capabilities
 
-### Fast Track (Recommended)
-**Execute**: Waves 1-2 only
-**Time**: ~3.5 hours
-**Result**: 65% complete with all core group operations working
-**Usability**: High - can list, add, remove, modify, duplicate groups
+### Completed (65%)
+- **Group Inspection**: List, find, count, get info
+- **Group Addition**: Add new groups with units, routes, skill settings
+- **Group Removal**: Remove by name, type, coalition, or batch
+- **Group Duplication**: Copy existing groups with position offsets
+- **Group Modification**: Rename, move, change coalition, change skill, change heading
+- **Coordinate Extraction**: Get group/unit/waypoint positions
 
-### Complete Build
-**Execute**: All 5 waves
-**Time**: ~10 hours
-**Result**: 100% complete library
-**Usability**: Maximum - full mission manipulation capabilities
+### Next Steps
+**Wave 3**: Unit-level operations (add/remove/modify individual units)
+**Wave 4**: Waypoint operations (route editing)
+**Wave 5**: Integration tests and documentation
 
 ---
 
-## 🚦 Let's Start
+## 🚦 Ready for Wave 3?
 
-**Ready to begin Wave 1, Step 1?**
-
-Say "go" or "start" and we'll fix the test infrastructure immediately.
-
-Alternative: Tell me which wave you want to focus on and we'll execute it.
+Say "go" or "wave 3" to continue with unit operations.

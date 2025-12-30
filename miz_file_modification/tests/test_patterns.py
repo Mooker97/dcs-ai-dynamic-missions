@@ -138,13 +138,13 @@ def test_extract_field():
     assert isinstance(name, str), f"name should be str, got {type(name)}"
     assert len(name) > 0, "name should not be empty"
 
-    # Test extracting boolean field
-    visible = extract_field(content, 'visible', bool)
-    assert visible is not None, "Should extract visible field"
-    assert isinstance(visible, bool), f"visible should be bool, got {type(visible)}"
+    # Test extracting skill field (should exist in aircraft units)
+    skill = extract_field(content, 'skill', str)
+    assert skill is not None, "Should extract skill field"
+    assert isinstance(skill, str), f"skill should be str, got {type(skill)}"
 
     print(f"[OK] extract_field test passed")
-    print(f"     Extracted: x={x}, name='{name}', visible={visible}")
+    print(f"     Extracted: x={x}, name='{name}', skill='{skill}'")
 
 
 

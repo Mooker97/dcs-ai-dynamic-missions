@@ -143,9 +143,9 @@ def test_validate_group_exists():
     content = parser.get_mission_content()
     parser.cleanup()
 
-    # Should find existing group
-    exists = validate_group_exists(content, "Aerial-1")
-    assert exists, "Should find existing group 'Aerial-1'"
+    # Should find existing group (using actual group name from test.miz)
+    exists = validate_group_exists(content, "Player F16")
+    assert exists, "Should find existing group 'Player F16'"
 
     # Should not find non-existent group
     exists = validate_group_exists(content, "NonExistentGroup-999")
@@ -357,10 +357,10 @@ def test_validate_modify_group_params():
     content = parser.get_mission_content()
     parser.cleanup()
 
-    # Valid modification
+    # Valid modification (using actual group name from test.miz)
     valid, error = validate_modify_group_params(
         content,
-        "Aerial-1",
+        "Player F16",
         new_position={"x": 5000, "y": 6000}
     )
     assert valid and error is None, f"Valid modify params failed: {error}"
@@ -376,7 +376,7 @@ def test_validate_modify_group_params():
     # Invalid new position
     valid, error = validate_modify_group_params(
         content,
-        "Aerial-1",
+        "Player F16",
         new_position={"x": 5000}  # Missing y
     )
     assert not valid, "Should reject invalid new position"
@@ -384,7 +384,7 @@ def test_validate_modify_group_params():
     # Invalid new name
     valid, error = validate_modify_group_params(
         content,
-        "Aerial-1",
+        "Player F16",
         new_name=""  # Empty name
     )
     assert not valid, "Should reject invalid new name"

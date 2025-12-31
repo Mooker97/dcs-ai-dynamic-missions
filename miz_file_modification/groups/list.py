@@ -54,13 +54,16 @@ def find_group_by_name(mission_content: str, group_name: str) -> Optional[Tuple[
     """
     Find group by name and return its content and position.
 
+    Uses brace counting to find correct group boundaries, handling nested
+    structures properly.
+
     Args:
         mission_content: Raw mission file content as string
         group_name: Name of the group to find
 
     Returns:
         Tuple of (group_content, start_pos, end_pos) if found, None if not found
-        - group_content: Full group definition as string
+        - group_content: Full group definition as string (with balanced braces)
         - start_pos: Character position where group starts
         - end_pos: Character position where group ends
 
@@ -70,16 +73,45 @@ def find_group_by_name(mission_content: str, group_name: str) -> Optional[Tuple[
         >>>     group_content, start, end = result
         >>>     print(f"Found at position {start}")
     """
-    # Pattern to match group block with the specific name
-    # Look for: [index] = { ... ["name"] = "group_name" ... },
-    pattern = rf'\[(\d+)\]\s*=\s*\{{.*?\["name"\]\s*=\s*"{re.escape(group_name)}".*?\}},\s*--'
-
-    match = re.search(pattern, mission_content, re.DOTALL)
-
-    if not match:
+    # Find the group name in content
+    name_pattern = rf'\["name"\]\s*=\s*"{re.escape(group_name)}"'
+    name_match = re.search(name_pattern, mission_content)
+    if not name_match:
         return None
 
-    return (match.group(0), match.start(), match.end())
+    name_pos = name_match.start()
+
+    # Find ["group"] section before this name
+    group_section = re.search(r'\["group"\]\s*=\s*\{', mission_content[:name_pos])
+    if not group_section:
+        return None
+
+    # Find [n] = { entries between group section and name
+    between = mission_content[group_section.end():name_pos]
+    entries = list(re.finditer(r'\[(\d+)\]\s*=\s*\{', between))
+    if not entries:
+        return None
+
+    # First entry is the group containing this name
+    group_start = group_section.end() + entries[0].start()
+
+    # Find opening brace
+    open_brace = mission_content.index('{', group_start)
+
+    # Count braces to find matching close
+    depth = 0
+    for i in range(open_brace, len(mission_content)):
+        if mission_content[i] == '{':
+            depth += 1
+        elif mission_content[i] == '}':
+            depth -= 1
+            if depth == 0:
+                # Include end marker if present
+                end_marker = re.match(r'\},\s*--[^\n]*', mission_content[i:])
+                group_end = i + (end_marker.end() if end_marker else 1)
+                return (mission_content[group_start:group_end], group_start, group_end)
+
+    return None
 
 
 def count_groups(mission_content: str, unit_type: Optional[str] = None) -> int:

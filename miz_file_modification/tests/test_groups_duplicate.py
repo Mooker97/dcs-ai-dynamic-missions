@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from parsing.miz_parser import MizParser
 from utils import patterns, validation, id_manager
+from core import find_context
 
 
 # ==============================================================================
@@ -23,10 +24,52 @@ TEST_MIZ = Path(__file__).parent / "test.miz"
 
 
 # ==============================================================================
-# Local Function Implementations (to avoid relative import issues)
+# Local Function Implementations
+# Note: find_group_by_name uses brace-counting for correct nested structure handling
 # ==============================================================================
 
-from core import find_context
+
+def find_group_by_name(mission_content: str, group_name: str):
+    """Find group by name using brace counting for correct boundaries."""
+    # Find the group name in content
+    name_pattern = rf'\["name"\]\s*=\s*"{re.escape(group_name)}"'
+    name_match = re.search(name_pattern, mission_content)
+    if not name_match:
+        return None
+
+    name_pos = name_match.start()
+
+    # Find ["group"] section before this name
+    group_section = re.search(r'\["group"\]\s*=\s*\{', mission_content[:name_pos])
+    if not group_section:
+        return None
+
+    # Find [n] = { entries between group section and name
+    between = mission_content[group_section.end():name_pos]
+    entries = list(re.finditer(r'\[(\d+)\]\s*=\s*\{', between))
+    if not entries:
+        return None
+
+    # First entry is the group containing this name
+    group_start = group_section.end() + entries[0].start()
+
+    # Find opening brace
+    open_brace = mission_content.index('{', group_start)
+
+    # Count braces to find matching close
+    depth = 0
+    for i in range(open_brace, len(mission_content)):
+        if mission_content[i] == '{':
+            depth += 1
+        elif mission_content[i] == '}':
+            depth -= 1
+            if depth == 0:
+                # Include end marker if present
+                end_marker = re.match(r'\},\s*--[^\n]*', mission_content[i:])
+                group_end = i + (end_marker.end() if end_marker else 1)
+                return (mission_content[group_start:group_end], group_start, group_end)
+
+    return None
 
 
 def list_all_groups(mission_content: str) -> dict:
@@ -41,17 +84,6 @@ def list_all_groups(mission_content: str) -> dict:
             result[coalition].append(group_name)
 
     return result
-
-
-def find_group_by_name(mission_content: str, group_name: str):
-    """Find group by name and return its content and position."""
-    pattern = rf'\[(\d+)\]\s*=\s*\{{.*?\["name"\]\s*=\s*"{re.escape(group_name)}".*?\}},\s*--'
-    match = re.search(pattern, mission_content, re.DOTALL)
-
-    if not match:
-        return None
-
-    return (match.group(0), match.start(), match.end())
 
 
 def _generate_copy_name(mission_content: str, base_name: str) -> str:

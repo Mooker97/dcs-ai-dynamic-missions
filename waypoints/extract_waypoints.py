@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 
 # Import from new location
-from miz_file_modification.parsing.miz_parser import MizParser
+from miz_modifier.parsing.miz_parser import MizParser
 
 
 def extract_field(content: str, field_name: str, field_type) -> Optional[Any]:

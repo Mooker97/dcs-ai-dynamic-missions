@@ -201,16 +201,16 @@ Create these triggers in order:
 
 | # | Event | Action | File |
 |---|-------|--------|------|
-| 1 | MISSION START | DO SCRIPT FILE | `lua-dump/utils/coordinates.lua` |
-| 2 | MISSION START | DO SCRIPT FILE | `lua-dump/utils/group-utils.lua` |
-| 3 | MISSION START | DO SCRIPT FILE | `lua-dump/utils/timer-utils.lua` |
-| 4 | MISSION START | DO SCRIPT FILE | `lua-dump/utils/messaging.lua` |
-| 5 | MISSION START | DO SCRIPT FILE | `lua-dump/spawners/random-spawn-pool.lua` |
-| 6 | MISSION START | DO SCRIPT FILE | `lua-dump/spawners/random-spawn-hvt.lua` |
-| 7 | MISSION START | DO SCRIPT FILE | `lua-dump/ai-behavior/proximity-activation.lua` |
-| 8 | MISSION START | DO SCRIPT FILE | `lua-dump/ai-behavior/sam-ambush.lua` |
-| 9 | MISSION START | DO SCRIPT FILE | `lua-dump/events/reinforcement-waves.lua` |
-| 10 | MISSION START | DO SCRIPT FILE | `lua-dump/comms/bda-reporter.lua` |
+| 1 | MISSION START | DO SCRIPT FILE | `lua-library/utils/coordinates.lua` |
+| 2 | MISSION START | DO SCRIPT FILE | `lua-library/utils/group-utils.lua` |
+| 3 | MISSION START | DO SCRIPT FILE | `lua-library/utils/timer-utils.lua` |
+| 4 | MISSION START | DO SCRIPT FILE | `lua-library/utils/messaging.lua` |
+| 5 | MISSION START | DO SCRIPT FILE | `lua-library/spawners/random-spawn-pool.lua` |
+| 6 | MISSION START | DO SCRIPT FILE | `lua-library/spawners/random-spawn-hvt.lua` |
+| 7 | MISSION START | DO SCRIPT FILE | `lua-library/ai-behavior/proximity-activation.lua` |
+| 8 | MISSION START | DO SCRIPT FILE | `lua-library/ai-behavior/sam-ambush.lua` |
+| 9 | MISSION START | DO SCRIPT FILE | `lua-library/events/reinforcement-waves.lua` |
+| 10 | MISSION START | DO SCRIPT FILE | `lua-library/comms/bda-reporter.lua` |
 | 11 | MISSION START | DO SCRIPT FILE | `ZZ mission files/dustoff-corridor/init.lua` |
 | 12 | MISSION START (5s delay) | DO SCRIPT | `DMS.DustoffCorridor.start()` |
 
@@ -380,7 +380,7 @@ Set in Mission Editor:
 
 ```
 DMS/
-├── lua-dump/
+├── lua-library/
 │   ├── utils/
 │   ├── spawners/
 │   ├── ai-behavior/

@@ -8,11 +8,11 @@ Reusable Lua scripts for DCS World mission scripting. These scripts provide comm
 
 **Mission-specific scripts should be placed in the `ZZ mission files/` folder, NOT here.**
 
-This `lua-dump/` folder contains **reusable library scripts** that work across any mission. When creating scripts that are specific to a particular mission (custom triggers, unique spawn logic, mission-specific events), place them in:
+This `lua-library/` folder contains **reusable library scripts** that work across any mission. When creating scripts that are specific to a particular mission (custom triggers, unique spawn logic, mission-specific events), place them in:
 
 ```
 DMS/
-├── lua-dump/           <-- Reusable library scripts (this folder)
+├── lua-library/           <-- Reusable library scripts (this folder)
 └── ZZ mission files/   <-- Mission-specific scripts go HERE
 ```
 
@@ -21,7 +21,7 @@ DMS/
 ## Folder Structure
 
 ```
-lua-dump/
+lua-library/
 ├── utils/              # Core utilities - LOAD THESE FIRST
 │   ├── mission-settings.lua  # Mission configuration (LOAD FIRST!)
 │   ├── error-handler.lua     # Error catching and logging (LOAD SECOND!)

@@ -1,6 +1,6 @@
 # Integration Tests
 
-Practical tests demonstrating real-world usage of the miz-file-modification library.
+Practical tests demonstrating real-world usage of the miz-modifier library.
 
 ## Available Tests
 
@@ -48,7 +48,7 @@ Integration tests use real .miz files from `miz-files/input/`:
 
 ```bash
 # From integration_tests directory
-cd miz-file-modification/tests/integration_tests
+cd miz-modifier/tests/integration_tests
 
 # Run specific test
 python position_of_group.py f16

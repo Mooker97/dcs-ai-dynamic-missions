@@ -39,13 +39,13 @@ Create DO SCRIPT FILE triggers at mission start:
 
 | # | Script Path | Description |
 |---|-------------|-------------|
-| 1 | `lua-dump/utils/mission-settings.lua` | Core settings |
-| 2 | `lua-dump/utils/fog-of-war.lua` | F10 map hiding |
-| 3 | `lua-dump/comms/audio-player.lua` | Audio playback system |
-| 4 | `lua-dump/spawners/unit-templates.lua` | Unit dictionary |
-| 5 | `lua-dump/spawners/dynamic-spawn.lua` | Zone spawner |
-| 6 | `lua-dump/ai-behavior/sam-ambush.lua` | SAM behavior |
-| 7 | `lua-dump/events/reinforcement-waves.lua` | QRF system |
+| 1 | `lua-library/utils/mission-settings.lua` | Core settings |
+| 2 | `lua-library/utils/fog-of-war.lua` | F10 map hiding |
+| 3 | `lua-library/comms/audio-player.lua` | Audio playback system |
+| 4 | `lua-library/spawners/unit-templates.lua` | Unit dictionary |
+| 5 | `lua-library/spawners/dynamic-spawn.lua` | Zone spawner |
+| 6 | `lua-library/ai-behavior/sam-ambush.lua` | SAM behavior |
+| 7 | `lua-library/events/reinforcement-waves.lua` | QRF system |
 | 8 | `ZZ Mission Files/dustoff-corridor/init.lua` | Mission config |
 
 ### Audio via ME Triggers (Flag-Based)
@@ -843,7 +843,7 @@ All verified unit type strings are in `unit-templates.lua`. Key units:
 ## Files Created
 
 ```
-DMS/lua-dump/
+DMS/lua-library/
 ├── spawners/
 │   ├── unit-templates.lua    # 35 unit types, 24 templates + custom builder
 │   └── dynamic-spawn.lua     # Zone spawner + direct spawn API

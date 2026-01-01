@@ -1,8 +1,8 @@
 # Validation Module Implementation Report
 
 **Date**: 2025-12-08
-**File**: `miz-file-modification/utils/validation.py`
-**Test File**: `miz-file-modification/tests/test_validation.py`
+**File**: `miz-modifier/utils/validation.py`
+**Test File**: `miz-modifier/tests/test_validation.py`
 
 ## Overview
 

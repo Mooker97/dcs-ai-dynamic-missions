@@ -1,6 +1,6 @@
 # MIZ File Modification Library - Architecture
 
-**Authoritative architecture reference for the `miz-file-modification` library.**
+**Authoritative architecture reference for the `miz-modifier` library.**
 
 ---
 
@@ -55,7 +55,7 @@ Extract .miz → Read mission content → Apply regex modifications → Write co
 ### Folder Structure
 
 ```
-miz-file-modification/
+miz-modifier/
 ├── __init__.py                 # Package initialization
 ├── architecture.md             # This document
 ├── core.py                     # Core modification utilities
@@ -189,7 +189,7 @@ def modify_something_file(input_miz: str, output_miz: str, **params) -> None:
         FileNotFoundError: If input_miz doesn't exist
         ValueError: If modification fails
     """
-    from miz_file_modification.parsing.miz_parser import quick_modify
+    from miz-modifier.parsing.miz_parser import quick_modify
 
     def modify_func(content):
         return modify_something(content, **params)
@@ -201,7 +201,7 @@ def modify_something_file(input_miz: str, output_miz: str, **params) -> None:
 ```python
 def remove_groups_by_type_file(input_miz: str, output_miz: str, unit_types: list) -> None:
     """Remove all groups of specified types from a .miz file."""
-    from miz_file_modification.parsing.miz_parser import quick_modify
+    from miz-modifier.parsing.miz_parser import quick_modify
 
     def modify_func(content):
         return remove_groups_by_type(content, unit_types)
@@ -628,7 +628,7 @@ def quick_modify(input_miz: str, output_miz: str, modify_func, cleanup: bool = T
 ### Example 1: Simple Modification with Wrapper
 
 ```python
-from miz_file_modification.groups.remove import remove_groups_by_type_file
+from miz-modifier.groups.remove import remove_groups_by_type_file
 
 # One-line modification
 remove_groups_by_type_file(
@@ -641,10 +641,10 @@ remove_groups_by_type_file(
 ### Example 2: Multiple Modifications with MizParser
 
 ```python
-from miz_file_modification.parsing.miz_parser import MizParser
-from miz_file_modification.groups.duplicate import duplicate_group
-from miz_file_modification.groups.modify import move_group
-from miz_file_modification.waypoints.add import add_waypoint
+from miz-modifier.parsing.miz_parser import MizParser
+from miz-modifier.groups.duplicate import duplicate_group
+from miz-modifier.groups.modify import move_group
+from miz-modifier.waypoints.add import add_waypoint
 
 # Extract once
 parser = MizParser("../miz-files/input/mission.miz")
@@ -666,7 +666,7 @@ parser.repackage("../miz-files/output/mission_modified.miz")
 ### Example 3: Custom Modification Function
 
 ```python
-from miz_file_modification.parsing.miz_parser import quick_modify
+from miz-modifier.parsing.miz_parser import quick_modify
 import re
 
 def my_custom_modification(content: str) -> str:
@@ -689,9 +689,9 @@ quick_modify(
 ### Example 4: Inspection Before Modification
 
 ```python
-from miz_file_modification.parsing.miz_parser import MizParser
-from miz_file_modification.groups.list import list_all_groups, get_group_info
-from miz_file_modification.groups.remove import remove_group
+from miz-modifier.parsing.miz_parser import MizParser
+from miz-modifier.groups.list import list_all_groups, get_group_info
+from miz-modifier.groups.remove import remove_group
 
 # Extract and inspect
 parser = MizParser("../miz-files/input/mission.miz")
@@ -786,9 +786,9 @@ tests/
 ```python
 # Example: test_groups_remove.py
 from pathlib import Path
-from miz_file_modification.parsing.miz_parser import MizParser
-from miz_file_modification.groups.remove import remove_group, remove_group_file
-from miz_file_modification.groups.list import validate_group_exists
+from miz-modifier.parsing.miz_parser import MizParser
+from miz-modifier.groups.remove import remove_group, remove_group_file
+from miz-modifier.groups.list import validate_group_exists
 
 TEST_MIZ = Path(__file__).parent / "test.miz"
 
@@ -941,7 +941,7 @@ test.miz contains:
 ### Deprecated
 - ~~**pydcs**~~ - No longer used for modifications
   - Kept in project for potential future mission generation
-  - Not a dependency of miz-file-modification library
+  - Not a dependency of miz-modifier library
 
 ---
 

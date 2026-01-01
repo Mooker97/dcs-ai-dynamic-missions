@@ -38,7 +38,7 @@ Claude AI (Orchestration & Mission Design)
     ↓
 MCP Server Layer (Mission Generation Tools)
     ↓
-miz-file-modification Library (MizParser-based)
+miz-modifier Library (MizParser-based)
     ↓
 .miz Files (DCS Mission Files)
 ```
@@ -78,7 +78,7 @@ miz-file-modification Library (MizParser-based)
 ### Working with MizParser
 
 ```python
-from miz_file_modification.parsing.miz_parser import MizParser
+from miz-modifier.parsing.miz_parser import MizParser
 
 # Extract mission
 parser = MizParser("../miz-files/input/mission.miz")
@@ -88,7 +88,7 @@ parser.extract()
 content = parser.get_mission_content()
 
 # Modify content (using modification functions)
-from miz_file_modification.groups.remove import remove_groups_by_type
+from miz-modifier.groups.remove import remove_groups_by_type
 modified_content = remove_groups_by_type(content, ["ship"])
 
 # Write back and repackage
@@ -100,7 +100,7 @@ parser.repackage("../miz-files/output/modified.miz")
 
 ```python
 # Quick modification without manual extract/repackage
-from miz_file_modification.groups.remove import remove_groups_by_type_file
+from miz-modifier.groups.remove import remove_groups_by_type_file
 
 remove_groups_by_type_file(
     input_miz="../miz-files/input/mission.miz",
@@ -112,7 +112,7 @@ remove_groups_by_type_file(
 ### Listing Groups
 
 ```python
-from miz_file_modification.groups.list import list_all_groups_file
+from miz-modifier.groups.list import list_all_groups_file
 
 groups = list_all_groups_file("../miz-files/input/mission.miz")
 print(f"Found {len(groups['blue'])} blue groups")
@@ -122,7 +122,7 @@ print(f"Found {len(groups['blue'])} blue groups")
 
 ```
 DMS/
-├── miz-file-modification/      # Main library (MizParser-based)
+├── miz-modifier/      # Main library (MizParser-based)
 │   ├── __init__.py
 │   ├── core.py                # Core utilities
 │   ├── groups/                # Group operations
@@ -198,7 +198,7 @@ def modify_something(mission_content: str, **params) -> str:
 ```python
 def modify_something_file(input_miz: str, output_miz: str, **params) -> None:
     """Convenience wrapper for file-based operations."""
-    from miz_file_modification.parsing.miz_parser import quick_modify
+    from miz-modifier.parsing.miz_parser import quick_modify
 
     def modify_func(content):
         return modify_something(content, **params)
@@ -229,7 +229,7 @@ def modify_something_file(input_miz: str, output_miz: str, **params) -> None:
 
 - ✅ Architecture design complete (MizParser-based)
 - ✅ Architecture documented in CLAUDE.md
-- ⏳ Implementing miz-file-modification library (Phase 1 Foundation)
+- ⏳ Implementing miz-modifier library (Phase 1 Foundation)
 - ⏳ MCP server implementation
 - ⏳ Mission generation pipeline
 - ⏳ Unit templates and mission types
@@ -249,7 +249,7 @@ cat temp_mission/mission  # View Lua mission data
 ### Implementation Phases
 
 **Phase 1: Foundation** (Current)
-1. Create folder structure for `miz-file-modification/`
+1. Create folder structure for `miz-modifier/`
 2. Move MizParser to new location
 3. Implement core utilities (ID manager, patterns, validation)
 
@@ -378,7 +378,7 @@ The future MCP server will expose these tools to Claude:
 
 ### 🔴 ALWAYS Use MizParser for .miz Modifications
 
-**Rule**: All .miz file modifications MUST use the MizParser-based approach in `miz-file-modification/`
+**Rule**: All .miz file modifications MUST use the MizParser-based approach in `miz-modifier/`
 
 **Why**:
 - ✅ Works without DCS installation
@@ -389,8 +389,8 @@ The future MCP server will expose these tools to Claude:
 
 **Pattern to Follow**:
 ```python
-from miz_file_modification.parsing.miz_parser import MizParser
-from miz_file_modification.groups.remove import remove_groups_by_type
+from miz-modifier.parsing.miz_parser import MizParser
+from miz-modifier.groups.remove import remove_groups_by_type
 
 # Extract → Modify → Repackage
 parser = MizParser("input.miz")

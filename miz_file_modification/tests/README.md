@@ -1,6 +1,6 @@
-# Test Suite for miz-file-modification
+# Test Suite for miz-modifier
 
-This directory contains all tests for the miz-file-modification library.
+This directory contains all tests for the miz-modifier library.
 
 ## Running Tests
 

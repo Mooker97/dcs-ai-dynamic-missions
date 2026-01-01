@@ -1,6 +1,6 @@
 # DCS Dynamic Mission System
 
-An AI-powered DCS mission generation system that transforms natural language prompts into complete, playable mission files.
+An AI-powered mission generation system that transforms simple DCS mission templates and natural language prompts into complete, playable dynamic missions.
 
 ## Vision
 
@@ -8,191 +8,362 @@ Transform DCS mission creation from a multi-hour technical process into a 30-sec
 
 **Example:**
 ```
-"Create a co-op SEAD mission for F-16 and F-15C on Persian Gulf"
-→ Complete .miz file, ready to fly
+User: "I have a template with a CAP zone and player spawn.
+       Generate a dynamic CAP mission with random enemy fighters and SAM threats"
+
+→ Complete playable .miz file with randomized enemies, dynamic behaviors, ready to fly
 ```
+
+## How It Works
+
+### 1. You Provide a Simple Template
+- Place player spawn point(s)
+- Define trigger zones (CAP_ZONE, STRIKE_AREA, etc.)
+- Add template units (example aircraft/SAMs to duplicate)
+- Set basic mission parameters (time, weather)
+
+### 2. Describe Your Mission
+```
+"Generate a CAP mission with 6-10 random enemy fighters
+and 2-3 SAM sites that ambush when players get close"
+```
+
+### 3. Get a Playable Dynamic Mission
+- Units spawn randomly in defined zones
+- Dynamic Lua scripts create unpredictable gameplay
+- Each playthrough is different
+- Ready to load in DCS World
 
 ## Project Status
 
-**Phase 1: Local Development System (IN PROGRESS)**
-- Building MCP server for mission generation
-- Target: Working prototype
+**Phase 1: Foundation (IN PROGRESS)**
+- ✅ Architecture designed (MizParser-based)
+- ✅ Project structure established
+- ⏳ Core library implementation (`miz-modifier/`)
+- ⏳ MCP server development
+- 📍 **Current Focus**: Completing groups and coordinates modules
 
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                     USER INTERFACE                       │
-│  Phase 1: Claude Desktop (MCP)                          │
-│  Phase 2: Standalone Web App + API                      │
+│              USER PROVIDES TEMPLATE                      │
+│  • .miz file with zones, player spawn, template units   │
+│  • Natural language mission prompt                      │
 └────────────────┬────────────────────────────────────────┘
                  │
                  ↓
 ┌─────────────────────────────────────────────────────────┐
-│              CLAUDE AI (Orchestration)                   │
-│  • Understands user intent                              │
-│  • Designs mission structure                            │
-│  • Calls appropriate tools                              │
+│              CLAUDE AI (via MCP)                         │
+│  • Analyzes template structure                          │
+│  • Interprets mission prompt                            │
+│  • Designs mission (unit count, behaviors, objectives)  │
+│  • Orchestrates generation pipeline                     │
 └────────────────┬────────────────────────────────────────┘
                  │
                  ↓
 ┌─────────────────────────────────────────────────────────┐
-│                  MCP SERVER LAYER                        │
-│  • Mission Generator MCP (creates .miz files)           │
-│  • Lua Scripting Library (dynamic content)              │
-│  • File management & validation                         │
+│              MCP SERVER TOOLS                            │
+│  • read_template_mission() - Parse template             │
+│  • add_dynamic_units() - Spawn randomized units         │
+│  • inject_lua_scripts() - Add dynamic behaviors         │
+│  • configure_triggers() - Mission logic                 │
+│  • validate_mission() - Quality checks                  │
 └────────────────┬────────────────────────────────────────┘
                  │
                  ↓
 ┌─────────────────────────────────────────────────────────┐
-│                   OUTPUT LAYER                           │
-│  Phase 1: Local filesystem                              │
-│  Phase 2: S3 bucket + CDN delivery                      │
+│          MIZ-FILE-MODIFICATION LIBRARY                   │
+│  • MizParser (Extract → Modify → Repackage)            │
+│  • Regex-based Lua manipulation                         │
+│  • No DCS installation required                         │
+│  • Groups, Units, Waypoints, Coordinates modules        │
+└────────────────┬────────────────────────────────────────┘
+                 │
+                 ↓
+┌─────────────────────────────────────────────────────────┐
+│            PLAYABLE DYNAMIC MISSION                      │
+│  • Complete .miz file ready for DCS World              │
+│  • Randomized unit spawns                               │
+│  • Dynamic Lua scripts embedded                         │
+│  • No two playthroughs identical                        │
 └─────────────────────────────────────────────────────────┘
 ```
 
 ## Project Structure
 
 ```
-dcs-dynamic-missions/
-├── mcp-server/           # Mission generator MCP
-│   ├── src/             # Source code
-│   ├── tests/           # Unit tests
-│   └── requirements.txt
-├── lua-library/         # Dynamic scripting system
-│   ├── core/           # Core functionality
-│   ├── spawners/       # Unit spawning
-│   ├── randomizers/    # Randomization
-│   └── config/         # Configuration
-├── missions/            # Generated missions output
-├── docs/               # Documentation
-└── README.md
+DMS/
+├── miz-modifier/      # Core library (MizParser-based)
+│   ├── parsing/               # MizParser (extract/repackage)
+│   ├── groups/                # Group operations (add/remove/modify)
+│   ├── units/                 # Unit operations
+│   ├── waypoints/             # Waypoint operations
+│   ├── coordinates/           # Coordinate transformations
+│   └── utils/                 # ID manager, patterns, validation
+├── mcp_server/                # MCP server implementation (planned)
+│   ├── server.py             # MCP server main
+│   ├── tools/                # MCP tool implementations
+│   └── config.py             # Server configuration
+├── lua-library/              # DMS dynamic scripting system (planned)
+│   ├── DMS.Settings.lua      # Debug configuration
+│   ├── DMS.SpawnPool.lua     # Random spawning
+│   ├── DMS.FogOfWar.lua      # Hidden unit activation
+│   ├── DMS.SAMAmbush.lua     # SAM behavior
+│   └── ...                   # Additional modules
+├── miz-files/                # Mission files
+│   ├── templates/            # Template .miz files
+│   ├── input/                # User-provided templates
+│   └── output/               # Generated missions
+├── knowledge/                # Documentation
+│   ├── miz-file-manipulation.md  # Complete .miz reference
+│   └── ...
+├── claudedocs/               # Technical analysis
+├── CLAUDE.md                 # Developer guidance
+├── MVP-Plan.md               # MVP specification
+└── README.md                 # This file
 ```
 
 ## Installation (Phase 1)
 
+### Prerequisites
+
+```bash
+# Python 3.10+
+python --version
+
+# Optional: Coordinate transformation library
+pip install pyproj>=3.7.0
+```
+
+### Setup
+
 ```bash
 # 1. Clone repository
-git clone https://github.com/yourusername/dcs-dynamic-missions.git
-cd dcs-dynamic-missions
+git clone https://github.com/yourusername/DMS.git
+cd DMS
 
-# 2. Set up MCP server
-cd mcp-server
-python -m venv venv
-venv\Scripts\activate  # Windows
-pip install -r requirements.txt
+# 2. Install dependencies (optional)
+pip install pyproj>=3.7.0
 
-# 3. Configure Claude Desktop
+# 3. Create mission directories
+mkdir -p miz-files/{templates,input,output}
+
+# 4. Test core library
+python -c "from miz-modifier.parsing.miz_parser import MizParser; print('✅ Library ready')"
+```
+
+### MCP Server Setup (When Available)
+
+```bash
+# Configure Claude Desktop
 # Edit: %APPDATA%\Claude\claude_desktop_config.json
 {
   "mcpServers": {
     "dcs-mission-generator": {
       "command": "python",
-      "args": ["C:/path/to/dcs-dynamic-missions/mcp-server/src/server.py"]
+      "args": ["C:/path/to/DMS/mcp_server/server.py"]
     }
   }
 }
 
-# 4. Restart Claude Desktop
-
-# 5. Test in Claude
-"Create a test mission for F-16 on Caucasus"
+# Restart Claude Desktop
 ```
 
 ## Features
 
-### Phase 1: Local MCP System
-- ✅ Architecture design
-- ⏳ MCP server implementation
-- ⏳ Basic mission generation
-- ⏳ Unit templates
-- ⏳ Lua scripting integration
-- ⏳ Mission validation
+### Phase 1: Foundation (Current)
+- ✅ MizParser-based architecture (no DCS installation required)
+- ✅ Project structure and documentation
+- ⏳ Groups module (add/remove/duplicate/modify)
+- ⏳ Coordinates module (extract/transform/randomize)
+- ⏳ Units module
+- ⏳ Waypoints module
 
-### Phase 2: Web Application (Future)
-- Web-based mission builder
-- User accounts and authentication
-- Mission marketplace
-- API access
-- Cloud storage
+### Phase 2: MCP Server
+- [ ] MCP server implementation
+- [ ] Template analysis tool
+- [ ] Unit spawning tool
+- [ ] Lua script injection tool
+- [ ] Mission validation tool
+- [ ] Claude integration
+
+### Phase 3: Unit Spawning
+- [ ] Template extraction system
+- [ ] Position randomization in zones
+- [ ] Unit duplication with variation
+- [ ] ID management
+- [ ] Coordinate transformations
+
+### Phase 4: Dynamic Scripts
+- [ ] DMS Lua library integration
+- [ ] SpawnPool system
+- [ ] Fog of War mechanics
+- [ ] SAM ambush behaviors
+- [ ] Dynamic reinforcements
+- [ ] Debug logging system
+
+### Phase 5: Mission Types
+- [ ] CAP mission generator
+- [ ] SEAD mission generator
+- [ ] Strike mission generator
+- [ ] Mission briefing generation
+- [ ] Objective system
+
+### Phase 6: Polish & Testing
+- [ ] Comprehensive validation
+- [ ] DCS.log integration
+- [ ] Mission testing suite
+- [ ] Error recovery
+- [ ] Documentation
 
 ## Usage Examples
 
-**Simple SEAD Mission:**
-```
-User: "Create a SEAD mission for F-16 on Caucasus, medium difficulty"
+### Current (Library Development)
 
-Result:
-✅ Mission created: missions/sead_caucasus_20241208.miz
-- Player: F-16C at Kutaisi
-- Targets: 3x SAM sites (SA-6, SA-2, SA-11)
-- Threats: 2x MiG-29 (spawn at 15 min)
-- Difficulty: Medium
+```python
+from miz-modifier.parsing.miz_parser import MizParser
+from miz-modifier.groups.remove import remove_groups_by_type
+
+# Extract and modify mission
+parser = MizParser("miz-files/input/mission.miz")
+parser.extract()
+
+# Get and modify content
+content = parser.get_mission_content()
+modified = remove_groups_by_type(content, ["ship"])
+
+# Save changes
+parser.write_mission_content(modified)
+parser.repackage("miz-files/output/modified.miz")
 ```
 
-**Co-op Mission:**
-```
-User: "Make a co-op escort mission. F-16 and F-15C protecting B-1B bombers on Persian Gulf"
+### Future (MCP Server)
 
-Result:
-✅ Mission created: missions/escort_persian_gulf_20241208.miz
-- Player 1: F-16C (close escort)
-- Player 2: F-15C (high CAP)
-- Protected: 2x B-1B bombers
-- Threats: 3 waves of MiG-29s and Su-27s
+```
+User: "Create a CAP mission using carrier_template.miz with 8 random
+       enemy fighters and 2 SAM sites that ambush players"
+
+Claude (via MCP):
+1. Analyzes carrier_template.miz
+   → Found: CAP_ZONE, TEMPLATE_MIG29, TEMPLATE_SA10, player spawn
+
+2. Designs mission
+   → 8x MiG-29s random positions in CAP_ZONE
+   → 2x SA-10 sites with ambush behavior
+   → Proximity triggers for SAM activation
+
+3. Generates mission
+   → Spawns units with randomization
+   → Injects DMS.SAMAmbush + DMS.Proximity scripts
+   → Configures mission triggers
+
+Result: ✅ missions/output/cap_carrier_20260101.miz
+Ready to fly! Each playthrough will be different.
+```
+
+## Technical Details
+
+### MizParser Architecture
+
+**Key Concept**: .miz files are ZIP archives containing Lua tables
+
+**Workflow**:
+1. **Extract**: Unzip .miz file
+2. **Read**: Load mission file (Lua table as text)
+3. **Modify**: Use regex patterns to manipulate Lua structures
+4. **Write**: Save modified content
+5. **Repackage**: Zip back to .miz
+
+**Advantages**:
+- ✅ No DCS installation required
+- ✅ Pure Python (standard library only)
+- ✅ Fast and lightweight
+- ✅ Direct Lua manipulation
+- ✅ Regex-based pattern matching
+
+### Dynamic Lua Scripting
+
+**DMS Library Modules** (Planned):
+- `DMS.Settings` - Debug configuration
+- `DMS.SpawnPool` - Random unit spawning at mission start
+- `DMS.FogOfWar` - Progressive unit activation
+- `DMS.SAMAmbush` - SAM sites going HOT when players approach
+- `DMS.Reinforcements` - Triggered reinforcement waves
+- `DMS.Objectives` - Dynamic objective system
+- `DMS.BDA` - Battle Damage Assessment
+- `DMS.Proximity` - Player proximity detection
+
+**Debug Logging**:
+```lua
+DMS.Settings.configure({ debug = true })
+-- Logs appear in: %USERPROFILE%\Saved Games\DCS\Logs\dcs.log
 ```
 
 ## Development Roadmap
 
-### Phase 1.0: MVP - **Current**
-- Implement MCP server
-- Basic mission generation
-- Unit templates
-- Test with Claude Desktop
+See [MVP-Plan.md](./MVP-Plan.md) for complete implementation plan.
 
-### Phase 1.1: Enhanced Local System
-- Complete all mission types
-- Lua library integration
-- Dynamic spawning
-- Mission modification tools
+### Milestones
 
-### Phase 2.0: Web Application
-- Web interface
-- User authentication
-- Cloud storage
-- Payment system
+- **Week 1-2**: ✅ Foundation (MizParser, project structure)
+- **Week 3-4**: ⏳ Core library (groups, coordinates, units)
+- **Week 5-6**: MCP server implementation
+- **Week 7-8**: Unit spawning system
+- **Week 9-10**: Dynamic Lua scripts
+- **Week 11-12**: Mission types and testing
 
 ## Technology Stack
 
-**Phase 1:**
-- Python 3.10+
-- MCP protocol
-- Lua scripting
-- DCS World integration
+**Core**:
+- Python 3.10+ (standard library)
+- pyproj 3.7.0+ (optional, for coordinates)
+- MCP protocol (Claude integration)
+- Lua scripting (DCS dynamic behaviors)
 
-**Phase 2:**
-- Frontend: React + Next.js + TailwindCSS
-- Backend: FastAPI + PostgreSQL + Redis
-- AI: Anthropic Claude API
-- Infrastructure: AWS + S3 + CloudFront
+**Development**:
+- Git (version control)
+- DCS World (mission testing)
+- Visual Studio Code (recommended)
+
+## Resources
+
+### Documentation
+- [CLAUDE.md](./CLAUDE.md) - Developer guidance and architecture
+- [MVP-Plan.md](./MVP-Plan.md) - Complete MVP specification
+- [knowledge/miz-file-manipulation.md](./knowledge/miz-file-manipulation.md) - .miz file structure reference
+
+### DCS Resources
+- [DCS Stores/Weapons List](https://www.airgoons.com/w/DCS_Reference/Stores_List) - Complete weapon reference
+- [DCS Mission Structure Wiki](https://wiki.hoggitworld.com/view/Miz_mission_structure) - Mission file format
+
+### DCS Log Files
+- Stable: `%USERPROFILE%\Saved Games\DCS\Logs\dcs.log`
+- Open Beta: `%USERPROFILE%\Saved Games\DCS.openbeta\Logs\dcs.log`
 
 ## Contributing
 
-This is currently in active development. Contributions welcome once Phase 1 is complete.
+This project is currently in active development (Phase 1). Contributions welcome once core library is stable.
+
+**Development Process**:
+1. Read [CLAUDE.md](./CLAUDE.md) for project guidelines
+2. Check current phase in [MVP-Plan.md](./MVP-Plan.md)
+3. Follow MizParser patterns from existing modules
+4. Test modifications in DCS World before committing
+
+## Support
+
+- **Issues**: GitHub Issues for bug reports
+- **Discussions**: GitHub Discussions for feature requests
+- **Discord**: Coming after MVP completion
 
 ## License
 
 TBD
 
-## Support
-
-- GitHub Issues for bug reports
-- Discord community (coming soon)
-
-## Roadmap
-
-See [SpecSheet.md](./SpecSheet.md) for complete product specification and roadmap.
-
 ---
 
 **Let's transform DCS mission creation!** 🚀
+
+*Current Status: Phase 1 (Foundation) - Building core library*
+*Last Updated: 2026-01-01*

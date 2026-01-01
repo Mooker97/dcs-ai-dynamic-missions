@@ -19,7 +19,8 @@
       "WebFetch(domain:wiki.hoggitworld.com)",
       "WebFetch(domain:forum.dcs.world)",
       "Bash(findstr:*)",
-      "mcp__exa__web_search_exa"
+      "mcp__exa__web_search_exa",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

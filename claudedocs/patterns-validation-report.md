@@ -1,8 +1,8 @@
 # Patterns Validation Report
 
 **Date**: 2025-12-08
-**File**: `miz-file-modification/utils/patterns.py`
-**Test File**: `miz-file-modification/tests/test_patterns.py`
+**File**: `miz-modifier/utils/patterns.py`
+**Test File**: `miz-modifier/tests/test_patterns.py`
 
 ## Test Results
 

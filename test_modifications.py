@@ -5,14 +5,14 @@ Demonstrates all current modification capabilities with file outputs.
 """
 
 from pathlib import Path
-from miz_file_modification.groups.list import list_all_groups_file, get_group_info_file
-from miz_file_modification.groups.remove import (
+from miz_modifier.groups.list import list_all_groups_file, get_group_info_file
+from miz_modifier.groups.remove import (
     remove_groups_by_type_file,
     remove_group_file,
     remove_groups_by_coalition_file,
     remove_empty_groups_file
 )
-from miz_file_modification.groups.duplicate import duplicate_group_file
+from miz_modifier.groups.duplicate import duplicate_group_file
 
 
 def print_separator(title):

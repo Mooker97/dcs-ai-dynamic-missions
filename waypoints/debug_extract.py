@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 # Import from new location
-from miz_file_modification.parsing.miz_parser import MizParser
+from miz_modifier.parsing.miz_parser import MizParser
 
 miz_path = "../miz-files/input/f16 A-G.miz"
 

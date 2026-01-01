@@ -3,7 +3,7 @@
 ## Overview
 Unified architecture for .miz file modification using MizParser as the foundation.
 
-**Location**: `miz-file-modification/` (new folder, replacing `modifications/`)
+**Location**: `miz-modifier/` (new folder, replacing `modifications/`)
 
 **Philosophy**:
 - MizParser-based: Extract → Modify string → Repackage
@@ -16,7 +16,7 @@ Unified architecture for .miz file modification using MizParser as the foundatio
 ## Folder Structure
 
 ```
-miz-file-modification/
+miz-modifier/
 ├── __init__.py                 # Package initialization
 ├── core.py                     # Core modification utilities
 │
@@ -214,7 +214,7 @@ def validate_unit_type(unit_type: str, category: str) -> bool
 
 ### Example 1: Remove all ships
 ```python
-from miz_file_modification.groups.remove import remove_groups_by_type_file
+from miz-modifier.groups.remove import remove_groups_by_type_file
 
 remove_groups_by_type_file(
     input_miz="mission.miz",
@@ -225,9 +225,9 @@ remove_groups_by_type_file(
 
 ### Example 2: Duplicate and move a group
 ```python
-from miz_file_modification.parsing.miz_parser import MizParser
-from miz_file_modification.groups.duplicate import duplicate_group
-from miz_file_modification.groups.modify import move_group
+from miz-modifier.parsing.miz_parser import MizParser
+from miz-modifier.groups.duplicate import duplicate_group
+from miz-modifier.groups.modify import move_group
 
 parser = MizParser("mission.miz")
 parser.extract()
@@ -242,7 +242,7 @@ parser.repackage("mission_modified.miz")
 
 ### Example 3: Add waypoint to existing group
 ```python
-from miz_file_modification.waypoints.add import add_waypoint_file
+from miz-modifier.waypoints.add import add_waypoint_file
 
 add_waypoint_file(
     input_miz="mission.miz",
@@ -258,10 +258,10 @@ add_waypoint_file(
 
 ## Migration Notes
 
-### From `modifications/` to `miz-file-modification/`
+### From `modifications/` to `miz-modifier/`
 
 **Keep**:
-- `parsing/miz_parser.py` → Move to `miz-file-modification/parsing/`
+- `parsing/miz_parser.py` → Move to `miz-modifier/parsing/`
 - Core function logic from all scripts
 
 **Abandon**:

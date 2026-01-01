@@ -9,8 +9,8 @@ Architecture:
 - Heavy emphasis on utility function reuse (DRY principle)
 
 Usage:
-    from miz_file_modification.parsing.miz_parser import MizParser
-    from miz_file_modification.groups.remove import remove_groups_by_type
+    from miz_modifier.parsing.miz_parser import MizParser
+    from miz_modifier.groups.remove import remove_groups_by_type
 
     parser = MizParser("mission.miz")
     parser.extract()

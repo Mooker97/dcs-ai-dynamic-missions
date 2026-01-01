@@ -16,9 +16,9 @@ Place scripts here when they are:
 
 ---
 
-## When to Use `lua-dump/` Instead
+## When to Use `lua-library/` Instead
 
-Place scripts in `lua-dump/` when they are:
+Place scripts in `lua-library/` when they are:
 
 - Reusable across multiple missions
 - Generic systems (spawners, comms, tracking)
@@ -54,7 +54,7 @@ ZZ mission files/
 
 ```lua
 -- Operation Thunder - init.lua
--- Load after all lua-dump library scripts
+-- Load after all lua-library library scripts
 
 -- Configure systems for this mission
 DMS.AWACS.configure({

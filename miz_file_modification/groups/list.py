@@ -14,7 +14,53 @@ from ..utils import patterns, validation
 # CORE INSPECTION FUNCTIONS
 # ============================================================================
 
-def list_all_groups(mission_content: str) -> Dict[str, List[str]]:
+def _find_coalition_boundaries(mission_content: str) -> Dict[str, Tuple[int, int]]:
+    """
+    Find the start and end positions of each coalition section.
+
+    Uses proper brace counting to handle nested structures.
+
+    Returns:
+        Dict mapping coalition names to (start, end) position tuples
+    """
+    boundaries = {}
+
+    # Find the main coalition section: ["coalition"] = {
+    coalition_section = re.search(r'\["coalition"\]\s*=\s*\{', mission_content)
+    if not coalition_section:
+        return boundaries
+
+    # Find all coalition markers within the mission
+    # Look for ["red"] = {, ["blue"] = {, etc. that come after ["coalition"]
+    for coalition in patterns.COALITIONS:
+        # Find all occurrences of this coalition marker
+        pattern = rf'\["{coalition}"\]\s*=\s*\{{'
+        for match in re.finditer(pattern, mission_content):
+            pos = match.start()
+            # Check if this is within the main coalition section (has bullseye)
+            # by looking at nearby content
+            context = mission_content[match.end():match.end()+200]
+            if '["bullseye"]' in context or '["country"]' in context:
+                # This is the main coalition section
+                start = match.end()
+
+                # Count braces to find the end
+                depth = 1
+                end = start
+                while depth > 0 and end < len(mission_content):
+                    if mission_content[end] == '{':
+                        depth += 1
+                    elif mission_content[end] == '}':
+                        depth -= 1
+                    end += 1
+
+                boundaries[coalition] = (start, end - 1)
+                break
+
+    return boundaries
+
+
+def list_all_groups(mission_content: str) -> Dict[str, List[Dict]]:
     """
     List all groups in mission by coalition.
 
@@ -22,30 +68,60 @@ def list_all_groups(mission_content: str) -> Dict[str, List[str]]:
         mission_content: Raw mission file content as string
 
     Returns:
-        Dict with coalition names as keys and lists of group names as values:
-        {"blue": ["Group1", "Group2"], "red": ["Group3"], "neutrals": []}
+        Dict with coalition names as keys and lists of group info dicts as values:
+        {"blue": [{"name": "Group1", "category": "plane", "units": [...]}, ...],
+         "red": [...], "neutrals": [...]}
 
     Example:
         >>> content = parser.get_mission_content()
         >>> groups = list_all_groups(content)
-        >>> print(f"Blue groups: {groups['blue']}")
+        >>> print(f"Blue groups: {len(groups['blue'])}")
         >>> print(f"Total groups: {sum(len(g) for g in groups.values())}")
     """
     result = {"blue": [], "red": [], "neutrals": []}
 
-    for coalition in patterns.COALITIONS:
-        # Get coalition section
-        coalition_pattern = patterns.get_coalition_section_pattern(coalition)
-        coalition_match = coalition_pattern.search(mission_content)
+    # Find coalition section boundaries
+    boundaries = _find_coalition_boundaries(mission_content)
 
-        if not coalition_match:
+    for coalition in patterns.COALITIONS:
+        if coalition not in boundaries:
             continue
 
-        coalition_content = coalition_match.group(1)
+        start, end = boundaries[coalition]
+        coalition_content = mission_content[start:end]
 
-        # Find all group names within this coalition
-        group_names = patterns.GROUP_NAME_PATTERN_COMPILED.findall(coalition_content)
-        result[coalition] = group_names
+        # Pattern to find groups: matches units section followed by name
+        # Groups have: ["units"] = { ... }, -- end of ["units"] ... ["name"] = "GroupName"
+        group_pattern = re.compile(
+            r'\["units"\]\s*=\s*\{(.+?)\},\s*--\s*end of \["units"\].+?\["name"\]\s*=\s*"([^"]+)"',
+            re.DOTALL
+        )
+
+        for match in group_pattern.finditer(coalition_content):
+            units_content = match.group(1)
+            group_name = match.group(2)
+
+            # Extract unit types from units content
+            unit_types = re.findall(r'\["type"\]\s*=\s*"([^"]+)"', units_content)
+
+            # Determine category by looking backwards for category marker
+            pos_in_content = match.start()
+            search_back = coalition_content[max(0, pos_in_content-20000):pos_in_content]
+
+            category = "vehicle"  # Default for ground units
+            best_idx = -1
+            for cat in ['vehicle', 'helicopter', 'plane', 'ship', 'static']:
+                cat_marker = f'["{cat}"]'
+                idx = search_back.rfind(cat_marker)
+                if idx > best_idx:
+                    best_idx = idx
+                    category = cat
+
+            result[coalition].append({
+                'name': group_name,
+                'category': category,
+                'units': unit_types
+            })
 
     return result
 

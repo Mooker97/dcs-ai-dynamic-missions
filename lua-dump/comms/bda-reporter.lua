@@ -136,7 +136,7 @@ local function addToKillBuffer(attackerName, targetType, category)
     end
 
     DMS.BDA.BufferTimer = timer.scheduleFunction(function()
-        processKillBuffer()
+        DMS.Error.safeCall(processKillBuffer, "BDA.processKillBuffer")
         return nil
     end, nil, timer.getTime() + DMS.BDA.Config.reportDelay)
 end
@@ -223,7 +223,7 @@ local function createEventHandler()
             addToKillBuffer(playerName, targetType, categoryName)
         else
             -- Immediate individual report
-            timer.scheduleFunction(function()
+            DMS.Error.safeSchedule(function()
                 local msg = generateBDAMessage(playerName, targetType, 1, categoryName)
                 trigger.action.outTextForCoalition(
                     DMS.BDA.Config.playerCoalition,
@@ -231,8 +231,7 @@ local function createEventHandler()
                     10,
                     true
                 )
-                return nil
-            end, nil, timer.getTime() + DMS.BDA.Config.reportDelay)
+            end, DMS.BDA.Config.reportDelay, "BDA.report")
         end
     end
 
@@ -246,7 +245,8 @@ function DMS.BDA.start()
     end
 
     DMS.BDA.Active = true
-    DMS.BDA.EventHandler = createEventHandler()
+    local internalHandler = createEventHandler()
+    DMS.BDA.EventHandler = DMS.Error.safeHandler(internalHandler, "BDA.EventHandler")
     world.addEventHandler(DMS.BDA.EventHandler)
 
     if DMS.Settings and DMS.Settings.isDebug() then

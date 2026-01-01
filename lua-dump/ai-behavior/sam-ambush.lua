@@ -137,8 +137,8 @@ local function isInEnvelope(site, aircraft)
     return range <= site.engageRadius
 end
 
---- Process SAM ambush checks
-local function processAmbushCheck(_, time)
+--- Process SAM ambush checks (internal, wrapped with error handler)
+local function processAmbushCheckInternal(_, time)
     if not DMS.SAMAmbush.Active then
         return nil
     end
@@ -205,6 +205,21 @@ local function processAmbushCheck(_, time)
     end
 
     return time + DMS.SAMAmbush.Config.checkInterval
+end
+
+--- Process SAM ambush checks with error handling
+local function processAmbushCheck(args, time)
+    local success, result = pcall(processAmbushCheckInternal, args, time)
+    if not success then
+        if DMS.Error then
+            DMS.Error.log("SAMAmbush.processAmbushCheck", result)
+        else
+            env.error("[DMS LUA ERROR] SAMAmbush.processAmbushCheck: " .. tostring(result))
+        end
+        -- Continue running despite error
+        return time + (DMS.SAMAmbush.Config.checkInterval or 2)
+    end
+    return result
 end
 
 --- Start the SAM ambush system

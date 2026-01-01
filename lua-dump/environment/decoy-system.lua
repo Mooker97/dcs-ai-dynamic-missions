@@ -137,11 +137,9 @@ function DMS.Decoys.markAttacked(id)
     end
 end
 
---- Create event handler for attack detection
-local function createEventHandler()
-    local handler = {}
-
-    function handler:onEvent(event)
+--- Event handler for attack detection (internal)
+DMS.Decoys._EventHandlerInternal = {
+    onEvent = function(self, event)
         if not DMS.Decoys.Active then
             return
         end
@@ -169,9 +167,7 @@ local function createEventHandler()
             end
         end
     end
-
-    return handler
-end
+}
 
 --- Refresh smoke at decoy sites
 local function refreshSmoke()
@@ -187,8 +183,8 @@ local function refreshSmoke()
     end
 end
 
---- Process decoy system
-local function processDecoys(_, time)
+--- Process decoy system (internal)
+local function processDecoysInternal(_, time)
     if not DMS.Decoys.Active then
         return nil
     end
@@ -199,6 +195,20 @@ local function processDecoys(_, time)
     return time + 30  -- Check every 30 seconds
 end
 
+--- Process decoys with error handling
+local function processDecoys(args, time)
+    local success, result = pcall(processDecoysInternal, args, time)
+    if not success then
+        if DMS.Error then
+            DMS.Error.log("Decoys.processDecoys", result)
+        else
+            env.error("[DMS LUA ERROR] Decoys.processDecoys: " .. tostring(result))
+        end
+        return time + 30
+    end
+    return result
+end
+
 --- Start decoy system
 function DMS.Decoys.start()
     if DMS.Decoys.Active then
@@ -207,8 +217,11 @@ function DMS.Decoys.start()
 
     DMS.Decoys.Active = true
 
-    -- Add event handler
-    DMS.Decoys.EventHandler = createEventHandler()
+    -- Wrap event handler with error protection
+    DMS.Decoys.EventHandler = DMS.Error.safeHandler(
+        DMS.Decoys._EventHandlerInternal,
+        "Decoys.EventHandler"
+    )
     world.addEventHandler(DMS.Decoys.EventHandler)
 
     -- Start processing

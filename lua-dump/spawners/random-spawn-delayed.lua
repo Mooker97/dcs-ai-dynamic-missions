@@ -66,15 +66,17 @@ end
 -- @param groupConfig table Group configuration
 -- @return nil Always returns nil (no reschedule)
 local function trySpawn(groupConfig)
-    local roll = math.random(1, 100)
+    DMS.Error.safeCall(function()
+        local roll = math.random(1, 100)
 
-    if roll <= groupConfig.chance then
-        local group = Group.getByName(groupConfig.name)
-        if group then
-            trigger.action.activateGroup(group)
-            groupConfig.spawned = true
+        if roll <= groupConfig.chance then
+            local group = Group.getByName(groupConfig.name)
+            if group then
+                trigger.action.activateGroup(group)
+                groupConfig.spawned = true
+            end
         end
-    end
+    end, "DelayedSpawn.trySpawn(" .. groupConfig.name .. ")")
 
     return nil  -- Don't reschedule
 end

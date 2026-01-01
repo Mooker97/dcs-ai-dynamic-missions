@@ -24,8 +24,8 @@ DMS.HVTSpawn.Config = {
     playerCoalition = coalition.side.BLUE,
 }
 
--- Event handler for tracking HVT kills
-DMS.HVTSpawn.EventHandler = {
+-- Event handler for tracking HVT kills (internal, will be wrapped)
+DMS.HVTSpawn._EventHandlerInternal = {
     onEvent = function(self, event)
         -- Check for unit death events
         if event.id == world.event.S_EVENT_DEAD or
@@ -132,6 +132,11 @@ end
 --- Start the HVT system (registers event handler)
 -- Call this after registering all HVTs
 function DMS.HVTSpawn.start()
+    -- Wrap event handler with error protection
+    DMS.HVTSpawn.EventHandler = DMS.Error.safeHandler(
+        DMS.HVTSpawn._EventHandlerInternal,
+        "HVTSpawn.EventHandler"
+    )
     world.addEventHandler(DMS.HVTSpawn.EventHandler)
 end
 
@@ -157,8 +162,8 @@ function DMS.HVTSpawn.schedule(hvtId)
     -- Calculate spawn time
     local spawnTime = math.random(hvt.minTime, hvt.maxTime)
 
-    -- Schedule the spawn
-    timer.scheduleFunction(function()
+    -- Schedule the spawn with error handling
+    DMS.Error.safeSchedule(function()
         local group = Group.getByName(hvt.groupName)
         if group then
             trigger.action.activateGroup(group)
@@ -184,8 +189,7 @@ function DMS.HVTSpawn.schedule(hvtId)
                 )
             end
         end
-        return nil
-    end, nil, timer.getTime() + spawnTime)
+    end, spawnTime, "HVTSpawn.spawn(" .. hvtId .. ")")
 
     return {
         scheduled = true,

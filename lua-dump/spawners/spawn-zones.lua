@@ -172,10 +172,9 @@ end
 function DMS.SpawnZones.spawnAllDelayed(minDelay, maxDelay)
     for _, config in ipairs(DMS.SpawnZones.Config) do
         local delay = minDelay + math.random() * (maxDelay - minDelay)
-        timer.scheduleFunction(function()
+        DMS.Error.safeSchedule(function()
             DMS.SpawnZones.spawnGroup(config)
-            return nil
-        end, nil, timer.getTime() + delay)
+        end, delay, "SpawnZones.spawnGroup(" .. config.groupName .. ")")
     end
 end
 

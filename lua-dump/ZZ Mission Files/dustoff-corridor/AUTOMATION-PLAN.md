@@ -1,352 +1,363 @@
-# Dustoff Corridor - Mission Automation Plan
+# Dustoff Corridor - Minimal Input Mission Setup
 
-## Overview
+## Philosophy
 
-Automate the creation of ~32 enemy groups, triggers, and zones from a base mission file where the user has manually placed only the essential creative elements.
+**User places only essential creative elements. Lua handles all randomization and behavior.**
 
----
-
-## Phase 1: User Manual Setup (DCS Mission Editor)
-
-### What User Places Manually
-
-| Element | Name Convention | Purpose |
-|---------|-----------------|---------|
-| **Player Aircraft** | `Player` | AH-64D Apache, Client slot |
-| **Convoy Group** | `Convoy-Main` | 4x trucks + 2x Humvees with full route |
-| **Alpha Zone** | `Alpha-Ambush-Zone` | ~500m radius trigger zone |
-| **Bravo Zone** | `Bravo-Ambush-Zone` | ~600m radius trigger zone |
-| **Charlie Zone** | `Charlie-Ambush-Zone` | ~500m radius trigger zone |
-
-### Optional Additional Zones (for positioning reference)
-
-| Element | Name Convention | Purpose |
-|---------|-----------------|---------|
-| `Alpha-Center` | Zone marking Alpha area center | Enemy spawn reference |
-| `Bravo-Center` | Zone marking Bravo area center | Enemy spawn reference |
-| `Charlie-Center` | Zone marking Charlie area center | Enemy spawn reference |
-| `QRF-Staging` | Zone for QRF spawn point | Behind enemy lines |
-
-### User Deliverable
-
-- Save as: `miz-files/input/dustoff-corridor-base.miz`
-- Map: Syria or Caucasus
-- Coalitions: Blue (USA) and Red (Russia) must exist
-- Time/Weather: User's choice
+The DMS Lua library is designed so that mission creators place LATE ACTIVATION groups in the Mission Editor, and the scripts handle when/if they activate. This means:
+- **User work**: Place groups, name them correctly, set LATE ACTIVATION
+- **Lua work**: Random selection, proximity triggers, AI behavior, reinforcements
 
 ---
 
-## Phase 2: Script Extraction
+## What User Must Do (Mission Editor)
 
-### Data to Extract from Base Mission
+### Required Elements (5 items)
 
-```python
-extract_data = {
-    # Trigger Zones
-    "zones": {
-        "Alpha-Ambush-Zone": {"x": float, "y": float, "radius": float},
-        "Bravo-Ambush-Zone": {"x": float, "y": float, "radius": float},
-        "Charlie-Ambush-Zone": {"x": float, "y": float, "radius": float},
-        # Optional positioning zones
-        "Alpha-Center": {"x": float, "y": float, "radius": float},
-        "Bravo-Center": {"x": float, "y": float, "radius": float},
-        "Charlie-Center": {"x": float, "y": float, "radius": float},
-    },
+| Element | Name | Notes |
+|---------|------|-------|
+| Player Aircraft | `Player` | AH-64D, Client slot |
+| Convoy Group | `Convoy-Main` | Trucks + escorts with route |
+| Zone | `Alpha-Ambush-Zone` | Trigger zone ~500m radius |
+| Zone | `Bravo-Ambush-Zone` | Trigger zone ~600m radius |
+| Zone | `Charlie-Ambush-Zone` | Trigger zone ~500m radius |
 
-    # Convoy route for threat positioning
-    "convoy_route": [
-        {"x": float, "y": float, "name": "waypoint_1"},
-        {"x": float, "y": float, "name": "waypoint_2"},
-        # ...
-    ],
+### Enemy Groups (LATE ACTIVATION)
 
-    # Existing groups (to avoid ID conflicts)
-    "existing_groups": ["Player", "Convoy-Main"],
-    "max_group_id": int,
-    "max_unit_id": int,
-}
+User places these groups at desired positions. **Naming convention is critical** - the Lua scripts find groups by name.
+
+#### Alpha Zone (~9 groups)
+```
+Alpha-ZU23-Hill          # ZU-23 on elevated position
+Alpha-ZU23-Road          # ZU-23 roadside
+Alpha-MANPADS-Compound   # Igla team in compound
+Alpha-MANPADS-Wadi       # Igla team in wadi
+Alpha-Technical-Road     # Technicals on road
+Alpha-Technical-Ridge    # Technicals behind ridge
+Alpha-Infantry-Compound  # Infantry squad
+Alpha-Infantry-Treeline  # Infantry in trees
+Ambush-Alpha-Hidden      # Proximity-activated ambush
 ```
 
-### Extraction Functions Needed
+#### Bravo Zone (~10 groups)
+```
+Bravo-Shilka-Village     # ZSU-23-4 at village
+Bravo-Shilka-Treeline    # ZSU-23-4 in treeline
+Bravo-Shilka-Hill        # ZSU-23-4 on hill
+Bravo-Tunguska-Road      # 2S6 covering road
+Bravo-ZU23-Bridge        # ZU-23 at chokepoint
+Bravo-BMP-Wadi           # BMPs hidden in wadi
+Bravo-BMP-Village        # BMPs in village
+Bravo-BTR-Road           # BTRs on road
+Bravo-BTR-Treeline       # BTRs in treeline
+Ambush-Bravo-Hidden      # Proximity-activated ambush
+```
 
-| Function | Source | Status |
-|----------|--------|--------|
-| `list_trigger_zones()` | `triggers/list.py` | Verify exists |
-| `extract_convoy_waypoints()` | `waypoints/` | May need to create |
-| `list_all_groups()` | `groups/list.py` | Exists |
-| `get_max_ids()` | `utils/id_manager.py` | Exists |
+#### Charlie Zone (~8 groups)
+```
+Charlie-Shilka-Crossroads   # ZSU-23-4 at crossroads
+Charlie-Tunguska-Urban      # 2S6 in urban area
+Charlie-ZU23-Bridge         # ZU-23 at final bridge
+Charlie-MANPADS-Rooftop     # MANPADS elevated
+Charlie-Infantry-Urban      # Infantry in buildings
+Charlie-Technical-Road      # Technicals blocking road
+Charlie-RPG-Overwatch       # RPG teams elevated
+Ambush-Charlie-Hidden       # Proximity-activated ambush
+```
+
+#### QRF Groups (~5 groups)
+```
+QRF-Technicals-1         # Light QRF
+QRF-Technicals-2         # Light QRF alt
+QRF-Armor-1              # BMP response
+QRF-Infantry-1           # Infantry with armor
+QRF-Heavy-1              # T-72 heavy response
+```
+
+**Total: ~32 LATE ACTIVATION groups**
 
 ---
 
-## Phase 3: Group Generation
+## What Lua Handles Automatically
 
-### Enemy Groups to Generate (~35 total)
+### Layer 1: Random Selection (SpawnPool)
 
-#### Alpha Zone Groups (9 groups)
-
-| Group Name | Unit Type | Count | Position Logic |
-|------------|-----------|-------|----------------|
-| `Alpha-ZU23-Hill` | ZU-23 Technical | 1 | Elevated, 500m from route |
-| `Alpha-ZU23-Road` | ZU-23 Technical | 1 | Roadside, 300m from route |
-| `Alpha-MANPADS-Compound` | Infantry w/Igla | 2 | Near buildings/compound |
-| `Alpha-MANPADS-Wadi` | Infantry w/Igla | 2 | Low terrain feature |
-| `Alpha-Technical-Road` | Technical | 3 | On/near road |
-| `Alpha-Technical-Ridge` | Technical | 3 | Behind terrain |
-| `Alpha-Infantry-Compound` | Infantry Squad | 6 | In compound |
-| `Alpha-Infantry-Treeline` | Infantry Squad | 6 | In treeline |
-| `Ambush-Alpha-Hidden` | Infantry + Technical | 4 | 300m off road, surprise |
-
-#### Bravo Zone Groups (10 groups)
-
-| Group Name | Unit Type | Count | Position Logic |
-|------------|-----------|-------|----------------|
-| `Bravo-Shilka-Village` | ZSU-23-4 | 1 | Village edge |
-| `Bravo-Shilka-Treeline` | ZSU-23-4 | 1 | In treeline |
-| `Bravo-Shilka-Hill` | ZSU-23-4 | 1 | Hilltop |
-| `Bravo-Tunguska-Road` | 2S6 Tunguska | 1 | Covering road |
-| `Bravo-ZU23-Bridge` | ZU-23 Emplaced | 1 | At chokepoint |
-| `Bravo-BMP-Wadi` | BMP-2 + Infantry | 2+4 | Hidden in wadi |
-| `Bravo-BMP-Village` | BMP-2 + Infantry | 2+4 | In village |
-| `Bravo-BTR-Road` | BTR-80 | 3 | Roadblock |
-| `Bravo-BTR-Treeline` | BTR-80 | 3 | Flanking position |
-| `Ambush-Bravo-Hidden` | BMP + Infantry | 1+4 | Heavy ambush |
-
-#### Charlie Zone Groups (8 groups)
-
-| Group Name | Unit Type | Count | Position Logic |
-|------------|-----------|-------|----------------|
-| `Charlie-Shilka-Crossroads` | ZSU-23-4 | 1 | At crossroads |
-| `Charlie-Tunguska-Urban` | 2S6 Tunguska | 1 | Urban area |
-| `Charlie-ZU23-Bridge` | ZU-23 Emplaced | 1 | Final bridge |
-| `Charlie-MANPADS-Rooftop` | Infantry w/Igla | 2 | Elevated |
-| `Charlie-Infantry-Urban` | Infantry Squad | 6 | In buildings |
-| `Charlie-Technical-Road` | Technical | 4 | Roadblock |
-| `Charlie-RPG-Overwatch` | Infantry w/RPG | 3 | Elevated |
-| `Ambush-Charlie-Hidden` | Mixed | 4 | Near destination |
-
-#### QRF Groups (5 groups)
-
-| Group Name | Unit Type | Count | Position Logic |
-|------------|-----------|-------|----------------|
-| `QRF-Technicals-1` | Technical | 3 | Staging area |
-| `QRF-Technicals-2` | Technical | 3 | Alt staging |
-| `QRF-Armor-1` | BMP-2 | 2 | Far staging |
-| `QRF-Infantry-1` | Infantry Squad | 6 | With armor |
-| `QRF-Heavy-1` | T-72 + BMP | 2 | Far rear |
-
-### Position Generation Algorithm
-
-```python
-def generate_group_positions(zone_center, zone_radius, convoy_route):
-    """
-    Generate positions for groups around a zone center.
-
-    Strategy:
-    - AA groups: 500-1500m from zone center, varied angles
-    - Ground groups: 200-800m from zone center
-    - Ambush groups: 200-500m off convoy route
-    - Use convoy route to determine "road direction"
-    """
-    positions = {}
-
-    # Calculate road bearing from convoy waypoints
-    road_bearing = calculate_bearing(convoy_route)
-
-    # AA positions: offset perpendicular to road
-    for i, aa_group in enumerate(aa_groups):
-        angle = road_bearing + (90 if i % 2 == 0 else -90) + random_offset(-30, 30)
-        distance = random_range(500, 1500)
-        positions[aa_group] = offset_position(zone_center, angle, distance)
-
-    # Ground positions: closer to road
-    for i, ground_group in enumerate(ground_groups):
-        angle = road_bearing + (45 * i) + random_offset(-20, 20)
-        distance = random_range(200, 800)
-        positions[ground_group] = offset_position(zone_center, angle, distance)
-
-    return positions
+```lua
+-- From init.lua - picks random subset of placed groups
+DMS.SpawnPool.create("alpha-aa", { chance = 60, count = 1 })
+DMS.SpawnPool.addGroups("alpha-aa", {
+    "Alpha-ZU23-Hill", "Alpha-ZU23-Road",
+    "Alpha-MANPADS-Compound", "Alpha-MANPADS-Wadi",
+})
 ```
 
-### Unit Type Mappings (DCS Internal Names)
+**What this does**: 60% chance to activate exactly 1 random AA group from the 4 options.
 
-```python
-UNIT_TYPES = {
-    # AA
-    "ZU-23 Technical": "Ural-375 ZU-23",
-    "ZSU-23-4": "ZSU-23-4 Shilka",
-    "2S6 Tunguska": "2S6 Tunguska",
-    "SA-8 Gecko": "Osa 9A33 ln",
-    "Infantry Igla": "Infantry AK Ins",  # + Igla in loadout?
+### Layer 2: Proximity Activation
 
-    # Armor
-    "BMP-2": "BMP-2",
-    "BTR-80": "BTR-80",
-    "T-72": "T-72B",
+```lua
+-- Groups that only activate when player gets close
+DMS.Proximity.registerWithZone("Ambush-Alpha-Hidden", "Alpha-Ambush-Zone", 70)
+```
 
-    # Vehicles
-    "Technical": "UAZ-469",  # Or armed variant
-    "UAZ Command": "UAZ-469",
-    "Truck": "Ural-375",
+**What this does**: When player enters zone, 70% chance to activate the hidden ambush.
 
-    # Infantry
-    "Infantry Squad": "Infantry AK Ins",
-    "Infantry RPG": "Infantry AK Ins",  # Need RPG variant
-}
+### Layer 3: SAM Ambush Behavior
+
+```lua
+-- SAMs stay radar-dark until player in engagement envelope
+DMS.SAMAmbush.registerAtPosition("Bravo-Shilka-Village", 10000)
+```
+
+**What this does**: Shilka keeps radar off. When player within 10km, goes HOT.
+
+### Layer 4: Reinforcement Waves
+
+```lua
+-- QRF responds to convoy taking fire
+DMS.Reinforcements.waveOnFlag(1, {"QRF-Technicals-1"}, "convoy_under_fire", 1)
+```
+
+**What this does**: When convoy hit (flag set by event handler), QRF spawns.
+
+### Layer 5: Kill Tracking & Adaptive Response
+
+```lua
+-- Heavy QRF only if player is doing well
+DMS.Reinforcements.registerWave(3, {"QRF-Heavy-1"}, {
+    condition = function()
+        return DMS.DustoffCorridor.State.playerKills >= 12
+    end,
+})
 ```
 
 ---
 
-## Phase 4: Trigger Generation
+## Script Load Order (DO SCRIPT FILE triggers)
 
-### Script Loading Triggers (11 triggers)
+Create these triggers in Mission Editor with "MISSION START" condition:
 
-| Order | Trigger Name | Script Path | Delay |
-|-------|--------------|-------------|-------|
-| 1 | Load Coordinates | `lua-dump/utils/coordinates.lua` | 0s |
-| 2 | Load Group Utils | `lua-dump/utils/group-utils.lua` | 0s |
-| 3 | Load Timer Utils | `lua-dump/utils/timer-utils.lua` | 0s |
-| 4 | Load Messaging | `lua-dump/utils/messaging.lua` | 0s |
-| 5 | Load Spawn Pool | `lua-dump/spawners/random-spawn-pool.lua` | 0s |
-| 6 | Load Proximity | `lua-dump/ai-behavior/proximity-activation.lua` | 0s |
-| 7 | Load SAM Ambush | `lua-dump/ai-behavior/sam-ambush.lua` | 0s |
-| 8 | Load Reinforcements | `lua-dump/events/reinforcement-waves.lua` | 0s |
-| 9 | Load BDA Reporter | `lua-dump/comms/bda-reporter.lua` | 0s |
-| 10 | Load Mission Init | `ZZ Mission Files/dustoff-corridor/init.lua` | 0s |
-| 11 | Start Mission | `DMS.DustoffCorridor.start()` | 5s |
+| # | Script Path | Delay |
+|---|-------------|-------|
+| 1 | `lua-dump/utils/coordinates.lua` | 0s |
+| 2 | `lua-dump/utils/group-utils.lua` | 0s |
+| 3 | `lua-dump/utils/timer-utils.lua` | 0s |
+| 4 | `lua-dump/utils/messaging.lua` | 0s |
+| 5 | `lua-dump/utils/mission-settings.lua` | 0s |
+| 6 | `lua-dump/spawners/random-spawn-pool.lua` | 0s |
+| 7 | `lua-dump/ai-behavior/proximity-activation.lua` | 0s |
+| 8 | `lua-dump/ai-behavior/sam-ambush.lua` | 0s |
+| 9 | `lua-dump/events/reinforcement-waves.lua` | 0s |
+| 10 | `lua-dump/comms/bda-reporter.lua` | 0s |
+| 11 | `ZZ Mission Files/dustoff-corridor/init.lua` | 0s |
+| 12 | DO SCRIPT: `DMS.DustoffCorridor.start()` | 2s |
 
-**Note**: DCS uses DO SCRIPT FILE for external files, DO SCRIPT for inline code.
+---
 
-### Flag Message Triggers (None - HVT Removed)
+## Enhanced Features to Add
 
-HVT system removed from this mission. No flag-based triggers needed.
+### 1. Objective Tracking
 
-### Trigger Implementation
+Add `objective-tracker.lua` to track convoy progress:
 
-```python
-# Script loading triggers use DO SCRIPT FILE
-# But our add.py uses DO SCRIPT (inline)
-# May need to add DO SCRIPT FILE support
+```lua
+-- In init.lua
+DMS.Objectives.register("escort_convoy", {
+    description = "Escort convoy to FOB Victory",
+    type = "arrival",
+    targetGroup = "Convoy-Main",
+    targetZone = "FOB-Victory-Zone",
+})
 
-# Current capability:
-add_do_script_trigger(content, "Start Mission", "DMS.DustoffCorridor.start()", time_after=5)
+DMS.Objectives.register("protect_convoy", {
+    description = "Keep at least 2 convoy vehicles alive",
+    type = "survival",
+    targetGroup = "Convoy-Main",
+    minUnits = 2,
+})
+```
 
-# Needed capability:
-add_do_script_file_trigger(content, "Load Init", "path/to/init.lua", time_after=0)
+### 2. Phase Manager
+
+Add mission phases for structured flow:
+
+```lua
+DMS.PhaseManager.definePhase("ALPHA", {
+    name = "Alpha Sector",
+    briefing = "Clear Alpha sector for convoy passage.",
+    onEnter = function()
+        DMS.SpawnPool.executePool("alpha-aa")
+        DMS.SpawnPool.executePool("alpha-ground")
+    end,
+})
+
+DMS.PhaseManager.addTransition("ALPHA", "BRAVO", {
+    type = "zone",
+    zone = "Bravo-Ambush-Zone",
+    unit = "Convoy-Main",
+})
+```
+
+### 3. Support Requests (F10 Menu)
+
+Add player-callable support:
+
+```lua
+-- Add support request menu
+DMS.CommandMenu.configure({ rootMenuName = "Dustoff Support" })
+
+DMS.SupportRequests.registerAsset("arty", DMS.SupportRequests.TYPES.ARTILLERY, nil, {
+    cooldown = 300,
+    uses = 2,
+})
+
+DMS.SupportRequests.registerAsset("resupply", DMS.SupportRequests.TYPES.RESUPPLY, "FARP-1", {
+    cooldown = 600,
+})
+```
+
+### 4. BDA Reporter
+
+Already integrated - reports kills to player:
+
+```lua
+DMS.BDA.configure({
+    playerCoalition = coalition.side.BLUE,
+    announceKills = true,
+    trackGroups = {"Bravo-Shilka-Village", "Bravo-Tunguska-Road", ...},
+})
+```
+
+### 5. Audio Alerts
+
+Add radio calls using audio-player:
+
+```lua
+DMS.AudioPlayer.configure({
+    basePath = "l10n/DEFAULT/",
+})
+
+-- When convoy takes fire
+DMS.AudioPlayer.play("convoy_under_fire.ogg", coalition.side.BLUE)
+```
+
+### 6. Skill Scaling
+
+Adjust AI difficulty based on player performance:
+
+```lua
+DMS.SkillScaling.configure({
+    initialSkill = "Good",
+    announceChanges = false,
+})
+
+-- Connect to adaptive spawner
+DMS.AdaptiveSpawner.registerPool("reinforcements", {"QRF-Technicals-1", "QRF-Armor-1"}, {
+    difficulty = "medium",
+})
 ```
 
 ---
 
-## Phase 5: Implementation Tasks
+## Simplified Setup Checklist
 
-### Pre-Implementation Checks
+### User (Mission Editor) - ~30 minutes
 
-- [ ] Verify `triggers/list.py` can extract trigger zones
-- [ ] Verify `groups/add.py` works with vehicle units
-- [ ] Check if DO SCRIPT FILE trigger support exists
-- [ ] Confirm unit type names are correct for DCS
+- [ ] Place player aircraft (AH-64D)
+- [ ] Place convoy with route (4x trucks, 2x Humvees)
+- [ ] Create 3 trigger zones (Alpha, Bravo, Charlie)
+- [ ] Place ~32 enemy groups at various positions
+- [ ] Set ALL enemy groups to LATE ACTIVATION
+- [ ] Name groups according to convention above
+- [ ] Add DO SCRIPT FILE triggers for Lua scripts
+- [ ] Save mission
 
-### Implementation Order
+### Automatic (Lua Runtime)
 
-1. **Create extraction module** (`dustoff_extractor.py`)
-   - Extract trigger zones
-   - Extract convoy waypoints
-   - Extract existing IDs
-
-2. **Create position generator** (`dustoff_positions.py`)
-   - Algorithm to distribute groups around zones
-   - Randomization with seed for reproducibility
-
-3. **Create group generator** (`dustoff_groups.py`)
-   - Generate all 35 groups with correct unit types
-   - Set late activation flag
-   - Apply correct headings
-
-4. **Create trigger generator** (`dustoff_triggers.py`)
-   - Add DO SCRIPT FILE triggers (may need to extend `triggers/add.py`)
-   - Add flag-based message triggers
-
-5. **Create main orchestrator** (`build_dustoff_mission.py`)
-   - Load base mission
-   - Run extraction
-   - Generate positions
-   - Add groups
-   - Add triggers
-   - Save output mission
+- [x] Random threat selection from pools
+- [x] Proximity-based ambush activation
+- [x] SAM ambush behavior (dark until engaged)
+- [x] Convoy under fire detection
+- [x] QRF reinforcement spawning
+- [x] Kill tracking and adaptive response
+- [x] Mission briefing display
+- [x] Debug logging (if enabled)
 
 ---
 
-## Phase 6: Verification
+## Replayability Matrix
 
-### Output Verification Checklist
+Each playthrough is unique due to:
 
-- [ ] All 35 groups present with correct names
-- [ ] All groups set to LATE ACTIVATION
-- [ ] All groups positioned within expected zones
-- [ ] Trigger zones preserved from base mission
-- [ ] All 12 script triggers present
-- [ ] All flag triggers present
-- [ ] Player and Convoy groups unchanged
-- [ ] Mission loads without errors in DCS
+| System | Randomization |
+|--------|---------------|
+| SpawnPool | Different threats each time (1-2 from each pool) |
+| Proximity | 50-70% chance per ambush site |
+| Reinforcements | Only spawn if conditions met |
+| SAM Ambush | Behavior varies by approach angle |
+| Time of Day | Set randomly in ME or by user |
 
-### Testing Process
-
-1. Load output .miz in DCS Mission Editor
-2. Verify all groups visible on map
-3. Verify late activation status
-4. Start mission and check:
-   - Briefing appears
-   - Debug mode shows spawn results
-   - Random threats activate
-   - No Lua errors in DCS.log
+**Estimated unique combinations**: 1000+ different threat layouts
 
 ---
 
-## File Structure
+## Files Structure
 
 ```
 DMS/
-├── miz-files/
-│   ├── input/
-│   │   └── dustoff-corridor-base.miz    # User creates this
-│   └── output/
-│       └── dustoff-corridor-final.miz   # Script generates this
+├── lua-dump/
+│   ├── utils/                    # Core utilities
+│   ├── spawners/
+│   │   └── random-spawn-pool.lua # Pool selection
+│   ├── ai-behavior/
+│   │   ├── proximity-activation.lua
+│   │   └── sam-ambush.lua
+│   ├── events/
+│   │   ├── reinforcement-waves.lua
+│   │   └── objective-tracker.lua
+│   ├── comms/
+│   │   ├── bda-reporter.lua
+│   │   └── audio-player.lua
+│   ├── mission-state/
+│   │   └── phase-manager.lua
+│   └── player-support/
+│       ├── command-menu.lua
+│       └── support-requests.lua
 │
-├── miz_file_modification/
-│   ├── triggers/
-│   │   ├── add.py                       # May need DO SCRIPT FILE support
-│   │   └── list.py                      # Zone extraction
-│   └── groups/
-│       └── add.py                       # Group creation
-│
-└── lua-dump/
-    └── ZZ Mission Files/
-        └── dustoff-corridor/
-            ├── MISSION-SETUP.md          # Reference doc
-            ├── AUTOMATION-PLAN.md        # This document
-            ├── init.lua                  # Mission script (done)
-            └── build_mission.py          # Main automation script
+└── ZZ Mission Files/
+    └── dustoff-corridor/
+        ├── AUTOMATION-PLAN.md    # This document
+        ├── init.lua              # Mission configuration
+        └── audio/                # Mission audio files (optional)
+            ├── convoy_under_fire.ogg
+            └── mission_complete.ogg
 ```
 
 ---
 
-## Open Questions
+## Quick Start
 
-1. **DO SCRIPT FILE vs DO SCRIPT**: Does `triggers/add.py` support loading external files, or only inline scripts?
-
-2. **Unit Type Names**: Need to verify exact DCS internal names for all unit types (especially infantry variants with specific weapons).
-
-3. **Late Activation**: How is late activation set? Is it a group property we can modify, or does `add_group()` need a parameter?
-
-4. **Heading Calculation**: Should groups face toward the convoy route, or random headings?
-
-5. **Infantry Composition**: How to create infantry squads with mixed weapons (some with Igla, some with RPG)?
+1. **Copy template mission** with pre-placed groups (if available)
+2. **Adjust positions** to fit your preferred map area
+3. **Modify init.lua** if you want different pool chances
+4. **Test in DCS** with debug mode enabled:
+   ```lua
+   DMS.Settings.configure({ debug = true })
+   ```
+5. **Check DCS.log** for `[DUSTOFF]`, `[SpawnPool]`, `[Proximity]` messages
 
 ---
 
-## Next Steps
+## Future Automation
 
-1. Review this plan and confirm approach
-2. Answer open questions
-3. Check existing module capabilities
-4. Begin implementation in order specified
+Python script could automate:
+- Extracting zone positions from base mission
+- Generating group positions around zones
+- Adding groups to mission file
+- Creating DO SCRIPT FILE triggers
 
+But current approach requires only:
+- User places groups manually (full control over terrain use)
+- Lua handles all runtime logic
+
+This gives mission creators artistic control while removing tedious trigger logic.

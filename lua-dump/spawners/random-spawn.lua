@@ -58,11 +58,16 @@ local function trySpawn(groupConfig)
     local roll = math.random(1, 100)
 
     if roll <= groupConfig.chance then
-        local group = Group.getByName(groupConfig.name)
-        if group then
-            trigger.action.activateGroup(group)
-            return true
-        end
+        local success, result = DMS.Error.safeCallArgs(function(name)
+            local group = Group.getByName(name)
+            if group then
+                trigger.action.activateGroup(group)
+                return true
+            end
+            return false
+        end, "RandomSpawn.trySpawn(" .. groupConfig.name .. ")", groupConfig.name)
+
+        return success and result
     end
     return false
 end

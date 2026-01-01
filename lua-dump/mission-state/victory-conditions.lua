@@ -222,8 +222,8 @@ function DMS.Victory.Conditions.allPlayersDead()
     end
 end
 
---- Process victory check
-local function checkVictory(_, time)
+--- Process victory check (internal)
+local function checkVictoryInternal(_, time)
     if not DMS.Victory.Active or DMS.Victory.Result then
         return nil
     end
@@ -282,6 +282,20 @@ local function checkVictory(_, time)
     end
 
     return time + DMS.Victory.Config.checkInterval
+end
+
+--- Process victory check with error handling
+local function checkVictory(args, time)
+    local success, result = pcall(checkVictoryInternal, args, time)
+    if not success then
+        if DMS.Error then
+            DMS.Error.log("Victory.checkVictory", result)
+        else
+            env.error("[DMS LUA ERROR] Victory.checkVictory: " .. tostring(result))
+        end
+        return time + (DMS.Victory.Config.checkInterval or 5)
+    end
+    return result
 end
 
 --- Trigger victory

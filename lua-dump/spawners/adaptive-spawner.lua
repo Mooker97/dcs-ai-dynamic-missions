@@ -373,8 +373,8 @@ local function updateFromSkillScaling()
     end
 end
 
---- Process spawn cycle
-local function processSpawning(_, time)
+--- Process spawn cycle (internal, wrapped with error handler)
+local function processSpawningInternal(_, time)
     if not DMS.AdaptiveSpawner.Active then return nil end
 
     -- Update difficulty from skill scaling
@@ -409,6 +409,21 @@ local function processSpawning(_, time)
     end
 
     return time + config.checkInterval
+end
+
+--- Process spawn cycle with error handling
+local function processSpawning(args, time)
+    local success, result = pcall(processSpawningInternal, args, time)
+    if not success then
+        if DMS.Error then
+            DMS.Error.log("AdaptiveSpawner.processSpawning", result)
+        else
+            env.error("[DMS LUA ERROR] AdaptiveSpawner.processSpawning: " .. tostring(result))
+        end
+        -- Continue running despite error
+        return time + (DMS.AdaptiveSpawner.Config.checkInterval or 30)
+    end
+    return result
 end
 
 --- Start adaptive spawner

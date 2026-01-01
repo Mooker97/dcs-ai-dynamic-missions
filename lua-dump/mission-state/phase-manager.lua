@@ -284,8 +284,8 @@ function DMS.PhaseManager.transitionTo(newPhaseId, reason)
     return true
 end
 
---- Process phase checks
-local function processPhaseCheck(_, time)
+--- Process phase checks (internal)
+local function processPhaseCheckInternal(_, time)
     if not DMS.PhaseManager.Active then return nil end
 
     local currentPhase = DMS.PhaseManager.Phases[DMS.PhaseManager.CurrentPhase]
@@ -329,6 +329,20 @@ local function processPhaseCheck(_, time)
     end
 
     return time + DMS.PhaseManager.Config.checkInterval
+end
+
+--- Process phase checks with error handling
+local function processPhaseCheck(args, time)
+    local success, result = pcall(processPhaseCheckInternal, args, time)
+    if not success then
+        if DMS.Error then
+            DMS.Error.log("PhaseManager.processPhaseCheck", result)
+        else
+            env.error("[DMS LUA ERROR] PhaseManager.processPhaseCheck: " .. tostring(result))
+        end
+        return time + (DMS.PhaseManager.Config.checkInterval or 5)
+    end
+    return result
 end
 
 --- Register callback for phase entry

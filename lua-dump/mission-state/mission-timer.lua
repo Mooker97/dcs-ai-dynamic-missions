@@ -213,8 +213,8 @@ function DMS.Timer.addTime(id, seconds)
     end
 end
 
---- Process timer updates
-local function updateTimers(_, time)
+--- Process timer updates (internal)
+local function updateTimersInternal(_, time)
     if not DMS.Timer.Active then
         return nil
     end
@@ -268,6 +268,20 @@ local function updateTimers(_, time)
     end
 
     return time + DMS.Timer.Config.updateInterval
+end
+
+--- Process timer updates with error handling
+local function updateTimers(args, time)
+    local success, result = pcall(updateTimersInternal, args, time)
+    if not success then
+        if DMS.Error then
+            DMS.Error.log("Timer.updateTimers", result)
+        else
+            env.error("[DMS LUA ERROR] Timer.updateTimers: " .. tostring(result))
+        end
+        return time + (DMS.Timer.Config.updateInterval or 1)
+    end
+    return result
 end
 
 --- Start timer system

@@ -247,8 +247,8 @@ function DMS.Persistence.recordDestroyed(groupName)
     DMS.Persistence.State._destroyedGroups[groupName] = true
 end
 
---- Auto-save timer
-local function autoSave(_, time)
+--- Auto-save timer (internal)
+local function autoSaveInternal(_, time)
     if not DMS.Persistence.Active then
         return nil
     end
@@ -256,6 +256,20 @@ local function autoSave(_, time)
     DMS.Persistence.save()
 
     return time + DMS.Persistence.Config.autoSaveInterval
+end
+
+--- Auto-save timer with error handling
+local function autoSave(args, time)
+    local success, result = pcall(autoSaveInternal, args, time)
+    if not success then
+        if DMS.Error then
+            DMS.Error.log("Persistence.autoSave", result)
+        else
+            env.error("[DMS LUA ERROR] Persistence.autoSave: " .. tostring(result))
+        end
+        return time + (DMS.Persistence.Config.autoSaveInterval or 300)
+    end
+    return result
 end
 
 --- Start persistence system
@@ -283,7 +297,7 @@ function DMS.Persistence.start()
 
     -- Add event handler for tracking destructions
     if DMS.Persistence.Config.saveOnEvent then
-        local handler = {
+        DMS.Persistence._EventHandlerInternal = {
             onEvent = function(self, event)
                 if event.id == world.event.S_EVENT_DEAD then
                     local unit = event.initiator
@@ -313,7 +327,12 @@ function DMS.Persistence.start()
                 end
             end
         }
-        world.addEventHandler(handler)
+        -- Wrap event handler with error protection
+        DMS.Persistence.EventHandler = DMS.Error.safeHandler(
+            DMS.Persistence._EventHandlerInternal,
+            "Persistence.EventHandler"
+        )
+        world.addEventHandler(DMS.Persistence.EventHandler)
     end
 end
 

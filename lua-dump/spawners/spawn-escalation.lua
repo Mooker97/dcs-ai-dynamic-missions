@@ -79,8 +79,8 @@ function DMS.Escalation.spawnWave(waveNumber)
     return spawned
 end
 
---- Internal: Process next wave
-local function processNextWave(_, time)
+--- Internal: Process next wave (internal, wrapped with error handler)
+local function processNextWaveInternal(_, time)
     local nextWave = DMS.Escalation.CurrentWave + 1
 
     -- Check if wave exists
@@ -105,6 +105,21 @@ local function processNextWave(_, time)
 
     -- Schedule next wave
     return time + DMS.Escalation.Config.timeBetweenWaves
+end
+
+--- Process next wave with error handling
+local function processNextWave(args, time)
+    local success, result = pcall(processNextWaveInternal, args, time)
+    if not success then
+        if DMS.Error then
+            DMS.Error.log("Escalation.processNextWave", result)
+        else
+            env.error("[DMS LUA ERROR] Escalation.processNextWave: " .. tostring(result))
+        end
+        -- Continue running despite error
+        return time + (DMS.Escalation.Config.timeBetweenWaves or 300)
+    end
+    return result
 end
 
 --- Start the escalation sequence

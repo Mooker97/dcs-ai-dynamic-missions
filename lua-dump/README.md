@@ -23,10 +23,13 @@ DMS/
 ```
 lua-dump/
 ├── utils/              # Core utilities - LOAD THESE FIRST
-│   ├── coordinates.lua    # Coordinate conversions and calculations
-│   ├── group-utils.lua    # Group/unit operations
-│   ├── timer-utils.lua    # Timer scheduling helpers
-│   └── messaging.lua      # Message formatting (BRA, Bullseye, etc.)
+│   ├── mission-settings.lua  # Mission configuration (LOAD FIRST!)
+│   ├── error-handler.lua     # Error catching and logging (LOAD SECOND!)
+│   ├── coordinates.lua       # Coordinate conversions and calculations
+│   ├── group-utils.lua       # Group/unit operations
+│   ├── timer-utils.lua       # Timer scheduling helpers
+│   ├── messaging.lua         # Message formatting (BRA, Bullseye, etc.)
+│   └── fog-of-war.lua        # Hide enemy units on F10 map
 │
 ├── spawners/           # Unit spawning systems
 │   ├── random-spawn.lua        # Basic % chance spawn at mission start
@@ -54,6 +57,7 @@ lua-dump/
 │   └── retreat-scatter.lua     # Damaged units flee
 │
 ├── comms/              # Communication systems
+│   ├── audio-player.lua       # WAV/OGG audio playback system
 │   ├── brevity-codes.lua      # Military brevity (BRAA, 9-line, etc.)
 │   ├── enemy-network.lua      # Interceptable AI-to-AI comms
 │   ├── awacs-gci.lua          # Radar picture calls (BRA/Bullseye)
@@ -120,6 +124,7 @@ lua-dump/
 | Spawn enemies when player gets close | `ai-behavior/proximity-activation.lua` |
 | Make SAMs ambush players | `ai-behavior/sam-ambush.lua` |
 | **Communications** | |
+| Play WAV/OGG audio files | `comms/audio-player.lua` |
 | Generate BRAA, bullseye, 9-line briefs | `comms/brevity-codes.lua` |
 | Interceptable enemy radio traffic | `comms/enemy-network.lua` |
 | Give AWACS-style radar calls | `comms/awacs-gci.lua` |
@@ -330,13 +335,20 @@ DMS.ConditionalTrigger.start()
 
 ### Recommended Load Order in Mission Editor:
 
-1. **First** - Core utilities:
+1. **First** - Core utilities (ORDER MATTERS!):
    ```
+   utils/mission-settings.lua    -- MUST BE FIRST (defines DMS.Settings)
+   utils/error-handler.lua       -- MUST BE SECOND (defines DMS.Error)
    utils/coordinates.lua
    utils/group-utils.lua
    utils/timer-utils.lua
    utils/messaging.lua
+   utils/fog-of-war.lua
    ```
+
+   **IMPORTANT**: `mission-settings.lua` must be loaded before `error-handler.lua`,
+   and both must be loaded before any other DMS scripts. The error handler
+   depends on settings for the `showErrorAlerts` configuration.
 
 2. **Second** - Feature scripts (order by dependency):
    ```
@@ -415,6 +427,50 @@ timer.scheduleFunction(function(args, time)
 end, args, timer.getTime() + initialDelay)
 ```
 
+### Error handling pattern:
+
+All DMS scripts use the error handler to catch Lua runtime errors. This prevents
+silent crashes and makes debugging much easier.
+
+```lua
+-- For timer callbacks that need to keep running after errors:
+local function myTimerInternal(_, time)
+    -- Timer logic here
+    return time + interval
+end
+
+local function myTimer(args, time)
+    local success, result = pcall(myTimerInternal, args, time)
+    if not success then
+        if DMS.Error then
+            DMS.Error.log("MyModule.myTimer", result)
+        else
+            env.error("[DMS LUA ERROR] MyModule.myTimer: " .. tostring(result))
+        end
+        return time + interval  -- Keep running despite error
+    end
+    return result
+end
+
+-- For event handlers:
+DMS.MyModule._EventHandlerInternal = {
+    onEvent = function(self, event)
+        -- Event handling logic
+    end
+}
+
+-- In start() function:
+DMS.MyModule.EventHandler = DMS.Error.safeHandler(
+    DMS.MyModule._EventHandlerInternal,
+    "MyModule.EventHandler"
+)
+world.addEventHandler(DMS.MyModule.EventHandler)
+```
+
+**Error Log Format**: All errors are logged with prefix `[DMS LUA ERROR]` for
+easy searching in `dcs.log`. Enable `showErrorAlerts = true` in mission settings
+to also show on-screen alerts when errors occur.
+
 ---
 
 ## DCS Coordinate System
@@ -479,6 +535,8 @@ missionCommands.addCommandForCoalition(
 
 | Script | Requires/Enhances |
 |--------|-------------------|
+| `error-handler.lua` | **REQUIRES** `mission-settings.lua` |
+| **All other scripts** | **REQUIRES** `mission-settings.lua` and `error-handler.lua` |
 | `search-pattern.lua` | Used by `awareness-state.lua` |
 | `enemy-network.lua` | Hooks into `awareness-state.lua` |
 | `adaptive-spawner.lua` | Uses `skill-scaling.lua` |
@@ -486,8 +544,13 @@ missionCommands.addCommandForCoalition(
 | `event-chain.lua` | Can trigger `phase-manager.lua` |
 | `conditional-triggers.lua` | Can check `phase-manager.lua`, `awareness-state.lua` |
 | `brevity-codes.lua` | Used by `comms/awacs-gci.lua`, `comms/jtac-support.lua` |
+| `audio-player.lua` | Can hook into `phase-manager.lua`, `events/` |
 
-Scripts will work without dependencies but may have reduced functionality.
+**Critical Dependencies**: All DMS scripts require `mission-settings.lua` and
+`error-handler.lua` to be loaded first. These core utilities must be loaded
+in order before any feature scripts.
+
+Scripts will work without other dependencies but may have reduced functionality.
 
 ---
 
@@ -525,6 +588,15 @@ DCS Compatibility: 2.8+
 Lua Version: 5.1 (DCS embedded)
 
 ### Changelog
+
+**v2.1** - Error Handling Update
+- Added comprehensive error handling system (`error-handler.lua`)
+- All scripts now catch and log Lua runtime errors
+- Errors logged with `[DMS LUA ERROR]` prefix for easy searching in dcs.log
+- Optional on-screen error alerts (controlled by `showErrorAlerts` setting)
+- Timer callbacks continue running after errors instead of silently crashing
+- Event handlers wrapped with error protection
+- Updated README with error handling documentation and load order
 
 **v2.0** - Major update
 - Added AI coordination systems (task-force, flanking, fire-support)

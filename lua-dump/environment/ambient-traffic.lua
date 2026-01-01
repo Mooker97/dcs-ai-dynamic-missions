@@ -186,8 +186,8 @@ local function checkDespawn(playerPositions)
     end
 end
 
---- Process traffic spawning
-local function processTraffic(_, time)
+--- Process traffic spawning (internal)
+local function processTrafficInternal(_, time)
     if not DMS.Ambient.Active or not DMS.Ambient.Config.enabled then
         return nil
     end
@@ -242,6 +242,20 @@ local function processTraffic(_, time)
     end
 
     return time + DMS.Ambient.Config.checkInterval
+end
+
+--- Process traffic with error handling
+local function processTraffic(args, time)
+    local success, result = pcall(processTrafficInternal, args, time)
+    if not success then
+        if DMS.Error then
+            DMS.Error.log("Ambient.processTraffic", result)
+        else
+            env.error("[DMS LUA ERROR] Ambient.processTraffic: " .. tostring(result))
+        end
+        return time + (DMS.Ambient.Config.checkInterval or 60)
+    end
+    return result
 end
 
 --- Start ambient traffic

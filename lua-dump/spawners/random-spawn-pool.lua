@@ -161,15 +161,11 @@ function DMS.SpawnPool.executePool(poolId)
 
     -- Execute with or without delay
     if delay > 0 then
-        timer.scheduleFunction(function()
-            doSpawn()
-            return nil
-        end, nil, timer.getTime() + delay)
-
+        DMS.Error.safeSchedule(doSpawn, delay, "SpawnPool.doSpawn(" .. poolId .. ")")
         return {success = true, spawned = toSpawn, selected = selected, delayed = true}
     else
-        local spawned = doSpawn()
-        return {success = true, spawned = spawned, selected = selected, delayed = false}
+        local success, spawned = DMS.Error.safeCall(doSpawn, "SpawnPool.doSpawn(" .. poolId .. ")")
+        return {success = true, spawned = spawned or 0, selected = selected, delayed = false}
     end
 end
 

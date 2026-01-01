@@ -233,8 +233,8 @@ local function executeAction(step, chainState)
     end
 end
 
---- Process active chains
-local function processChains(_, time)
+--- Process active chains (internal)
+local function processChainsInternal(_, time)
     if not DMS.EventChain.Active then return nil end
 
     for chainId, chainState in pairs(DMS.EventChain.ActiveChains) do
@@ -297,6 +297,20 @@ local function processChains(_, time)
     end
 
     return time + DMS.EventChain.Config.checkInterval
+end
+
+--- Process active chains with error handling
+local function processChains(args, time)
+    local success, result = pcall(processChainsInternal, args, time)
+    if not success then
+        if DMS.Error then
+            DMS.Error.log("EventChain.processChains", result)
+        else
+            env.error("[DMS LUA ERROR] EventChain.processChains: " .. tostring(result))
+        end
+        return time + (DMS.EventChain.Config.checkInterval or 1)
+    end
+    return result
 end
 
 --- Start an event chain

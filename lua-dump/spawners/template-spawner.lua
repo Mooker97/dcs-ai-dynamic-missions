@@ -88,10 +88,9 @@ end
 -- @param spawnChance number|nil Override spawn chance
 -- @param hidden boolean|nil Override hidden state
 function DMS.Templates.spawnDelayed(templateName, delay, spawnChance, hidden)
-    timer.scheduleFunction(function()
+    DMS.Error.safeSchedule(function()
         DMS.Templates.spawn(templateName, spawnChance, hidden)
-        return nil
-    end, nil, timer.getTime() + delay)
+    end, delay, "Templates.spawn(" .. templateName .. ")")
 end
 
 --- Spawn one random template from a list

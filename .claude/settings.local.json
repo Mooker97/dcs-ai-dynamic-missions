@@ -18,7 +18,8 @@
       "mcp__sequential-thinking__sequentialthinking",
       "WebFetch(domain:wiki.hoggitworld.com)",
       "WebFetch(domain:forum.dcs.world)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "mcp__exa__web_search_exa"
     ],
     "deny": [],
     "ask": []

@@ -211,8 +211,8 @@ function DMS.SkillScaling.getCurrentSkill(playerName)
     return metrics and metrics.currentSkill or DMS.SkillScaling.Config.initialSkill
 end
 
---- Process skill adjustments
-local function processSkillAdjustment(_, time)
+--- Process skill adjustments (internal)
+local function processSkillAdjustmentInternal(_, time)
     if not DMS.SkillScaling.Active then return nil end
 
     local currentTime = timer.getTime()
@@ -265,8 +265,22 @@ local function processSkillAdjustment(_, time)
     return time + DMS.SkillScaling.Config.checkInterval
 end
 
---- Event handler for tracking performance
-DMS.SkillScaling.EventHandler = {
+--- Process skill adjustments with error handling
+local function processSkillAdjustment(args, time)
+    local success, result = pcall(processSkillAdjustmentInternal, args, time)
+    if not success then
+        if DMS.Error then
+            DMS.Error.log("SkillScaling.processSkillAdjustment", result)
+        else
+            env.error("[DMS LUA ERROR] SkillScaling.processSkillAdjustment: " .. tostring(result))
+        end
+        return time + (DMS.SkillScaling.Config.checkInterval or 30)
+    end
+    return result
+end
+
+--- Event handler for tracking performance (internal)
+DMS.SkillScaling._EventHandlerInternal = {
     onEvent = function(self, event)
         if not DMS.SkillScaling.Active then return end
 
@@ -336,6 +350,11 @@ function DMS.SkillScaling.start()
     if DMS.SkillScaling.Active then return end
 
     DMS.SkillScaling.Active = true
+    -- Wrap event handler with error protection
+    DMS.SkillScaling.EventHandler = DMS.Error.safeHandler(
+        DMS.SkillScaling._EventHandlerInternal,
+        "SkillScaling.EventHandler"
+    )
     world.addEventHandler(DMS.SkillScaling.EventHandler)
 
     timer.scheduleFunction(

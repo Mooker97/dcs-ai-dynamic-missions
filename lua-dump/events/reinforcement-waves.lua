@@ -93,13 +93,13 @@ local function spawnWave(waveNumber)
 
     -- Spawn groups with delay
     for i, groupName in ipairs(wave.groups) do
-        timer.scheduleFunction(function()
+        local delay = (i - 1) * DMS.Reinforcements.Config.spawnDelay
+        DMS.Error.safeSchedule(function()
             local group = Group.getByName(groupName)
             if group then
                 trigger.action.activateGroup(group)
             end
-            return nil
-        end, nil, timer.getTime() + (i - 1) * DMS.Reinforcements.Config.spawnDelay)
+        end, delay, "Reinforcements.spawnGroup(" .. groupName .. ")")
     end
 end
 
@@ -119,12 +119,13 @@ function DMS.Reinforcements.triggerWave(waveNumber)
     end
 
     if wave.delay > 0 then
-        timer.scheduleFunction(function()
+        DMS.Error.safeSchedule(function()
             spawnWave(waveNumber)
-            return nil
-        end, nil, timer.getTime() + wave.delay)
+        end, wave.delay, "Reinforcements.spawnWave(" .. waveNumber .. ")")
     else
-        spawnWave(waveNumber)
+        DMS.Error.safeCall(function()
+            spawnWave(waveNumber)
+        end, "Reinforcements.spawnWave(" .. waveNumber .. ")")
     end
 
     return true
@@ -145,8 +146,8 @@ function DMS.Reinforcements.triggerNextWave()
     return nil
 end
 
---- Check wave conditions and trigger automatically
-local function checkWaveConditions(_, time)
+--- Check wave conditions and trigger automatically (internal)
+local function checkWaveConditionsInternal(_, time)
     if not DMS.Reinforcements.Active then
         return nil
     end
@@ -161,6 +162,20 @@ local function checkWaveConditions(_, time)
     end
 
     return time + 5  -- Check every 5 seconds
+end
+
+--- Check wave conditions with error handling
+local function checkWaveConditions(args, time)
+    local success, result = pcall(checkWaveConditionsInternal, args, time)
+    if not success then
+        if DMS.Error then
+            DMS.Error.log("Reinforcements.checkWaveConditions", result)
+        else
+            env.error("[DMS LUA ERROR] Reinforcements.checkWaveConditions: " .. tostring(result))
+        end
+        return time + 5
+    end
+    return result
 end
 
 --- Start automatic wave system

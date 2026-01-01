@@ -209,7 +209,8 @@ end
 local function scheduleProximityCheck()
     if not DMS.FogOfWar.Running then return end
 
-    checkProximityDetection()
+    -- Wrap proximity check with error handling
+    DMS.Error.safeCall(checkProximityDetection, "FogOfWar.checkProximityDetection")
 
     DMS.FogOfWar.CheckScheduleID = timer.scheduleFunction(function()
         scheduleProximityCheck()
@@ -221,7 +222,7 @@ end
 -- EVENT HANDLERS
 -- ============================================================
 
-DMS.FogOfWar.EventHandler = {
+DMS.FogOfWar._EventHandlerInternal = {
     onEvent = function(self, event)
         if not DMS.FogOfWar.Running then return end
 
@@ -358,7 +359,11 @@ function DMS.FogOfWar.start()
     -- Sync config with settings
     DMS.FogOfWar.configure({})
 
-    -- Register event handler
+    -- Register event handler with error protection
+    DMS.FogOfWar.EventHandler = DMS.Error.safeHandler(
+        DMS.FogOfWar._EventHandlerInternal,
+        "FogOfWar.EventHandler"
+    )
     world.addEventHandler(DMS.FogOfWar.EventHandler)
 
     -- Start proximity checks

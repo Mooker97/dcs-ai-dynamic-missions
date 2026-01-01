@@ -153,12 +153,14 @@ function DMS.Formations.spawnGroups(groupNames, spawnChance, staggerDelay)
         if group then
             if staggerDelay and staggerDelay > 0 then
                 local delay = (i - 1) * staggerDelay
-                timer.scheduleFunction(function()
-                    trigger.action.activateGroup(group)
-                    return nil
-                end, nil, timer.getTime() + delay)
+                local grp = group  -- Capture for closure
+                DMS.Error.safeSchedule(function()
+                    trigger.action.activateGroup(grp)
+                end, delay, "Formations.activateGroup(" .. groupName .. ")")
             else
-                trigger.action.activateGroup(group)
+                DMS.Error.safeCall(function()
+                    trigger.action.activateGroup(group)
+                end, "Formations.activateGroup(" .. groupName .. ")")
             end
             count = count + 1
         end

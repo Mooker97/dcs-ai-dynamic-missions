@@ -106,11 +106,9 @@ local function reportDamage(playerName, unit, reason)
     end
 end
 
---- Create event handler for hit detection
-local function createEventHandler()
-    local handler = {}
-
-    function handler:onEvent(event)
+--- Event handler for hit detection (internal)
+DMS.Damage._EventHandlerInternal = {
+    onEvent = function(self, event)
         if not DMS.Damage.Active then
             return
         end
@@ -147,12 +145,10 @@ local function createEventHandler()
             end
         end
     end
+}
 
-    return handler
-end
-
---- Periodic damage check
-local function periodicCheck(_, time)
+--- Periodic damage check (internal)
+local function periodicCheckInternal(_, time)
     if not DMS.Damage.Active or not DMS.Damage.Config.reportPeriodic then
         return nil
     end
@@ -186,6 +182,20 @@ local function periodicCheck(_, time)
     return time + DMS.Damage.Config.checkInterval
 end
 
+--- Periodic damage check with error handling
+local function periodicCheck(args, time)
+    local success, result = pcall(periodicCheckInternal, args, time)
+    if not success then
+        if DMS.Error then
+            DMS.Error.log("Damage.periodicCheck", result)
+        else
+            env.error("[DMS LUA ERROR] Damage.periodicCheck: " .. tostring(result))
+        end
+        return time + (DMS.Damage.Config.checkInterval or 10)
+    end
+    return result
+end
+
 --- Start damage reporter
 function DMS.Damage.start()
     if DMS.Damage.Active then
@@ -194,8 +204,11 @@ function DMS.Damage.start()
 
     DMS.Damage.Active = true
 
-    -- Add event handler
-    DMS.Damage.EventHandler = createEventHandler()
+    -- Wrap event handler with error protection
+    DMS.Damage.EventHandler = DMS.Error.safeHandler(
+        DMS.Damage._EventHandlerInternal,
+        "Damage.EventHandler"
+    )
     world.addEventHandler(DMS.Damage.EventHandler)
 
     -- Start periodic checker

@@ -108,8 +108,8 @@ local function getDistanceToPlayer(centerX, centerZ, playerPos)
     return math.sqrt(dx * dx + dz * dz)
 end
 
---- Process proximity checks
-local function processProximityCheck(_, time)
+--- Process proximity checks (internal, wrapped with error handler)
+local function processProximityCheckInternal(_, time)
     if not DMS.Proximity.Active then
         return nil
     end
@@ -206,6 +206,21 @@ local function processProximityCheck(_, time)
     end
 
     return time + DMS.Proximity.Config.checkInterval
+end
+
+--- Process proximity checks with error handling
+local function processProximityCheck(args, time)
+    local success, result = pcall(processProximityCheckInternal, args, time)
+    if not success then
+        if DMS.Error then
+            DMS.Error.log("Proximity.processProximityCheck", result)
+        else
+            env.error("[DMS LUA ERROR] Proximity.processProximityCheck: " .. tostring(result))
+        end
+        -- Continue running despite error
+        return time + (DMS.Proximity.Config.checkInterval or 5)
+    end
+    return result
 end
 
 --- Start proximity monitoring

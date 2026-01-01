@@ -38,6 +38,7 @@ DMS.Settings.Defaults = {
     -- Debug
     debug = false,                      -- Enable debug messages
     debugVerbose = false,               -- Extra verbose logging
+    showErrorAlerts = true,             -- Show on-screen alerts when Lua errors occur
 }
 
 -- Active settings (initialized from defaults)

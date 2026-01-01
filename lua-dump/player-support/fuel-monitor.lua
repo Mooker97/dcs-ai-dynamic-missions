@@ -136,8 +136,8 @@ local function checkPlayerFuel(playerName, unit)
     return fuelPct
 end
 
---- Process fuel checks
-local function processFuelChecks(_, time)
+--- Process fuel checks (internal)
+local function processFuelChecksInternal(_, time)
     if not DMS.Fuel.Active then
         return nil
     end
@@ -156,6 +156,20 @@ local function processFuelChecks(_, time)
     end
 
     return time + DMS.Fuel.Config.checkInterval
+end
+
+--- Process fuel checks with error handling
+local function processFuelChecks(args, time)
+    local success, result = pcall(processFuelChecksInternal, args, time)
+    if not success then
+        if DMS.Error then
+            DMS.Error.log("Fuel.processFuelChecks", result)
+        else
+            env.error("[DMS LUA ERROR] Fuel.processFuelChecks: " .. tostring(result))
+        end
+        return time + (DMS.Fuel.Config.checkInterval or 30)
+    end
+    return result
 end
 
 --- Start fuel monitoring

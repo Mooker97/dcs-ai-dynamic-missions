@@ -154,8 +154,8 @@ local function applyVisibilityEffects(period)
     trigger.action.setUserFlag("visibility_factor", math.floor((visibility[period] or 1.0) * 100))
 end
 
---- Check time and handle transitions
-local function checkTime(_, time)
+--- Check time and handle transitions (internal)
+local function checkTimeInternal(_, time)
     if not DMS.TimeEffects.Active then
         return nil
     end
@@ -191,6 +191,20 @@ local function checkTime(_, time)
     end
 
     return time + DMS.TimeEffects.Config.checkInterval
+end
+
+--- Check time with error handling
+local function checkTime(args, time)
+    local success, result = pcall(checkTimeInternal, args, time)
+    if not success then
+        if DMS.Error then
+            DMS.Error.log("TimeEffects.checkTime", result)
+        else
+            env.error("[DMS LUA ERROR] TimeEffects.checkTime: " .. tostring(result))
+        end
+        return time + (DMS.TimeEffects.Config.checkInterval or 60)
+    end
+    return result
 end
 
 --- Start time effects system

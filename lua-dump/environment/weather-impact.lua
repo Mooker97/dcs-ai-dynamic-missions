@@ -211,8 +211,8 @@ function DMS.Weather.onChange(handler)
     table.insert(DMS.Weather.ChangeHandlers, handler)
 end
 
---- Check weather and apply effects
-local function checkWeather(_, time)
+--- Check weather and apply effects (internal)
+local function checkWeatherInternal(_, time)
     if not DMS.Weather.Active then
         return nil
     end
@@ -257,6 +257,20 @@ local function checkWeather(_, time)
     end
 
     return time + DMS.Weather.Config.checkInterval
+end
+
+--- Check weather with error handling
+local function checkWeather(args, time)
+    local success, result = pcall(checkWeatherInternal, args, time)
+    if not success then
+        if DMS.Error then
+            DMS.Error.log("Weather.checkWeather", result)
+        else
+            env.error("[DMS LUA ERROR] Weather.checkWeather: " .. tostring(result))
+        end
+        return time + (DMS.Weather.Config.checkInterval or 120)
+    end
+    return result
 end
 
 --- Start weather system

@@ -100,11 +100,9 @@ local function registerDownedPilot(position, pilotName, isPlayer)
     return pilotId
 end
 
---- Create event handler
-local function createEventHandler()
-    local handler = {}
-
-    function handler:onEvent(event)
+--- Event handler (internal)
+DMS.Rescue._EventHandlerInternal = {
+    onEvent = function(self, event)
         if not DMS.Rescue.Active then
             return
         end
@@ -133,12 +131,10 @@ local function createEventHandler()
             end
         end
     end
+}
 
-    return handler
-end
-
---- Check for rescue opportunities
-local function checkRescues(_, time)
+--- Check for rescue opportunities (internal)
+local function checkRescuesInternal(_, time)
     if not DMS.Rescue.Active then
         return nil
     end
@@ -215,6 +211,20 @@ local function checkRescues(_, time)
     return time + DMS.Rescue.Config.checkInterval
 end
 
+--- Check for rescue opportunities with error handling
+local function checkRescues(args, time)
+    local success, result = pcall(checkRescuesInternal, args, time)
+    if not success then
+        if DMS.Error then
+            DMS.Error.log("Rescue.checkRescues", result)
+        else
+            env.error("[DMS LUA ERROR] Rescue.checkRescues: " .. tostring(result))
+        end
+        return time + (DMS.Rescue.Config.checkInterval or 10)
+    end
+    return result
+end
+
 --- Start rescue coordination
 function DMS.Rescue.start()
     if DMS.Rescue.Active then
@@ -223,7 +233,11 @@ function DMS.Rescue.start()
 
     DMS.Rescue.Active = true
 
-    DMS.Rescue.EventHandler = createEventHandler()
+    -- Wrap event handler with error protection
+    DMS.Rescue.EventHandler = DMS.Error.safeHandler(
+        DMS.Rescue._EventHandlerInternal,
+        "Rescue.EventHandler"
+    )
     world.addEventHandler(DMS.Rescue.EventHandler)
 
     DMS.Rescue.TimerId = timer.scheduleFunction(

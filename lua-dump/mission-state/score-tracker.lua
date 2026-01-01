@@ -205,11 +205,9 @@ function DMS.Score.addScore(playerName, amount, category, showMessage)
     end
 end
 
---- Create event handler
-local function createEventHandler()
-    local handler = {}
-
-    function handler:onEvent(event)
+--- Create event handler (internal)
+DMS.Score._EventHandlerInternal = {
+    onEvent = function(self, event)
         if not DMS.Score.Active then
             return
         end
@@ -260,9 +258,7 @@ local function createEventHandler()
             end
         end
     end
-
-    return handler
-end
+}
 
 --- Start score tracking
 function DMS.Score.start()
@@ -271,7 +267,11 @@ function DMS.Score.start()
     end
 
     DMS.Score.Active = true
-    DMS.Score.EventHandler = createEventHandler()
+    -- Wrap event handler with error protection
+    DMS.Score.EventHandler = DMS.Error.safeHandler(
+        DMS.Score._EventHandlerInternal,
+        "Score.EventHandler"
+    )
     world.addEventHandler(DMS.Score.EventHandler)
 end
 

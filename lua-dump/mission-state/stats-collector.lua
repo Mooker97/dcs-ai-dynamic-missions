@@ -135,11 +135,9 @@ local function recordKill(killer, target)
     end
 end
 
---- Create event handler
-local function createEventHandler()
-    local handler = {}
-
-    function handler:onEvent(event)
+--- Create event handler (internal)
+DMS.Stats._EventHandlerInternal = {
+    onEvent = function(self, event)
         if not DMS.Stats.Active then
             return
         end
@@ -226,9 +224,7 @@ local function createEventHandler()
             DMS.Stats.Data.units.spawned = DMS.Stats.Data.units.spawned + 1
         end
     end
-
-    return handler
-end
+}
 
 --- Format duration as HH:MM:SS
 -- @param seconds number Duration in seconds
@@ -249,7 +245,11 @@ function DMS.Stats.start()
     DMS.Stats.Active = true
     DMS.Stats.Data.mission.startTime = timer.getTime()
 
-    DMS.Stats.EventHandler = createEventHandler()
+    -- Wrap event handler with error protection
+    DMS.Stats.EventHandler = DMS.Error.safeHandler(
+        DMS.Stats._EventHandlerInternal,
+        "Stats.EventHandler"
+    )
     world.addEventHandler(DMS.Stats.EventHandler)
 end
 

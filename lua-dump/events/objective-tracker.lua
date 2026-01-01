@@ -227,8 +227,8 @@ function DMS.Objectives.showList()
     )
 end
 
---- Check objective conditions
-local function checkConditions(_, time)
+--- Check objective conditions (internal)
+local function checkConditionsInternal(_, time)
     if not DMS.Objectives.Active then
         return nil
     end
@@ -256,8 +256,22 @@ local function checkConditions(_, time)
     return time + DMS.Objectives.Config.checkInterval
 end
 
---- HUD refresh
-local function refreshHUD(_, time)
+--- Check objective conditions with error handling
+local function checkConditions(args, time)
+    local success, result = pcall(checkConditionsInternal, args, time)
+    if not success then
+        if DMS.Error then
+            DMS.Error.log("Objectives.checkConditions", result)
+        else
+            env.error("[DMS LUA ERROR] Objectives.checkConditions: " .. tostring(result))
+        end
+        return time + (DMS.Objectives.Config.checkInterval or 10)
+    end
+    return result
+end
+
+--- HUD refresh (internal)
+local function refreshHUDInternal(_, time)
     if not DMS.Objectives.Active or not DMS.Objectives.Config.trackOnHUD then
         return nil
     end
@@ -285,6 +299,20 @@ local function refreshHUD(_, time)
     end
 
     return time + DMS.Objectives.Config.hudRefreshInterval
+end
+
+--- HUD refresh with error handling
+local function refreshHUD(args, time)
+    local success, result = pcall(refreshHUDInternal, args, time)
+    if not success then
+        if DMS.Error then
+            DMS.Error.log("Objectives.refreshHUD", result)
+        else
+            env.error("[DMS LUA ERROR] Objectives.refreshHUD: " .. tostring(result))
+        end
+        return time + (DMS.Objectives.Config.hudRefreshInterval or 60)
+    end
+    return result
 end
 
 --- Start objective tracker

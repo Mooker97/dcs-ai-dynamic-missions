@@ -5,6 +5,29 @@
   Audio files should be located in: l10n/DEFAULT/ within the .miz file
   Supports queuing, delays, and targeted playback (coalition/group/unit)
 
+  SOURCE AUDIO FILES:
+    Project audio assets are located in:
+    DMS/mission assets/audio/
+
+    Available files:
+      generic/mission start/
+        - mission is a go.wav
+        - stay sharp.wav
+        - Weapos free.wav
+        - good hunting.wav
+      generic/mission complete/
+        - Obj complete.wav
+        - Mission Success.wav
+      generic/ground troops/
+        - Good Kill.wav
+        - Good Kill Keep em coming.wav
+        - Keep em coming.wav
+      missions/Dawn Scout/
+        - Mission Start.wav
+        - Clear To Land.wav
+
+    Copy these to your .miz file's l10n/DEFAULT/ folder when building missions.
+
   Usage:
     DMS.Audio.configure({ basePath = "audio/" })
     DMS.Audio.play("warning_siren.wav")

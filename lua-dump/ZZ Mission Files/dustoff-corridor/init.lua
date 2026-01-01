@@ -10,11 +10,10 @@
 --   3. utils/timer-utils.lua
 --   4. utils/messaging.lua
 --   5. spawners/random-spawn-pool.lua
---   6. spawners/random-spawn-hvt.lua
---   7. ai-behavior/proximity-activation.lua
---   8. ai-behavior/sam-ambush.lua
---   9. events/reinforcement-waves.lua
---   10. comms/bda-reporter.lua
+--   6. ai-behavior/proximity-activation.lua
+--   7. ai-behavior/sam-ambush.lua
+--   8. events/reinforcement-waves.lua
+--   9. comms/bda-reporter.lua
 --
 -- Load this init.lua LAST via DO SCRIPT FILE
 -- ============================================================
@@ -182,53 +181,6 @@ local function setupProximityActivation()
     DMS.Proximity.start()
 end
 
-local function setupHVTs()
-    -- High Value Targets: Random spawns with flag integration
-
-    DMS.HVTSpawn.configure({
-        announceSpawns = true,
-        announceKills = true,
-        playerCoalition = coalition.side.BLUE,
-    })
-
-    -- Enemy Commander: Very rare, high value
-    DMS.HVTSpawn.register("enemy-commander", "HVT-Commander", {
-        chance = 25,            -- 25% chance
-        minTime = 480,          -- 8 minutes minimum
-        maxTime = 720,          -- 12 minutes maximum
-        flag = "200",           -- Flag 200 on spawn
-        flagValue = 1,
-        flagOnKill = "201",     -- Flag 201 on kill
-        flagOnKillValue = 1,
-        announcement = "INTEL: Enemy field commander vehicle detected in AO! High priority target!",
-        killAnnouncement = "PRIORITY TARGET DESTROYED: Enemy commander eliminated. Outstanding work!",
-    })
-
-    -- Supply Convoy: More common, secondary objective
-    DMS.HVTSpawn.register("supply-convoy", "HVT-SupplyConvoy", {
-        chance = 40,            -- 40% chance
-        minTime = 300,          -- 5 minutes
-        maxTime = 600,          -- 10 minutes
-        flag = "210",
-        flagOnKill = "211",
-        announcement = "INTEL: Enemy supply convoy spotted moving through sector. Weapons free.",
-        killAnnouncement = "BDA: Enemy supply convoy destroyed. Good effect on target.",
-    })
-
-    -- Mobile SAM: Dangerous if it appears
-    DMS.HVTSpawn.register("mobile-sam", "HVT-MobileSAM", {
-        chance = 20,            -- 20% chance
-        minTime = 600,          -- 10 minutes
-        maxTime = 900,          -- 15 minutes
-        flag = "220",
-        flagOnKill = "221",
-        announcement = "WARNING: Mobile SAM system detected! SA-8 moving into position!",
-        killAnnouncement = "CONFIRMED: Mobile SAM neutralized. Airspace is clearer.",
-    })
-
-    DMS.HVTSpawn.start()
-    DMS.HVTSpawn.scheduleAll()
-end
 
 local function setupReinforcements()
     -- Enemy QRF responds to combat
@@ -450,7 +402,6 @@ function DMS.DustoffCorridor.start()
 
     -- Setup remaining systems
     setupProximityActivation()
-    setupHVTs()
     setupReinforcements()
     setupSAMBehavior()
     setupEnvironment()

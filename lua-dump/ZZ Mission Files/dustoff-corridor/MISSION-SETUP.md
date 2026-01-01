@@ -177,20 +177,6 @@ All groups set to **LATE ACTIVATION = YES**
 
 ---
 
-## Step 6: HVT Groups (Rare Spawns)
-
-All groups set to **LATE ACTIVATION = YES**
-
-| Group Name | Units | Position | Notes |
-|------------|-------|----------|-------|
-| `HVT-Commander` | UAZ Command + 2x Escort | Side road | 25% spawn chance |
-| `HVT-SupplyConvoy` | 4x Supply Truck, 2x Technical | Alt route | 40% spawn chance |
-| `HVT-MobileSAM` | SA-8 Gecko | Hidden position | 20% spawn chance |
-
-Position these away from the main route - they appear as bonus targets if they spawn.
-
----
-
 ## Step 7: QRF Groups (Reinforcements)
 
 All groups set to **LATE ACTIVATION = YES**

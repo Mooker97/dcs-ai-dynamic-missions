@@ -213,6 +213,11 @@ local function createEventHandler()
             if not DMS.BDA.Config.reportGroundKills then return end
         end
 
+        if DMS.Settings and DMS.Settings.isDebug() then
+            env.info(string.format("[BDA] Kill recorded: %s destroyed %s (%s)",
+                playerName, targetType, categoryName))
+        end
+
         -- Report kill
         if DMS.BDA.Config.groupKillsByType then
             addToKillBuffer(playerName, targetType, categoryName)
@@ -243,6 +248,11 @@ function DMS.BDA.start()
     DMS.BDA.Active = true
     DMS.BDA.EventHandler = createEventHandler()
     world.addEventHandler(DMS.BDA.EventHandler)
+
+    if DMS.Settings and DMS.Settings.isDebug() then
+        env.info(string.format("[BDA] Started reporting (callsign: %s, delay: %ds)",
+            DMS.BDA.Config.observerCallsign, DMS.BDA.Config.reportDelay))
+    end
 end
 
 --- Stop BDA reporting

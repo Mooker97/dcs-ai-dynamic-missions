@@ -63,11 +63,13 @@ end
 -- @param groupName string Group name (must be LATE ACTIVATION)
 -- @param zoneName string Zone name
 -- @param spawnChance number Spawn probability (0-100)
-function DMS.SpawnZones.configure(groupName, zoneName, spawnChance)
+-- @param hidden boolean|nil Override hidden state (nil = use settings)
+function DMS.SpawnZones.configure(groupName, zoneName, spawnChance, hidden)
     table.insert(DMS.SpawnZones.Config, {
         groupName = groupName,
         zone = zoneName,
         spawnChance = spawnChance or 100,
+        hidden = hidden,  -- nil = use settings default
         spawned = false
     })
 end
@@ -76,9 +78,10 @@ end
 -- @param groupNames table Array of group names
 -- @param zoneName string Zone name
 -- @param spawnChance number Spawn probability for each
-function DMS.SpawnZones.bulkConfigure(groupNames, zoneName, spawnChance)
+-- @param hidden boolean|nil Override hidden state (nil = use settings)
+function DMS.SpawnZones.bulkConfigure(groupNames, zoneName, spawnChance, hidden)
     for _, name in ipairs(groupNames) do
-        DMS.SpawnZones.configure(name, zoneName, spawnChance)
+        DMS.SpawnZones.configure(name, zoneName, spawnChance, hidden)
     end
 end
 
@@ -91,8 +94,13 @@ function DMS.SpawnZones.spawnGroup(config)
     end
 
     -- Roll for spawn chance
-    if math.random(1, 100) > config.spawnChance then
+    local roll = math.random(1, 100)
+    if roll > config.spawnChance then
         config.spawned = true  -- Mark as processed
+        if DMS.Settings and DMS.Settings.isDebug() then
+            env.info(string.format("[SpawnZones] '%s' skipped (rolled %d, needed <= %d)",
+                config.groupName, roll, config.spawnChance))
+        end
         return false
     end
 
@@ -102,13 +110,29 @@ function DMS.SpawnZones.spawnGroup(config)
         return false
     end
 
+    -- Determine hidden state: config override > settings default
+    local hidden = config.hidden
+    if hidden == nil and DMS.Settings then
+        hidden = DMS.Settings.getSpawnHidden()
+    end
+
     -- Activate the group (spawns at original ME position)
     -- Note: DCS doesn't allow repositioning LATE ACTIVATION groups
     -- Use coalition.addGroup() for true position randomization
     local group = Group.getByName(config.groupName)
     if group then
-        trigger.action.activateGroup(group)
+        -- Use fog of war system if available and hidden is needed
+        if hidden and DMS.FogOfWar then
+            DMS.FogOfWar.activateGroup(config.groupName, true)
+        else
+            trigger.action.activateGroup(group)
+        end
         config.spawned = true
+
+        if DMS.Settings and DMS.Settings.isDebug() then
+            env.info(string.format("[SpawnZones] Activated: %s in zone '%s' (hidden: %s)",
+                config.groupName, config.zone, tostring(hidden or false)))
+        end
         return true
     end
 

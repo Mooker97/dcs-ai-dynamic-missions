@@ -15,12 +15,14 @@ DMS.Templates.Library = {}
 -- @param groupNames table Array of group names that make up this template
 -- @param description string|nil Human-readable description
 -- @param defaultChance number|nil Default spawn chance (0-100)
-function DMS.Templates.define(templateName, groupNames, description, defaultChance)
+-- @param defaultHidden boolean|nil Default hidden state (nil = use settings)
+function DMS.Templates.define(templateName, groupNames, description, defaultChance, defaultHidden)
     DMS.Templates.Library[templateName] = {
         name = templateName,
         groups = groupNames,
         description = description or templateName,
         defaultChance = defaultChance or 100,
+        defaultHidden = defaultHidden,  -- nil = use settings default
         spawnCount = 0
     }
 end
@@ -28,8 +30,9 @@ end
 --- Spawn a template
 -- @param templateName string Template to spawn
 -- @param spawnChance number|nil Override spawn chance
+-- @param hidden boolean|nil Override hidden state (nil = use template/settings default)
 -- @return boolean, number Success and count of groups spawned
-function DMS.Templates.spawn(templateName, spawnChance)
+function DMS.Templates.spawn(templateName, spawnChance, hidden)
     local template = DMS.Templates.Library[templateName]
     if not template then
         return false, 0
@@ -38,20 +41,44 @@ function DMS.Templates.spawn(templateName, spawnChance)
     spawnChance = spawnChance or template.defaultChance
 
     -- Roll for spawn
-    if math.random(1, 100) > spawnChance then
+    local roll = math.random(1, 100)
+    if roll > spawnChance then
+        if DMS.Settings and DMS.Settings.isDebug() then
+            env.info(string.format("[Templates] '%s' skipped (rolled %d, needed <= %d)",
+                templateName, roll, spawnChance))
+        end
         return false, 0
+    end
+
+    -- Determine hidden state: param > template default > settings default
+    if hidden == nil then
+        hidden = template.defaultHidden
+    end
+    if hidden == nil and DMS.Settings then
+        hidden = DMS.Settings.getSpawnHidden()
     end
 
     local spawned = 0
     for _, groupName in ipairs(template.groups) do
         local group = Group.getByName(groupName)
         if group then
-            trigger.action.activateGroup(group)
+            -- Use fog of war system if available and hidden is needed
+            if hidden and DMS.FogOfWar then
+                DMS.FogOfWar.activateGroup(groupName, true)
+            else
+                trigger.action.activateGroup(group)
+            end
             spawned = spawned + 1
         end
     end
 
     template.spawnCount = template.spawnCount + 1
+
+    if DMS.Settings and DMS.Settings.isDebug() then
+        env.info(string.format("[Templates] Spawned '%s': %d groups (hidden: %s)",
+            templateName, spawned, tostring(hidden or false)))
+    end
+
     return true, spawned
 end
 
@@ -59,9 +86,10 @@ end
 -- @param templateName string Template name
 -- @param delay number Delay in seconds
 -- @param spawnChance number|nil Override spawn chance
-function DMS.Templates.spawnDelayed(templateName, delay, spawnChance)
+-- @param hidden boolean|nil Override hidden state
+function DMS.Templates.spawnDelayed(templateName, delay, spawnChance, hidden)
     timer.scheduleFunction(function()
-        DMS.Templates.spawn(templateName, spawnChance)
+        DMS.Templates.spawn(templateName, spawnChance, hidden)
         return nil
     end, nil, timer.getTime() + delay)
 end
@@ -69,8 +97,9 @@ end
 --- Spawn one random template from a list
 -- @param templateNames table Array of template names
 -- @param spawnChance number|nil Chance to spawn anything
+-- @param hidden boolean|nil Override hidden state
 -- @return string|nil Template that was spawned
-function DMS.Templates.spawnRandom(templateNames, spawnChance)
+function DMS.Templates.spawnRandom(templateNames, spawnChance, hidden)
     spawnChance = spawnChance or 100
 
     if math.random(1, 100) > spawnChance then
@@ -78,7 +107,7 @@ function DMS.Templates.spawnRandom(templateNames, spawnChance)
     end
 
     local selected = templateNames[math.random(#templateNames)]
-    local success = DMS.Templates.spawn(selected, 100)  -- Already rolled
+    local success = DMS.Templates.spawn(selected, 100, hidden)  -- Already rolled
 
     if success then
         return selected
@@ -90,8 +119,9 @@ end
 -- @param templateNames table Array of template names
 -- @param count number How many to spawn
 -- @param allowDuplicates boolean|nil Allow same template multiple times
+-- @param hidden boolean|nil Override hidden state
 -- @return table Array of spawned template names
-function DMS.Templates.spawnRandomMultiple(templateNames, count, allowDuplicates)
+function DMS.Templates.spawnRandomMultiple(templateNames, count, allowDuplicates, hidden)
     local spawned = {}
     local available = {}
 
@@ -108,7 +138,7 @@ function DMS.Templates.spawnRandomMultiple(templateNames, count, allowDuplicates
         local idx = math.random(#available)
         local selected = available[idx]
 
-        local success = DMS.Templates.spawn(selected, 100)
+        local success = DMS.Templates.spawn(selected, 100, hidden)
         if success then
             table.insert(spawned, selected)
         end

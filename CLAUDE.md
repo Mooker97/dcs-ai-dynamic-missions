@@ -331,6 +331,19 @@ Always verify modifications by:
 3. Checking for errors in DCS.log
 4. Validating all units spawn correctly
 
+### DCS Log Files
+
+Log files for debugging Lua scripts and mission issues:
+
+| Version | Path |
+|---------|------|
+| Stable | `C:\Users\mook\Saved Games\DCS\Logs\dcs.log` |
+| Open Beta | `C:\Users\mook\Saved Games\DCS.openbeta\Logs\dcs.log` |
+
+**Quick access**: `Win + R` → `%USERPROFILE%\Saved Games\DCS\Logs`
+
+**Debug logging**: Enable with `DMS.Settings.configure({ debug = true })` - messages prefixed with `[SpawnPool]`, `[FOW]`, `[Templates]`, etc.
+
 ## MCP Server Integration (Planned)
 
 The future MCP server will expose these tools to Claude:
@@ -392,6 +405,77 @@ parser.repackage("output.miz")
 - ✅ **MizParser**: Reading, modifying, inspecting .miz files (ALWAYS)
 - ❌ **pydcs**: Only for future mission generation from scratch (NOT YET IMPLEMENTED)
 - ✅ **Regex patterns**: Extracting and modifying Lua structures (PRIMARY TOOL)
+
+---
+
+## Debug Logging Guidelines
+
+### 🔴 REQUIRED: All Lua Modules Must Include Debug Logging
+
+All DMS Lua modules **MUST** include debug logging for key operations. This enables mission creators to troubleshoot issues by enabling `DMS.Settings.configure({ debug = true })`.
+
+### Standard Pattern
+
+```lua
+-- Check debug mode before logging
+if DMS.Settings and DMS.Settings.isDebug() then
+    env.info(string.format("[ModuleName] Action description: %s", variable))
+end
+```
+
+### Log Prefix Convention
+
+Each module uses a unique prefix in brackets:
+
+| Module | Prefix |
+|--------|--------|
+| SpawnPool | `[SpawnPool]` |
+| SpawnZones | `[SpawnZones]` |
+| Templates | `[Templates]` |
+| FogOfWar | `[FOW]` |
+| Proximity | `[Proximity]` |
+| SAMAmbush | `[SAMAmbush]` |
+| Reinforcements | `[Reinforcements]` |
+| BDA | `[BDA]` |
+| Objectives | `[Objectives]` |
+| Settings | `[DMS.Settings]` |
+
+### What to Log
+
+**Always log:**
+- System start/stop with configuration summary
+- Successful activations/spawns with key details
+- Skipped operations with reason (e.g., failed roll)
+- State changes (e.g., SAM going HOT/DARK)
+- Important events (kills, objectives, waves triggered)
+
+**Format examples:**
+```lua
+-- System start
+env.info(string.format("[ModuleName] Started monitoring %d items (interval: %ds)", count, interval))
+
+-- Activation with roll
+env.info(string.format("[ModuleName] Activated '%s' (rolled %d <= %d)", name, roll, chance))
+
+-- Skip with reason
+env.info(string.format("[ModuleName] Skipped '%s' (rolled %d > %d)", name, roll, chance))
+
+-- State change
+env.info(string.format("[ModuleName] '%s' state changed to %s", name, newState))
+```
+
+### Fallback Pattern for Mission Scripts
+
+For mission-specific scripts that may run without `DMS.Settings`:
+
+```lua
+local function isDebugEnabled()
+    if DMS.Settings and DMS.Settings.isDebug then
+        return DMS.Settings.isDebug()
+    end
+    return MyModule.Config.debug  -- Local fallback
+end
+```
 
 ---
 

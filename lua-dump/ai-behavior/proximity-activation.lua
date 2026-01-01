@@ -146,11 +146,17 @@ local function processProximityCheck(_, time)
                         -- Player in range, try to activate
                         config.checked = true
 
-                        if math.random(1, 100) <= config.spawnChance then
+                        local roll = math.random(1, 100)
+                        if roll <= config.spawnChance then
                             local group = Group.getByName(groupName)
                             if group then
                                 trigger.action.activateGroup(group)
                                 config.activated = true
+
+                                if DMS.Settings and DMS.Settings.isDebug() then
+                                    env.info(string.format("[Proximity] Activated '%s' (dist: %.0fm, rolled %d <= %d)",
+                                        groupName, dist, roll, config.spawnChance))
+                                end
 
                                 if DMS.Proximity.Config.announceActivations then
                                     trigger.action.outText(
@@ -162,6 +168,10 @@ local function processProximityCheck(_, time)
                         else
                             -- Failed spawn roll, mark as processed
                             config.activated = true
+                            if DMS.Settings and DMS.Settings.isDebug() then
+                                env.info(string.format("[Proximity] Skipped '%s' (rolled %d > %d)",
+                                    groupName, roll, config.spawnChance))
+                            end
                         end
                         break
                     end
@@ -210,6 +220,13 @@ function DMS.Proximity.start()
         nil,
         timer.getTime() + DMS.Proximity.Config.checkInterval
     )
+
+    if DMS.Settings and DMS.Settings.isDebug() then
+        local count = 0
+        for _ in pairs(DMS.Proximity.Groups) do count = count + 1 end
+        env.info(string.format("[Proximity] Started monitoring %d groups (radius: %dm, interval: %ds)",
+            count, DMS.Proximity.Config.defaultRadius, DMS.Proximity.Config.checkInterval))
+    end
 end
 
 --- Stop proximity monitoring

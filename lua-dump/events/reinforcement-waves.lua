@@ -113,6 +113,11 @@ function DMS.Reinforcements.triggerWave(waveNumber)
 
     wave.triggered = true
 
+    if DMS.Settings and DMS.Settings.isDebug() then
+        env.info(string.format("[Reinforcements] Wave %d triggered (delay: %ds, groups: %d)",
+            waveNumber, wave.delay or 0, #wave.groups))
+    end
+
     if wave.delay > 0 then
         timer.scheduleFunction(function()
             spawnWave(waveNumber)
@@ -170,6 +175,12 @@ function DMS.Reinforcements.start()
         nil,
         timer.getTime() + 5
     )
+
+    if DMS.Settings and DMS.Settings.isDebug() then
+        local count = 0
+        for _ in pairs(DMS.Reinforcements.Waves) do count = count + 1 end
+        env.info(string.format("[Reinforcements] Started monitoring %d waves", count))
+    end
 end
 
 --- Stop automatic wave system

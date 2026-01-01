@@ -32,9 +32,17 @@ DMS.DustoffCorridor.Config = {
     -- Difficulty scaling (affects QRF response)
     difficultyMultiplier = 1.0,  -- 0.5 = easier, 1.5 = harder
 
-    -- Debug mode (set to true to see spawn info)
+    -- Debug mode - uses DMS.Settings.isDebug() if available, falls back to this
     debug = false,
 }
+
+-- Helper to check debug mode (prefers central settings)
+local function isDebugEnabled()
+    if DMS.Settings and DMS.Settings.isDebug then
+        return DMS.Settings.isDebug()
+    end
+    return DMS.DustoffCorridor.Config.debug
+end
 
 -- Track mission state
 DMS.DustoffCorridor.State = {
@@ -144,7 +152,7 @@ local function executePools()
     results.charlie_aa = DMS.SpawnPool.executePool("charlie-aa")
     results.charlie_ground = DMS.SpawnPool.executePool("charlie-ground")
 
-    if DMS.DustoffCorridor.Config.debug then
+    if isDebugEnabled() then
         for zone, result in pairs(results) do
             if result.success then
                 env.info(string.format("[DUSTOFF] %s: Spawned %s",
@@ -287,7 +295,7 @@ local function setupEnvironment()
 
     DMS.DustoffCorridor.State.timeOfDay = timeOfDay
 
-    if DMS.DustoffCorridor.Config.debug then
+    if isDebugEnabled() then
         env.info(string.format("[DUSTOFF] Time of day: %s (hour %d)", timeOfDay, hours))
     end
 end
@@ -306,7 +314,7 @@ DMS.DustoffCorridor.EventHandler = {
                 if initiatorCoalition == DMS.DustoffCorridor.Config.playerCoalition then
                     DMS.DustoffCorridor.State.playerKills = DMS.DustoffCorridor.State.playerKills + 1
 
-                    if DMS.DustoffCorridor.Config.debug then
+                    if isDebugEnabled() then
                         env.info(string.format("[DUSTOFF] Player kills: %d",
                             DMS.DustoffCorridor.State.playerKills))
                     end
@@ -417,7 +425,7 @@ function DMS.DustoffCorridor.start()
 
     env.info("[DUSTOFF CORRIDOR] Mission initialized successfully!")
 
-    if DMS.DustoffCorridor.Config.debug then
+    if isDebugEnabled() then
         -- Debug summary
         timer.scheduleFunction(function()
             local msg = string.format([[

@@ -178,6 +178,11 @@ local function processAmbushCheck(_, time)
             DMS.SAMAmbush.setRadar(groupName, true)
             site.trackingTarget = closestTarget
 
+            if DMS.Settings and DMS.Settings.isDebug() then
+                env.info(string.format("[SAMAmbush] '%s' going HOT (target at %.0fm)",
+                    groupName, closestDist))
+            end
+
             if DMS.SAMAmbush.Config.announceThreats then
                 trigger.action.outText("WARNING: Mud spike!", 5, true)
             end
@@ -188,6 +193,11 @@ local function processAmbushCheck(_, time)
             if time - site.activateTime > 30 then  -- Stay on for at least 30 seconds
                 DMS.SAMAmbush.setRadar(groupName, false)
                 site.trackingTarget = nil
+
+                if DMS.Settings and DMS.Settings.isDebug() then
+                    env.info(string.format("[SAMAmbush] '%s' going DARK (no targets in envelope)",
+                        groupName))
+                end
             end
         end
 
@@ -209,6 +219,13 @@ function DMS.SAMAmbush.start()
         nil,
         timer.getTime() + DMS.SAMAmbush.Config.checkInterval
     )
+
+    if DMS.Settings and DMS.Settings.isDebug() then
+        local count = 0
+        for _ in pairs(DMS.SAMAmbush.Sites) do count = count + 1 end
+        env.info(string.format("[SAMAmbush] Started monitoring %d SAM sites (default radius: %dm)",
+            count, DMS.SAMAmbush.Config.defaultEngageRadius))
+    end
 end
 
 --- Stop the SAM ambush system

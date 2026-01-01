@@ -81,6 +81,11 @@ function DMS.Objectives.register(id, description, options)
     if options.isOptional then
         DMS.Objectives.List[id].status = DMS.Objectives.Status.OPTIONAL
     end
+
+    if DMS.Settings and DMS.Settings.isDebug() then
+        env.info(string.format("[Objectives] Registered: '%s' - %s (optional: %s, hidden: %s)",
+            id, description, tostring(options.isOptional or false), tostring(options.isHidden or false)))
+    end
 end
 
 --- Activate an objective (make it current)
@@ -93,6 +98,10 @@ function DMS.Objectives.activate(id)
        obj.status == DMS.Objectives.Status.OPTIONAL then
         obj.status = DMS.Objectives.Status.ACTIVE
         obj.isHidden = false
+
+        if DMS.Settings and DMS.Settings.isDebug() then
+            env.info(string.format("[Objectives] Activated: '%s' - %s", id, obj.description))
+        end
 
         if DMS.Objectives.Config.showNotifications then
             trigger.action.outTextForCoalition(

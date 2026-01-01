@@ -24,7 +24,7 @@ end
 
 --- Create a new spawn pool
 -- @param poolId string Unique pool identifier
--- @param options table|nil Pool options {chance, count, delay}
+-- @param options table|nil Pool options {chance, count, delay, hidden}
 -- @return table Pool reference
 function DMS.SpawnPool.create(poolId, options)
     options = options or {}
@@ -37,6 +37,7 @@ function DMS.SpawnPool.create(poolId, options)
         delay = options.delay or 0,
         minDelay = options.minDelay,
         maxDelay = options.maxDelay,
+        hidden = options.hidden,  -- nil = use settings default, true/false = override
         executed = false,
         spawnedGroups = {},
     }
@@ -105,6 +106,10 @@ function DMS.SpawnPool.executePool(poolId)
     -- Roll for overall spawn chance
     local roll = math.random(1, 100)
     if roll > pool.chance then
+        if DMS.Settings and DMS.Settings.isDebug() then
+            env.info(string.format("[SpawnPool] Pool '%s' skipped (rolled %d, needed <= %d)",
+                poolId, roll, pool.chance))
+        end
         return {success = false, spawned = 0, selected = {}}
     end
 
@@ -120,12 +125,29 @@ function DMS.SpawnPool.executePool(poolId)
     -- Spawn function
     local function doSpawn()
         local spawned = 0
+        -- Determine hidden state: pool override > settings default
+        local hidden = pool.hidden
+        if hidden == nil and DMS.Settings then
+            hidden = DMS.Settings.getSpawnHidden()
+        end
+
         for _, groupName in ipairs(selected) do
             local group = Group.getByName(groupName)
             if group then
-                trigger.action.activateGroup(group)
+                -- Use fog of war system if available and hidden is needed
+                if hidden and DMS.FogOfWar then
+                    DMS.FogOfWar.activateGroup(groupName, true)
+                else
+                    trigger.action.activateGroup(group)
+                end
                 table.insert(pool.spawnedGroups, groupName)
                 spawned = spawned + 1
+
+                -- Debug logging
+                if DMS.Settings and DMS.Settings.isDebug() then
+                    env.info(string.format("[SpawnPool] Activated: %s (hidden: %s)",
+                        groupName, tostring(hidden or false)))
+                end
             end
         end
         return spawned
@@ -206,13 +228,22 @@ DMS.SpawnPool.addPattern("aa_threat", "AA", 16)  -- AA-1 through AA-16
 -- DMS.SpawnPool.addGroups("aa_threat", {"AA-1", "AA-2", "AA-3", ...})
 
 -- Create armor pool: 50% chance to spawn 2-3 random armor groups
+-- With explicit hidden override (hidden from F10 map)
 DMS.SpawnPool.create("armor_threat", {
     chance = 50,
     count = 3,      -- Pick up to 3
     minDelay = 120, -- 2-5 minute delay
     maxDelay = 300,
+    hidden = true,  -- Force hidden (overrides DMS.Settings.fogOfWar)
 })
 DMS.SpawnPool.addPattern("armor_threat", "Armor", 8)
+
+-- Create pool that uses mission settings for hidden state
+DMS.SpawnPool.create("patrol", {
+    chance = 75,
+    count = 1,
+    -- hidden not specified = uses DMS.Settings.getSpawnHidden()
+})
 
 -- Execute single pool
 local result = DMS.SpawnPool.executePool("aa_threat")

@@ -17,7 +17,8 @@
       "Bash(cat:*)",
       "mcp__sequential-thinking__sequentialthinking",
       "WebFetch(domain:wiki.hoggitworld.com)",
-      "WebFetch(domain:forum.dcs.world)"
+      "WebFetch(domain:forum.dcs.world)",
+      "Bash(findstr:*)"
     ],
     "deny": [],
     "ask": []

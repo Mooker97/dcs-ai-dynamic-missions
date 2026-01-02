@@ -1,0 +1,104 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DCS Coordinate Schema",
+  "description": "Schema for DCS coordinate systems and transformations",
+  "definitions": {
+    "cartesian": {
+      "type": "object",
+      "description": "DCS Cartesian coordinate system (X/Y in meters)",
+      "properties": {
+        "x": {
+          "type": "number",
+          "description": "X coordinate in meters (East positive, West negative)"
+        },
+        "y": {
+          "type": "number",
+          "description": "Y coordinate in meters (North positive, South negative)"
+        },
+        "alt": {
+          "type": "number",
+          "description": "Altitude in meters (optional)",
+          "minimum": 0
+        }
+      },
+      "required": ["x", "y"]
+    },
+    "geographic": {
+      "type": "object",
+      "description": "Geographic coordinate system (Latitude/Longitude)",
+      "properties": {
+        "lat": {
+          "type": "number",
+          "description": "Latitude in degrees (-90 to 90)",
+          "minimum": -90,
+          "maximum": 90
+        },
+        "lon": {
+          "type": "number",
+          "description": "Longitude in degrees (-180 to 180)",
+          "minimum": -180,
+          "maximum": 180
+        },
+        "alt": {
+          "type": "number",
+          "description": "Altitude in meters (optional)",
+          "minimum": 0
+        }
+      },
+      "required": ["lat", "lon"]
+    },
+    "mgrs": {
+      "type": "object",
+      "description": "Military Grid Reference System",
+      "properties": {
+        "mgrs": {
+          "type": "string",
+          "description": "MGRS grid reference string",
+          "pattern": "^[0-9]{1,2}[A-Z]{3}[0-9]{10}$"
+        },
+        "alt": {
+          "type": "number",
+          "description": "Altitude in meters (optional)",
+          "minimum": 0
+        }
+      },
+      "required": ["mgrs"]
+    },
+    "position_with_metadata": {
+      "type": "object",
+      "description": "Position with coalition and unit type metadata",
+      "properties": {
+        "x": {
+          "type": "number",
+          "description": "X coordinate in meters"
+        },
+        "y": {
+          "type": "number",
+          "description": "Y coordinate in meters"
+        },
+        "alt": {
+          "type": "number",
+          "description": "Altitude in meters",
+          "minimum": 0
+        },
+        "coalition": {
+          "type": "string",
+          "enum": ["blue", "red", "neutrals"],
+          "description": "Unit coalition"
+        },
+        "unit_type": {
+          "type": "string",
+          "enum": ["plane", "helicopter", "ship", "vehicle", "static"],
+          "description": "Unit category"
+        }
+      },
+      "required": ["x", "y"]
+    }
+  },
+  "oneOf": [
+    {"$ref": "#/definitions/cartesian"},
+    {"$ref": "#/definitions/geographic"},
+    {"$ref": "#/definitions/mgrs"},
+    {"$ref": "#/definitions/position_with_metadata"}
+  ]
+}

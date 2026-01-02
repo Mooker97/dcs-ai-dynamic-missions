@@ -21,7 +21,9 @@
       "Bash(findstr:*)",
       "mcp__exa__web_search_exa",
       "Bash(find:*)",
-      "WebFetch(domain:elevenlabs.io)"
+      "WebFetch(domain:elevenlabs.io)",
+      "Bash(if exist test_sgt_butterfield.mp3 move test_sgt_butterfield.mp3 test_files )",
+      "Bash(if exist test_awacs_mission_line.mp3 move test_awacs_mission_line.mp3 test_files )"
     ],
     "deny": [],
     "ask": []

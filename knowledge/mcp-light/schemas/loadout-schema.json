@@ -1,0 +1,91 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DCS Loadout Schema",
+  "description": "Schema for DCS unit loadout (weapons, fuel, countermeasures)",
+  "type": "object",
+  "properties": {
+    "fuel": {
+      "type": "number",
+      "description": "Fuel quantity in kilograms",
+      "minimum": 0,
+      "examples": [3175, 5000, 7500]
+    },
+    "flare": {
+      "type": "integer",
+      "description": "Flare countermeasure count",
+      "minimum": 0,
+      "maximum": 500,
+      "examples": [30, 60, 120]
+    },
+    "chaff": {
+      "type": "integer",
+      "description": "Chaff countermeasure count",
+      "minimum": 0,
+      "maximum": 500,
+      "examples": [60, 120, 240]
+    },
+    "gun": {
+      "type": "integer",
+      "description": "Gun ammunition rounds",
+      "minimum": 0,
+      "examples": [511, 578, 1174]
+    },
+    "pylons": {
+      "type": "object",
+      "description": "Weapon pylon configuration",
+      "patternProperties": {
+        "^[1-9][0-9]?$": {
+          "type": "object",
+          "description": "Pylon configuration (key is pylon number 1-20)",
+          "properties": {
+            "CLSID": {
+              "type": "string",
+              "description": "Weapon CLSID identifier (unique weapon ID)",
+              "pattern": "^\\{[A-F0-9-]+\\}$",
+              "examples": [
+                "{40EF17B7-F508-45de-8566-6FFECC0C1AB8}",
+                "{5CE2FF2A-645A-4197-B48D-8720AC69394F}",
+                "{51F9AAE5-964F-4D21-83FB-502E3BFE5F8A}"
+              ]
+            },
+            "num": {
+              "type": "integer",
+              "description": "Pylon number",
+              "minimum": 1,
+              "maximum": 20
+            }
+          },
+          "required": ["CLSID"]
+        }
+      }
+    },
+    "ammo_type": {
+      "type": "integer",
+      "description": "Ammunition type ID (for vehicles with selectable ammo)",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "fuel": 3175,
+      "flare": 60,
+      "chaff": 120,
+      "gun": 511,
+      "pylons": {
+        "1": {
+          "CLSID": "{5CE2FF2A-645A-4197-B48D-8720AC69394F}",
+          "num": 1
+        },
+        "2": {
+          "CLSID": "{40EF17B7-F508-45de-8566-6FFECC0C1AB8}",
+          "num": 2
+        },
+        "3": {
+          "CLSID": "{8D399DDA-FF81-4F14-904D-099B34FE7918}",
+          "num": 3
+        }
+      }
+    }
+  ]
+}

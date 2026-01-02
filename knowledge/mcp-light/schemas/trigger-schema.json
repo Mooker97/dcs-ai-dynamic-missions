@@ -1,0 +1,226 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DCS Trigger Schema",
+  "description": "Schema for DCS mission triggers and trigger zones",
+  "definitions": {
+    "trigger_zone": {
+      "type": "object",
+      "description": "Trigger zone definition (circular or quad area on map)",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Zone name (must be unique)",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "zoneId": {
+          "type": "integer",
+          "description": "Unique zone ID",
+          "minimum": 1
+        },
+        "x": {
+          "type": "number",
+          "description": "X coordinate of zone center (meters)"
+        },
+        "y": {
+          "type": "number",
+          "description": "Y coordinate of zone center (meters)"
+        },
+        "radius": {
+          "type": "number",
+          "description": "Zone radius in meters",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "type": {
+          "type": "integer",
+          "enum": [0, 2],
+          "description": "Zone type (0=circle, 2=quad)",
+          "default": 0
+        },
+        "hidden": {
+          "type": "boolean",
+          "description": "Whether zone is hidden from F10 map view",
+          "default": false
+        },
+        "heading": {
+          "type": "number",
+          "description": "Zone heading in radians (for quad zones)",
+          "minimum": 0,
+          "maximum": 6.283185307179586,
+          "default": 0
+        },
+        "color": {
+          "type": "array",
+          "description": "Zone color RGBA values (0-1)",
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "minItems": 4,
+          "maxItems": 4
+        }
+      },
+      "required": ["name", "x", "y", "radius"]
+    },
+    "trigger_condition": {
+      "type": "object",
+      "description": "Trigger condition/rule",
+      "properties": {
+        "predicate": {
+          "type": "string",
+          "description": "Condition type",
+          "examples": [
+            "c_time_after",
+            "c_part_of_group_in_zone",
+            "c_all_of_group_in_zone",
+            "c_group_dead",
+            "c_unit_alive"
+          ]
+        },
+        "seconds": {
+          "type": "integer",
+          "description": "Time parameter (for time-based conditions)",
+          "minimum": 0
+        },
+        "zone": {
+          "type": "string",
+          "description": "Zone name (for zone-based conditions)"
+        },
+        "group": {
+          "type": "string",
+          "description": "Group name (for group-based conditions)"
+        },
+        "unit": {
+          "type": "string",
+          "description": "Unit name (for unit-based conditions)"
+        }
+      },
+      "required": ["predicate"]
+    },
+    "trigger_action": {
+      "type": "object",
+      "description": "Trigger action to execute",
+      "properties": {
+        "predicate": {
+          "type": "string",
+          "description": "Action type",
+          "examples": [
+            "a_do_script",
+            "a_do_script_file",
+            "a_out_text",
+            "a_set_flag",
+            "a_clear_flag",
+            "a_activate_group",
+            "a_deactivate_group"
+          ]
+        },
+        "file": {
+          "type": "string",
+          "description": "Script file path (for DO SCRIPT FILE action)"
+        },
+        "inline": {
+          "type": "string",
+          "description": "Inline Lua script code (for DO SCRIPT action)"
+        },
+        "text": {
+          "type": "string",
+          "description": "Message text (for OUT TEXT action)"
+        },
+        "duration": {
+          "type": "integer",
+          "description": "Message duration in seconds (for OUT TEXT)",
+          "minimum": 1,
+          "maximum": 60
+        },
+        "flag": {
+          "type": "string",
+          "description": "Flag name (for flag actions)"
+        },
+        "group": {
+          "type": "string",
+          "description": "Group name (for group actions)"
+        }
+      },
+      "required": ["predicate"]
+    },
+    "trigger_rule": {
+      "type": "object",
+      "description": "Complete trigger rule definition",
+      "properties": {
+        "comment": {
+          "type": "string",
+          "description": "Trigger name/description (shown in Mission Editor)",
+          "minLength": 1
+        },
+        "predicate": {
+          "type": "string",
+          "enum": [
+            "triggerOnce",
+            "triggerContinuous",
+            "triggerDisabled"
+          ],
+          "description": "Trigger execution type",
+          "default": "triggerOnce"
+        },
+        "eventlist": {
+          "type": "string",
+          "description": "Event type filter",
+          "examples": ["", "S_EVENT_SHOT", "S_EVENT_HIT", "S_EVENT_DEAD"]
+        },
+        "rules": {
+          "type": "array",
+          "description": "Array of conditions (all must be true)",
+          "items": {
+            "$ref": "#/definitions/trigger_condition"
+          },
+          "minItems": 1
+        },
+        "actions": {
+          "type": "array",
+          "description": "Array of actions to execute when conditions met",
+          "items": {
+            "$ref": "#/definitions/trigger_action"
+          },
+          "minItems": 1
+        }
+      },
+      "required": ["comment", "rules", "actions"]
+    },
+    "do_script_trigger": {
+      "type": "object",
+      "description": "Simplified DO SCRIPT trigger definition",
+      "properties": {
+        "comment": {
+          "type": "string",
+          "description": "Trigger name",
+          "minLength": 1
+        },
+        "script": {
+          "type": "string",
+          "description": "Lua script code to execute",
+          "minLength": 1
+        },
+        "time_after": {
+          "type": "integer",
+          "description": "Seconds after mission start to execute",
+          "minimum": 0,
+          "default": 1
+        },
+        "trigger_type": {
+          "type": "string",
+          "enum": ["triggerOnce", "triggerContinuous"],
+          "description": "Execute once or repeatedly",
+          "default": "triggerOnce"
+        }
+      },
+      "required": ["comment", "script"]
+    }
+  },
+  "oneOf": [
+    {"$ref": "#/definitions/trigger_zone"},
+    {"$ref": "#/definitions/trigger_rule"},
+    {"$ref": "#/definitions/do_script_trigger"}
+  ]
+}

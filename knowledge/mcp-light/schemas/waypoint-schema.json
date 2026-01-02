@@ -1,0 +1,130 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DCS Waypoint Schema",
+  "description": "Schema for DCS mission waypoint operations",
+  "type": "object",
+  "properties": {
+    "index": {
+      "type": "integer",
+      "description": "Waypoint index (1-based)",
+      "minimum": 1
+    },
+    "position": {
+      "type": "object",
+      "description": "Waypoint position",
+      "properties": {
+        "x": {
+          "type": "number",
+          "description": "X coordinate in meters (East/West)"
+        },
+        "y": {
+          "type": "number",
+          "description": "Y coordinate in meters (North/South)"
+        }
+      },
+      "required": ["x", "y"]
+    },
+    "alt": {
+      "type": "number",
+      "description": "Altitude in meters",
+      "minimum": 0
+    },
+    "alt_type": {
+      "type": "string",
+      "enum": ["BARO", "RADIO"],
+      "description": "Altitude type (BARO=MSL, RADIO=AGL)",
+      "default": "BARO"
+    },
+    "speed": {
+      "type": "number",
+      "description": "Speed at waypoint in m/s",
+      "minimum": 0
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "Turning Point",
+        "Fly Over Point",
+        "Takeoff",
+        "Landing",
+        "Takeoff Ground",
+        "From Ground Area",
+        "From Parking Area"
+      ],
+      "description": "Waypoint action type",
+      "default": "Turning Point"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "Turning Point",
+        "TakeOff",
+        "Land",
+        "TakeOffGround",
+        "TakeOffParking",
+        "TakeOffGroundHot",
+        "TakeOffGroundCold"
+      ],
+      "description": "Waypoint type identifier"
+    },
+    "ETA": {
+      "type": "number",
+      "description": "Estimated time of arrival in seconds from mission start",
+      "minimum": 0
+    },
+    "ETA_locked": {
+      "type": "boolean",
+      "description": "Whether ETA is locked (time-on-target)",
+      "default": false
+    },
+    "name": {
+      "type": "string",
+      "description": "Waypoint name/label"
+    },
+    "airdromeId": {
+      "type": "integer",
+      "description": "Airdrome ID for takeoff/landing waypoints",
+      "minimum": 0
+    },
+    "helipadId": {
+      "type": "integer",
+      "description": "Helipad ID for helicopter operations"
+    },
+    "linkUnit": {
+      "type": "integer",
+      "description": "Linked unit ID for formation flight"
+    },
+    "speed_locked": {
+      "type": "boolean",
+      "description": "Whether speed is locked",
+      "default": true
+    },
+    "task": {
+      "type": "object",
+      "description": "Task/action at waypoint",
+      "properties": {
+        "id": {
+          "type": "string",
+          "enum": [
+            "ComboTask",
+            "CAP",
+            "CAS",
+            "SEAD",
+            "Strike",
+            "Refueling",
+            "Transport",
+            "AFAC",
+            "Nothing"
+          ],
+          "description": "Task type"
+        },
+        "params": {
+          "type": "object",
+          "description": "Task-specific parameters"
+        }
+      }
+    }
+  },
+  "required": ["position", "alt", "speed", "action"],
+  "additionalProperties": false
+}

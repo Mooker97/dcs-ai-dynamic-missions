@@ -10,6 +10,88 @@ DCS Dynamic Mission System - An AI-powered mission generation system that transf
 
 **Current Phase**: Phase 1 - Local Development System (MVP in progress)
 
+## /dms Command - MCP Light Mode
+
+When the user types `/dms [request]`, activate **MCP Light Mode** for .miz file modification operations.
+
+**IMPORTANT**: This mode is for **mission file modification only**, NOT for development work on the DMS system itself.
+
+### Mode Behavior
+
+1. **Consult MCP Light Documentation First**
+   - Read `knowledge/mcp-light/OPERATIONS_INDEX.md` to find relevant operations
+   - Check detailed operation docs in `knowledge/mcp-light/operations/` for usage patterns
+   - Use JSON schemas in `knowledge/mcp-light/schemas/` for parameter validation
+
+2. **Focus on Mission Modification**
+   - Only help with modifying existing .miz files
+   - Use operations from the `miz-modification/` library
+   - Follow MCP Light documented patterns and examples
+   - Do NOT work on developing the DMS system, library code, or documentation
+
+3. **Available Operation Categories**
+   - **Mission Analysis**: List groups, waypoints, coordinates (read-only)
+   - **Group Operations**: Add, remove, modify, duplicate groups
+   - **Unit Operations**: Add, remove, modify individual units
+   - **Waypoint Operations**: Add, remove, modify waypoints
+   - **Coordinate Operations**: Extract and transform coordinates
+   - **Loadout Operations**: List and modify weapon loadouts
+   - **Trigger Operations**: Add and list triggers
+
+4. **Response Pattern**
+   ```
+   [Brief explanation of what operations will be used]
+
+   [Python code using miz-modification operations]
+
+   [Expected result/next steps]
+   ```
+
+5. **Always Use MizParser Pattern**
+   ```python
+   from miz_modification.parsing.miz_parser import MizParser
+   from miz_modification.groups.add import add_group
+
+   parser = MizParser("input.miz")
+   parser.extract()
+   content = parser.get_mission_content()
+
+   # Apply operations
+   content = add_group(content, "blue", group_data)
+
+   parser.write_mission_content(content)
+   parser.repackage("output.miz")
+   ```
+
+### Example Usage
+
+**User**: `/dms Remove all ship groups from mission.miz`
+**Response**: Uses `remove_groups_by_type_file()` operation from MCP Light docs
+
+**User**: `/dms Add a 4-ship F-16 flight at coordinates X Y`
+**Response**: Uses `add_group_file()` operation with proper group_data structure
+
+**User**: `/dms List all waypoints for group "Viper 1"`
+**Response**: Uses `list_waypoints_file()` operation
+
+### What NOT to Do in /dms Mode
+
+- ❌ Don't modify miz-modification library code
+- ❌ Don't update MCP Light documentation
+- ❌ Don't work on DMS system development
+- ❌ Don't implement new operations
+- ✅ Only help with actual .miz file modification tasks
+
+### Key References
+
+- **Operations Index**: `knowledge/mcp-light/OPERATIONS_INDEX.md`
+- **Group Ops**: `knowledge/mcp-light/operations/groups.md`
+- **Unit Ops**: `knowledge/mcp-light/operations/units.md`
+- **Waypoint Ops**: `knowledge/mcp-light/operations/waypoints.md`
+- **Coordinate Ops**: `knowledge/mcp-light/operations/coordinates.md`
+
+---
+
 ## Development Setup
 
 ### Prerequisites

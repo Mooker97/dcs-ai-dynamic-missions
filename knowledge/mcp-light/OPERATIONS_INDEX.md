@@ -9,6 +9,8 @@ Complete reference of all available mission modification operations.
 - [Unit Operations](#unit-operations)
 - [Waypoint Operations](#waypoint-operations)
 - [Coordinate Operations](#coordinate-operations)
+- [Loadout Operations](#loadout-operations)
+- [Trigger Operations](#trigger-operations)
 - [Mission Metadata](#mission-metadata-future)
 
 ---
@@ -141,6 +143,76 @@ Extract and transform coordinates between different systems.
 | `transform_to_xy` | `miz_modifier.coordinates.transform` | Convert latitude/longitude to x/y |
 
 **Documentation**: [operations/coordinates.md](operations/coordinates.md)
+
+---
+
+## Loadout Operations
+
+Inspect and modify aircraft and vehicle loadouts (weapons, countermeasures, fuel, ammo).
+
+### Read-Only Operations
+
+| Operation | Module | Description |
+|-----------|--------|-------------|
+| `list_loadout` | `miz_modifier.loadouts.list` | Get complete loadout info (pylons, chaff, flare, fuel, gun) |
+| `list_loadout_file` | `miz_modifier.loadouts.list` | File wrapper for loadout inspection |
+| `get_pylon_info` | `miz_modifier.loadouts.list` | Get weapon on specific pylon |
+| `get_pylon_info_file` | `miz_modifier.loadouts.list` | File wrapper for pylon inspection |
+
+### Modify Operations
+
+| Operation | Module | Description |
+|-----------|--------|-------------|
+| `modify_pylon` | `miz_modifier.loadouts.modify` | Change weapon on specific pylon |
+| `modify_pylon_file` | `miz_modifier.loadouts.modify` | File wrapper for pylon modification |
+| `modify_countermeasures` | `miz_modifier.loadouts.modify` | Set chaff and flare quantities |
+| `modify_countermeasures_file` | `miz_modifier.loadouts.modify` | File wrapper for countermeasures |
+| `modify_gun_ammo` | `miz_modifier.loadouts.modify` | Set gun ammunition |
+| `modify_gun_ammo_file` | `miz_modifier.loadouts.modify` | File wrapper for gun ammo |
+| `modify_fuel` | `miz_modifier.loadouts.modify` | Set fuel quantity |
+| `modify_fuel_file` | `miz_modifier.loadouts.modify` | File wrapper for fuel |
+| `clear_pylon` | `miz_modifier.loadouts.modify` | Remove weapon from pylon |
+| `clear_pylon_file` | `miz_modifier.loadouts.modify` | File wrapper for clearing pylon |
+| `clear_all_pylons` | `miz_modifier.loadouts.modify` | Remove all weapons (clean config) |
+| `clear_all_pylons_file` | `miz_modifier.loadouts.modify` | File wrapper for clearing all pylons |
+
+**Documentation**: [operations/loadouts.md](operations/loadouts.md)
+
+---
+
+## Trigger Operations
+
+Add trigger zones and DO SCRIPT triggers, inspect existing triggers.
+
+### Trigger Zones
+
+| Operation | Module | Description |
+|-----------|--------|-------------|
+| `list_trigger_zones` | `miz_modifier.triggers.list` | List all trigger zones in mission |
+| `list_trigger_zones_file` | `miz_modifier.triggers.list` | File wrapper for listing zones |
+| `find_zone_by_name` | `miz_modifier.triggers.list` | Find trigger zone by name |
+| `find_zone_by_id` | `miz_modifier.triggers.list` | Find trigger zone by ID |
+| `add_trigger_zone` | `miz_modifier.triggers.add` | Add new trigger zone (circular/quad area) |
+| `add_trigger_zone_file` | `miz_modifier.triggers.add` | File wrapper for adding zones |
+
+### Trigger Rules
+
+| Operation | Module | Description |
+|-----------|--------|-------------|
+| `list_trigger_rules` | `miz_modifier.triggers.list` | List all trigger rules (trigrules section) |
+| `list_trigger_rules_file` | `miz_modifier.triggers.list` | File wrapper for listing triggers |
+| `find_trigger_by_comment` | `miz_modifier.triggers.list` | Find trigger by comment/name |
+| `list_compiled_triggers` | `miz_modifier.triggers.list` | List compiled triggers (trig section) |
+| `get_trigger_summary` | `miz_modifier.triggers.list` | Get summary of all triggers and zones |
+
+### DO SCRIPT Triggers
+
+| Operation | Module | Description |
+|-----------|--------|-------------|
+| `add_do_script_trigger` | `miz_modifier.triggers.add` | Add DO SCRIPT trigger (Lua code injection) |
+| `add_do_script_trigger_file` | `miz_modifier.triggers.add` | File wrapper for adding DO SCRIPT triggers |
+
+**Documentation**: [operations/triggers.md](operations/triggers.md)
 
 ---
 
@@ -357,5 +429,7 @@ for ship_group in ship_groups:
 - [Unit Operations](operations/units.md)
 - [Waypoint Operations](operations/waypoints.md)
 - [Coordinate Operations](operations/coordinates.md)
+- [Loadout Operations](operations/loadouts.md)
+- [Trigger Operations](operations/triggers.md)
 - [Common Workflows](workflows/basic-modification.md)
 - [JSON Schemas](schemas/)

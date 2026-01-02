@@ -1,0 +1,243 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DCS Group Schema",
+  "description": "Schema for DCS mission group operations",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Group name (must be unique)",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "groupId": {
+      "type": "integer",
+      "description": "Unique group ID",
+      "minimum": 1
+    },
+    "coalition": {
+      "type": "string",
+      "enum": ["blue", "red", "neutrals"],
+      "description": "Coalition the group belongs to"
+    },
+    "category": {
+      "type": "string",
+      "enum": ["plane", "helicopter", "ship", "vehicle", "static"],
+      "description": "Unit category/type"
+    },
+    "country": {
+      "type": "integer",
+      "description": "Country ID (e.g., 2 for USA, 0 for Russia)",
+      "minimum": 0
+    },
+    "hidden": {
+      "type": "boolean",
+      "description": "Whether group is hidden on F10 map",
+      "default": false
+    },
+    "start_time": {
+      "type": "integer",
+      "description": "Mission start time offset in seconds",
+      "minimum": 0,
+      "default": 0
+    },
+    "frequency": {
+      "type": "number",
+      "description": "Radio frequency in MHz",
+      "minimum": 0,
+      "maximum": 400
+    },
+    "modulation": {
+      "type": "integer",
+      "enum": [0, 1],
+      "description": "Radio modulation (0=AM, 1=FM)"
+    },
+    "units": {
+      "type": "array",
+      "description": "Array of units in the group",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/unit"
+      }
+    },
+    "route": {
+      "type": "object",
+      "description": "Group route with waypoints",
+      "properties": {
+        "points": {
+          "type": "array",
+          "description": "Array of waypoints",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/waypoint"
+          }
+        }
+      },
+      "required": ["points"]
+    }
+  },
+  "required": ["name", "coalition", "category", "units"],
+  "definitions": {
+    "unit": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Unit name (must be unique)",
+          "minLength": 1
+        },
+        "unitId": {
+          "type": "integer",
+          "description": "Unique unit ID",
+          "minimum": 1
+        },
+        "type": {
+          "type": "string",
+          "description": "Aircraft/vehicle type (e.g., 'F-16C_50', 'M-1 Abrams')"
+        },
+        "skill": {
+          "type": "string",
+          "enum": ["Average", "Good", "High", "Excellent", "Random", "Player"],
+          "description": "AI skill level",
+          "default": "High"
+        },
+        "x": {
+          "type": "number",
+          "description": "X coordinate in meters"
+        },
+        "y": {
+          "type": "number",
+          "description": "Y coordinate in meters"
+        },
+        "alt": {
+          "type": "number",
+          "description": "Altitude in meters",
+          "minimum": 0
+        },
+        "alt_type": {
+          "type": "string",
+          "enum": ["BARO", "RADIO"],
+          "description": "Altitude type (BARO=MSL, RADIO=AGL)",
+          "default": "BARO"
+        },
+        "speed": {
+          "type": "number",
+          "description": "Speed in m/s",
+          "minimum": 0
+        },
+        "heading": {
+          "type": "number",
+          "description": "Heading in radians",
+          "minimum": 0,
+          "maximum": 6.283185307179586
+        },
+        "livery_id": {
+          "type": "string",
+          "description": "Livery identifier"
+        },
+        "payload": {
+          "$ref": "#/definitions/payload"
+        }
+      },
+      "required": ["name", "type", "x", "y"]
+    },
+    "waypoint": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number",
+          "description": "X coordinate in meters"
+        },
+        "y": {
+          "type": "number",
+          "description": "Y coordinate in meters"
+        },
+        "alt": {
+          "type": "number",
+          "description": "Altitude in meters",
+          "minimum": 0
+        },
+        "alt_type": {
+          "type": "string",
+          "enum": ["BARO", "RADIO"],
+          "description": "Altitude type",
+          "default": "BARO"
+        },
+        "speed": {
+          "type": "number",
+          "description": "Speed in m/s",
+          "minimum": 0
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "Turning Point",
+            "Fly Over Point",
+            "Takeoff",
+            "Landing",
+            "Takeoff Ground",
+            "From Ground Area",
+            "From Parking Area"
+          ],
+          "description": "Waypoint action type",
+          "default": "Turning Point"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["Turning Point", "TakeOff", "Land", "TakeOffGround", "TakeOffParking"],
+          "description": "Waypoint type"
+        },
+        "airdromeId": {
+          "type": "integer",
+          "description": "Airdrome ID (for takeoff/landing waypoints)"
+        }
+      },
+      "required": ["x", "y", "alt", "speed", "action"]
+    },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "pylons": {
+          "type": "object",
+          "description": "Weapon pylons",
+          "patternProperties": {
+            "^[0-9]+$": {
+              "type": "object",
+              "properties": {
+                "CLSID": {
+                  "type": "string",
+                  "description": "Weapon CLSID identifier"
+                },
+                "num": {
+                  "type": "integer",
+                  "description": "Pylon number"
+                }
+              },
+              "required": ["CLSID"]
+            }
+          }
+        },
+        "fuel": {
+          "type": "number",
+          "description": "Fuel quantity in kg",
+          "minimum": 0
+        },
+        "flare": {
+          "type": "integer",
+          "description": "Flare count",
+          "minimum": 0
+        },
+        "chaff": {
+          "type": "integer",
+          "description": "Chaff count",
+          "minimum": 0
+        },
+        "gun": {
+          "type": "integer",
+          "description": "Gun ammunition rounds",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

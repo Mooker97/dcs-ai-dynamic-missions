@@ -1,0 +1,110 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DCS Unit Schema",
+  "description": "Schema for DCS mission unit operations",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Unit name (must be unique)",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "unitId": {
+      "type": "integer",
+      "description": "Unique unit ID",
+      "minimum": 1
+    },
+    "type": {
+      "type": "string",
+      "description": "Aircraft or vehicle type identifier",
+      "examples": [
+        "F-16C_50",
+        "FA-18C_hornet",
+        "A-10C",
+        "M-1 Abrams",
+        "T-90",
+        "SA-10 S-300PS ln"
+      ]
+    },
+    "skill": {
+      "type": "string",
+      "enum": ["Average", "Good", "High", "Excellent", "Random", "Player"],
+      "description": "AI skill level or player-controlled",
+      "default": "High"
+    },
+    "position": {
+      "type": "object",
+      "description": "Unit position",
+      "properties": {
+        "x": {
+          "type": "number",
+          "description": "X coordinate in meters (East/West)"
+        },
+        "y": {
+          "type": "number",
+          "description": "Y coordinate in meters (North/South)"
+        },
+        "alt": {
+          "type": "number",
+          "description": "Altitude in meters",
+          "minimum": 0
+        },
+        "alt_type": {
+          "type": "string",
+          "enum": ["BARO", "RADIO"],
+          "description": "Altitude type (BARO=MSL, RADIO=AGL)",
+          "default": "BARO"
+        }
+      },
+      "required": ["x", "y"]
+    },
+    "heading": {
+      "type": "number",
+      "description": "Unit heading in radians (0-2π)",
+      "minimum": 0,
+      "maximum": 6.283185307179586
+    },
+    "speed": {
+      "type": "number",
+      "description": "Speed in meters per second",
+      "minimum": 0
+    },
+    "livery_id": {
+      "type": "string",
+      "description": "Livery/skin identifier for visual appearance"
+    },
+    "callsign": {
+      "type": "object",
+      "description": "Radio callsign configuration",
+      "properties": {
+        "name": {
+          "type": "integer",
+          "description": "Callsign name ID"
+        },
+        "group": {
+          "type": "integer",
+          "description": "Callsign number",
+          "minimum": 1,
+          "maximum": 9
+        },
+        "unit": {
+          "type": "integer",
+          "description": "Unit number in callsign",
+          "minimum": 1,
+          "maximum": 9
+        }
+      }
+    },
+    "onboard_num": {
+      "type": "string",
+      "description": "Tail/side number displayed on unit",
+      "pattern": "^[0-9]{3}$"
+    },
+    "payload": {
+      "$ref": "loadout-schema.json"
+    }
+  },
+  "required": ["name", "type", "position"],
+  "additionalProperties": false
+}

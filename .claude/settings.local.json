@@ -20,7 +20,8 @@
       "WebFetch(domain:forum.dcs.world)",
       "Bash(findstr:*)",
       "mcp__exa__web_search_exa",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "WebFetch(domain:elevenlabs.io)"
     ],
     "deny": [],
     "ask": []

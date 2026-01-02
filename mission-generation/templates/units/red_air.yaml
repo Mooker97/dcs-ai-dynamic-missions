@@ -1,0 +1,423 @@
+# Red Air Force Unit Templates
+# Enemy aircraft compositions
+
+# ============================================================================
+# MIG-29 FULCRUM FLIGHTS
+# ============================================================================
+
+MIG29_CAP_2ship:
+  name: "Fulcrum {id}"
+  country: "Russia"
+  category: "plane"
+  description: "2-ship MiG-29S CAP element"
+  units:
+    - type: "MiG-29S"
+      callsign: "Fulcrum {id}-1"
+      position: {offset: [0, 0]}
+      loadout: "CAP_Standard"
+      fuel: 0.9
+      skill: "High"
+    - type: "MiG-29S"
+      callsign: "Fulcrum {id}-2"
+      position: {offset: [50, -50]}
+      loadout: "CAP_Standard"
+      fuel: 0.9
+      skill: "Good"
+  waypoints:
+    - action: "From Runway"
+      position: {airbase: "auto"}
+      alt: 0
+      speed: 150
+    - action: "Turning Point"
+      position: {offset: [50000, 0]}
+      alt: 8000
+      speed: 260
+    - action: "Orbit"
+      position: {offset: [80000, 20000]}
+      alt: 8000
+      speed: 260
+  frequency: 124.0
+  modulation: 0
+
+MIG29_CAP_4ship:
+  name: "Fulcrum {id}"
+  country: "Russia"
+  category: "plane"
+  description: "4-ship MiG-29S CAP flight"
+  units:
+    - type: "MiG-29S"
+      callsign: "Fulcrum {id}-1"
+      position: {offset: [0, 0]}
+      loadout: "CAP_Standard"
+      fuel: 0.9
+      skill: "High"
+    - type: "MiG-29S"
+      callsign: "Fulcrum {id}-2"
+      position: {offset: [50, -50]}
+      loadout: "CAP_Standard"
+      fuel: 0.9
+      skill: "Good"
+    - type: "MiG-29S"
+      callsign: "Fulcrum {id}-3"
+      position: {offset: [100, 0]}
+      loadout: "CAP_Standard"
+      fuel: 0.9
+      skill: "Good"
+    - type: "MiG-29S"
+      callsign: "Fulcrum {id}-4"
+      position: {offset: [150, -50]}
+      loadout: "CAP_Standard"
+      fuel: 0.9
+      skill: "Good"
+  waypoints:
+    - action: "From Runway"
+      position: {airbase: "auto"}
+      alt: 0
+      speed: 150
+    - action: "Turning Point"
+      position: {offset: [50000, 0]}
+      alt: 8000
+      speed: 260
+    - action: "Orbit"
+      position: {offset: [80000, 20000]}
+      alt: 8000
+      speed: 260
+  frequency: 124.0
+  modulation: 0
+
+# ============================================================================
+# SU-27 FLANKER FLIGHTS
+# ============================================================================
+
+SU27_CAP_2ship:
+  name: "Flanker {id}"
+  country: "Russia"
+  category: "plane"
+  description: "2-ship Su-27 air superiority"
+  units:
+    - type: "Su-27"
+      callsign: "Flanker {id}-1"
+      position: {offset: [0, 0]}
+      loadout: "CAP_Heavy"
+      fuel: 0.9
+      skill: "Excellent"
+    - type: "Su-27"
+      callsign: "Flanker {id}-2"
+      position: {offset: [50, -50]}
+      loadout: "CAP_Heavy"
+      fuel: 0.9
+      skill: "High"
+  waypoints:
+    - action: "From Runway"
+      position: {airbase: "auto"}
+      alt: 0
+      speed: 150
+    - action: "Turning Point"
+      position: {offset: [60000, 0]}
+      alt: 9000
+      speed: 280
+    - action: "Orbit"
+      position: {offset: [90000, 30000]}
+      alt: 9000
+      speed: 280
+  frequency: 125.0
+  modulation: 0
+
+# ============================================================================
+# SU-30 FLANKER-C FLIGHTS
+# ============================================================================
+
+SU30_Strike_2ship:
+  name: "Flanker {id}"
+  country: "Russia"
+  category: "plane"
+  description: "2-ship Su-30 multirole strike"
+  units:
+    - type: "Su-30"
+      callsign: "Flanker {id}-1"
+      position: {offset: [0, 0]}
+      loadout: "Strike_AG"
+      fuel: 0.9
+      skill: "High"
+    - type: "Su-30"
+      callsign: "Flanker {id}-2"
+      position: {offset: [50, -50]}
+      loadout: "Strike_AG"
+      fuel: 0.9
+      skill: "Good"
+  waypoints:
+    - action: "From Runway"
+      position: {airbase: "auto"}
+      alt: 0
+      speed: 150
+    - action: "Turning Point"
+      position: {offset: [40000, 0]}
+      alt: 7000
+      speed: 240
+  frequency: 126.0
+  modulation: 0
+
+# ============================================================================
+# SU-25 FROGFOOT CAS FLIGHTS
+# ============================================================================
+
+SU25_CAS_2ship:
+  name: "Frogfoot {id}"
+  country: "Russia"
+  category: "plane"
+  description: "2-ship Su-25T ground attack"
+  units:
+    - type: "Su-25T"
+      callsign: "Frogfoot {id}-1"
+      position: {offset: [0, 0]}
+      loadout: "CAS_Mixed"
+      fuel: 0.9
+      skill: "Good"
+    - type: "Su-25T"
+      callsign: "Frogfoot {id}-2"
+      position: {offset: [50, -50]}
+      loadout: "CAS_Mixed"
+      fuel: 0.9
+      skill: "Average"
+  waypoints:
+    - action: "From Runway"
+      position: {airbase: "auto"}
+      alt: 0
+      speed: 120
+    - action: "Turning Point"
+      position: {offset: [30000, 0]}
+      alt: 3000
+      speed: 150
+  frequency: 127.0
+  modulation: 0
+
+# ============================================================================
+# MIG-21 FISHBED FLIGHTS (Budget Air Defense)
+# ============================================================================
+
+MIG21_CAP_2ship:
+  name: "Fishbed {id}"
+  country: "Russia"
+  category: "plane"
+  description: "2-ship MiG-21bis low-cost interceptors"
+  units:
+    - type: "MiG-21Bis"
+      callsign: "Fishbed {id}-1"
+      position: {offset: [0, 0]}
+      loadout: "Intercept"
+      fuel: 0.9
+      skill: "Average"
+    - type: "MiG-21Bis"
+      callsign: "Fishbed {id}-2"
+      position: {offset: [50, -50]}
+      loadout: "Intercept"
+      fuel: 0.9
+      skill: "Average"
+  waypoints:
+    - action: "From Runway"
+      position: {airbase: "auto"}
+      alt: 0
+      speed: 150
+    - action: "Turning Point"
+      position: {offset: [40000, 0]}
+      alt: 7000
+      speed: 240
+    - action: "Orbit"
+      position: {offset: [60000, 15000]}
+      alt: 7000
+      speed: 240
+  frequency: 128.0
+  modulation: 0
+
+# ============================================================================
+# L-39 ALBATROS (Training/Light Attack)
+# ============================================================================
+
+L39_Light_2ship:
+  name: "Albatros {id}"
+  country: "Russia"
+  category: "plane"
+  description: "2-ship L-39 light attack/training"
+  units:
+    - type: "L-39ZA"
+      callsign: "Albatros {id}-1"
+      position: {offset: [0, 0]}
+      loadout: "Light_Attack"
+      fuel: 0.9
+      skill: "Average"
+    - type: "L-39ZA"
+      callsign: "Albatros {id}-2"
+      position: {offset: [50, -50]}
+      loadout: "Light_Attack"
+      fuel: 0.9
+      skill: "Average"
+  waypoints:
+    - action: "From Runway"
+      position: {airbase: "auto"}
+      alt: 0
+      speed: 120
+    - action: "Turning Point"
+      position: {offset: [20000, 0]}
+      alt: 3000
+      speed: 140
+  frequency: 129.0
+  modulation: 0
+
+# ============================================================================
+# HELICOPTER FLIGHTS
+# ============================================================================
+
+MI8_Transport_2ship:
+  name: "Hip {id}"
+  country: "Russia"
+  category: "helicopter"
+  description: "2-ship Mi-8 transport helicopters"
+  units:
+    - type: "Mi-8MT"
+      callsign: "Hip {id}-1"
+      position: {offset: [0, 0]}
+      loadout: "Empty"
+      fuel: 0.9
+      skill: "Good"
+    - type: "Mi-8MT"
+      callsign: "Hip {id}-2"
+      position: {offset: [30, -30]}
+      loadout: "Empty"
+      fuel: 0.9
+      skill: "Average"
+  waypoints:
+    - action: "From Ground Area Hot"
+      position: {offset: [0, 0]}
+      alt: 10
+      speed: 60
+    - action: "Turning Point"
+      position: {offset: [10000, 0]}
+      alt: 300
+      speed: 80
+  frequency: 130.0
+  modulation: 0
+
+MI24_Attack_2ship:
+  name: "Hind {id}"
+  country: "Russia"
+  category: "helicopter"
+  description: "2-ship Mi-24 attack helicopters"
+  units:
+    - type: "Mi-24P"
+      callsign: "Hind {id}-1"
+      position: {offset: [0, 0]}
+      loadout: "Attack"
+      fuel: 0.9
+      skill: "High"
+    - type: "Mi-24P"
+      callsign: "Hind {id}-2"
+      position: {offset: [30, -30]}
+      loadout: "Attack"
+      fuel: 0.9
+      skill: "Good"
+  waypoints:
+    - action: "From Ground Area Hot"
+      position: {offset: [0, 0]}
+      alt: 10
+      speed: 60
+    - action: "Turning Point"
+      position: {offset: [15000, 0]}
+      alt: 500
+      speed: 100
+  frequency: 131.0
+  modulation: 0
+
+KA50_Attack_2ship:
+  name: "Hokum {id}"
+  country: "Russia"
+  category: "helicopter"
+  description: "2-ship Ka-50 attack helicopters"
+  units:
+    - type: "Ka-50"
+      callsign: "Hokum {id}-1"
+      position: {offset: [0, 0]}
+      loadout: "Attack_AT"
+      fuel: 0.9
+      skill: "Excellent"
+    - type: "Ka-50"
+      callsign: "Hokum {id}-2"
+      position: {offset: [30, -30]}
+      loadout: "Attack_AT"
+      fuel: 0.9
+      skill: "High"
+  waypoints:
+    - action: "From Ground Area Hot"
+      position: {offset: [0, 0]}
+      alt: 10
+      speed: 60
+    - action: "Turning Point"
+      position: {offset: [15000, 0]}
+      alt: 500
+      speed: 100
+  frequency: 132.0
+  modulation: 0
+
+# ============================================================================
+# MIXED THREAT PACKAGES
+# ============================================================================
+
+Mixed_Strike_Package:
+  name: "Strike Package {id}"
+  country: "Russia"
+  description: "Combined strike package with escorts"
+  groups:
+    - template: "SU30_Strike_2ship"
+      offset: [0, 0]
+      role: "striker"
+    - template: "MIG29_CAP_2ship"
+      offset: [-2000, -2000]
+      role: "escort"
+
+High_Value_CAP:
+  name: "CAP {id}"
+  country: "Russia"
+  description: "High-threat CAP with multiple elements"
+  groups:
+    - template: "SU27_CAP_2ship"
+      offset: [0, 0]
+      role: "primary"
+    - template: "MIG29_CAP_2ship"
+      offset: [-5000, 5000]
+      role: "support"
+
+# ============================================================================
+# THREAT LEVEL RECOMMENDATIONS
+# ============================================================================
+#
+# Light Threat:
+#   - MIG21_CAP_2ship
+#   - L39_Light_2ship
+#   - MI24_Attack_2ship
+#
+# Moderate Threat:
+#   - MIG29_CAP_2ship
+#   - SU25_CAS_2ship
+#   - KA50_Attack_2ship
+#
+# Heavy Threat:
+#   - SU27_CAP_2ship (or 4-ship)
+#   - MIG29_CAP_4ship
+#   - SU30_Strike_2ship
+#   - Mixed_Strike_Package
+#
+# Overwhelming Threat:
+#   - Multiple SU27/MIG29 flights
+#   - High_Value_CAP
+#   - Coordinated strike packages
+#
+# ============================================================================
+# TACTICAL NOTES
+# ============================================================================
+#
+# MiG-29S: Short-range CAP, good low-altitude performance
+# Su-27: Long-range air superiority, excellent BVR capability
+# Su-30: Multirole, both A2A and A2G capable
+# Su-25T: Dedicated CAS, slow but heavily armed
+# MiG-21bis: Budget option, short range, limited missiles
+# L-39: Training/light attack, minimal threat
+# Mi-24/Ka-50: Helicopter threats for low-altitude operations

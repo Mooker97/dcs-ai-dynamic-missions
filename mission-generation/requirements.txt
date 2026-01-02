@@ -1,0 +1,7 @@
+# Mission Generation Pipeline - Python Dependencies
+
+# YAML parsing for templates
+PyYAML>=6.0
+
+# Optional: For coordinate transformations (not needed for MVP)
+# pyproj>=3.7.0

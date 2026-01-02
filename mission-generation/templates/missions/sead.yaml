@@ -1,0 +1,76 @@
+mission_type: "SEAD"
+full_name: "Suppression of Enemy Air Defenses"
+
+description: |
+  Suppress enemy air defense systems to enable follow-on strikes.
+  Primary targets are radar-guided SAM sites.
+
+typical_aircraft:
+  - "F-16C_50"
+  - "F/A-18C_hornet"
+  - "F-15E"
+
+loadouts:
+  F-16C_50: "SEAD_Standard"
+  F/A-18C_hornet: "SEAD_Standard"
+  F-15E: "SEAD_AGM88"
+
+threat_composition:
+  light:
+    sam_sites: 2
+    types: ["SA3_Goa_Battery", "SA6_Gainful_Battery"]
+    cap_flights: 0
+  moderate:
+    sam_sites: 4
+    types: ["SA6_Gainful_Battery", "SA11_Gadfly_Battery", "SA15_Tor_Battery"]
+    cap_flights: 1
+  heavy:
+    sam_sites: 6
+    types: ["SA10_Grumble_Battalion", "SA6_Gainful_Battery", "SA15_Tor_Battery"]
+    cap_flights: 2
+
+support_assets:
+  awacs: recommended
+  tanker: recommended
+  jtac: optional
+  escort: optional
+
+objectives:
+  primary: "Destroy or suppress {count} SAM sites"
+  secondary: "Return safely to base"
+  bonus: "Destroy additional threats of opportunity"
+
+lua_scripts:
+  - "spawning/random-spawn-pools.lua"
+  - "ai-behavior/sam-ambush.lua"
+  - "communications/bda-reporting.lua"
+  - "objectives/objective-tracker.lua"
+
+briefing_template: |
+  MISSION: SEAD - Suppression of Enemy Air Defenses
+  THEATER: {theater}
+  TIME: {time}
+  WEATHER: {weather}
+
+  SITUATION:
+  Enemy air defenses in the {theater} are preventing coalition air operations.
+  Intelligence has identified {threat_count} active SAM sites in the target area.
+
+  MISSION:
+  You are tasked with suppressing enemy air defenses using anti-radiation missiles.
+  Primary targets: {primary_targets}
+
+  THREATS:
+  - {threat_level} SAM presence ({threat_types})
+  - Possible fighter CAP
+
+  SUPPORT:
+  - AWACS: {awacs_callsign} on {awacs_freq}
+  - Tanker: {tanker_callsign} at {tanker_location}
+
+  WEATHER: {weather_description}
+
+  COMMUNICATIONS:
+  - Tower: {tower_freq}
+  - Flight: {flight_freq}
+  - AWACS: {awacs_freq}

@@ -1,0 +1,411 @@
+# SAM Site Unit Templates
+# Surface-to-Air Missile and AAA systems
+
+# ============================================================================
+# SHORT-RANGE SAMs (0-10 NM)
+# ============================================================================
+
+SA9_Gaskin_Section:
+  name: "SA-9 {id}"
+  country: "Russia"
+  category: "vehicle"
+  description: "SA-9 Gaskin SHORAD section (2 launchers)"
+  threat_level: "Low"
+  max_range: "5 NM"
+  units:
+    - type: "Strela-1 9P31"
+      name: "SA-9-{id}-1"
+      position: {offset: [0, 0]}
+    - type: "Strela-1 9P31"
+      name: "SA-9-{id}-2"
+      position: {offset: [50, 50]}
+  behavior:
+    engagement_mode: "Auto"
+    roi: 5000  # 5km
+
+SA13_Gopher_Section:
+  name: "SA-13 {id}"
+  country: "Russia"
+  category: "vehicle"
+  description: "SA-13 Gopher SHORAD section"
+  threat_level: "Low"
+  max_range: "6 NM"
+  units:
+    - type: "Strela-10M3"
+      name: "SA-13-{id}-1"
+      position: {offset: [0, 0]}
+    - type: "Strela-10M3"
+      name: "SA-13-{id}-2"
+      position: {offset: [50, 50]}
+  behavior:
+    engagement_mode: "Auto"
+    roi: 6000
+
+SA15_Tor_Battery:
+  name: "SA-15 {id}"
+  country: "Russia"
+  category: "vehicle"
+  description: "SA-15 Tor SHORAD battery (3 launchers)"
+  threat_level: "Moderate"
+  max_range: "12 NM"
+  units:
+    - type: "Tor 9A331"
+      name: "SA-15-{id}-1"
+      position: {offset: [0, 0]}
+    - type: "Tor 9A331"
+      name: "SA-15-{id}-2"
+      position: {offset: [100, 0]}
+    - type: "Tor 9A331"
+      name: "SA-15-{id}-3"
+      position: {offset: [200, 0]}
+  behavior:
+    engagement_mode: "Auto"
+    roi: 12000
+
+SA19_Tunguska_Section:
+  name: "SA-19 {id}"
+  country: "Russia"
+  category: "vehicle"
+  description: "SA-19 Tunguska combined gun/missile SHORAD"
+  threat_level: "Moderate"
+  max_range: "8 NM"
+  units:
+    - type: "2S6 Tunguska"
+      name: "SA-19-{id}-1"
+      position: {offset: [0, 0]}
+    - type: "2S6 Tunguska"
+      name: "SA-19-{id}-2"
+      position: {offset: [100, 0]}
+  behavior:
+    engagement_mode: "Auto"
+    roi: 8000
+
+# ============================================================================
+# MEDIUM-RANGE SAMs (10-30 NM)
+# ============================================================================
+
+SA3_Goa_Battery:
+  name: "SA-3 {id}"
+  country: "Russia"
+  category: "vehicle"
+  description: "SA-3 Goa medium-range SAM battery"
+  threat_level: "Moderate"
+  max_range: "25 NM"
+  units:
+    - type: "S-125 p-19 sr"
+      name: "SA-3-{id}-SR"
+      position: {offset: [0, 0]}
+    - type: "S-125 ln"
+      name: "SA-3-{id}-LN-1"
+      position: {offset: [50, 50]}
+    - type: "S-125 ln"
+      name: "SA-3-{id}-LN-2"
+      position: {offset: [-50, 50]}
+    - type: "S-125 ln"
+      name: "SA-3-{id}-LN-3"
+      position: {offset: [50, -50]}
+    - type: "S-125 ln"
+      name: "SA-3-{id}-LN-4"
+      position: {offset: [-50, -50]}
+  behavior:
+    engagement_mode: "Hold Fire"  # Good for SAM ambush
+    roi: 25000
+
+SA6_Gainful_Battery:
+  name: "SA-6 {id}"
+  country: "Russia"
+  category: "vehicle"
+  description: "SA-6 Gainful mobile SAM battery"
+  threat_level: "High"
+  max_range: "25 NM"
+  units:
+    - type: "Kub 1S91 str"
+      name: "SA-6-{id}-STR"
+      position: {offset: [0, 0]}
+    - type: "Kub 2P25 ln"
+      name: "SA-6-{id}-LN-1"
+      position: {offset: [50, 50]}
+    - type: "Kub 2P25 ln"
+      name: "SA-6-{id}-LN-2"
+      position: {offset: [-50, 50]}
+    - type: "Kub 2P25 ln"
+      name: "SA-6-{id}-LN-3"
+      position: {offset: [50, -50]}
+  behavior:
+    engagement_mode: "Hold Fire"
+    roi: 25000
+
+SA11_Gadfly_Battery:
+  name: "SA-11 {id}"
+  country: "Russia"
+  category: "vehicle"
+  description: "SA-11 Buk mobile SAM battery"
+  threat_level: "High"
+  max_range: "30 NM"
+  units:
+    - type: "SA-11 Buk SR 9S18M1"
+      name: "SA-11-{id}-SR"
+      position: {offset: [0, 0]}
+    - type: "SA-11 Buk CC 9S470M1"
+      name: "SA-11-{id}-CC"
+      position: {offset: [100, 0]}
+    - type: "SA-11 Buk LN 9A310M1"
+      name: "SA-11-{id}-LN-1"
+      position: {offset: [200, 100]}
+    - type: "SA-11 Buk LN 9A310M1"
+      name: "SA-11-{id}-LN-2"
+      position: {offset: [200, -100]}
+  behavior:
+    engagement_mode: "Hold Fire"
+    roi: 30000
+
+# ============================================================================
+# LONG-RANGE SAMs (30-80 NM)
+# ============================================================================
+
+SA10_Grumble_Battalion:
+  name: "SA-10 {id}"
+  country: "Russia"
+  category: "vehicle"
+  description: "SA-10 S-300PS long-range SAM battalion"
+  threat_level: "Very High"
+  max_range: "75 NM"
+  units:
+    # Search radar
+    - type: "S-300PS 64H6E sr"
+      name: "SA-10-{id}-SR"
+      position: {offset: [0, 0]}
+    # Track radars
+    - type: "S-300PS 40B6M tr"
+      name: "SA-10-{id}-TR-1"
+      position: {offset: [200, 0]}
+    - type: "S-300PS 40B6M tr"
+      name: "SA-10-{id}-TR-2"
+      position: {offset: [400, 0]}
+    # Command post
+    - type: "S-300PS 54K6 cp"
+      name: "SA-10-{id}-CP"
+      position: {offset: [100, -200]}
+    # Launchers
+    - type: "S-300PS 5P85C ln"
+      name: "SA-10-{id}-LN-1"
+      position: {offset: [300, 200]}
+    - type: "S-300PS 5P85C ln"
+      name: "SA-10-{id}-LN-2"
+      position: {offset: [300, -200]}
+    - type: "S-300PS 5P85C ln"
+      name: "SA-10-{id}-LN-3"
+      position: {offset: [500, 200]}
+    - type: "S-300PS 5P85C ln"
+      name: "SA-10-{id}-LN-4"
+      position: {offset: [500, -200]}
+    - type: "S-300PS 5P85D ln"
+      name: "SA-10-{id}-LN-5"
+      position: {offset: [700, 200]}
+    - type: "S-300PS 5P85D ln"
+      name: "SA-10-{id}-LN-6"
+      position: {offset: [700, -200]}
+  behavior:
+    engagement_mode: "Hold Fire"
+    roi: 75000
+
+SA20_Gargoyle_Battalion:
+  name: "SA-20 {id}"
+  country: "Russia"
+  category: "vehicle"
+  description: "SA-20 S-300PMU advanced long-range SAM"
+  threat_level: "Extreme"
+  max_range: "80 NM"
+  units:
+    # Search radar (big bird)
+    - type: "S-300PMU 64N6E big bird sr"
+      name: "SA-20-{id}-SR"
+      position: {offset: [0, 0]}
+    # Command post
+    - type: "S-300PMU 54K6E cp"
+      name: "SA-20-{id}-CP"
+      position: {offset: [100, -200]}
+    # Track radars
+    - type: "S-300PMU 30N6E tr"
+      name: "SA-20-{id}-TR-1"
+      position: {offset: [200, 0]}
+    - type: "S-300PMU 30N6E tr"
+      name: "SA-20-{id}-TR-2"
+      position: {offset: [400, 0]}
+    # Launchers
+    - type: "S-300PMU 5P85CE ln"
+      name: "SA-20-{id}-LN-1"
+      position: {offset: [300, 200]}
+    - type: "S-300PMU 5P85CE ln"
+      name: "SA-20-{id}-LN-2"
+      position: {offset: [300, -200]}
+    - type: "S-300PMU 5P85CE ln"
+      name: "SA-20-{id}-LN-3"
+      position: {offset: [500, 200]}
+    - type: "S-300PMU 5P85CE ln"
+      name: "SA-20-{id}-LN-4"
+      position: {offset: [500, -200]}
+    - type: "S-300PMU 5P85DE ln"
+      name: "SA-20-{id}-LN-5"
+      position: {offset: [700, 200]}
+    - type: "S-300PMU 5P85DE ln"
+      name: "SA-20-{id}-LN-6"
+      position: {offset: [700, -200]}
+  behavior:
+    engagement_mode: "Hold Fire"
+    roi: 80000
+
+# ============================================================================
+# AAA (Anti-Aircraft Artillery)
+# ============================================================================
+
+ZSU23_Shilka_Section:
+  name: "ZSU-23 {id}"
+  country: "Russia"
+  category: "vehicle"
+  description: "ZSU-23-4 Shilka radar-guided AAA"
+  threat_level: "Low"
+  max_range: "2.5 NM"
+  units:
+    - type: "ZSU-23-4 Shilka"
+      name: "ZSU-23-{id}-1"
+      position: {offset: [0, 0]}
+    - type: "ZSU-23-4 Shilka"
+      name: "ZSU-23-{id}-2"
+      position: {offset: [50, 0]}
+  behavior:
+    engagement_mode: "Auto"
+    roi: 2500
+
+ZU23_Emplacement:
+  name: "ZU-23 {id}"
+  country: "Russia"
+  category: "vehicle"
+  description: "ZU-23 towed AAA (light)"
+  threat_level: "Very Low"
+  max_range: "1.5 NM"
+  units:
+    - type: "ZU-23 Emplacement Closed"
+      name: "ZU-23-{id}-1"
+      position: {offset: [0, 0]}
+    - type: "ZU-23 Emplacement Closed"
+      name: "ZU-23-{id}-2"
+      position: {offset: [50, 50]}
+    - type: "ZU-23 Emplacement Closed"
+      name: "ZU-23-{id}-3"
+      position: {offset: [-50, 50]}
+  behavior:
+    engagement_mode: "Auto"
+    roi: 1500
+
+Vulcan_Section:
+  name: "Vulcan {id}"
+  country: "USA"
+  category: "vehicle"
+  description: "M163 Vulcan SHORAD (blue force)"
+  threat_level: "Low"
+  max_range: "1.2 NM"
+  units:
+    - type: "M163 Vulcan"
+      name: "Vulcan-{id}-1"
+      position: {offset: [0, 0]}
+    - type: "M163 Vulcan"
+      name: "Vulcan-{id}-2"
+      position: {offset: [50, 0]}
+  behavior:
+    engagement_mode: "Auto"
+    roi: 1200
+
+# ============================================================================
+# INTEGRATED AIR DEFENSE SYSTEMS (IADS)
+# ============================================================================
+
+Basic_IADS:
+  name: "IADS {id}"
+  country: "Russia"
+  description: "Basic layered air defense"
+  threat_level: "High"
+  groups:
+    - template: "SA10_Grumble_Battalion"
+      offset: [0, 0]
+      role: "long_range"
+    - template: "SA6_Gainful_Battery"
+      offset: [-15000, 10000]
+      role: "medium_range_1"
+    - template: "SA6_Gainful_Battery"
+      offset: [15000, 10000]
+      role: "medium_range_2"
+    - template: "SA15_Tor_Battery"
+      offset: [0, 5000]
+      role: "point_defense"
+    - template: "ZSU23_Shilka_Section"
+      offset: [0, 2000]
+      role: "shorad"
+
+Advanced_IADS:
+  name: "IADS {id}"
+  country: "Russia"
+  description: "Advanced multi-layer IADS"
+  threat_level: "Extreme"
+  groups:
+    - template: "SA20_Gargoyle_Battalion"
+      offset: [0, 0]
+      role: "long_range"
+    - template: "SA10_Grumble_Battalion"
+      offset: [-30000, 15000]
+      role: "long_range_2"
+    - template: "SA11_Gadfly_Battery"
+      offset: [-15000, 10000]
+      role: "medium_range_1"
+    - template: "SA11_Gadfly_Battery"
+      offset: [15000, 10000]
+      role: "medium_range_2"
+    - template: "SA15_Tor_Battery"
+      offset: [0, 5000]
+      role: "point_defense_1"
+    - template: "SA19_Tunguska_Section"
+      offset: [0, 8000]
+      role: "point_defense_2"
+    - template: "ZSU23_Shilka_Section"
+      offset: [0, 3000]
+      role: "shorad"
+
+# ============================================================================
+# MISSION TYPE RECOMMENDATIONS
+# ============================================================================
+#
+# SEAD Missions:
+#   Light: SA3 + SA6 + SA9/SA13
+#   Moderate: SA6 + SA11 + SA15 + Shilka
+#   Heavy: SA10 + SA6 x2 + SA15 + SA19
+#   Overwhelming: Basic_IADS or Advanced_IADS
+#
+# Strike Missions (Target Defense):
+#   Light: SA9/SA13 + ZSU-23
+#   Moderate: SA15 + Shilka
+#   Heavy: SA6 + SA15 + SA19
+#
+# CAP Missions (Airfield Defense):
+#   Light: SA9 sections around airfield
+#   Moderate: SA11 + SA15 at airfield
+#   Heavy: SA10 + SA11 + SA15
+#
+# ============================================================================
+# ENGAGEMENT TACTICS
+# ============================================================================
+#
+# SAM Ambush Behavior:
+#   - Set engagement_mode: "Hold Fire"
+#   - Use lua-library/ai-behavior/sam-ambush.lua
+#   - SAMs go HOT only when players are in range
+#   - Prevents early HARM launches at emitting radars
+#
+# SHORAD Protection:
+#   - Place SA-15/SA-19 near high-value SAMs
+#   - Protects against HARMs and low-altitude penetration
+#
+# Range Layering:
+#   - Long-range (SA-10/20): 50-75 NM umbrella
+#   - Medium-range (SA-6/11): 20-30 NM coverage
+#   - Short-range (SA-15/19): 8-12 NM point defense
+#   - SHORAD (SA-9/13, AAA): <5 NM last-ditch

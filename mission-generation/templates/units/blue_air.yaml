@@ -1,0 +1,446 @@
+# Blue Air Force Unit Templates
+# Reusable group compositions for friendly aircraft
+
+# ============================================================================
+# F-16C VIPER FLIGHTS
+# ============================================================================
+
+F16_SEAD_2ship:
+  name: "Viper {id}"
+  country: "USA"
+  category: "plane"
+  description: "2-ship F-16C SEAD element with HARMs and self-escort capability"
+  units:
+    - type: "F-16C_50"
+      callsign: "Viper {id}-1"
+      position: {offset: [0, 0]}
+      loadout: "SEAD_Standard"
+      fuel: 1.0
+      skill: "Player"
+    - type: "F-16C_50"
+      callsign: "Viper {id}-2"
+      position: {offset: [50, -50]}
+      loadout: "SEAD_Standard"
+      fuel: 1.0
+      skill: "Good"
+  waypoints:
+    - action: "From Runway"
+      position: {airbase: "auto"}
+      alt: 0
+      speed: 150
+    - action: "Turning Point"
+      position: {offset: [30000, 0]}
+      alt: 7000
+      speed: 250
+    - action: "Turning Point"
+      position: {offset: [80000, 20000]}
+      alt: 8000
+      speed: 260
+  frequency: 251.0
+  modulation: 0  # AM
+
+F16_SEAD_4ship:
+  name: "Viper {id}"
+  country: "USA"
+  category: "plane"
+  description: "4-ship F-16C SEAD flight with HARMs"
+  units:
+    - type: "F-16C_50"
+      callsign: "Viper {id}-1"
+      position: {offset: [0, 0]}
+      loadout: "SEAD_Standard"
+      fuel: 1.0
+      skill: "Player"
+    - type: "F-16C_50"
+      callsign: "Viper {id}-2"
+      position: {offset: [50, -50]}
+      loadout: "SEAD_Standard"
+      fuel: 1.0
+      skill: "Good"
+    - type: "F-16C_50"
+      callsign: "Viper {id}-3"
+      position: {offset: [100, 0]}
+      loadout: "SEAD_Standard"
+      fuel: 1.0
+      skill: "Good"
+    - type: "F-16C_50"
+      callsign: "Viper {id}-4"
+      position: {offset: [150, -50]}
+      loadout: "SEAD_Standard"
+      fuel: 1.0
+      skill: "Good"
+  waypoints:
+    - action: "From Runway"
+      position: {airbase: "auto"}
+      alt: 0
+      speed: 150
+    - action: "Turning Point"
+      position: {offset: [30000, 0]}
+      alt: 7000
+      speed: 250
+    - action: "Turning Point"
+      position: {offset: [80000, 20000]}
+      alt: 8000
+      speed: 260
+  frequency: 251.0
+  modulation: 0  # AM
+
+F16_CAP_2ship:
+  name: "Viper {id}"
+  country: "USA"
+  category: "plane"
+  description: "2-ship F-16C CAP element with AMRAAMs"
+  units:
+    - type: "F-16C_50"
+      callsign: "Viper {id}-1"
+      position: {offset: [0, 0]}
+      loadout: "CAP_Standard"
+      fuel: 1.0
+      skill: "Player"
+    - type: "F-16C_50"
+      callsign: "Viper {id}-2"
+      position: {offset: [50, -50]}
+      loadout: "CAP_Standard"
+      fuel: 1.0
+      skill: "Good"
+  waypoints:
+    - action: "From Runway"
+      position: {airbase: "auto"}
+      alt: 0
+      speed: 150
+    - action: "Turning Point"
+      position: {offset: [50000, 0]}
+      alt: 9000
+      speed: 280
+  frequency: 251.0
+  modulation: 0  # AM
+
+F16_Strike_2ship:
+  name: "Viper {id}"
+  country: "USA"
+  category: "plane"
+  description: "2-ship F-16C strike element with JDAMs"
+  units:
+    - type: "F-16C_50"
+      callsign: "Viper {id}-1"
+      position: {offset: [0, 0]}
+      loadout: "Strike_JDAM"
+      fuel: 1.0
+      skill: "Player"
+    - type: "F-16C_50"
+      callsign: "Viper {id}-2"
+      position: {offset: [50, -50]}
+      loadout: "Strike_JDAM"
+      fuel: 1.0
+      skill: "Good"
+  waypoints:
+    - action: "From Runway"
+      position: {airbase: "auto"}
+      alt: 0
+      speed: 150
+    - action: "Turning Point"
+      position: {offset: [40000, 0]}
+      alt: 8000
+      speed: 240
+  frequency: 251.0
+  modulation: 0  # AM
+
+# ============================================================================
+# F/A-18C HORNET FLIGHTS
+# ============================================================================
+
+FA18_SEAD_2ship:
+  name: "Hornet {id}"
+  country: "USA"
+  category: "plane"
+  description: "2-ship F/A-18C SEAD element with HARMs"
+  units:
+    - type: "F/A-18C_hornet"
+      callsign: "Hornet {id}-1"
+      position: {offset: [0, 0]}
+      loadout: "SEAD_Standard"
+      fuel: 1.0
+      skill: "Player"
+    - type: "F/A-18C_hornet"
+      callsign: "Hornet {id}-2"
+      position: {offset: [50, -50]}
+      loadout: "SEAD_Standard"
+      fuel: 1.0
+      skill: "Good"
+  waypoints:
+    - action: "From Runway"
+      position: {airbase: "auto"}
+      alt: 0
+      speed: 150
+    - action: "Turning Point"
+      position: {offset: [30000, 0]}
+      alt: 7000
+      speed: 240
+  frequency: 252.0
+  modulation: 0  # AM
+
+FA18_Strike_2ship:
+  name: "Hornet {id}"
+  country: "USA"
+  category: "plane"
+  description: "2-ship F/A-18C multirole strike"
+  units:
+    - type: "F/A-18C_hornet"
+      callsign: "Hornet {id}-1"
+      position: {offset: [0, 0]}
+      loadout: "Strike_Mixed"
+      fuel: 1.0
+      skill: "Player"
+    - type: "F/A-18C_hornet"
+      callsign: "Hornet {id}-2"
+      position: {offset: [50, -50]}
+      loadout: "Strike_Mixed"
+      fuel: 1.0
+      skill: "Good"
+  waypoints:
+    - action: "From Runway"
+      position: {airbase: "auto"}
+      alt: 0
+      speed: 150
+    - action: "Turning Point"
+      position: {offset: [40000, 0]}
+      alt: 8000
+      speed: 240
+  frequency: 252.0
+  modulation: 0  # AM
+
+# ============================================================================
+# F-15C EAGLE FLIGHTS
+# ============================================================================
+
+F15C_CAP_2ship:
+  name: "Eagle {id}"
+  country: "USA"
+  category: "plane"
+  description: "2-ship F-15C air superiority fighters"
+  units:
+    - type: "F-15C"
+      callsign: "Eagle {id}-1"
+      position: {offset: [0, 0]}
+      loadout: "CAP_Standard"
+      fuel: 1.0
+      skill: "Player"
+    - type: "F-15C"
+      callsign: "Eagle {id}-2"
+      position: {offset: [50, -50]}
+      loadout: "CAP_Standard"
+      fuel: 1.0
+      skill: "Good"
+  waypoints:
+    - action: "From Runway"
+      position: {airbase: "auto"}
+      alt: 0
+      speed: 150
+    - action: "Turning Point"
+      position: {offset: [60000, 0]}
+      alt: 10000
+      speed: 300
+  frequency: 253.0
+  modulation: 0  # AM
+
+F15C_CAP_4ship:
+  name: "Eagle {id}"
+  country: "USA"
+  category: "plane"
+  description: "4-ship F-15C CAP flight"
+  units:
+    - type: "F-15C"
+      callsign: "Eagle {id}-1"
+      position: {offset: [0, 0]}
+      loadout: "CAP_Standard"
+      fuel: 1.0
+      skill: "Player"
+    - type: "F-15C"
+      callsign: "Eagle {id}-2"
+      position: {offset: [50, -50]}
+      loadout: "CAP_Standard"
+      fuel: 1.0
+      skill: "Good"
+    - type: "F-15C"
+      callsign: "Eagle {id}-3"
+      position: {offset: [100, 0]}
+      loadout: "CAP_Standard"
+      fuel: 1.0
+      skill: "Good"
+    - type: "F-15C"
+      callsign: "Eagle {id}-4"
+      position: {offset: [150, -50]}
+      loadout: "CAP_Standard"
+      fuel: 1.0
+      skill: "Good"
+  waypoints:
+    - action: "From Runway"
+      position: {airbase: "auto"}
+      alt: 0
+      speed: 150
+    - action: "Turning Point"
+      position: {offset: [60000, 0]}
+      alt: 10000
+      speed: 300
+  frequency: 253.0
+  modulation: 0  # AM
+
+# ============================================================================
+# F-15E STRIKE EAGLE FLIGHTS
+# ============================================================================
+
+F15E_Strike_2ship:
+  name: "Strike {id}"
+  country: "USA"
+  category: "plane"
+  description: "2-ship F-15E deep strike"
+  units:
+    - type: "F-15E"
+      callsign: "Strike {id}-1"
+      position: {offset: [0, 0]}
+      loadout: "Strike_Heavy"
+      fuel: 1.0
+      skill: "Player"
+    - type: "F-15E"
+      callsign: "Strike {id}-2"
+      position: {offset: [50, -50]}
+      loadout: "Strike_Heavy"
+      fuel: 1.0
+      skill: "Good"
+  waypoints:
+    - action: "From Runway"
+      position: {airbase: "auto"}
+      alt: 0
+      speed: 150
+    - action: "Turning Point"
+      position: {offset: [50000, 0]}
+      alt: 7000
+      speed: 250
+  frequency: 254.0
+  modulation: 0  # AM
+
+# ============================================================================
+# A-10C WARTHOG FLIGHTS
+# ============================================================================
+
+A10C_CAS_2ship:
+  name: "Hawg {id}"
+  country: "USA"
+  category: "plane"
+  description: "2-ship A-10C CAS flight"
+  units:
+    - type: "A-10C"
+      callsign: "Hawg {id}-1"
+      position: {offset: [0, 0]}
+      loadout: "CAS_Mixed"
+      fuel: 1.0
+      skill: "Player"
+    - type: "A-10C"
+      callsign: "Hawg {id}-2"
+      position: {offset: [50, -50]}
+      loadout: "CAS_Mixed"
+      fuel: 1.0
+      skill: "Good"
+  waypoints:
+    - action: "From Runway"
+      position: {airbase: "auto"}
+      alt: 0
+      speed: 120
+    - action: "Turning Point"
+      position: {offset: [30000, 0]}
+      alt: 4000
+      speed: 150
+  frequency: 255.0
+  modulation: 0  # AM
+
+# ============================================================================
+# SUPPORT ASSETS
+# ============================================================================
+
+AWACS_E3A:
+  name: "Magic {id}"
+  country: "USA"
+  category: "plane"
+  description: "E-3A AWACS on patrol orbit"
+  units:
+    - type: "E-3A"
+      callsign: "Magic"
+      position: {offset: [0, 0]}
+      loadout: "Empty"
+      fuel: 1.0
+      skill: "Excellent"
+  waypoints:
+    - action: "From Runway"
+      position: {airbase: "auto"}
+      alt: 0
+      speed: 150
+    - action: "Turning Point"
+      position: {offset: [100000, 50000]}
+      alt: 8000
+      speed: 220
+    - action: "Orbit"
+      position: {offset: [100000, 50000]}
+      alt: 8000
+      speed: 220
+      orbit_pattern: "Circle"
+      orbit_radius: 20000
+  frequency: 251.0
+  modulation: 0  # AM
+
+Tanker_KC135:
+  name: "Texaco {id}"
+  country: "USA"
+  category: "plane"
+  description: "KC-135 tanker on refueling track"
+  units:
+    - type: "KC-135"
+      callsign: "Texaco {id}-1"
+      position: {offset: [0, 0]}
+      loadout: "Empty"
+      fuel: 1.0
+      skill: "Excellent"
+  waypoints:
+    - action: "From Runway"
+      position: {airbase: "auto"}
+      alt: 0
+      speed: 150
+    - action: "Refueling"
+      position: {offset: [80000, 40000]}
+      alt: 6000
+      speed: 220
+    - action: "Refueling"
+      position: {offset: [120000, 40000]}
+      alt: 6000
+      speed: 220
+  frequency: 256.0
+  modulation: 0  # AM
+  tacan: 73
+  tacan_callsign: "TEX"
+
+# ============================================================================
+# TEMPLATE NOTES
+# ============================================================================
+#
+# Variable Substitutions:
+#   {id} - Auto-incremented counter (e.g., "Viper 1", "Viper 2")
+#   {airbase: "auto"} - Automatically select appropriate friendly airbase
+#   {offset: [x, y]} - Position relative to mission center or specified anchor
+#
+# Loadout Names:
+#   These are placeholders - actual loadout modification requires
+#   using the loadout modification functions with specific pylon configs
+#
+# Position Offsets:
+#   - Formation positions use relative offsets in meters
+#   - Standard spacing: 50m between wingmen
+#   - Waypoint offsets are relative to mission anchor point
+#
+# Skills:
+#   - Player: Human pilot
+#   - Client: Available for multiplayer
+#   - Excellent/High/Good/Average/Random
+#
+# Frequencies:
+#   - 251.0 - AWACS
+#   - 251.0-255.0 - Flight frequencies
+#   - 256.0+ - Support assets (tankers, etc.)

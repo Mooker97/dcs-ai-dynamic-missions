@@ -21,7 +21,7 @@ DMS.Settings = {}
 DMS.Settings.Defaults = {
     playerCoalition = coalition.side.BLUE,
     enemyCoalition = coalition.side.RED,
-    fogOfWar = false,
+    fogOfWar = true,  -- ENABLED: FOW now active for spawned enemies
     fogOfWarRevealRange = 5000,
     fogOfWarRevealOnRadar = true,
     fogOfWarRevealOnVisual = true,
@@ -688,6 +688,14 @@ function DMS.DynamicSpawn.executePool(poolId)
                 pool.spawned[groupName] = {template = templateName, x = spawnX, y = spawnY, heading = heading}
                 DMS.DynamicSpawn.SpawnedGroups[groupName] = {poolId = poolId, template = templateName, group = group}
 
+                -- Register with FOW if FOW is enabled
+                if DMS.FogOfWar and DMS.Settings and DMS.Settings.isFogOfWarEnabled() then
+                    local ownerCoalition = group:getCoalition()
+                    DMS.FogOfWar.registerHiddenGroup(groupName, ownerCoalition)
+                    -- Make group hidden on F10 map to enemy coalition
+                    trigger.action.groupKnown(groupName, coalition.side.BLUE, false)
+                end
+
                 if DMS.Settings and DMS.Settings.isDebug() then
                     env.info(string.format("[DynamicSpawn] Spawned '%s' from '%s' at (%.0f, %.0f)", groupName, templateName, spawnX, spawnY))
                 end
@@ -891,31 +899,28 @@ local function processAmbushCheck(_, time)
     local playerAircraft = getPlayerAircraft()
     for groupName, site in pairs(DMS.SAMAmbush.Sites) do
         local group = Group.getByName(groupName)
-        if not group or not group:isExist() then
+        if group and group:isExist() then
+            local targetInEnvelope = false
+            for _, aircraft in ipairs(playerAircraft) do
+                if isInEnvelope(site, aircraft) then
+                    targetInEnvelope = true
+                    break
+                end
+            end
+
+            if targetInEnvelope and not site.radarOn then
+                DMS.SAMAmbush.setRadar(groupName, true)
+                if DMS.Settings and DMS.Settings.isDebug() then
+                    env.info(string.format("[SAMAmbush] '%s' going HOT", groupName))
+                end
+            elseif not targetInEnvelope and site.radarOn then
+                if time - site.activateTime > 30 then
+                    DMS.SAMAmbush.setRadar(groupName, false)
+                end
+            end
+        else
             site.radarOn = false
-            goto continue
         end
-
-        local targetInEnvelope = false
-        for _, aircraft in ipairs(playerAircraft) do
-            if isInEnvelope(site, aircraft) then
-                targetInEnvelope = true
-                break
-            end
-        end
-
-        if targetInEnvelope and not site.radarOn then
-            DMS.SAMAmbush.setRadar(groupName, true)
-            if DMS.Settings and DMS.Settings.isDebug() then
-                env.info(string.format("[SAMAmbush] '%s' going HOT", groupName))
-            end
-        elseif not targetInEnvelope and site.radarOn then
-            if time - site.activateTime > 30 then
-                DMS.SAMAmbush.setRadar(groupName, false)
-            end
-        end
-
-        ::continue::
     end
 
     return time + DMS.SAMAmbush.Config.checkInterval
@@ -1083,6 +1088,11 @@ function DMS.DustoffCorridor.start()
     DMS.DynamicSpawn.executePool("bravo-armor")
     DMS.DynamicSpawn.executePool("bravo-infantry")
     DMS.DynamicSpawn.executePool("charlie-defense")
+
+    -- QRF Reinforcements (independent chances)
+    DMS.DynamicSpawn.executePool("qrf-light")     -- 50% chance
+    DMS.DynamicSpawn.executePool("qrf-medium")    -- 25% chance
+    DMS.DynamicSpawn.executePool("qrf-heavy")     -- 10% chance
 
     -- AI TASKING - SAM goes to ambush posture
     DMS.DynamicSpawn.setAmbushPools({"sam-site"})

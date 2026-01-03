@@ -60,6 +60,7 @@ Transform simple .miz template files into complete, playable dynamic missions th
 ---
 
 ## Mission Generation Pipeline
+- Note the current pipleine is not properly set up, this will need to be somewhat manually at this stage
 
 ### Phase 1: Template Analysis
 1. Extract and parse template .miz file using `MizParser`

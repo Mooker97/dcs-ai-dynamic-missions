@@ -1,6 +1,6 @@
 # DMS Project State Summary
 
-**Last Updated**: 2026-01-01
+**Last Updated**: 2026-01-03
 
 ## Vision
 
@@ -46,24 +46,109 @@ Comprehensive reusable Lua scripts (57 scripts):
 
 ---
 
-### 3. Not Started
+### 3. Mission Generation Pipeline — 65% Complete (Blocked)
 
-- ❌ MCP Server
-- ❌ Mission generation pipeline
-- ❌ Unit/aircraft templates
-- ❌ Mission type definitions (SEAD, CAP, Strike, etc.)
+**Location**: `mission-generation/`
+
+**What's Done** ✅
+- Intent parser (natural language → structured mission intent)
+- Mission designer (generates SAM placement, support assets, briefing)
+- Mission builder skeleton with TODO components
+- Orchestrator (chains parser → designer → builder)
+- Test suite with pipeline integration tests
+- SEAD mission type definition & unit templates (YAML)
+
+**What's Blocking Implementation** 🚧
+- No template .miz files (need clean base missions per theater: PG, Syria, Caucasus, Nevada, Marianas)
+- Missing `add_group()` function in miz-modifier (core blocker for unit injection)
+- Template loader system (YAML → Lua group conversion)
+- Lua script injection system
+- Mission validator
+
+**Estimated Time to Unblock**: ~6-10 hours focused work
+- Create template .miz: 15 min each
+- Implement `add_group()`: 2-4 hrs
+- Template loader: 1-2 hrs
+- Lua injection: 1-2 hrs
+- Integration testing: 1 hr
 
 ---
 
-## Recommended Next Steps
+### 4. MCP Server — Design Only (Not Started)
 
-1. **Wave 5: Integration Tests** (~2 hrs) — Add comprehensive tests for units and waypoints modules. Test multi-step operations and edge cases.
+**Current Status**: MCP Light documentation completed (design specification)
 
-2. **Start MCP Server** — The library is now ~95% complete with all core modification capabilities. Ready to build the MCP server that can modify template missions.
+**Location**: `knowledge/mcp-light/`
+- Comprehensive operation documentation
+- JSON schemas for parameters
+- Design ready for future real MCP server implementation
 
-3. **Template Missions** — Create a few clean template .miz files (one per theater) that the MCP server can modify.
+**Actual Server**: Not yet implemented (was briefly started, deprioritized for mission generation pipeline)
 
-4. **Mission Generation Pipeline** — Design the AI → MCP → miz-modifier workflow for natural language mission creation.
+---
+
+### 5. ElevenLabs Voice Integration — Complete
+
+**Location**: `elevenlabs-integration/`
+
+Voice generation system fully implemented with:
+- SDK integration for single/multiple voices
+- Custom voice creation via API
+- Voice catalog with 47 voice lines
+- Configuration system and setup guides
+- Test suite and sample output
+
+---
+
+### 6. Unit/Aircraft Templates & Mission Types — Partial
+
+**Unit Templates** (YAML) ✅
+- `mission-generation/templates/blue_air.yaml` - Friendly aircraft
+- `mission-generation/templates/red_air.yaml` - Enemy aircraft
+- `mission-generation/templates/sam_sites.yaml` - Air defense
+
+**Mission Types** 🟡
+- ✅ SEAD (Suppression of Enemy Air Defenses) - Defined and ready
+- ❌ CAP, Strike, Escort, CSAR - Not yet defined (lower priority)
+
+---
+
+## Critical Path to MVP
+
+Mission generation pipeline is **blocked** on these items. Complete in this order:
+
+1. **Create Template .miz Files** (15 min each)
+   - Open DCS Mission Editor
+   - Create minimal Persian Gulf mission with no units (just map/weather)
+   - Save to `miz-files/templates/pg_clean.miz`
+   - Repeat for Syria, Caucasus, Nevada, Marianas
+
+2. **Implement `add_group()` in miz-modifier** (2-4 hrs)
+   - Core function for adding unit groups to missions
+   - Reference: `knowledge/miz-file-manipulation.md` (Lua table structure)
+   - Must support: country, type, name, units, waypoints, tasks
+
+3. **Build Template Loader** (1-2 hrs)
+   - Parse YAML templates → DCS Lua group format
+   - Handle variable substitution (`{id}`, `{airbase}`, etc.)
+   - Inject units at specified coordinates
+
+4. **Implement Lua Script Injection** (1-2 hrs)
+   - Read Lua scripts from `lua-library/`
+   - Configure with mission parameters
+   - Add as mission triggers/events
+
+5. **Integration & Testing** (1 hr)
+   - Wire up mission builder → miz-modifier
+   - End-to-end pipeline testing
+   - Validate generated .miz files in DCS
+
+## Secondary Tasks
+
+- **Wave 5: miz-modifier Integration Tests** — Unit/waypoint test coverage
+- **MCP Server Implementation** — Build real server from MCP Light spec once pipeline works
+- **Additional Mission Types** — CAP, Strike, Escort, CSAR (after MVP)
+- **Mission Templates** — Create more mission type definitions (after MVP)
 
 ---
 
@@ -86,10 +171,13 @@ cd miz-modifier/tests && python run_tests.py
 | `CLAUDE.md` | Development guidelines and patterns |
 | `miz-modifier/architecture.md` | Library API reference |
 | `miz-modifier/NEXT_STEPS.md` | Detailed implementation waves |
+| `mission-generation/README.md` | Pipeline architecture and overview |
 | `lua-library/README.md` | Lua library overview |
 | `lua-library/SCRIPT-REFERENCE.md` | Complete Lua API reference |
-| `knowledge/miz-file-manipulation.md` | .miz file structure guide |
+| `knowledge/miz-light/` | MCP design specification (design only) |
+| `knowledge/miz-file-manipulation.md` | .miz file structure and Lua tables |
+| `elevenlabs-integration/docs/` | Voice generation system documentation |
 
 ---
 
-**Bottom line**: The modification library is ~95% complete with all core operations (groups, units, waypoints, coordinates) fully implemented. The Lua library is production-ready. Next milestone: add integration tests (Wave 5) and build the MCP server.
+**Bottom line**: Foundation is solid — miz-modifier library (95%) and lua-library (100%) are complete. Mission generation pipeline is structurally ready (parser, designer, orchestrator) but **blocked on 5 specific implementation items**. Creating template .miz files and implementing `add_group()` are critical path to MVP. Estimated 6-10 hours to full mission generation capability. MCP Server can follow once pipeline works.

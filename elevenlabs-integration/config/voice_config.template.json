@@ -1,0 +1,78 @@
+{
+  "_comment": "Voice configuration template - Copy this to voice_config.json and fill in your voice IDs",
+  "_instructions": [
+    "1. Run: python list_my_voices.py to see your available voices",
+    "2. Copy this file to voice_config.json",
+    "3. Fill in voice_id values with your custom voice IDs",
+    "4. Assign categories to each voice profile",
+    "5. Run: python generate_with_custom_voices.py"
+  ],
+
+  "voices": {
+    "ground_commander": {
+      "voice_id": "YOUR_VOICE_ID_HERE",
+      "name": "Ground Commander",
+      "description": "Deep authoritative male, combat veteran",
+      "categories": [
+        "Requesting Support",
+        "Taking Fire / Under Attack",
+        "Target Spotted / Tally",
+        "Negative Results / Miss"
+      ]
+    },
+
+    "mission_control": {
+      "voice_id": "YOUR_VOICE_ID_HERE",
+      "name": "Mission Control",
+      "description": "Calm professional voice, AWACS/mission controller",
+      "categories": [
+        "Mission Start",
+        "Mission Complete",
+        "Abort / Waveoff"
+      ]
+    },
+
+    "jtac": {
+      "voice_id": "YOUR_VOICE_ID_HERE",
+      "name": "JTAC",
+      "description": "Forward air controller, professional and precise",
+      "categories": [
+        "Reacting to Good Strike",
+        "Good But Keep Going"
+      ]
+    },
+
+    "warning_system": {
+      "voice_id": "YOUR_VOICE_ID_HERE",
+      "name": "Warning System",
+      "description": "Alert system voice, high clarity and urgency",
+      "categories": [
+        "SAM Warning",
+        "Enemy Aircraft",
+        "Friendly Fire Warning",
+        "Weather / Visibility",
+        "Winchester / Bingo"
+      ]
+    }
+  },
+
+  "default_voice": "ground_commander",
+
+  "_category_reference": [
+    "Available categories from VOICE-LINES.md:",
+    "- Requesting Support",
+    "- Reacting to Good Strike",
+    "- Good But Keep Going",
+    "- Mission Start",
+    "- Mission Complete",
+    "- Taking Fire / Under Attack",
+    "- Target Spotted / Tally",
+    "- Negative Results / Miss",
+    "- Winchester / Bingo",
+    "- Abort / Waveoff",
+    "- Friendly Fire Warning",
+    "- SAM Warning",
+    "- Enemy Aircraft",
+    "- Weather / Visibility"
+  ]
+}

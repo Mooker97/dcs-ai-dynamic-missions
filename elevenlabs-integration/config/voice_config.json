@@ -1,0 +1,56 @@
+{
+  "voices": {
+    "ground_troops": {
+      "voice_id": "KgoKSoe0uSDQXTd5sh94",
+      "name": "Sgt Butterfield - Combat Ground",
+      "description": "High-energy African-American soldier, excited and relieved under fire",
+      "categories": [
+        "Requesting Support",
+        "Reacting to Good Strike",
+        "Good But Keep Going",
+        "Taking Fire / Under Attack",
+        "Target Spotted / Tally"
+      ]
+    },
+    "mission_control": {
+      "voice_id": "IqaWsJgCV6ihH2Uh6Jb2",
+      "name": "Twr Marcus - Military Controller",
+      "description": "Professional male controller, authoritative but calm, clear radio communication",
+      "categories": [
+        "Mission Start",
+        "Mission Complete",
+        "Abort / Waveoff"
+      ]
+    },
+    "briefing_officer": {
+      "voice_id": "T3RkkRObzq7rCMQT4zhL",
+      "name": "Capt Lockyer - Australian Briefing Officer",
+      "description": "Australian military officer, serious pre-mission briefing tone",
+      "categories": [
+        "Mission Start"
+      ]
+    },
+    "warning_system": {
+      "voice_id": "vIuLMrDs3Mbl0w5kvuKe",
+      "name": "Capt Willis - Fighter Pilot",
+      "description": "American fighter pilot with Southern hint, high-energy combat comms",
+      "categories": [
+        "SAM Warning",
+        "Enemy Aircraft",
+        "Friendly Fire Warning",
+        "Weather / Visibility"
+      ]
+    },
+    "jtac": {
+      "voice_id": "PtGjyQZ7kCARwCuiOKQL",
+      "name": "Sgt Brown - Combat Ground",
+      "description": "American soldier, high-energy, adrenaline-fueled",
+      "categories": [
+        "Negative Results / Miss",
+        "Winchester / Bingo"
+      ]
+    }
+  },
+  "default_voice": "ground_troops",
+  "_comment": "Voice configuration for DCS mission voice lines. Each voice handles specific categories based on their characteristics."
+}

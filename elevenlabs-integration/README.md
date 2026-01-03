@@ -89,12 +89,8 @@ python create_voices_api.py --auto
 
 | Document | Purpose |
 |----------|---------|
-| **[docs/INDEX.md](docs/INDEX.md)** | Complete documentation index |
-| **[docs/ELEVENLABS-SETUP.md](docs/ELEVENLABS-SETUP.md)** | Initial API setup |
-| **[docs/VOICE-LINES.md](docs/VOICE-LINES.md)** | 47 voice lines catalog |
-| **[docs/CUSTOM-VOICES.md](docs/CUSTOM-VOICES.md)** | Voice management guide |
-| **[docs/VOICE-IDEAS.md](docs/VOICE-IDEAS.md)** | 15 voice ideas with prompts |
-| **[docs/VOICE-PROMPTS-QUICK.md](docs/VOICE-PROMPTS-QUICK.md)** | Quick copy/paste prompts |
+| **[docs/ELEVENLABS-SETUP.md](docs/ELEVENLABS-SETUP.md)** | Initial API setup guide |
+| **[docs/VOICE-CATALOG.md](docs/VOICE-CATALOG.md)** | 47 voice lines + creation prompts |
 
 ---
 
@@ -259,22 +255,22 @@ graph TD
 
 ---
 
-## 📖 Learning Path
+## 📖 Quick Reference
 
-### Beginner
-1. Read `docs/ELEVENLABS-SETUP.md`
-2. Run `python scripts/list_my_voices.py`
-3. Generate with single voice: `python scripts/generate_voice_lines.py --voice-id ID`
+### New User Setup
+1. Read `docs/ELEVENLABS-SETUP.md` - Get API key configured
+2. Run `python scripts/list_my_voices.py` - See your voices
+3. Run `python scripts/generate_voice_lines.py --voice-id ID` - Generate lines
 
-### Intermediate
-1. Read `docs/CUSTOM-VOICES.md`
-2. Create `config/voice_config.json`
-3. Generate with multiple voices: `python scripts/generate_with_custom_voices.py`
+### Create New Voices
+1. Check `docs/VOICE-CATALOG.md` - Copy prompts
+2. Run `python scripts/create_voices_api.py` - Create via API
+3. Update `config/voice_config.json` - Assign to categories
 
-### Advanced
-1. Read `docs/VOICE-IDEAS.md`
-2. Create voices via API: `python scripts/create_voices_api.py`
-3. Add custom prompts and test
+### Generate All Voice Lines
+1. Configure `config/voice_config.json` - Voice assignments
+2. Run `python scripts/generate_with_custom_voices.py` - Generate all
+3. Audio outputs to: `mission assets/audio/generic/`
 
 ---
 
@@ -305,14 +301,14 @@ pip install --upgrade elevenlabs python-dotenv
 
 ---
 
-## 📞 Support
+## 📞 Resources
 
 ### Documentation
-- Complete index: `docs/INDEX.md`
-- Setup guide: `docs/ELEVENLABS-SETUP.md`
-- Voice management: `docs/CUSTOM-VOICES.md`
+- **Setup:** `docs/ELEVENLABS-SETUP.md`
+- **Voice Catalog:** `docs/VOICE-CATALOG.md`
+- **This Guide:** `README.md`
 
-### External Resources
+### External Links
 - [ElevenLabs API Docs](https://elevenlabs.io/docs/api-reference/authentication)
 - [Voice Library](https://elevenlabs.io/voice-library)
 - [DCS Scripting Wiki](https://wiki.hoggitworld.com)

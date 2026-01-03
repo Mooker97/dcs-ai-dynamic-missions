@@ -692,8 +692,6 @@ function DMS.DynamicSpawn.executePool(poolId)
                 if DMS.FogOfWar and DMS.Settings and DMS.Settings.isFogOfWarEnabled() then
                     local ownerCoalition = group:getCoalition()
                     DMS.FogOfWar.registerHiddenGroup(groupName, ownerCoalition)
-                    -- Make group hidden on F10 map to enemy coalition
-                    trigger.action.groupKnown(groupName, coalition.side.BLUE, false)
                 end
 
                 if DMS.Settings and DMS.Settings.isDebug() then
@@ -993,7 +991,7 @@ DMS.DynamicSpawn.createPool("sam-site", {
     zone = "Alpha-Zone",
     templates = {"tunguska", "shilka", "zu23_battery", "aa_ambush"},
     chance = 20,  -- 20% spawn chance
-    count = 1,    -- Only 1 site
+    count = 2,    -- Doubled from 1
     minDistance = 200,
     maxDistance = 700,
     heading = "center",
@@ -1004,7 +1002,7 @@ DMS.DynamicSpawn.createPool("alpha-ground", {
     zone = "Alpha-Zone",
     templates = {"infantry_squad", "rpg_team", "technical_mg", "mg_nest"},
     chance = 80,
-    count = 2,
+    count = 4,
     minDistance = 100,
     maxDistance = 500,
 })
@@ -1017,7 +1015,7 @@ DMS.DynamicSpawn.createPool("bravo-armor", {
     zone = "Bravo-Zone",
     templates = {"bmp_section", "btr_squad", "t72_single", "checkpoint"},
     chance = 70,
-    count = 2,
+    count = 4,
     minDistance = 200,
     maxDistance = 800,
 })
@@ -1026,7 +1024,7 @@ DMS.DynamicSpawn.createPool("bravo-infantry", {
     zone = "Bravo-Zone",
     templates = {"infantry_squad", "ambush_team", "rpg_team"},
     chance = 60,
-    count = 1,
+    count = 2,
     minDistance = 100,
     maxDistance = 400,
 })
@@ -1039,7 +1037,7 @@ DMS.DynamicSpawn.createPool("charlie-defense", {
     zone = "Charlie-Zone",
     templates = {"checkpoint", "btr_squad", "mg_nest", "infantry_squad"},
     chance = 80,
-    count = 2,
+    count = 4,
     minDistance = 100,
     maxDistance = 500,
 })
@@ -1052,7 +1050,7 @@ DMS.DynamicSpawn.createPool("qrf-light", {
     zone = "QRF-Staging",
     templates = {"qrf_light", "technical_pair"},
     chance = 50,  -- 50% chance
-    count = 1,
+    count = 2,
     minDistance = 50,
     maxDistance = 200,
 })
@@ -1061,7 +1059,7 @@ DMS.DynamicSpawn.createPool("qrf-medium", {
     zone = "QRF-Staging",
     templates = {"qrf_medium", "bmp_section"},
     chance = 25,  -- 25% chance
-    count = 1,
+    count = 2,
     minDistance = 50,
     maxDistance = 200,
 })
@@ -1070,7 +1068,7 @@ DMS.DynamicSpawn.createPool("qrf-heavy", {
     zone = "QRF-Staging",
     templates = {"qrf_heavy", "t72_platoon"},
     chance = 10,  -- 10% chance
-    count = 1,
+    count = 2,
     minDistance = 50,
     maxDistance = 200,
 })

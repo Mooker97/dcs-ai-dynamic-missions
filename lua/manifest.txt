@@ -1,0 +1,17 @@
+# DMS Lua runtime load order (relative to lua/src/dms/). One module per line; '#' comments.
+# tools/bundle_lua.py concatenates these into dist/dms.lua (missing modules skipped with a warning).
+# lua/test_lua_specs.py loads them in this order before each spec (unless the spec has a
+# "--# modules:" directive).
+core
+clock
+rng
+bus
+registry
+spawner
+ground
+director
+encounters
+narrative
+comms
+intel
+init

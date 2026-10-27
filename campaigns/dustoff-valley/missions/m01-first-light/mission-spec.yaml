@@ -1,0 +1,210 @@
+# m01 First Light — armed reconnaissance of the valley.
+# Schema: schemas/mission-spec.schema.json (MissionSpec). Validate: uv run dms validate <this file>
+# State read at design time: state/qualities.yaml (campaign start: intel 0, enemy_aa 2).
+schema_version: 1
+id: m01-first-light
+title: "First Light"
+campaign: dustoff-valley
+content_mode: fictional
+theater: Syria
+era: 2012
+date: 2012-04-11
+start_time: "06:10"
+weather_preset: clear              # lines.yaml tower calls say "winds calm": keep a calm, clear preset
+mission_type: RECON
+duration_min: 45
+blue_countries: [Australia, USA, UK]
+red_countries: [CJTF Red, Insurgents]
+cast: [ops_walsh, tower_hatay, kestrel_ferris]
+
+areas:
+  - id: hatay
+    description: "Hatay airfield, home base and only divert."
+    where: {kind: near_airbase, airbase: Hatay, radius_nm: 1}
+  - id: hatay_approach
+    description: "Approach circle; entering it on the way home triggers tower and early-RTB calls."
+    where: {kind: near_airbase, airbase: Hatay, radius_nm: 5}
+  - id: gate_west
+    description: "Entry/exit gate west of Reyhanli, between the two known gun sites."
+    where: {kind: near_named_place, place: Reyhanli, radius_nm: 1.5, bearing_deg: 290, distance_nm: 4}
+    terrain: open
+  - id: patrol_box
+    description: "The box: 8 NM north-south by 4 NM east-west of open farmland and canals east of Reyhanli."
+    where:
+      kind: zone
+      points:
+        - {lat: 36.188, lon: 36.734}
+        - {lat: 36.322, lon: 36.734}
+        - {lat: 36.322, lon: 36.818}
+        - {lat: 36.188, lon: 36.818}
+    terrain: open
+  - id: reyhanli_aaa
+    description: "Known AAA site on the edge of Reyhanli (briefed)."
+    where: {kind: near_named_place, place: Reyhanli, radius_nm: 0.8}
+    terrain: urban
+  - id: kirikhan_aaa
+    description: "Known AAA site south of Kirikhan (briefed)."
+    where: {kind: near_named_place, place: Kirikhan, radius_nm: 0.8, bearing_deg: 180, distance_nm: 1}
+    terrain: open
+  - id: canal_east
+    description: "Candidate area A for the unlisted gun: orchards east of the main canal."
+    where: {kind: near_named_place, place: Reyhanli, radius_nm: 1.5, bearing_deg: 60, distance_nm: 9}
+    terrain: open
+  - id: orchard_ridge
+    description: "Candidate area B for the unlisted gun: low ridge south-east of the box."
+    where: {kind: near_named_place, place: Reyhanli, radius_nm: 1.5, bearing_deg: 120, distance_nm: 13}
+    terrain: high_ground
+  - id: staging_farm
+    description: "Walled farm compound in the box's north-east corner; trucks under camouflage nets."
+    where: {kind: latlon, lat: 36.305, lon: 36.805, radius_nm: 0.4}
+    terrain: open
+  - id: staging_watch
+    description: "Two-mile circle around the farm; a player entering it 'sees' the compound."
+    where: {kind: latlon, lat: 36.305, lon: 36.805, radius_nm: 2}
+  - id: canal_road
+    description: "Farm road along the main canal, north toward Kirikhan. Civilian traffic and the staging convoy use it."
+    where: {kind: near_named_place, place: Reyhanli, radius_nm: 3, bearing_deg: 30, distance_nm: 6}
+    terrain: road
+  - id: kirikhan_road
+    description: "Road junction south of Kirikhan where northbound traffic ends up."
+    where: {kind: near_named_place, place: Kirikhan, radius_nm: 1, bearing_deg: 160, distance_nm: 3}
+    terrain: road
+  - id: kestrel_ridge
+    description: "Kestrel Two-Two's hide on the high ground north of the canal."
+    where: {kind: near_named_place, place: Reyhanli, radius_nm: 0.5, bearing_deg: 20, distance_nm: 8}
+    terrain: high_ground
+
+player_flights:
+  - callsign: Dusty
+    aircraft: AH-64D_BLK_II
+    count: 1
+    coalition: blue
+    country: Australia
+    start_area: hatay
+    start_type: parking_cold
+    loadout: "8x AGM-114K Hellfire, no rockets, FCR fitted, full 30 mm"
+    tasking: >-
+      Route: Hatay → gate_west → patrol_box SW → NW → NE → SE → SW → gate_west → Hatay.
+      Report contacts. Weapons free on positively identified armed targets.
+
+objectives:
+  - id: patrol
+    kind: recon
+    description: "Fly the patrol box and build a picture of enemy disposition."
+    primary: true
+    area: patrol_box
+    success_flag: patrol_complete
+  - id: find_aa
+    kind: recon
+    description: "Locate any unlisted air defence in or near the box."
+    primary: false
+    area: patrol_box
+    success_flag: hidden_aa_found
+  - id: rtb
+    kind: land
+    description: "Recover to Hatay."
+    primary: true
+    area: hatay
+    success_flag: landed
+  - id: survive
+    kind: survive
+    description: "Bring the aircraft back. The detachment cannot replace it."
+    primary: true
+    failure_flag: player_lost
+
+threats:
+  - id: aaa_reyhanli
+    role: aaa
+    area: reyhanli_aaa
+    strength: light
+    faction: nvc
+    skill: Average
+    hidden_on_map: false             # known and briefed: shown on F10 from the start
+    notes: "One ZU-23 emplacement or Shilka, dug in, facing west."
+  - id: aaa_kirikhan
+    role: aaa
+    area: kirikhan_aaa
+    strength: light
+    faction: nvc
+    skill: Average
+    hidden_on_map: false
+    notes: "One or two ZU-23 emplacements covering the road south of town."
+
+support:
+  - id: kestrel
+    role: friendly_ground
+    callsign: "Kestrel Two-Two"
+    area: kestrel_ridge
+    composition: "4x Soldier M4, dug in, no vehicles; invisible to the enemy (immortal, hidden)"
+    speaker: kestrel_ferris
+
+dynamic:
+  pools:
+    - id: patrols
+      roles: [technicals, infantry]
+      areas: [patrol_box]
+      pick: [3, 6]
+      faction: valley_militia
+      notes: "Mostly DShK technicals and 4-6 man AK teams; one ZU-23 technical at most."
+    - id: hidden_aa
+      roles: [aaa]
+      areas: [canal_east, orchard_ridge]
+      pick: [1, 1]
+      faction: nvc
+      notes: "Ural-375 ZU-23 or ZU-23 emplacement. Never a radar SAM in act 1 (canon rule)."
+    - id: staging
+      roles: [hvt]
+      areas: [staging_farm]
+      pick: [4, 5]
+      faction: nvc
+      notes: "Ural-375 cargo trucks under nets (rocket resupply; the m02 reveal). Unarmed, but count as armed targets."
+    - id: civilians
+      roles: [technicals]
+      areas: [canal_road]
+      pick: [2, 4]
+      faction: valley_civilians
+      notes: >-
+        Civilian traffic. Faction valley_civilians is neutral and fields only civilian vehicle
+        types (bible), so the planner must spawn unarmed GAZ/VAZ/Land Rover/bus types here.
+        The role is 'technicals' only because schema v1 has no civilian role; silhouettes
+        resembling technicals are intended (positive ID matters).
+  encounters:
+    - id: popup_aa
+      kind: ambush_sam
+      pool: hidden_aa
+      trigger: {type: proximity, area: patrol_box, radius_nm: 4.5}
+      chance: 70
+      telegraph_beat: popup_aa_warning
+      hunt: false
+      notes: "Base 70 at enemy_aa 2; designers of replays subtract 10 per intel point. Spawns dark, goes hot when Dusty is inside ~3 NM."
+    - id: staging_convoy
+      kind: convoy
+      pool: staging
+      trigger: {type: time, after_min: 15}
+      chance: 50
+      notes: "Trucks leave the farm northbound along canal_road toward kirikhan_road."
+    - id: civ_traffic
+      kind: convoy
+      pool: civilians
+      trigger: {type: time, after_min: 2}
+      chance: 100
+      notes: "Civilians drive canal_road toward kirikhan_road and back."
+  director:
+    enabled: true
+    intensity: moderate
+    adaptive: true
+  fog_of_war:
+    enabled: true
+    reveal_radius_km: 5
+    mark_refresh_sec: 15
+
+seed: null
+
+notes: >-
+  Director intent: the transit is quiet; Kestrel's check-in and the empty valley set the mood.
+  First contact should come within ten minutes of reaching the box, small and winnable (a
+  technical, a few infantry). The unlisted gun is the peak: always telegraphed by Kestrel 30-60 s
+  before it opens up, never spawned within 5 km line of sight of the player. Civilian trucks share
+  the canal road with technicals on purpose. The staging convoy is a temptation, not a
+  requirement. The way home is quiet. Guaranteed beats: mission_start, kestrel_checkin,
+  on_station, patrol_complete, tower_welcome, on_deck.

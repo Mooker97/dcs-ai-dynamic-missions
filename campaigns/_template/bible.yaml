@@ -1,0 +1,69 @@
+# bible.yaml — the story bible. Canonical source of truth. Written by the story-writer skill.
+# Schema: schemas/story-bible.schema.json (dms_core.schemas.story.StoryBible). Unknown keys are rejected.
+# Later agents READ this file instead of remembering. Change canon here first, then log it in continuity.md.
+# Put the mode rationale (why historical/adapted/fictional) in a comment here and in premise.md.
+
+schema_version: 1
+title: "Working Title"
+mode: fictional                    # historical (every claim cited) | adapted (real setting, invented people/events) | fictional
+
+setting:
+  era: 2010                        # year; constrains units and weapons
+  theater: Syria                   # Caucasus | Syria | PersianGulf | Nevada | MarianaIslands | Sinai | Kola | Afghanistan | Normandy | TheChannel | Falklands | GermanyCW
+  region: "Area within the map, real place names"
+  premise_summary: >-
+    Two to four sentences: who, where, why now, what the player's unit is for.
+
+tone:
+  style: professional-terse        # professional-terse | gritty | heroic | pulp adventure | somber ...
+  themes: [attrition, trust]       # 2-4 themes every mission touches
+
+player_role: "Dusty 1-1: single AH-64D, <unit>, home base Hatay."
+
+factions:
+  - id: blue_main
+    name: "In-story name"
+    description: "Who they are and what they want."
+    doctrine: "How they fight: tempo, risk appetite, ROE."
+    dcs:
+      country: USA                 # ONE DCS country per faction; split factions if you need several
+      coalition: blue              # blue | red | neutral
+      units: [M-1 Abrams, M-2 Bradley, Hummer]   # representative DCS type ids
+      tech_veneer: null            # fictional/fantasy: which real kit stands in for theirs, and why
+
+characters:
+  - id: ops_main                   # lower_snake_case; used as beat/line speaker
+    name: "Maj. Firstname Lastname"
+    callsign: "Hatay Ops"
+    role: operations officer
+    faction: blue_main
+    real_person: false             # true ONLY for real people, who never get invented dialogue
+    description: "Two sentences. What they care about, how they sound."
+    arc: "How they change across the campaign, or 'static'."
+    voice:                         # required if they speak; null for silent characters
+      eleven_voice_id: null        # fill once a voice exists in the ElevenLabs library
+      design_prompt: >-
+        ElevenLabs Voice Design prompt: gender, age, accent, timbre, delivery, context
+        (e.g. "speaking over a tactical radio, calm under pressure").
+      accent: General American
+      age: 45
+      gender: male
+      cadence: measured            # slow | measured | brisk | rapid
+      brevity: terse               # terse | normal | chatty (real nets are terse)
+      radio_fx: uhf_clean          # uhf_clean (aircraft/ATC) | vhf_noisy (ground FM) | intercom (crew) | none (briefing)
+      notes: "Delivery notes for line writers."
+
+timeline:
+  - date: "2010-03-12"             # ISO or partial ('2010-03')
+    event: "What happened."
+    fictional: true                # false => in historical mode, add `source`
+    # source: {claim: "...", source_url: "https://...", confidence: high}
+
+sources:                           # every real-world claim: {claim, source_url, confidence, note}
+  - claim: "One factual sentence."
+    source_url: "https://example.org"
+    confidence: medium             # high | medium | low
+    note: null
+
+canon_rules:
+  - "Hard rules every later agent must respect."

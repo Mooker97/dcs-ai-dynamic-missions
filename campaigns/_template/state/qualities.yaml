@@ -1,0 +1,8 @@
+# state/qualities.yaml — current story state. Schema: schemas/qualities.schema.json (Qualities).
+# Initialised from arc.yaml qualities[].initial; updated ONLY by the debriefer after each flight.
+values:
+  intel: 0
+  trust: 0
+flags: {}                # campaign flags, e.g. {m01_patrol_complete: true}
+outcomes: {}             # mission id -> merged outcome dict from [DMS.OUTCOME]
+updated_after: null      # last mission folded in, e.g. m01-first-light

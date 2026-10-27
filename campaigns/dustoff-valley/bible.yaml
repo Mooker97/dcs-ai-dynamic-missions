@@ -1,0 +1,301 @@
+# Story bible — Dustoff Valley. Canonical. Change canon here first, then log it in continuity.md.
+# Schema: schemas/story-bible.schema.json (dms_core.schemas.story.StoryBible)
+#
+# MODE RATIONALE (fictional, not adapted): the war, its factions and its political geography are
+# invented. In this fiction the enemy holds the Amik valley including Reyhanli and Kirikhan, which in
+# reality are Turkish towns. Calling it "adapted" would invite later agents to anchor events to a real
+# operation that never happened. Only the terrain is real, and terrain facts are sourced below.
+# Enemy factions use DCS's CJTF Red / Insurgents countries so no real nation's forces are depicted.
+
+schema_version: 1
+title: "Dustoff Valley"
+mode: fictional
+
+setting:
+  era: 2012
+  theater: Syria
+  region: >-
+    Hatay airfield and the Amik valley to its east: open farmland cut by irrigation canals,
+    bounded by the Amanus (Nur) mountains to the north-west. Towns of Reyhanli (east) and
+    Kirikhan (north-east). In-fiction calendar starts 11 April 2012 (D+2); no real event is implied.
+  premise_summary: >-
+    Combined Task Force Orontes landed two days ago and holds Hatay airfield. An Australian
+    Army aviation detachment flying AH-64Ds is its only armed reconnaissance asset. The enemy,
+    Northern Valley Command and the militias that fight beside it, has had months to dig in.
+    Before the push inland, the detachment must build a picture, open the road east, and keep
+    the forward outposts alive until the main body arrives.
+
+tone:
+  style: professional-terse
+  themes: [the picture before the fight, the cost of haste, trust between air and ground]
+
+player_role: >-
+  Dusty 1-1: single AH-64D, Aviation Detachment Hatay (fictional), Australian Army, attached to
+  CTF Orontes. Home base and only divert: Hatay.
+
+factions:
+  - id: ctf_aus
+    name: "CTF Orontes — Aviation Detachment Hatay"
+    description: "The player's detachment: four Apaches, two serviceable on a good day. Short of everything except patience."
+    doctrine: "Deliberate. Intelligence first; fires on positively identified armed targets only."
+    dcs:
+      country: Australia
+      coalition: blue
+      units: [AH-64D_BLK_II]
+
+  - id: ctf_us
+    name: "CTF Orontes — US elements"
+    description: "Airfield operations, logistics convoys, the forward outposts and on-call A-10s."
+    doctrine: "Methodical logistics, heavy reliance on air cover for anything moving east."
+    dcs:
+      country: USA
+      coalition: blue
+      units: [A-10C_2, M1126 Stryker ICV, M-2 Bradley, Hummer, M 818, M978 HEMTT Tanker, Soldier M4]
+
+  - id: ctf_uk
+    name: "CTF Orontes — reconnaissance teams"
+    description: "Small observation teams inserted before the landing; Kestrel Two-Two is one."
+    doctrine: "Watch, report, stay hidden. Never fight for the hill."
+    dcs:
+      country: UK
+      coalition: blue
+      units: [Soldier M4, Land_Rover_101_FC]
+
+  - id: nvc
+    name: "Northern Valley Command"
+    description: "Conventional enemy formations holding the valley: old Soviet-pattern kit, well dug in, short on radar."
+    doctrine: "Static defence of towns and crossings; guns sited on approaches; rocket artillery that shoots and moves."
+    dcs:
+      country: CJTF Red
+      coalition: red
+      units: [ZSU-23-4 Shilka, ZU-23 Emplacement Closed, Ural-375 ZU-23, Osa 9A33 ln, Strela-1 9P31, BMP-1, BRDM-2, T-55, Grad-URAL, Ural-375, SA-18 Igla manpad, Infantry AK]
+      tech_veneer: "Invented army; generic Soviet-pattern equipment of the 1970s-80s stands in for its inventory."
+
+  - id: valley_militia
+    name: "Valley militias"
+    description: "Irregular groups paid and armed by NVC: technicals, small teams, local knowledge."
+    doctrine: "Screen, observe, ambush, scatter. Report helicopter movements to NVC by phone."
+    dcs:
+      country: Insurgents
+      coalition: red
+      units: [HL_DSHK, tt_DSHK, HL_ZU-23, tt_ZU-23, Infantry AK Ins]
+
+  - id: valley_civilians
+    name: "Valley civilians"
+    description: "Farmers and townspeople still on the roads. Their trucks look like the militia's trucks."
+    doctrine: "Keep moving, keep farming, stay off the main roads when helicopters are up."
+    dcs:
+      country: UN Peacekeepers
+      coalition: neutral
+      units: [GAZ-3307, IKARUS Bus, LAZ Bus, Land_Rover_109_S3, VAZ Car]
+      tech_veneer: "Placeholder neutral country; only civilian vehicle types are ever spawned for it."
+
+characters:
+  - id: ops_walsh
+    name: "Maj. Erin Walsh"
+    callsign: "Hatay Ops"
+    role: detachment operations officer
+    faction: ctf_aus
+    real_person: false
+    description: >-
+      Ran the detachment's planning cell for six years before deploying. Measures risk in
+      airframes she cannot replace. Dry, never hurried, allergic to adjectives on the radio.
+    arc: >-
+      Starts as the voice of caution ("we want a picture, not a medal"). By m04 she is the one
+      sending Dusty back in, and has to own what that costs.
+    voice:
+      design_prompt: >-
+        Female military operations officer, early 40s, Australian accent (educated, not broad),
+        low-mid pitch, dry and economical. Short clipped sentences over a tactical radio,
+        unhurried even when the news is bad. Faint warmth underneath, never shown.
+      accent: Australian
+      age: 42
+      gender: female
+      cadence: measured
+      brevity: terse
+      radio_fx: uhf_clean
+      notes: "Flat by default. Pressure shows as fewer words, not a raised voice."
+
+  - id: tower_hatay
+    name: "SSgt. Dale Mercer"
+    callsign: "Hatay Tower"
+    role: air traffic controller
+    faction: ctf_us
+    real_person: false
+    description: "USAF controller sent to open Hatay. Has talked down everything from C-130s to Apaches with holes in them."
+    arc: static
+    voice:
+      design_prompt: >-
+        Male air traffic controller, mid 30s, neutral American accent, clear practised ATC
+        cadence, slightly nasal, completely calm. Sounds like he has said these words ten
+        thousand times. Tower radio.
+      accent: General American
+      age: 35
+      gender: male
+      cadence: brisk
+      brevity: terse
+      radio_fx: uhf_clean
+      notes: "Standard phraseology, even pace, no emotion."
+
+  - id: kestrel_ferris
+    name: "Sgt. Liam Ferris"
+    callsign: "Kestrel Two-Two"
+    role: observation post team leader
+    faction: ctf_uk
+    real_person: false
+    description: >-
+      Leads a four-man reconnaissance team dug into the high ground north of the canal. Has
+      watched the valley for a week before Dusty arrives and knows its rhythms: the shepherd,
+      the bread truck, the trucks that are not bread trucks.
+    arc: >-
+      The dispassionate eyes of the valley. If civilian_harm rises he turns curt with Dusty; if
+      trust rises he starts taking risks to spot for them.
+    voice:
+      design_prompt: >-
+        Male British Army reconnaissance sergeant, about 30, Northern English (Yorkshire)
+        accent, speaking quietly and close to the microphone as if lying in a hide. Calm,
+        precise, dry humour that surfaces rarely. Field radio.
+      accent: Northern English (Yorkshire)
+      age: 30
+      gender: male
+      cadence: measured
+      brevity: terse
+      radio_fx: vhf_noisy
+      notes: "Low, near-whisper on the hill. Only raises his voice for 'check fire'."
+
+  - id: mule_reyes
+    name: "SSgt. Marcus Reyes"
+    callsign: "Mule Actual"
+    role: convoy commander
+    faction: ctf_us
+    real_person: false
+    description: "US Army convoy commander bringing the first supply run to FOB Victory. Has been ambushed before and talks like it."
+    arc: "Introduced in m03. If he survives he is Outpost Bravo's link to resupply in m04."
+    voice:
+      design_prompt: >-
+        Male US Army staff sergeant, 40, neutral American accent with a slight Texan edge,
+        measured and deliberate. Calm under fire; urgency shows only in pace. Vehicle radio
+        with engine noise underneath.
+      accent: General American (light Texan)
+      age: 40
+      gender: male
+      cadence: measured
+      brevity: normal
+      radio_fx: vhf_noisy
+      notes: "Routine reports sound bored; contact reports are fast but never shouted."
+
+  - id: outpost_hollis
+    name: "Capt. Sam Hollis"
+    callsign: "Outpost Bravo"
+    role: forward outpost commander
+    faction: ctf_us
+    real_person: false
+    description: "Commands the outpost east of FOB Victory. Young for the job, knows it, compensates with procedure."
+    arc: "In m04 his voice degrades barrage by barrage; how his last call sounds depends on the player."
+    voice:
+      design_prompt: >-
+        Male US Army captain, late 20s, General American accent, earnest and procedural. Under
+        artillery fire his voice tightens and speeds up but he keeps correct radio format.
+        Handheld radio, wind and distant impacts behind him.
+      accent: General American
+      age: 28
+      gender: male
+      cadence: brisk
+      brevity: normal
+      radio_fx: vhf_noisy
+      notes: "Starts crisp. Breathless after each barrage. Never panics on air."
+
+  - id: hawg_delacroix
+    name: "Capt. Ray Delacroix"
+    callsign: "Hawg One-One"
+    role: A-10C flight lead
+    faction: ctf_us
+    real_person: false
+    description: "Close air support pilot on call from the task force's land-based detachment. Unbothered, efficient."
+    arc: "Cavalry when he shows up, absent when he doesn't (availability scales with trust)."
+    voice:
+      design_prompt: >-
+        Male USAF A-10 pilot, mid 30s, light Southern American accent, smooth and unhurried
+        with clipped brevity. Oxygen-mask microphone, slight breath noise.
+      accent: Southern American (light)
+      age: 35
+      gender: male
+      cadence: measured
+      brevity: terse
+      radio_fx: uhf_clean
+      notes: "Laid back. Weapons calls are two or three words."
+
+  - id: s2_nand
+    name: "Capt. Priya Nand"
+    callsign: "Hatay Two"
+    role: detachment intelligence officer (S2); voice of the briefing intel narrative
+    faction: ctf_aus
+    real_person: false
+    description: "Writes the intel narrative in every briefing. Honest about what she does not know."
+    arc: "Her estimates sharpen as the intel quality rises, and her briefings say so."
+    voice:
+      design_prompt: >-
+        Female intelligence officer, early 30s, Australian accent with a trace of British
+        schooling, precise and quick, slightly formal. Reads from notes she wrote herself.
+      accent: Australian
+      age: 32
+      gender: female
+      cadence: brisk
+      brevity: normal
+      radio_fx: none
+      notes: "Briefing voice; rarely on the tactical net."
+
+  - id: hammer
+    name: "HAMMER (coalition intelligence designator)"
+    callsign: null
+    role: NVC rocket artillery commander; never heard, never seen before m04
+    faction: nvc
+    real_person: false
+    description: >-
+      Known only by the pattern of his fire missions: shoot, displace within ten minutes, never
+      the same site twice. The thread that runs through the campaign.
+    arc: "Located (or not) in m04; confronted in m05."
+    voice: null
+
+timeline:
+  - date: "2012-03"
+    event: "NVC fortifies Reyhanli and Kirikhan; militias recruited along the canal roads."
+    fictional: true
+  - date: "2012-04-09"
+    event: "CTF Orontes forward elements land and secure Hatay airfield (D-day)."
+    fictional: true
+  - date: "2012-04-10"
+    event: "Aviation Detachment Hatay arrives. Kestrel Two-Two has been in its hide north of the canal for a week."
+    fictional: true
+  - date: "2012-04-11"
+    event: "m01 First Light: first armed reconnaissance of the valley."
+    fictional: true
+
+sources:
+  - claim: "Hatay Airport serves Antakya in Hatay Province, southern Turkey."
+    source_url: "https://en.wikipedia.org/wiki/Hatay_Airport"
+    confidence: high
+    note: "Terrain fact only. DCS: Syria models the airfield as 'Hatay'."
+  - claim: "The Amik Valley is a flat agricultural plain in Hatay Province drained by the Orontes and its tributaries."
+    source_url: "https://en.wikipedia.org/wiki/Amik_Valley"
+    confidence: high
+  - claim: "Reyhanli is a town in Hatay Province close to the Syrian border, east of Antakya."
+    source_url: "https://en.wikipedia.org/wiki/Reyhanl%C4%B1"
+    confidence: high
+    note: "In this fiction the town is enemy-held; that is invented."
+  - claim: "Kirikhan is a town in Hatay Province north-east of Antakya, at the foot of the Amanus (Nur) mountains."
+    source_url: "https://en.wikipedia.org/wiki/K%C4%B1r%C4%B1khan"
+    confidence: high
+    note: "In this fiction the town is enemy-held; that is invented."
+  - claim: "The DCS Syria terrain includes Hatay airfield and the surrounding province."
+    source_url: "https://www.digitalcombatsimulator.com/en/shop/terrains/syria_terrain/"
+    confidence: medium
+
+canon_rules:
+  - "Dusty flight is a single AH-64D. No wingman unless the arc adds one."
+  - "Hatay is the only friendly airfield and the only divert."
+  - "Enemy air defence is guns and short-range SAMs only (no long-range radar SAMs) until act 3."
+  - "Real towns and terrain keep their names; no real nation, unit, operation or person is depicted."
+  - "Kestrel Two-Two stays on the ridge north of the canal unless continuity.md says it moved."
+  - "HAMMER is never heard on the radio and never shown before m04."
+  - "Radio is callsign-first and terse. Nobody cheers on the net."

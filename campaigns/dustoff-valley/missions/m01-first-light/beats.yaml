@@ -1,0 +1,234 @@
+# m01 First Light — beats. Schema: schemas/beats.schema.json (BeatSheet). Compiled into DMS_CONFIG.beats.
+# group_prefix values are spec ids (threat / pool / encounter); planned group names start with them.
+# GUARANTEED spine (reachable in every playthrough):
+#   mission_start → kestrel_checkin → on_station → patrol_complete → tower_welcome → on_deck
+# Everything else is optional and depends on what the player does and what the runtime rolled.
+mission_id: m01-first-light
+beats:
+  # ---- GUARANTEED spine ---------------------------------------------------------------------
+  - id: mission_start              # GUARANTEED
+    when: {event: player.spawned, players_only: true}
+    delay_sec: 10
+    priority: 90
+    once: true
+    speaker: ops_walsh
+    lines: [ops_cleared_v1, ops_cleared_v2, ops_cleared_v3, ops_cleared_v4]
+    text: "Dusty, Hatay Ops. Cleared for patrol. Known AAA at Reyhanli and Kirikhan. Weapons free on armed targets."
+    mark: {type: text, at: "zone:patrol_box", text: "PATROL BOX"}
+    effects: {set_flag: started}
+
+  - id: kestrel_checkin            # GUARANTEED
+    when: {event: zone.entered, zone: gate_west, players_only: true}
+    requires: {flags_not: [kestrel_checked_in]}
+    priority: 70
+    once: true
+    speaker: kestrel_ferris
+    lines: [kestrel_checkin_v1, kestrel_checkin_v2, kestrel_checkin_v3, kestrel_checkin_v4]
+    text: "Dusty, Kestrel Two-Two. On the high ground north of the canal. Eyes on the box."
+    effects: {set_flag: kestrel_checked_in}
+
+  - id: on_station                 # GUARANTEED
+    when: {event: zone.entered, zone: patrol_box, players_only: true}
+    requires: {flags_not: [on_station]}
+    priority: 75
+    once: true
+    speaker: ops_walsh
+    lines: [ops_on_station_v1, ops_on_station_v2, ops_on_station_v3]
+    text: "Dusty, Ops. Copy on station. Report contacts."
+    effects: {set_flag: on_station}
+
+  - id: patrol_complete            # GUARANTEED (re-crossing the gate after visiting the box)
+    when: {event: zone.entered, zone: gate_west, players_only: true}
+    requires: {flags: [on_station], flags_not: [patrol_complete]}
+    priority: 80
+    once: true
+    speaker: ops_walsh
+    lines: [ops_rtb_v1, ops_rtb_v2, ops_rtb_v3, ops_rtb_v4]
+    text: "Dusty, Ops. Good picture. RTB."
+    effects: {set_flag: patrol_complete, outcome: {patrol_complete: true}}
+
+  - id: tower_welcome              # GUARANTEED
+    when: {event: zone.entered, zone: hatay_approach, players_only: true}
+    requires: {flags: [patrol_complete]}
+    priority: 80
+    once: true
+    speaker: tower_hatay
+    lines: [tower_cleared_land_v1, tower_cleared_land_v2, tower_cleared_land_v3, tower_cleared_land_v4]
+    text: "Dusty, Hatay Tower, welcome back. Cleared to land at your discretion, winds are calm."
+    effects: {set_flag: cleared_to_land}
+
+  - id: on_deck                    # GUARANTEED
+    when: {event: unit.landed, players_only: true}
+    requires: {flags: [patrol_complete]}
+    priority: 85
+    once: true
+    speaker: ops_walsh
+    lines: [ops_on_deck_v1, ops_on_deck_v2, ops_on_deck_v3]
+    text: "Dusty, Ops. Copy on deck. Debrief at the TOC."
+    effects: {set_flag: landed, outcome: {landed: true}, end_mission: success}
+
+  # ---- Optional: departure and early return -------------------------------------------------
+  - id: tower_departure
+    when: {event: unit.takeoff, players_only: true}
+    requires: {flags_not: [on_station]}
+    priority: 60
+    once: true
+    speaker: tower_hatay
+    lines: [tower_departure_v1, tower_departure_v2, tower_departure_v3]
+    text: "Dusty One-One, Hatay Tower. Airborne. Contact Hatay Ops."
+
+  - id: early_rtb
+    when: {event: zone.entered, zone: hatay_approach, players_only: true}
+    requires: {flags: [on_station], flags_not: [patrol_complete]}
+    priority: 70
+    once: true
+    speaker: ops_walsh
+    lines: [ops_early_rtb_v1, ops_early_rtb_v2, ops_early_rtb_v3]
+    text: "Dusty, Ops. Copy early return. Say reason on deck."
+    effects: {set_flag: early_rtb, outcome: {early_rtb: true}}
+
+  # ---- Optional: contact ----------------------------------------------------------------------
+  - id: known_aaa_firing
+    when: {event: unit.shot, group_prefix: aaa_}
+    priority: 65
+    once: false
+    cooldown_sec: 180
+    speaker: kestrel_ferris
+    lines: [kestrel_aaa_firing_v1, kestrel_aaa_firing_v2, kestrel_aaa_firing_v3, kestrel_aaa_firing_v4]
+    text: "Dusty, Kestrel. Triple-A up from the known site."
+
+  - id: first_armed_kill
+    when: {event: unit.dead, coalition: 1}
+    requires: {flags_not: [first_kill]}
+    priority: 60
+    once: true
+    speaker: kestrel_ferris
+    lines: [kestrel_good_effect_v1, kestrel_good_effect_v2, kestrel_good_effect_v3, kestrel_good_effect_v4]
+    text: "Dusty, Kestrel. Good effect. Target destroyed."
+    effects: {set_flag: first_kill}
+
+  - id: kill_followup
+    when: {event: unit.dead, coalition: 1}
+    requires: {flags: [first_kill], chance: 60}
+    priority: 40
+    once: false
+    cooldown_sec: 60
+    speaker: kestrel_ferris
+    lines: [kestrel_kill_followup_v1, kestrel_kill_followup_v2, kestrel_kill_followup_v3, kestrel_kill_followup_v4]
+    text: "Dusty, Kestrel. Good effect."
+
+  - id: known_aaa_reyhanli_dead    # silent: outcome only
+    when: {event: group.dead, group_prefix: aaa_reyhanli}
+    priority: 55
+    once: true
+    effects: {outcome: {reyhanli_aaa_destroyed: true}}
+
+  - id: known_aaa_kirikhan_dead    # silent: outcome only
+    when: {event: group.dead, group_prefix: aaa_kirikhan}
+    priority: 55
+    once: true
+    effects: {outcome: {kirikhan_aaa_destroyed: true}}
+
+  - id: player_hit
+    when: {event: unit.hit, players_only: true}
+    priority: 85
+    once: false
+    cooldown_sec: 120
+    speaker: kestrel_ferris
+    lines: [kestrel_say_status_v1, kestrel_say_status_v2, kestrel_say_status_v3, kestrel_say_status_v4]
+    text: "Dusty, Kestrel. Rounds close. Say status."
+    effects: {outcome: {player_damaged: true}}
+
+  # ---- Optional: the unlisted gun (the peak) -------------------------------------------------
+  - id: popup_aa_warning           # telegraph for encounter popup_aa (spawns dark, 30-60 s before hot)
+    when: {event: encounter.spawned, encounter: popup_aa}
+    priority: 88
+    once: true
+    speaker: kestrel_ferris
+    lines: [popup_aa_warning_v1, popup_aa_warning_v2, popup_aa_warning_v3, popup_aa_warning_v4]
+    text: "Dusty, Kestrel. Possible gun moving into position east of the canal."
+    effects: {set_flag: popup_warned}
+
+  - id: popup_aa_engaging
+    when: {event: unit.shot, group_prefix: hidden_aa}
+    requires: {flags_not: [hidden_aa_found]}
+    priority: 90
+    once: true
+    speaker: kestrel_ferris
+    lines: [popup_aa_engaging_v1, popup_aa_engaging_v2, popup_aa_engaging_v3, popup_aa_engaging_v4]
+    text: "Dusty, Kestrel. New gun firing east of the canal. Not on the list."
+    mark: {type: circle, at: "group:hidden_aa", radius_m: 1500, text: "AAA (NEW)"}
+    effects: {set_flag: hidden_aa_found, outcome: {hidden_aa_found: true}}
+
+  - id: popup_aa_destroyed
+    when: {event: group.dead, group_prefix: hidden_aa}
+    priority: 75
+    once: true
+    speaker: ops_walsh
+    lines: [ops_new_site_logged_v1, ops_new_site_logged_v2, ops_new_site_logged_v3, ops_new_site_logged_v4]
+    text: "Dusty, Ops. Copy new site destroyed. Logging it."
+    effects: {outcome: {hidden_aa_found: true, hidden_aa_destroyed: true}}
+
+  # ---- Optional: the farm ---------------------------------------------------------------------
+  - id: staging_spotted
+    when: {event: zone.entered, zone: staging_watch, players_only: true}
+    requires: {flags_not: [staging_spotted]}
+    priority: 60
+    once: true
+    speaker: kestrel_ferris
+    lines: [kestrel_staging_v1, kestrel_staging_v2, kestrel_staging_v3]
+    text: "Dusty, Kestrel. Farm compound below you. Trucks under cam nets."
+    mark: {type: text, at: "zone:staging_farm", text: "TRUCKS UNDER NETS"}
+    effects: {set_flag: staging_spotted, outcome: {staging_spotted: true}}
+
+  - id: staging_moving
+    when: {event: encounter.spawned, encounter: staging_convoy}
+    priority: 62
+    once: true
+    speaker: kestrel_ferris
+    lines: [kestrel_staging_moving_v1, kestrel_staging_moving_v2, kestrel_staging_moving_v3]
+    text: "Ops, Kestrel. Trucks leaving the farm, northbound on the canal road."
+    effects: {set_flag: staging_moving}
+
+  - id: staging_convoy_dead        # silent: outcome only
+    when: {event: group.dead, group_prefix: staging}
+    priority: 50
+    once: true
+    effects: {outcome: {staging_convoy_destroyed: true}}
+
+  # ---- Optional: consequences -----------------------------------------------------------------
+  - id: civilian_hit
+    when: {event: unit.dead, group_prefix: civilians}
+    priority: 95
+    once: false
+    cooldown_sec: 60
+    speaker: kestrel_ferris
+    lines: [kestrel_check_fire_v1, kestrel_check_fire_v2, kestrel_check_fire_v3, kestrel_check_fire_v4]
+    text: "Check fire, check fire. That was a civilian vehicle."
+    effects: {outcome: {civilians_hit: true}}
+
+  - id: player_lost                # silent: nobody on the net says it to a dead crew
+    when: {event: unit.dead, players_only: true}
+    priority: 100
+    once: true
+    effects: {set_flag: player_lost, outcome: {player_lost: true}, end_mission: failure}
+
+  # ---- Filler: overheard net traffic during RELAX (two-beat exchange) -------------------------
+  - id: ambient_net
+    when: {event: director.state, state: RELAX}
+    requires: {flags: [kestrel_checked_in], flags_not: [patrol_complete], chance: 50}
+    priority: 10
+    once: false
+    cooldown_sec: 360
+    speaker: kestrel_ferris
+    lines: [net_kestrel_v1, net_kestrel_v2, net_kestrel_v3, net_kestrel_v4]
+    text: "Ops, Kestrel Two-Two. Routine. No change on the canal road."
+
+  - id: ambient_net_reply
+    when: {event: beat.fired, beat: ambient_net}
+    delay_sec: 4
+    priority: 10
+    once: false
+    speaker: ops_walsh
+    lines: [net_ops_v1, net_ops_v2, net_ops_v3]
+    text: "Kestrel, Ops. Copy."

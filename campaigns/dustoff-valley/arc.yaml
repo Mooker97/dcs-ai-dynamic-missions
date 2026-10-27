@@ -1,0 +1,182 @@
+# Campaign arc — Dustoff Valley. Schema: schemas/campaign-arc.schema.json (CampaignArc).
+# Missions are designed one at a time, after the previous one is flown.
+#
+# How outcomes feed forward: the debriefer turns each [DMS.OUTCOME] key into a campaign flag named
+# <mNN>_<key> (e.g. m01_player_lost) and applies quality_effects to state/qualities.yaml. Branches
+# below are checked in order; the first whose `when` holds wins; an empty `when` always holds.
+#
+# Replayability: every mission re-rolls pools, positions and timings in Lua each time it is flown.
+# Only qualities and flags persist. A failed mission is replayed with a new seed, never identically.
+# Campaign-level levers: intel lowers pop-up threat chance (-10 per point) and adds known threats to
+# briefings; enemy_aa scales AAA/SAM pool sizes; civilian_harm adds +1 militia patrol group per point.
+
+schema_version: 1
+title: "Dustoff Valley"
+logline: >-
+  One Apache, one valley, five missions: build the picture, open the road, keep the outpost
+  alive, and be ready when the push comes.
+
+qualities:
+  - id: intel
+    description: "Completeness of the blue picture. Adds known threats to briefings, lowers pop-up chances."
+    initial: 0
+    min: 0
+    max: 5
+  - id: enemy_aa
+    description: "Strength of the valley's air defence. Scales AAA/SAM pool sizes and pop-up chances."
+    initial: 2
+    min: 0
+    max: 3
+  - id: fob_supply
+    description: "FOB Victory's stocks. Sets how many barrages Outpost Bravo can absorb in m04."
+    initial: 1
+    min: 0
+    max: 3
+  - id: trust
+    description: "Ground forces' trust in Dusty. Changes Kestrel's tone and Hawg One-One's availability."
+    initial: 0
+    min: -2
+    max: 3
+  - id: civilian_harm
+    description: "Civilians hit. Feeds militia recruitment (more patrols), Kestrel's tone and the ending."
+    initial: 0
+    min: 0
+    max: 3
+
+acts:
+  - id: act1
+    title: "First Light"
+    summary: "From 'light presence expected' to a mapped air-defence belt and the first hint of HAMMER."
+    missions:
+      - id: m01-first-light
+        title: "First Light"
+        mission_type: RECON
+        status: designed
+        player_aircraft: AH-64D_BLK_II
+        dramatic_question: "Can Dusty map the valley's air defences without starting a fight the detachment can't afford yet?"
+        synopsis: >-
+          Single-ship armed reconnaissance of an 8x4 NM box east of Reyhanli, threading between the
+          known guns at Reyhanli and Kirikhan, with Kestrel Two-Two spotting from the ridge.
+          Militia patrols are scattered differently each play; an unlisted gun opens up from one of
+          two candidate areas (70%, always telegraphed); trucks under nets at a farm compound may
+          move out north (50%); civilian traffic shares the canal road with technicals.
+        characters: [ops_walsh, tower_hatay, kestrel_ferris]
+        key_beats:
+          - "Walsh clears Dusty out: known guns, weapons free on armed targets, 'a picture, not a medal'"
+          - "Kestrel checks in from the ridge as Dusty crosses the gate"
+          - "On station in the box"
+          - "Patrol complete on re-crossing the gate; RTB"
+          - "Tower welcome: cleared to land at your discretion, winds calm"
+          - "On deck: debrief at the TOC"
+        quality_effects:
+          intel: "+1 if patrol_complete; +1 if hidden_aa_found or staging_spotted (max +2)"
+          enemy_aa: "-1 if hidden_aa_destroyed; -1 more if both known sites destroyed"
+          civilian_harm: "+1 if civilians_hit"
+          trust: "+1 if patrol_complete and not civilians_hit"
+        branches:
+          - when: {flags: [m01_player_lost]}
+            goto: m01-first-light
+            description: "Replay with a new seed. Briefing acknowledges the lost aircraft; Walsh is short-handed."
+          - when: {flags: [m01_reyhanli_aaa_destroyed, m01_kirikhan_aaa_destroyed]}
+            goto: m03-dustoff
+            description: "The belt is already cracked; m02 is skipped. Walsh notes it in the m03 briefing, not kindly."
+          - when: {}
+            goto: m02-cracking-kirikhan
+            description: "Normal progression."
+
+      - id: m02-cracking-kirikhan
+        title: "Cracking Kirikhan"
+        mission_type: DEAD
+        player_aircraft: AH-64D_BLK_II
+        dramatic_question: "Will Dusty take down the Kirikhan guns cleanly, or does the town pay for the road?"
+        synopsis: >-
+          Destroy the AAA belt on the edge of Kirikhan with Kestrel spotting, while civilians are
+          still in the town. Gun positions drawn from six candidate sites, one a decoy; a manpads
+          team placed at random; intel >= 3 marks every real site in the briefing.
+        characters: [ops_walsh, kestrel_ferris, s2_nand]
+        key_beats:
+          - "Nand's intel narrative names what m01 found"
+          - "Kestrel talks Dusty onto the first gun"
+          - "Debrief intel: captured paperwork names the rocket battery — HAMMER"
+        quality_effects:
+          enemy_aa: "-1 if all Kirikhan AAA destroyed"
+          civilian_harm: "+1 per civilian hit, max +2"
+          trust: "+1 if a target dies within 120 s of a Kestrel spotting call"
+        branches:
+          - when: {flags: [m02_player_lost]}
+            goto: m02-cracking-kirikhan
+            description: "Replay."
+        optional: true
+
+  - id: act2
+    title: "The Corridor"
+    summary: "Open the road to FOB Victory, then keep it alive under rocket fire."
+    missions:
+      - id: m03-dustoff
+        title: "Dustoff"
+        mission_type: CONVOY_ESCORT
+        player_aircraft: AH-64D_BLK_II
+        dramatic_question: "How many of Mule's trucks reach FOB Victory?"
+        synopsis: >-
+          Escort Mule Actual's convoy through sectors Alpha, Bravo and Charlie to FOB Victory
+          (from the legacy Dustoff Corridor mission). Bravo armour hunts the convoy; entering
+          Charlie or losing two vehicles rolls a light/medium/heavy QRF; Hawg One-One checks in
+          25% of the time, every time if trust >= 2. Surviving Kirikhan guns sit on the north flank.
+        characters: [ops_walsh, mule_reyes, hawg_delacroix, kestrel_ferris]
+        key_beats:
+          - "Mule Actual rolls out: 'Stick close, we're expecting contact'"
+          - "First contact on the convoy"
+          - "Convoy reaches FOB Victory (or doesn't)"
+        quality_effects:
+          fob_supply: "+2 if >= 6 vehicles arrive; +1 if 3-5; 0 otherwise"
+          trust: "+1 if no convoy vehicle lost; -1 if the convoy is destroyed"
+        branches:
+          - when: {flags: [m03_player_lost]}
+            goto: m03-dustoff
+            description: "Replay with a new seed."
+
+      - id: m04-grad-hunt
+        title: "Grad Hunt"
+        mission_type: RECON
+        player_aircraft: AH-64D_BLK_II
+        dramatic_question: "Can Dusty find HAMMER's launchers before Outpost Bravo stops answering?"
+        synopsis: >-
+          Outpost Bravo is under BM-21 fire. Find and destroy 3-4 launchers across 2-3 firing
+          positions (some decoys) under an SA-8 umbrella. Barrages every 120-180 s, jittered;
+          the outpost absorbs 3 + fob_supply barrages; launchers displace after each salvo.
+        characters: [ops_walsh, outpost_hollis, mule_reyes, s2_nand]
+        key_beats:
+          - "Outpost Bravo's first call under fire"
+          - "Barrage reports, each worse than the last"
+          - "The shelling stops — or the outpost goes silent"
+        quality_effects:
+          intel: "+1 if HAMMER's command vehicle is located or destroyed"
+          trust: "+1 if the outpost survives; -1 if it is overrun"
+          fob_supply: "-1 if the outpost is overrun"
+        branches: []
+
+  - id: act3
+    title: "Across the Orontes"
+    summary: "The push. Everything the player found, saved and broke decides what it meets."
+    missions:
+      - id: m05-orontes-crossing
+        title: "Orontes Crossing"
+        mission_type: CAS
+        player_aircraft: AH-64D_BLK_II
+        dramatic_question: "When the push comes, is the valley ready — and does HAMMER get away?"
+        synopsis: >-
+          CAS for the crossing of the Orontes, with an opportunity strike on HAMMER's command post.
+          Counter-attack waves (2-4) scale with enemy_aa and civilian_harm; HAMMER's position is
+          known if m04_hammer_located, otherwise drawn from three candidates.
+        characters: [ops_walsh, kestrel_ferris, hawg_delacroix, outpost_hollis]
+        key_beats:
+          - "H-hour call"
+          - "The crossing holds or breaks"
+          - "HAMMER found or gone"
+        quality_effects: {}
+        branches: []
+
+ending_notes: >-
+  trust >= 2 and civilian_harm == 0: the valley opens and Kestrel's last call thanks Dusty by
+  name. civilian_harm >= 2: the crossing holds, but the militias are stronger than ever and Walsh's
+  final debrief says so. hammer_killed decides whether the epilogue mentions rockets falling again.

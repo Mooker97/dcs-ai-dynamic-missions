@@ -1,0 +1,57 @@
+# arc.yaml — campaign arc. Written by the campaign-planner skill from bible.yaml.
+# Schema: schemas/campaign-arc.schema.json (dms_core.schemas.campaign.CampaignArc).
+# Missions are DESIGNED one at a time, after the previous one is flown.
+# Outcomes feed forward: the debriefer turns [DMS.OUTCOME] keys into campaign flags <mNN>_<key>
+# and applies quality_effects; branches are checked in order, first `when` that holds wins,
+# an empty `when` always holds, no branches = next mission in order.
+
+schema_version: 1
+title: "Working Title"
+logline: "One sentence pitch."
+
+qualities:                         # named integers that persist and steer later missions
+  - id: intel
+    description: "How complete the blue picture is."
+    initial: 0
+    min: 0
+    max: 5
+  - id: trust
+    description: "How much ground forces trust the player."
+    initial: 0
+    min: -3
+    max: 3
+
+acts:
+  - id: act1
+    title: "Act title"
+    summary: "What changes by the end of this act."
+    missions:
+      - id: m01-first-light        # mNN-slug; folder is missions/m01-first-light
+        title: "Mission title"
+        mission_type: RECON        # CAS | SEAD | DEAD | CAP | STRIKE | ESCORT | CSAR | RECON | TRANSPORT | CONVOY_ESCORT
+        status: planned            # planned | designed | built | flown
+        player_aircraft: AH-64D_BLK_II
+        dramatic_question: "One question, phrased so either answer is interesting."
+        synopsis: >-
+          Two to five sentences: what happens, and what the Lua runtime randomises each play.
+        characters: [ops_main]
+        key_beats:                 # guaranteed story moments; become GUARANTEED beats later
+          - "Ops clears the flight out"
+        quality_effects:
+          intel: "+1 if patrol_complete"
+        branches:
+          - when: {flags: [m01_player_lost]}
+            goto: m01-first-light
+            description: "Replay with a new seed."
+          - when: {qualities: [{quality: intel, op: ">=", value: 2}]}
+            goto: m02-next
+            description: "Enough picture to go on."
+        optional: false
+
+      - id: m02-next
+        title: "Next mission"
+        mission_type: STRIKE
+        dramatic_question: "?"
+        synopsis: "Planned."
+
+ending_notes: "How endings depend on qualities."

@@ -1,0 +1,26 @@
+# beats.yaml — storylets compiled into DMS_CONFIG.beats. Written by mission-designer.
+# Schema: schemas/beats.schema.json (dms_core.schemas.beats.BeatSheet). Unknown keys rejected.
+# when.event: mission.start | timer(after_sec) | flag(flag) | zone.entered(zone) | group.dead(group|group_prefix)
+#   | unit.dead | unit.hit | unit.shot | player.spawned | player.left | unit.landed | unit.takeoff
+#   | mark.added | beat.fired(beat) | encounter.spawned(encounter) | director.state(state BUILD_UP|PEAK|RELAX)
+# Filters: group, group_prefix, unit, zone, coalition (1 red / 2 blue), type_name, players_only.
+# No `guaranteed` field: tag guaranteed beats with a "# GUARANTEED" comment (see arc key_beats).
+mission_id: m01-example
+beats:
+  - id: mission_start              # GUARANTEED
+    when: {event: player.spawned, players_only: true}
+    requires: {}                   # flags, flags_not, qualities[{quality, op, value}], beats_fired, beats_not_fired, chance
+    priority: 90                   # 0-100, highest eligible wins
+    once: true
+    cooldown_sec: 0
+    delay_sec: 10
+    speaker: ops_main
+    lines: [ops_cleared_v1, ops_cleared_v2, ops_cleared_v3]   # variant ids from lines.yaml
+    text: "Dusty, Hatay Ops. Cleared for patrol."             # subtitle fallback
+    mark: {type: text, at: "zone:patrol_area", text: "PATROL"}  # at: group:<name> | unit:<name> | zone:<id>
+    effects:
+      set_flag: started
+      outcome: {}                  # facts emitted via [DMS.OUTCOME]
+      quality_deltas: {}           # e.g. {trust: 1}; applied by the debriefer
+      start_encounter: null
+      end_mission: null            # success | failure

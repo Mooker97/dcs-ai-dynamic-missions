@@ -1,0 +1,144 @@
+// DMS "The Hill" - vanilla Arma 3, Altis. Solo player leading an AI squad.
+author = "DMS";
+onLoadName = "The Hill";
+onLoadMission = "Raid a CSAT compound, retrieve the intel and extract.";
+briefingName = "DMS - The Hill";
+overviewText = "Lead a NATO squad against a small CSAT compound on Altis, recover the intel and get out by helicopter.";
+
+respawn = 0;
+respawnDialog = 0;
+disabledAI = 1;
+enableDebugConsole = 1;
+corpseManagerMode = 0;
+wreckManagerMode = 0;
+
+class Header
+{
+	gameType = "Coop";
+	minPlayers = 1;
+	maxPlayers = 1;
+};
+
+class Params
+{
+	class DMS_seed
+	{
+		title = "Random seed (0 = random, logged)";
+		values[] = {0, 1, 2, 3, 7, 42, 1337, 4242};
+		texts[] = {"Random", "1", "2", "3", "7", "42", "1337", "4242"};
+		default = 0;
+	};
+	class DMS_site
+	{
+		title = "Objective site";
+		values[] = {0, 1, 2, 3};
+		texts[] = {"From seed", "Pyrgos farmland", "Zaros countryside", "Frini plateau"};
+		default = 0;
+	};
+	class DMS_debug
+	{
+		title = "Debug (log to screen, enemy markers)";
+		values[] = {0, 1};
+		texts[] = {"Off", "On"};
+		default = 0;
+	};
+	class DMS_testMode
+	{
+		title = "Test mode (AI squad plays unattended)";
+		values[] = {0, 1};
+		texts[] = {"Off", "On"};
+		default = 0;
+	};
+	class DMS_testMinutes
+	{
+		title = "Test mode time limit (minutes)";
+		values[] = {20, 30, 45, 60, 90};
+		texts[] = {"20", "30", "45", "60", "90"};
+		default = 45;
+	};
+};
+
+class CfgFunctions
+{
+	class DMS
+	{
+		tag = "DMS";
+		class mission
+		{
+			file = "functions";
+			class config {};
+			class log {};
+			class rng {};
+			class findPos {};
+			class spawnCompound {};
+			class qrf {};
+			class support {};
+			class intel {};
+			class exfil {};
+			class end {};
+			class testMode {};
+		};
+	};
+};
+
+class CfgCommunicationMenu
+{
+	class DMS_ArtyFire
+	{
+		text = "Mortars: fire for effect";
+		submenu = "";
+		expression = "['REQUEST', [_this select 0, _this select 1, 'FFE']] remoteExecCall ['DMS_fnc_support', 2];";
+		icon = "\a3\Ui_f\data\GUI\Cfg\CommunicationMenu\artillery_ca.paa";
+		cursor = "\a3\Ui_f\data\IGUI\Cfg\Cursors\iconCursorSupport_ca.paa";
+		enable = "1";
+		removeAfterExpressionCall = 1;
+	};
+	class DMS_ArtySpot
+	{
+		text = "Mortars: spotting round";
+		submenu = "";
+		expression = "['REQUEST', [_this select 0, _this select 1, 'SPOT']] remoteExecCall ['DMS_fnc_support', 2];";
+		icon = "\a3\Ui_f\data\GUI\Cfg\CommunicationMenu\artillery_ca.paa";
+		cursor = "\a3\Ui_f\data\IGUI\Cfg\Cursors\iconCursorSupport_ca.paa";
+		enable = "1";
+		removeAfterExpressionCall = 1;
+	};
+	class DMS_Extract
+	{
+		text = "Request extraction";
+		submenu = "";
+		expression = "['REQUEST', [_this select 0]] remoteExecCall ['DMS_fnc_exfil', 2];";
+		icon = "\a3\Ui_f\data\GUI\Cfg\CommunicationMenu\transport_ca.paa";
+		cursor = "";
+		enable = "1";
+		removeAfterExpressionCall = 1;
+	};
+};
+
+class CfgDebriefing
+{
+	class DMS_Win
+	{
+		title = "Mission complete";
+		subtitle = "Intel recovered";
+		description = "The squad extracted with the intel.";
+	};
+	class DMS_FailDead
+	{
+		title = "Mission failed";
+		subtitle = "Squad lost";
+		description = "You were killed or the squad was wiped out.";
+	};
+	class DMS_FailHeli
+	{
+		title = "Mission failed";
+		subtitle = "Extraction lost";
+		description = "The extraction helicopter was destroyed.";
+	};
+	class DMS_TestEnd
+	{
+		title = "Test run ended";
+		subtitle = "Time limit";
+		description = "The unattended test run reached its time limit.";
+	};
+};

@@ -85,5 +85,6 @@ call `DMS.Log.setDebug(true)`.
 - [docs/reference/dcs-scripting-gotchas.md](docs/reference/dcs-scripting-gotchas.md): **read before writing runtime Lua**
 - [docs/reference/miz-format.md](docs/reference/miz-format.md), [docs/reference/lessons.md](docs/reference/lessons.md)
 - [ROADMAP.md](ROADMAP.md), [CHANGELOG.md](CHANGELOG.md)
+- Arma 3: [docs/arma/kb/](docs/arma/kb/README.md) is the verified knowledge base (all BIS function names, wiki pages). Check it before writing SQF. Missions are in `arma/missions/`.
 - Key data: [DCS Stores/CLSID list](https://www.airgoons.com/w/DCS_Reference/Stores_List),
   [Hoggit scripting wiki](https://wiki.hoggitworld.com/view/Simulator_Scripting_Engine_Documentation)

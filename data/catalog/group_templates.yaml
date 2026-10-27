@@ -1,0 +1,1206 @@
+# DMS catalog: group templates
+# -----------------------------------------------------------------------------
+# GENERATED from legacy/lua-library/spawners/unit-templates.lua (dynamic-spawn groups,
+# identical to the set embedded in the Dustoff Corridor master init) and
+# legacy/mission-generation/templates/units/{blue_air,red_air,sam_sites}.yaml,
+# plus a few new DMS templates (sa8, insurgent_cell, supply_convoy, ...).
+#
+# `templates.<id>` is a superset of the DMS_CONFIG `templates` entry (docs/CONTRACTS.md):
+#   country     DCS country.id key (RUSSIA, USA, INSURGENTS, ...)            [DMS_CONFIG]
+#   category    ground | plane | helicopter | ship                           [DMS_CONFIG]
+#   skill       Average | Good | High | Excellent | Random                   [DMS_CONFIG]
+#   units[]     {type, dx, dy, heading}  offsets in metres from the group anchor
+#               (dx = north/x, dy = east/y, DCS map axes), heading in radians   [DMS_CONFIG]
+#               optional per-unit `loadout` (named loadout, resolved by dms-gen)
+# Catalog-only metadata (dropped when emitted into DMS_CONFIG):
+#   name, description, role, tags, coalition (red|blue), eras (intersection of member unit
+#   eras), threat, max_range_nm, alarm_state (red=weapons free / green=emcon), engage_range_m,
+#   frequency (MHz) + modulation, tacan {channel, callsign}, callsign, static (spawn as static
+#   object), source (where the template came from).
+# Fixes vs legacy: SA-3 gained its "snr s-125 tr" track radar (it cannot engage without it);
+#   invalid type strings corrected (see unit_types.yaml header); SA-20 template dropped
+#   (S-300PMU not in DCS core) and removed from the advanced_iads package.
+#
+# `packages.<id>` combine templates: groups[] {template, dx, dy, role}.
+
+version: 1
+templates:
+  zu23_truck:
+    name: ZU-23 on Ural
+    description: Ural truck with ZU-23-2. Mobile AA.
+    role: air_defense
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [early_cold_war, late_cold_war, modern]
+    source: legacy/lua-library/spawners/unit-templates.lua
+    units:
+    - {type: Ural-375 ZU-23, dx: 0.0, dy: 0.0, heading: 0.0}
+  tunguska:
+    name: 2S6 Tunguska
+    description: Single Tunguska SPAAG. High threat to helicopters.
+    role: air_defense
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [late_cold_war, modern]
+    source: legacy/lua-library/spawners/unit-templates.lua
+    units:
+    - {type: 2S6 Tunguska, dx: 0.0, dy: 0.0, heading: 0.0}
+  zu23_battery:
+    name: ZU-23 Battery
+    description: Two ZU-23 trucks. Overlapping AA coverage.
+    role: air_defense
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [early_cold_war, late_cold_war, modern]
+    source: legacy/lua-library/spawners/unit-templates.lua
+    units:
+    - {type: Ural-375 ZU-23, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: Ural-375 ZU-23, dx: -30.0, dy: 15.0, heading: 0.0}
+  qrf_light:
+    name: Light QRF
+    description: Two technicals. Fast response.
+    role: qrf
+    country: INSURGENTS
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [modern]
+    source: legacy/lua-library/spawners/unit-templates.lua
+    units:
+    - {type: tt_KORD, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: tt_KORD, dx: -30.0, dy: 15.0, heading: 0.0}
+  technical_aa_mg:
+    name: Mixed Technicals
+    description: One ZU-23 and one MG technical.
+    role: technical
+    country: INSURGENTS
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [modern]
+    source: legacy/lua-library/spawners/unit-templates.lua
+    units:
+    - {type: tt_ZU-23, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: tt_KORD, dx: -30.0, dy: 15.0, heading: 0.0}
+  qrf_heavy:
+    name: Heavy QRF
+    description: T-72 with BMP. Heavy response.
+    role: qrf
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [modern]
+    source: legacy/lua-library/spawners/unit-templates.lua
+    units:
+    - {type: T-72B3, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: BMP-2, dx: -30.0, dy: 15.0, heading: 0.0}
+  qrf_medium:
+    name: Medium QRF
+    description: BMP with BTR. Mechanized response.
+    role: qrf
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [late_cold_war, modern]
+    source: legacy/lua-library/spawners/unit-templates.lua
+    units:
+    - {type: BMP-2, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: BTR-80, dx: -30.0, dy: 15.0, heading: 0.0}
+  manpads_single:
+    name: MANPADS Gunner
+    description: Single Igla gunner. Concealed threat.
+    role: air_defense
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [modern]
+    source: legacy/lua-library/spawners/unit-templates.lua
+    units:
+    - {type: SA-18 Igla-S manpad, dx: 0.0, dy: 0.0, heading: 0.0}
+  convoy_escort:
+    name: Convoy Escort
+    description: BTR with trucks. Supply convoy.
+    role: mixed
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [late_cold_war, modern]
+    source: legacy/lua-library/spawners/unit-templates.lua
+    units:
+    - {type: BTR-80, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: KAMAZ Truck, dx: -30.0, dy: 15.0, heading: 0.0}
+    - {type: KAMAZ Truck, dx: -60.0, dy: 0.0, heading: 0.0}
+    - {type: BTR-80, dx: -90.0, dy: 15.0, heading: 0.0}
+  tunguska_pair:
+    name: Tunguska Pair
+    description: Two Tunguskas providing overlapping coverage.
+    role: air_defense
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [late_cold_war, modern]
+    source: legacy/lua-library/spawners/unit-templates.lua
+    units:
+    - {type: 2S6 Tunguska, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: 2S6 Tunguska, dx: -30.0, dy: 15.0, heading: 0.0}
+  technical_mg:
+    name: Technical (MG)
+    description: Pickup with KORD HMG. Fast harassment.
+    role: technical
+    country: INSURGENTS
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [modern]
+    source: legacy/lua-library/spawners/unit-templates.lua
+    units:
+    - {type: tt_KORD, dx: 0.0, dy: 0.0, heading: 0.0}
+  recon_patrol:
+    name: Recon Patrol
+    description: BRDM-2 scout car. Light recon.
+    role: armor
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [early_cold_war, late_cold_war, modern]
+    source: legacy/lua-library/spawners/unit-templates.lua
+    units:
+    - {type: BRDM-2, dx: 0.0, dy: 0.0, heading: 0.0}
+  strela_section:
+    name: Strela-10 Section
+    description: Two Strela-10 SAMs. IR-guided low altitude threat.
+    role: air_defense
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [late_cold_war, modern]
+    source: legacy/lua-library/spawners/unit-templates.lua
+    units:
+    - {type: Strela-10M3, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: Strela-10M3, dx: -30.0, dy: 15.0, heading: 0.0}
+  btr_squad:
+    name: BTR Squad
+    description: Three BTR-80 APCs. Troop transport.
+    role: armor
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [late_cold_war, modern]
+    source: legacy/lua-library/spawners/unit-templates.lua
+    units:
+    - {type: BTR-80, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: BTR-80, dx: -30.0, dy: 15.0, heading: 0.0}
+    - {type: BTR-80, dx: -60.0, dy: 0.0, heading: 0.0}
+  ambush_team:
+    name: Ambush Team
+    description: RPG team with MANPADS. Anti-helo ambush.
+    role: mixed
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [modern]
+    source: legacy/lua-library/spawners/unit-templates.lua
+    units:
+    - {type: Soldier RPG, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: Soldier RPG, dx: -6.0, dy: 3.0, heading: 0.0}
+    - {type: SA-18 Igla-S manpad, dx: -12.0, dy: 0.0, heading: 0.0}
+  mg_nest:
+    name: MG Nest
+    description: KORD HMG with security. Static position.
+    role: infantry
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [modern]
+    source: legacy/lua-library/spawners/unit-templates.lua
+    units:
+    - {type: HL_KORD, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: Soldier AK, dx: -6.0, dy: 3.0, heading: 0.0}
+    static: true
+  rpg_team:
+    name: RPG Team
+    description: Two RPG gunners. Anti-armor ambush.
+    role: infantry
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [early_cold_war, late_cold_war, modern]
+    source: legacy/lua-library/spawners/unit-templates.lua
+    units:
+    - {type: Soldier RPG, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: Soldier RPG, dx: -6.0, dy: 3.0, heading: 0.0}
+  infantry_fireteam:
+    name: Infantry Fireteam
+    description: Three riflemen. Light infantry.
+    role: infantry
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [early_cold_war, late_cold_war, modern]
+    source: legacy/lua-library/spawners/unit-templates.lua
+    units:
+    - {type: Soldier AK, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: Soldier AK, dx: -6.0, dy: 3.0, heading: 0.0}
+    - {type: Soldier AK, dx: -12.0, dy: 0.0, heading: 0.0}
+  t72_platoon:
+    name: T-72 Platoon
+    description: Two T-72B3 tanks. Heavy armor threat.
+    role: armor
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [modern]
+    source: legacy/lua-library/spawners/unit-templates.lua
+    units:
+    - {type: T-72B3, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: T-72B3, dx: -30.0, dy: 15.0, heading: 0.0}
+  infantry_squad:
+    name: Infantry Squad
+    description: Four riflemen with one RPG. Basic squad.
+    role: infantry
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [early_cold_war, late_cold_war, modern]
+    source: legacy/lua-library/spawners/unit-templates.lua
+    units:
+    - {type: Soldier AK, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: Soldier AK, dx: -6.0, dy: 3.0, heading: 0.0}
+    - {type: Soldier AK, dx: -12.0, dy: 0.0, heading: 0.0}
+    - {type: Soldier RPG, dx: -18.0, dy: 3.0, heading: 0.0}
+  shilka:
+    name: ZSU-23-4 Shilka
+    description: Single Shilka AAA. Radar-guided quad 23mm.
+    role: air_defense
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [early_cold_war, late_cold_war, modern]
+    source: legacy/lua-library/spawners/unit-templates.lua
+    units:
+    - {type: ZSU-23-4 Shilka, dx: 0.0, dy: 0.0, heading: 0.0}
+  aa_ambush:
+    name: AA Ambush
+    description: ZU-23 with MANPADS backup. Layered AA.
+    role: air_defense
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [modern]
+    source: legacy/lua-library/spawners/unit-templates.lua
+    units:
+    - {type: Ural-375 ZU-23, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: SA-18 Igla-S manpad, dx: -6.0, dy: 3.0, heading: 0.0}
+    - {type: SA-18 Igla-S manpad, dx: -12.0, dy: 0.0, heading: 0.0}
+  checkpoint:
+    name: Checkpoint
+    description: BTR with infantry. Road checkpoint.
+    role: mixed
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [late_cold_war, modern]
+    source: legacy/lua-library/spawners/unit-templates.lua
+    units:
+    - {type: BTR-80, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: Soldier AK, dx: -6.0, dy: 3.0, heading: 0.0}
+    - {type: Soldier AK, dx: -12.0, dy: 0.0, heading: 0.0}
+    - {type: Soldier RPG, dx: -18.0, dy: 3.0, heading: 0.0}
+  manpads_team:
+    name: MANPADS Team
+    description: Two Igla gunners. Hard to spot, deadly.
+    role: air_defense
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [modern]
+    source: legacy/lua-library/spawners/unit-templates.lua
+    units:
+    - {type: SA-18 Igla-S manpad, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: SA-18 Igla-S manpad, dx: -6.0, dy: 3.0, heading: 0.0}
+  technical_pair:
+    name: Technical Pair
+    description: Two armed technicals. Mobile firepower.
+    role: technical
+    country: INSURGENTS
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [modern]
+    source: legacy/lua-library/spawners/unit-templates.lua
+    units:
+    - {type: tt_KORD, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: tt_KORD, dx: -30.0, dy: 15.0, heading: 0.0}
+  zu23_technical:
+    name: ZU-23 Technical
+    description: Pickup with ZU-23-2. Fast insurgent AA.
+    role: air_defense
+    country: INSURGENTS
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [late_cold_war, modern]
+    source: legacy/lua-library/spawners/unit-templates.lua
+    units:
+    - {type: tt_ZU-23, dx: 0.0, dy: 0.0, heading: 0.0}
+  bmp_section:
+    name: BMP Section
+    description: Two BMP-2 IFVs. Infantry support.
+    role: armor
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [late_cold_war, modern]
+    source: legacy/lua-library/spawners/unit-templates.lua
+    units:
+    - {type: BMP-2, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: BMP-2, dx: -30.0, dy: 15.0, heading: 0.0}
+  t72_single:
+    name: T-72 Tank
+    description: Single T-72B3. Main battle tank.
+    role: armor
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [modern]
+    source: legacy/lua-library/spawners/unit-templates.lua
+    units:
+    - {type: T-72B3, dx: 0.0, dy: 0.0, heading: 0.0}
+  sa8:
+    name: SA-8 Gecko
+    description: Single SA-8 Osa. Self-contained radar SAM; pop-up threat to helicopters.
+    role: air_defense
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [late_cold_war, modern]
+    source: dms (new)
+    units:
+    - {type: Osa 9A33 ln, dx: 0.0, dy: 0.0, heading: 0.0}
+  sa8_section:
+    name: SA-8 Section
+    description: Two SA-8 Osa launchers.
+    role: air_defense
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [late_cold_war, modern]
+    source: dms (new)
+    units:
+    - {type: Osa 9A33 ln, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: Osa 9A33 ln, dx: -30.0, dy: 15.0, heading: 0.0}
+  sa9_single:
+    name: SA-9 Gaskin
+    description: Single SA-9 IR SAM on BRDM.
+    role: air_defense
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [early_cold_war, late_cold_war, modern]
+    source: dms (new)
+    units:
+    - {type: Strela-1 9P31, dx: 0.0, dy: 0.0, heading: 0.0}
+  sa15_single:
+    name: SA-15 Tor
+    description: Single Tor point-defence SAM.
+    role: air_defense
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [late_cold_war, modern]
+    source: dms (new)
+    units:
+    - {type: Tor 9A331, dx: 0.0, dy: 0.0, heading: 0.0}
+  zu23_technical_pair:
+    name: ZU-23 Technical Pair
+    description: Two ZU-23 pickups.
+    role: air_defense
+    country: INSURGENTS
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [late_cold_war, modern]
+    source: dms (new)
+    units:
+    - {type: tt_ZU-23, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: tt_ZU-23, dx: -30.0, dy: 15.0, heading: 0.0}
+  insurgent_cell:
+    name: Insurgent Cell
+    description: Insurgent riflemen with RPG and MANPADS.
+    role: infantry
+    country: INSURGENTS
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [late_cold_war, modern]
+    source: dms (new)
+    units:
+    - {type: Infantry AK, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: Infantry AK, dx: -6.0, dy: 3.0, heading: 0.0}
+    - {type: Soldier RPG, dx: -12.0, dy: 0.0, heading: 0.0}
+    - {type: Igla manpad INS, dx: -18.0, dy: 3.0, heading: 0.0}
+  supply_convoy:
+    name: Supply Convoy
+    description: Trucks and fuel tanker, unescorted.
+    role: convoy
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [early_cold_war, late_cold_war, modern]
+    source: dms (new)
+    units:
+    - {type: Ural-375, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: Ural-375, dx: -30.0, dy: 15.0, heading: 0.0}
+    - {type: ATMZ-5, dx: -60.0, dy: 0.0, heading: 0.0}
+    - {type: Ural-375, dx: -90.0, dy: 15.0, heading: 0.0}
+  artillery_battery:
+    name: Grad Battery
+    description: Two BM-21 Grad launchers with a supply truck.
+    role: artillery
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [early_cold_war, late_cold_war, modern]
+    source: dms (new)
+    units:
+    - {type: Grad-URAL, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: Grad-URAL, dx: -30.0, dy: 15.0, heading: 0.0}
+    - {type: Ural-375, dx: -60.0, dy: 0.0, heading: 0.0}
+  mortar_team:
+    name: Mortar Team
+    description: 120mm mortar with crew.
+    role: artillery
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [late_cold_war, modern]
+    source: dms (new)
+    units:
+    - {type: 2B11 mortar, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: Soldier AK, dx: -6.0, dy: 3.0, heading: 0.0}
+    - {type: Soldier AK, dx: -12.0, dy: 0.0, heading: 0.0}
+  scud_site:
+    name: Scud Site
+    description: Scud TEL with support vehicles.
+    role: hvt
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [early_cold_war, late_cold_war, modern]
+    source: dms (new)
+    units:
+    - {type: Scud_B, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: UAZ-469, dx: -30.0, dy: 15.0, heading: 0.0}
+    - {type: Ural-375, dx: -60.0, dy: 0.0, heading: 0.0}
+  hvt_vehicle:
+    name: HVT Vehicle
+    description: UAZ with technical escort.
+    role: hvt
+    country: INSURGENTS
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [modern]
+    source: dms (new)
+    units:
+    - {type: UAZ-469, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: tt_KORD, dx: -30.0, dy: 15.0, heading: 0.0}
+  blue_patrol:
+    name: Blue Patrol
+    description: Two armed HMMWVs.
+    role: technical
+    country: USA
+    coalition: blue
+    category: ground
+    skill: Random
+    eras: [late_cold_war, modern]
+    source: dms (new)
+    units:
+    - {type: M1043 HMMWV Armament, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: M1043 HMMWV Armament, dx: -30.0, dy: 15.0, heading: 0.0}
+  blue_squad:
+    name: Friendly Squad
+    description: Four US infantry with JTAC (friendly / CSAR / TIC).
+    role: infantry
+    country: USA
+    coalition: blue
+    category: ground
+    skill: Random
+    eras: [modern]
+    source: dms (new)
+    units:
+    - {type: Soldier M4, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: Soldier M4, dx: -6.0, dy: 3.0, heading: 0.0}
+    - {type: Soldier M249, dx: -12.0, dy: 0.0, heading: 0.0}
+    - {type: JTAC, dx: -18.0, dy: 3.0, heading: 0.0}
+  f16_sead_2ship:
+    name: Viper
+    description: 2-ship F-16C SEAD element with HARMs and self-escort capability
+    role: multirole
+    tags: [sead]
+    country: USA
+    coalition: blue
+    category: plane
+    skill: Good
+    eras: [modern]
+    source: legacy/mission-generation/templates/units/blue_air.yaml
+    units:
+    - {type: F-16C_50, dx: 0.0, dy: 0.0, heading: 0.0, loadout: SEAD_Standard}
+    - {type: F-16C_50, dx: 50.0, dy: -50.0, heading: 0.0, loadout: SEAD_Standard}
+    frequency: 251.0
+    modulation: AM
+    callsign: Viper
+  f16_sead_4ship:
+    name: Viper
+    description: 4-ship F-16C SEAD flight with HARMs
+    role: multirole
+    tags: [sead]
+    country: USA
+    coalition: blue
+    category: plane
+    skill: Good
+    eras: [modern]
+    source: legacy/mission-generation/templates/units/blue_air.yaml
+    units:
+    - {type: F-16C_50, dx: 0.0, dy: 0.0, heading: 0.0, loadout: SEAD_Standard}
+    - {type: F-16C_50, dx: 50.0, dy: -50.0, heading: 0.0, loadout: SEAD_Standard}
+    - {type: F-16C_50, dx: 100.0, dy: 0.0, heading: 0.0, loadout: SEAD_Standard}
+    - {type: F-16C_50, dx: 150.0, dy: -50.0, heading: 0.0, loadout: SEAD_Standard}
+    frequency: 251.0
+    modulation: AM
+    callsign: Viper
+  f16_cap_2ship:
+    name: Viper
+    description: 2-ship F-16C CAP element with AMRAAMs
+    role: multirole
+    tags: [cap]
+    country: USA
+    coalition: blue
+    category: plane
+    skill: Good
+    eras: [modern]
+    source: legacy/mission-generation/templates/units/blue_air.yaml
+    units:
+    - {type: F-16C_50, dx: 0.0, dy: 0.0, heading: 0.0, loadout: CAP_Standard}
+    - {type: F-16C_50, dx: 50.0, dy: -50.0, heading: 0.0, loadout: CAP_Standard}
+    frequency: 251.0
+    modulation: AM
+    callsign: Viper
+  f16_strike_2ship:
+    name: Viper
+    description: 2-ship F-16C strike element with JDAMs
+    role: multirole
+    tags: [strike]
+    country: USA
+    coalition: blue
+    category: plane
+    skill: Good
+    eras: [modern]
+    source: legacy/mission-generation/templates/units/blue_air.yaml
+    units:
+    - {type: F-16C_50, dx: 0.0, dy: 0.0, heading: 0.0, loadout: Strike_JDAM}
+    - {type: F-16C_50, dx: 50.0, dy: -50.0, heading: 0.0, loadout: Strike_JDAM}
+    frequency: 251.0
+    modulation: AM
+    callsign: Viper
+  fa18_sead_2ship:
+    name: Hornet
+    description: 2-ship F/A-18C SEAD element with HARMs
+    role: multirole
+    tags: [sead]
+    country: USA
+    coalition: blue
+    category: plane
+    skill: Good
+    eras: [modern]
+    source: legacy/mission-generation/templates/units/blue_air.yaml
+    units:
+    - {type: FA-18C_hornet, dx: 0.0, dy: 0.0, heading: 0.0, loadout: SEAD_Standard}
+    - {type: FA-18C_hornet, dx: 50.0, dy: -50.0, heading: 0.0, loadout: SEAD_Standard}
+    frequency: 252.0
+    modulation: AM
+    callsign: Hornet
+  fa18_strike_2ship:
+    name: Hornet
+    description: 2-ship F/A-18C multirole strike
+    role: multirole
+    tags: [strike]
+    country: USA
+    coalition: blue
+    category: plane
+    skill: Good
+    eras: [modern]
+    source: legacy/mission-generation/templates/units/blue_air.yaml
+    units:
+    - {type: FA-18C_hornet, dx: 0.0, dy: 0.0, heading: 0.0, loadout: Strike_Mixed}
+    - {type: FA-18C_hornet, dx: 50.0, dy: -50.0, heading: 0.0, loadout: Strike_Mixed}
+    frequency: 252.0
+    modulation: AM
+    callsign: Hornet
+  f15c_cap_2ship:
+    name: Eagle
+    description: 2-ship F-15C air superiority fighters
+    role: fighter
+    tags: [cap]
+    country: USA
+    coalition: blue
+    category: plane
+    skill: Good
+    eras: [late_cold_war, modern]
+    source: legacy/mission-generation/templates/units/blue_air.yaml
+    units:
+    - {type: F-15C, dx: 0.0, dy: 0.0, heading: 0.0, loadout: CAP_Standard}
+    - {type: F-15C, dx: 50.0, dy: -50.0, heading: 0.0, loadout: CAP_Standard}
+    frequency: 253.0
+    modulation: AM
+    callsign: Eagle
+  f15c_cap_4ship:
+    name: Eagle
+    description: 4-ship F-15C CAP flight
+    role: fighter
+    tags: [cap]
+    country: USA
+    coalition: blue
+    category: plane
+    skill: Good
+    eras: [late_cold_war, modern]
+    source: legacy/mission-generation/templates/units/blue_air.yaml
+    units:
+    - {type: F-15C, dx: 0.0, dy: 0.0, heading: 0.0, loadout: CAP_Standard}
+    - {type: F-15C, dx: 50.0, dy: -50.0, heading: 0.0, loadout: CAP_Standard}
+    - {type: F-15C, dx: 100.0, dy: 0.0, heading: 0.0, loadout: CAP_Standard}
+    - {type: F-15C, dx: 150.0, dy: -50.0, heading: 0.0, loadout: CAP_Standard}
+    frequency: 253.0
+    modulation: AM
+    callsign: Eagle
+  f15e_strike_2ship:
+    name: Strike
+    description: 2-ship F-15E deep strike
+    role: strike
+    tags: [strike]
+    country: USA
+    coalition: blue
+    category: plane
+    skill: Good
+    eras: [late_cold_war, modern]
+    source: legacy/mission-generation/templates/units/blue_air.yaml
+    units:
+    - {type: F-15E, dx: 0.0, dy: 0.0, heading: 0.0, loadout: Strike_Heavy}
+    - {type: F-15E, dx: 50.0, dy: -50.0, heading: 0.0, loadout: Strike_Heavy}
+    frequency: 254.0
+    modulation: AM
+    callsign: Strike
+  a10c_cas_2ship:
+    name: Hawg
+    description: 2-ship A-10C CAS flight
+    role: attack
+    tags: [cas]
+    country: USA
+    coalition: blue
+    category: plane
+    skill: Good
+    eras: [late_cold_war, modern]
+    source: legacy/mission-generation/templates/units/blue_air.yaml
+    units:
+    - {type: A-10C, dx: 0.0, dy: 0.0, heading: 0.0, loadout: CAS_Mixed}
+    - {type: A-10C, dx: 50.0, dy: -50.0, heading: 0.0, loadout: CAS_Mixed}
+    frequency: 255.0
+    modulation: AM
+    callsign: Hawg
+  awacs_e3a:
+    name: Magic
+    description: E-3A AWACS on patrol orbit
+    role: awacs
+    tags: []
+    country: USA
+    coalition: blue
+    category: plane
+    skill: Excellent
+    eras: [late_cold_war, modern]
+    source: legacy/mission-generation/templates/units/blue_air.yaml
+    units:
+    - {type: E-3A, dx: 0.0, dy: 0.0, heading: 0.0, loadout: Empty}
+    frequency: 251.0
+    modulation: AM
+    callsign: Magic
+  tanker_kc135:
+    name: Texaco
+    description: KC-135 tanker on refueling track
+    role: tanker
+    tags: []
+    country: USA
+    coalition: blue
+    category: plane
+    skill: Excellent
+    eras: [early_cold_war, late_cold_war, modern]
+    source: legacy/mission-generation/templates/units/blue_air.yaml
+    units:
+    - {type: KC-135, dx: 0.0, dy: 0.0, heading: 0.0, loadout: Empty}
+    frequency: 256.0
+    modulation: AM
+    tacan: {channel: 73, callsign: TEX}
+    callsign: Texaco
+  mig29_cap_2ship:
+    name: Fulcrum
+    description: 2-ship MiG-29S CAP element
+    role: fighter
+    tags: [cap]
+    country: RUSSIA
+    coalition: red
+    category: plane
+    skill: High
+    eras: [late_cold_war, modern]
+    source: legacy/mission-generation/templates/units/red_air.yaml
+    units:
+    - {type: MiG-29S, dx: 0.0, dy: 0.0, heading: 0.0, loadout: CAP_Standard}
+    - {type: MiG-29S, dx: 50.0, dy: -50.0, heading: 0.0, loadout: CAP_Standard}
+    frequency: 124.0
+    modulation: AM
+    callsign: Fulcrum
+  mig29_cap_4ship:
+    name: Fulcrum
+    description: 4-ship MiG-29S CAP flight
+    role: fighter
+    tags: [cap]
+    country: RUSSIA
+    coalition: red
+    category: plane
+    skill: High
+    eras: [late_cold_war, modern]
+    source: legacy/mission-generation/templates/units/red_air.yaml
+    units:
+    - {type: MiG-29S, dx: 0.0, dy: 0.0, heading: 0.0, loadout: CAP_Standard}
+    - {type: MiG-29S, dx: 50.0, dy: -50.0, heading: 0.0, loadout: CAP_Standard}
+    - {type: MiG-29S, dx: 100.0, dy: 0.0, heading: 0.0, loadout: CAP_Standard}
+    - {type: MiG-29S, dx: 150.0, dy: -50.0, heading: 0.0, loadout: CAP_Standard}
+    frequency: 124.0
+    modulation: AM
+    callsign: Fulcrum
+  su27_cap_2ship:
+    name: Flanker
+    description: 2-ship Su-27 air superiority
+    role: fighter
+    tags: [cap]
+    country: RUSSIA
+    coalition: red
+    category: plane
+    skill: Excellent
+    eras: [late_cold_war, modern]
+    source: legacy/mission-generation/templates/units/red_air.yaml
+    units:
+    - {type: Su-27, dx: 0.0, dy: 0.0, heading: 0.0, loadout: CAP_Heavy}
+    - {type: Su-27, dx: 50.0, dy: -50.0, heading: 0.0, loadout: CAP_Heavy}
+    frequency: 125.0
+    modulation: AM
+    callsign: Flanker
+  su30_strike_2ship:
+    name: Flanker
+    description: 2-ship Su-30 multirole strike
+    role: multirole
+    tags: [strike]
+    country: RUSSIA
+    coalition: red
+    category: plane
+    skill: High
+    eras: [modern]
+    source: legacy/mission-generation/templates/units/red_air.yaml
+    units:
+    - {type: Su-30, dx: 0.0, dy: 0.0, heading: 0.0, loadout: Strike_AG}
+    - {type: Su-30, dx: 50.0, dy: -50.0, heading: 0.0, loadout: Strike_AG}
+    frequency: 126.0
+    modulation: AM
+    callsign: Flanker
+  su25_cas_2ship:
+    name: Frogfoot
+    description: 2-ship Su-25T ground attack
+    role: attack
+    tags: [cas]
+    country: RUSSIA
+    coalition: red
+    category: plane
+    skill: Good
+    eras: [late_cold_war, modern]
+    source: legacy/mission-generation/templates/units/red_air.yaml
+    units:
+    - {type: Su-25T, dx: 0.0, dy: 0.0, heading: 0.0, loadout: CAS_Mixed}
+    - {type: Su-25T, dx: 50.0, dy: -50.0, heading: 0.0, loadout: CAS_Mixed}
+    frequency: 127.0
+    modulation: AM
+    callsign: Frogfoot
+  mig21_cap_2ship:
+    name: Fishbed
+    description: 2-ship MiG-21bis low-cost interceptors
+    role: fighter
+    tags: [cap]
+    country: RUSSIA
+    coalition: red
+    category: plane
+    skill: Average
+    eras: [early_cold_war, late_cold_war]
+    source: legacy/mission-generation/templates/units/red_air.yaml
+    units:
+    - {type: MiG-21Bis, dx: 0.0, dy: 0.0, heading: 0.0, loadout: Intercept}
+    - {type: MiG-21Bis, dx: 50.0, dy: -50.0, heading: 0.0, loadout: Intercept}
+    frequency: 128.0
+    modulation: AM
+    callsign: Fishbed
+  l39_light_2ship:
+    name: Albatros
+    description: 2-ship L-39 light attack/training
+    role: trainer
+    tags: [light]
+    country: RUSSIA
+    coalition: red
+    category: plane
+    skill: Average
+    eras: [early_cold_war, late_cold_war, modern]
+    source: legacy/mission-generation/templates/units/red_air.yaml
+    units:
+    - {type: L-39ZA, dx: 0.0, dy: 0.0, heading: 0.0, loadout: Light_Attack}
+    - {type: L-39ZA, dx: 50.0, dy: -50.0, heading: 0.0, loadout: Light_Attack}
+    frequency: 129.0
+    modulation: AM
+    callsign: Albatros
+  mi8_transport_2ship:
+    name: Hip
+    description: 2-ship Mi-8 transport helicopters
+    role: utility_helo
+    tags: [transport]
+    country: RUSSIA
+    coalition: red
+    category: helicopter
+    skill: Good
+    eras: [early_cold_war, late_cold_war, modern]
+    source: legacy/mission-generation/templates/units/red_air.yaml
+    units:
+    - {type: Mi-8MT, dx: 0.0, dy: 0.0, heading: 0.0, loadout: Empty}
+    - {type: Mi-8MT, dx: 30.0, dy: -30.0, heading: 0.0, loadout: Empty}
+    frequency: 130.0
+    modulation: AM
+    callsign: Hip
+  mi24_attack_2ship:
+    name: Hind
+    description: 2-ship Mi-24 attack helicopters
+    role: attack_helo
+    tags: [attack]
+    country: RUSSIA
+    coalition: red
+    category: helicopter
+    skill: High
+    eras: [late_cold_war, modern]
+    source: legacy/mission-generation/templates/units/red_air.yaml
+    units:
+    - {type: Mi-24P, dx: 0.0, dy: 0.0, heading: 0.0, loadout: Attack}
+    - {type: Mi-24P, dx: 30.0, dy: -30.0, heading: 0.0, loadout: Attack}
+    frequency: 131.0
+    modulation: AM
+    callsign: Hind
+  ka50_attack_2ship:
+    name: Hokum
+    description: 2-ship Ka-50 attack helicopters
+    role: attack_helo
+    tags: [attack]
+    country: RUSSIA
+    coalition: red
+    category: helicopter
+    skill: Excellent
+    eras: [late_cold_war, modern]
+    source: legacy/mission-generation/templates/units/red_air.yaml
+    units:
+    - {type: Ka-50, dx: 0.0, dy: 0.0, heading: 0.0, loadout: Attack_AT}
+    - {type: Ka-50, dx: 30.0, dy: -30.0, heading: 0.0, loadout: Attack_AT}
+    frequency: 132.0
+    modulation: AM
+    callsign: Hokum
+  sa9_gaskin_section:
+    name: SA-9
+    description: SA-9 Gaskin SHORAD section (2 launchers)
+    role: air_defense
+    tags: []
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [early_cold_war, late_cold_war, modern]
+    source: legacy/mission-generation/templates/units/sam_sites.yaml
+    units:
+    - {type: Strela-1 9P31, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: Strela-1 9P31, dx: 50.0, dy: 50.0, heading: 0.0}
+    threat: low
+    max_range_nm: 5.0
+    alarm_state: red
+    engage_range_m: 5000
+  sa13_gopher_section:
+    name: SA-13
+    description: SA-13 Gopher SHORAD section
+    role: air_defense
+    tags: []
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [late_cold_war, modern]
+    source: legacy/mission-generation/templates/units/sam_sites.yaml
+    units:
+    - {type: Strela-10M3, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: Strela-10M3, dx: 50.0, dy: 50.0, heading: 0.0}
+    threat: low
+    max_range_nm: 6.0
+    alarm_state: red
+    engage_range_m: 6000
+  sa15_tor_battery:
+    name: SA-15
+    description: SA-15 Tor SHORAD battery (3 launchers)
+    role: air_defense
+    tags: []
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [late_cold_war, modern]
+    source: legacy/mission-generation/templates/units/sam_sites.yaml
+    units:
+    - {type: Tor 9A331, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: Tor 9A331, dx: 100.0, dy: 0.0, heading: 0.0}
+    - {type: Tor 9A331, dx: 200.0, dy: 0.0, heading: 0.0}
+    threat: moderate
+    max_range_nm: 12.0
+    alarm_state: red
+    engage_range_m: 12000
+  sa19_tunguska_section:
+    name: SA-19
+    description: SA-19 Tunguska combined gun/missile SHORAD
+    role: air_defense
+    tags: []
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [late_cold_war, modern]
+    source: legacy/mission-generation/templates/units/sam_sites.yaml
+    units:
+    - {type: 2S6 Tunguska, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: 2S6 Tunguska, dx: 100.0, dy: 0.0, heading: 0.0}
+    threat: moderate
+    max_range_nm: 8.0
+    alarm_state: red
+    engage_range_m: 8000
+  sa3_goa_battery:
+    name: SA-3
+    description: SA-3 Goa medium-range SAM battery
+    role: air_defense
+    tags: []
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [early_cold_war, late_cold_war, modern]
+    source: legacy/mission-generation/templates/units/sam_sites.yaml
+    units:
+    - {type: p-19 s-125 sr, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: snr s-125 tr, dx: 0.0, dy: 60.0, heading: 0.0}
+    - {type: 5p73 s-125 ln, dx: 50.0, dy: 50.0, heading: 0.0}
+    - {type: 5p73 s-125 ln, dx: -50.0, dy: 50.0, heading: 0.0}
+    - {type: 5p73 s-125 ln, dx: 50.0, dy: -50.0, heading: 0.0}
+    - {type: 5p73 s-125 ln, dx: -50.0, dy: -50.0, heading: 0.0}
+    threat: moderate
+    max_range_nm: 25.0
+    alarm_state: green
+    engage_range_m: 25000
+  sa6_gainful_battery:
+    name: SA-6
+    description: SA-6 Gainful mobile SAM battery
+    role: air_defense
+    tags: []
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [early_cold_war, late_cold_war, modern]
+    source: legacy/mission-generation/templates/units/sam_sites.yaml
+    units:
+    - {type: Kub 1S91 str, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: Kub 2P25 ln, dx: 50.0, dy: 50.0, heading: 0.0}
+    - {type: Kub 2P25 ln, dx: -50.0, dy: 50.0, heading: 0.0}
+    - {type: Kub 2P25 ln, dx: 50.0, dy: -50.0, heading: 0.0}
+    threat: high
+    max_range_nm: 25.0
+    alarm_state: green
+    engage_range_m: 25000
+  sa11_gadfly_battery:
+    name: SA-11
+    description: SA-11 Buk mobile SAM battery
+    role: air_defense
+    tags: []
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [late_cold_war, modern]
+    source: legacy/mission-generation/templates/units/sam_sites.yaml
+    units:
+    - {type: SA-11 Buk SR 9S18M1, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: SA-11 Buk CC 9S470M1, dx: 100.0, dy: 0.0, heading: 0.0}
+    - {type: SA-11 Buk LN 9A310M1, dx: 200.0, dy: 100.0, heading: 0.0}
+    - {type: SA-11 Buk LN 9A310M1, dx: 200.0, dy: -100.0, heading: 0.0}
+    threat: high
+    max_range_nm: 30.0
+    alarm_state: green
+    engage_range_m: 30000
+  sa10_grumble_battalion:
+    name: SA-10
+    description: SA-10 S-300PS long-range SAM battalion
+    role: air_defense
+    tags: []
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [late_cold_war, modern]
+    source: legacy/mission-generation/templates/units/sam_sites.yaml
+    units:
+    - {type: S-300PS 64H6E sr, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: S-300PS 40B6M tr, dx: 200.0, dy: 0.0, heading: 0.0}
+    - {type: S-300PS 40B6M tr, dx: 400.0, dy: 0.0, heading: 0.0}
+    - {type: S-300PS 54K6 cp, dx: 100.0, dy: -200.0, heading: 0.0}
+    - {type: S-300PS 5P85C ln, dx: 300.0, dy: 200.0, heading: 0.0}
+    - {type: S-300PS 5P85C ln, dx: 300.0, dy: -200.0, heading: 0.0}
+    - {type: S-300PS 5P85C ln, dx: 500.0, dy: 200.0, heading: 0.0}
+    - {type: S-300PS 5P85C ln, dx: 500.0, dy: -200.0, heading: 0.0}
+    - {type: S-300PS 5P85D ln, dx: 700.0, dy: 200.0, heading: 0.0}
+    - {type: S-300PS 5P85D ln, dx: 700.0, dy: -200.0, heading: 0.0}
+    threat: very_high
+    max_range_nm: 75.0
+    alarm_state: green
+    engage_range_m: 75000
+  zsu23_shilka_section:
+    name: ZSU-23
+    description: ZSU-23-4 Shilka radar-guided AAA
+    role: air_defense
+    tags: []
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [early_cold_war, late_cold_war, modern]
+    source: legacy/mission-generation/templates/units/sam_sites.yaml
+    units:
+    - {type: ZSU-23-4 Shilka, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: ZSU-23-4 Shilka, dx: 50.0, dy: 0.0, heading: 0.0}
+    threat: low
+    max_range_nm: 2.5
+    alarm_state: red
+    engage_range_m: 2500
+  zu23_emplacement:
+    name: ZU-23
+    description: ZU-23 towed AAA (light)
+    role: air_defense
+    tags: []
+    country: RUSSIA
+    coalition: red
+    category: ground
+    skill: Random
+    eras: [early_cold_war, late_cold_war, modern]
+    source: legacy/mission-generation/templates/units/sam_sites.yaml
+    units:
+    - {type: ZU-23 Emplacement Closed, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: ZU-23 Emplacement Closed, dx: 50.0, dy: 50.0, heading: 0.0}
+    - {type: ZU-23 Emplacement Closed, dx: -50.0, dy: 50.0, heading: 0.0}
+    threat: very_low
+    max_range_nm: 1.5
+    alarm_state: red
+    engage_range_m: 1500
+  vulcan_section:
+    name: Vulcan
+    description: M163 Vulcan SHORAD (blue force)
+    role: air_defense
+    tags: []
+    country: USA
+    coalition: blue
+    category: ground
+    skill: Random
+    eras: [late_cold_war, modern]
+    source: legacy/mission-generation/templates/units/sam_sites.yaml
+    units:
+    - {type: Vulcan, dx: 0.0, dy: 0.0, heading: 0.0}
+    - {type: Vulcan, dx: 50.0, dy: 0.0, heading: 0.0}
+    threat: low
+    max_range_nm: 1.2
+    alarm_state: red
+    engage_range_m: 1200
+packages:
+  mixed_strike_package:
+    name: Strike Package
+    description: Combined strike package with escorts
+    country: RUSSIA
+    groups:
+    - {template: su30_strike_2ship, dx: 0.0, dy: 0.0, role: striker}
+    - {template: mig29_cap_2ship, dx: -2000.0, dy: -2000.0, role: escort}
+    source: legacy/mission-generation/templates/units/red_air.yaml
+  high_value_cap:
+    name: CAP
+    description: High-threat CAP with multiple elements
+    country: RUSSIA
+    groups:
+    - {template: su27_cap_2ship, dx: 0.0, dy: 0.0, role: primary}
+    - {template: mig29_cap_2ship, dx: -5000.0, dy: 5000.0, role: support}
+    source: legacy/mission-generation/templates/units/red_air.yaml
+  basic_iads:
+    name: IADS
+    description: Basic layered air defense
+    country: RUSSIA
+    groups:
+    - {template: sa10_grumble_battalion, dx: 0.0, dy: 0.0, role: long_range}
+    - {template: sa6_gainful_battery, dx: -15000.0, dy: 10000.0, role: medium_range_1}
+    - {template: sa6_gainful_battery, dx: 15000.0, dy: 10000.0, role: medium_range_2}
+    - {template: sa15_tor_battery, dx: 0.0, dy: 5000.0, role: point_defense}
+    - {template: zsu23_shilka_section, dx: 0.0, dy: 2000.0, role: shorad}
+    source: legacy/mission-generation/templates/units/sam_sites.yaml
+    threat: high
+  advanced_iads:
+    name: IADS
+    description: Advanced multi-layer IADS
+    country: RUSSIA
+    groups:
+    - {template: sa10_grumble_battalion, dx: -30000.0, dy: 15000.0, role: long_range_2}
+    - {template: sa11_gadfly_battery, dx: -15000.0, dy: 10000.0, role: medium_range_1}
+    - {template: sa11_gadfly_battery, dx: 15000.0, dy: 10000.0, role: medium_range_2}
+    - {template: sa15_tor_battery, dx: 0.0, dy: 5000.0, role: point_defense_1}
+    - {template: sa19_tunguska_section, dx: 0.0, dy: 8000.0, role: point_defense_2}
+    - {template: zsu23_shilka_section, dx: 0.0, dy: 3000.0, role: shorad}
+    source: legacy/mission-generation/templates/units/sam_sites.yaml
+    threat: extreme

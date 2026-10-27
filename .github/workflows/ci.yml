@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: [master, rebuild]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: Python (ruff, mypy, pytest incl. Lua specs via lupa)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true # .miz fixtures and audio live in Git LFS
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install workspace
+        run: uv sync --all-packages --locked
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      # Enforced from day one: the codebase is new, and pre-commit runs ruff-format locally.
+      - name: Ruff format
+        run: uv run ruff format --check .
+
+      - name: Mypy (strict)
+        run: uv run mypy packages
+
+      # Runs packages/*/tests, tests/ and lua/spec (Lua 5.1 specs executed through lupa).
+      - name: Pytest
+        run: uv run pytest
+
+  lua:
+    name: Lua 5.1 (syntax, bundle, style, lint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: leafo/gh-actions-lua@v10
+        with:
+          luaVersion: "5.1.5"
+
+      - uses: leafo/gh-actions-luarocks@v4
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Syntax check sources (luac 5.1 rejects goto, // and other 5.2+ syntax)
+        run: |
+          shopt -s globstar nullglob
+          files=(lua/src/**/*.lua)
+          if [ ${#files[@]} -gt 0 ]; then luac -p "${files[@]}"; else echo "no Lua sources yet"; fi
+
+      - name: Bundle and syntax check dist/dms.lua
+        run: |
+          if [ -f tools/bundle_lua.py ]; then
+            uv run --no-project python tools/bundle_lua.py
+            luac -p dist/dms.lua
+          else
+            echo "tools/bundle_lua.py not present yet; skipping"
+          fi
+
+      - name: StyLua
+        uses: JohnnyMorganz/stylua-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          version: latest
+          args: --check lua/src lua/spec lua/mocks
+
+      # Advisory until the v0.3 core settles; flip to blocking by removing continue-on-error.
+      - name: luacheck
+        continue-on-error: true
+        run: |
+          luarocks install luacheck
+          luacheck lua/src lua/spec lua/mocks

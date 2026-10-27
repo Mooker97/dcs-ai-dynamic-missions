@@ -1,0 +1,2078 @@
+# DMS catalog: unit types
+# -----------------------------------------------------------------------------
+# GENERATED from legacy/lua-library/spawners/unit-templates.lua (unit dictionary),
+# legacy/mission-generation/templates/units/*.yaml, plus hand-picked additions.
+# Every `id` was cross-checked against pydcs 1.0.0 (dcs.vehicles.vehicle_map,
+# dcs.planes.plane_map, dcs.helicopters.helicopter_map, dcs.ships.ship_map).
+# tests: packages/dms-core/tests/test_catalog.py asserts every pydcs_id resolves.
+#
+# Fields
+#   id           DCS type string (what goes in a mission's `type =`). Unique.
+#   name         Human-readable name.
+#   category     ground | plane | helicopter | ship
+#   role         primary role, e.g. sam_long, sam_medium, sam_short, sam_radar (SAM
+#                component), aaa, manpads, mbt, ifv, apc, recon, technical, emplacement,
+#                infantry, jtac, transport, logistics, artillery, mlrs, ballistic_missile,
+#                fighter, multirole, strike, attack, bomber, awacs, tanker, uav, trainer,
+#                attack_helo, scout_helo, utility_helo, transport_helo, carrier, cruiser,
+#                destroyer, frigate, corvette, patrol, cargo
+#   threat       none | low | medium | high   (threat to aircraft/helicopters)
+#   eras         plausible service eras: early_cold_war | late_cold_war | modern (see eras.yaml)
+#   coalitions   typical side(s): red | blue | neutral (a hint, not a rule)
+#   countries    typical DCS country.id keys (RUSSIA, USA, INSURGENTS, CJTF_RED, ...)
+#   tags         secondary roles/traits usable in queries (sead, cap, cas, anti_helo, ir, convoy, hvt, player, mod...)
+#   pydcs_id     pydcs unit id (== DCS type string)
+#   pydcs_class  pydcs Python class path relative to `dcs.` (e.g. vehicles.AirDefence.Tor_9A331)
+#
+# Legacy type strings that were INVALID and were corrected:
+#   "F/A-18C_hornet" -> "FA-18C_hornet"   ("F/A-18C" is the old Lock-On model)
+#   "M163 Vulcan"    -> "Vulcan"
+#   "S-125 ln"       -> "5p73 s-125 ln"
+#   "S-125 p-19 sr"  -> "p-19 s-125 sr"
+#   S-300PMU (SA-20) components ("S-300PMU 64N6E big bird sr", "... 30N6E tr", "... 54K6E cp",
+#   "... 5P85CE ln", "... 5P85DE ln") do not exist in DCS core / pydcs 1.0 -> dropped.
+# Note: CHAP_* types belong to the free "Cold War / Currenthill"-style asset packs bundled
+#       with recent DCS; they are tagged `mod` in case a server lacks them.
+
+version: 1
+units:
+- id: S-300PS 64H6E sr
+  name: SA-10 Big Bird search radar
+  category: ground
+  role: sam_radar
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [sa10, sam_long]
+  description: SA-10 long-range search radar.
+  pydcs_id: S-300PS 64H6E sr
+  pydcs_class: vehicles.AirDefence.S_300PS_64H6E_sr
+- id: S-300PS 40B6M tr
+  name: SA-10 Flap Lid track radar
+  category: ground
+  role: sam_radar
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [sa10, sam_long]
+  description: SA-10 engagement radar.
+  pydcs_id: S-300PS 40B6M tr
+  pydcs_class: vehicles.AirDefence.S_300PS_40B6M_tr
+- id: S-300PS 40B6MD sr
+  name: SA-10 Clam Shell low-alt radar
+  category: ground
+  role: sam_radar
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [sa10, sam_long]
+  description: SA-10 low-altitude search radar.
+  pydcs_id: S-300PS 40B6MD sr
+  pydcs_class: vehicles.AirDefence.S_300PS_40B6MD_sr
+- id: S-300PS 54K6 cp
+  name: SA-10 command post
+  category: ground
+  role: sam_radar
+  threat: medium
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [sa10, sam_long]
+  description: SA-10 command post.
+  pydcs_id: S-300PS 54K6 cp
+  pydcs_class: vehicles.AirDefence.S_300PS_54K6_cp
+- id: S-300PS 5P85C ln
+  name: SA-10 launcher (C)
+  category: ground
+  role: sam_long
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [sa10]
+  description: SA-10 TEL, 4 missiles, ~75 NM.
+  pydcs_id: S-300PS 5P85C ln
+  pydcs_class: vehicles.AirDefence.S_300PS_5P85C_ln
+- id: S-300PS 5P85D ln
+  name: SA-10 launcher (D)
+  category: ground
+  role: sam_long
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [sa10]
+  description: SA-10 TEL (D variant).
+  pydcs_id: S-300PS 5P85D ln
+  pydcs_class: vehicles.AirDefence.S_300PS_5P85D_ln
+- id: SA-11 Buk SR 9S18M1
+  name: SA-11 Snow Drift search radar
+  category: ground
+  role: sam_radar
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [sa11, sam_medium]
+  description: SA-11 search radar.
+  pydcs_id: SA-11 Buk SR 9S18M1
+  pydcs_class: vehicles.AirDefence.SA_11_Buk_SR_9S18M1
+- id: SA-11 Buk CC 9S470M1
+  name: SA-11 command post
+  category: ground
+  role: sam_radar
+  threat: medium
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [sa11, sam_medium]
+  description: SA-11 command post.
+  pydcs_id: SA-11 Buk CC 9S470M1
+  pydcs_class: vehicles.AirDefence.SA_11_Buk_CC_9S470M1
+- id: SA-11 Buk LN 9A310M1
+  name: SA-11 Gadfly TELAR
+  category: ground
+  role: sam_medium
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [sa11]
+  description: SA-11 TELAR, own radar, ~30 NM.
+  pydcs_id: SA-11 Buk LN 9A310M1
+  pydcs_class: vehicles.AirDefence.SA_11_Buk_LN_9A310M1
+- id: Kub 1S91 str
+  name: SA-6 Straight Flush radar
+  category: ground
+  role: sam_radar
+  threat: high
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [sa6, sam_medium]
+  description: SA-6 search/track radar.
+  pydcs_id: Kub 1S91 str
+  pydcs_class: vehicles.AirDefence.Kub_1S91_str
+- id: Kub 2P25 ln
+  name: SA-6 Gainful launcher
+  category: ground
+  role: sam_medium
+  threat: high
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [sa6]
+  description: SA-6 launcher, ~25 NM.
+  pydcs_id: Kub 2P25 ln
+  pydcs_class: vehicles.AirDefence.Kub_2P25_ln
+- id: p-19 s-125 sr
+  name: SA-3 Flat Face search radar
+  category: ground
+  role: sam_radar
+  threat: medium
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [sa3, sam_medium]
+  description: P-19 search radar for SA-3.
+  pydcs_id: p-19 s-125 sr
+  pydcs_class: vehicles.AirDefence.P_19_s_125_sr
+- id: snr s-125 tr
+  name: SA-3 Low Blow track radar
+  category: ground
+  role: sam_radar
+  threat: medium
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [sa3, sam_medium]
+  description: SA-3 engagement radar.
+  pydcs_id: snr s-125 tr
+  pydcs_class: vehicles.AirDefence.Snr_s_125_tr
+- id: 5p73 s-125 ln
+  name: SA-3 Goa launcher
+  category: ground
+  role: sam_medium
+  threat: medium
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [sa3]
+  description: SA-3 launcher, ~25 NM.
+  pydcs_id: 5p73 s-125 ln
+  pydcs_class: vehicles.AirDefence.X_5p73_s_125_ln
+- id: Hawk sr
+  name: Hawk search radar
+  category: ground
+  role: sam_radar
+  threat: high
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: [hawk, sam_medium]
+  description: MIM-23 Hawk search radar.
+  pydcs_id: Hawk sr
+  pydcs_class: vehicles.AirDefence.Hawk_sr
+- id: Hawk tr
+  name: Hawk track radar
+  category: ground
+  role: sam_radar
+  threat: high
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: [hawk, sam_medium]
+  description: MIM-23 Hawk track radar.
+  pydcs_id: Hawk tr
+  pydcs_class: vehicles.AirDefence.Hawk_tr
+- id: Hawk ln
+  name: Hawk launcher
+  category: ground
+  role: sam_medium
+  threat: high
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: [hawk]
+  description: MIM-23 Hawk launcher.
+  pydcs_id: Hawk ln
+  pydcs_class: vehicles.AirDefence.Hawk_ln
+- id: Hawk pcp
+  name: Hawk command post
+  category: ground
+  role: sam_radar
+  threat: medium
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: [hawk]
+  description: Hawk platoon command post.
+  pydcs_id: Hawk pcp
+  pydcs_class: vehicles.AirDefence.Hawk_pcp
+- id: Patriot str
+  name: Patriot radar
+  category: ground
+  role: sam_radar
+  threat: high
+  eras: [modern]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: [patriot, sam_long]
+  description: MIM-104 Patriot radar.
+  pydcs_id: Patriot str
+  pydcs_class: vehicles.AirDefence.Patriot_str
+- id: Patriot ln
+  name: Patriot launcher
+  category: ground
+  role: sam_long
+  threat: high
+  eras: [modern]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: [patriot]
+  description: MIM-104 Patriot launcher.
+  pydcs_id: Patriot ln
+  pydcs_class: vehicles.AirDefence.Patriot_ln
+- id: Patriot cp
+  name: Patriot command post
+  category: ground
+  role: sam_radar
+  threat: medium
+  eras: [modern]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: [patriot]
+  description: Patriot ICC.
+  pydcs_id: Patriot cp
+  pydcs_class: vehicles.AirDefence.Patriot_cp
+- id: Patriot ECS
+  name: Patriot ECS
+  category: ground
+  role: sam_radar
+  threat: medium
+  eras: [modern]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: [patriot]
+  description: Patriot engagement control station.
+  pydcs_id: Patriot ECS
+  pydcs_class: vehicles.AirDefence.Patriot_ECS
+- id: Osa 9A33 ln
+  name: SA-8 Gecko
+  category: ground
+  role: sam_short
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [sa8, anti_helo]
+  description: SA-8 Osa amphibious SAM, own radar, ~10 km.
+  pydcs_id: Osa 9A33 ln
+  pydcs_class: vehicles.AirDefence.Osa_9A33_ln
+- id: Tor 9A331
+  name: SA-15 Gauntlet
+  category: ground
+  role: sam_short
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [sa15, anti_helo]
+  description: SA-15 Tor, ~12 km, engages PGMs.
+  pydcs_id: Tor 9A331
+  pydcs_class: vehicles.AirDefence.Tor_9A331
+- id: Strela-1 9P31
+  name: SA-9 Gaskin
+  category: ground
+  role: sam_short
+  threat: low
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [sa9, ir]
+  description: SA-9 IR SAM on BRDM, ~4 km.
+  pydcs_id: Strela-1 9P31
+  pydcs_class: vehicles.AirDefence.Strela_1_9P31
+- id: Strela-10M3
+  name: SA-13 Gopher
+  category: ground
+  role: sam_short
+  threat: medium
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [sa13, ir, anti_helo]
+  description: IR-guided SAM on MT-LB chassis. 5 km range. Low altitude threat.
+  pydcs_id: Strela-10M3
+  pydcs_class: vehicles.AirDefence.Strela_10M3
+- id: 2S6 Tunguska
+  name: SA-19 Tunguska
+  category: ground
+  role: sam_short
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [sa19, aaa, anti_helo]
+  description: Combined gun/missile SPAAG. 30mm cannons + SA-19 missiles. Deadly to helicopters within 8 km.
+  pydcs_id: 2S6 Tunguska
+  pydcs_class: vehicles.AirDefence.X_2S6_Tunguska
+- id: M1097 Avenger
+  name: M1097 Avenger
+  category: ground
+  role: sam_short
+  threat: medium
+  eras: [modern]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: [ir]
+  description: Stinger on HMMWV.
+  pydcs_id: M1097 Avenger
+  pydcs_class: vehicles.AirDefence.M1097_Avenger
+- id: M48 Chaparral
+  name: M48 Chaparral
+  category: ground
+  role: sam_short
+  threat: medium
+  eras: [late_cold_war]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: [ir]
+  description: IR SAM, Sidewinder derived.
+  pydcs_id: M48 Chaparral
+  pydcs_class: vehicles.AirDefence.M48_Chaparral
+- id: Roland ADS
+  name: Roland
+  category: ground
+  role: sam_short
+  threat: medium
+  eras: [late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, UK, GERMANY, FRANCE, CJTF_BLUE]
+  tags: []
+  description: Roland SHORAD.
+  pydcs_id: Roland ADS
+  pydcs_class: vehicles.AirDefence.Roland_ADS
+- id: ZSU-23-4 Shilka
+  name: ZSU-23-4 Shilka
+  category: ground
+  role: aaa
+  threat: medium
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED, INSURGENTS]
+  tags: [radar, anti_helo]
+  description: Quad 23mm radar-guided AAA. 2.5 km effective range. High rate of fire.
+  pydcs_id: ZSU-23-4 Shilka
+  pydcs_class: vehicles.AirDefence.ZSU_23_4_Shilka
+- id: Ural-375 ZU-23
+  name: ZU-23 on Ural
+  category: ground
+  role: aaa
+  threat: medium
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED, INSURGENTS]
+  tags: [anti_helo]
+  description: ZU-23-2 twin 23mm on Ural truck. Mobile AA. 2.5 km range.
+  pydcs_id: Ural-375 ZU-23
+  pydcs_class: vehicles.AirDefence.Ural_375_ZU_23
+- id: tt_ZU-23
+  name: ZU-23 technical
+  category: ground
+  role: aaa
+  threat: medium
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [INSURGENTS, CJTF_RED]
+  tags: [technical, anti_helo]
+  description: ZU-23-2 on technical pickup. Fast, light AA. Insurgent favourite.
+  pydcs_id: tt_ZU-23
+  pydcs_class: vehicles.AirDefence.Tt_ZU_23
+- id: ZU-23 Emplacement
+  name: ZU-23 emplacement
+  category: ground
+  role: aaa
+  threat: medium
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED, INSURGENTS]
+  tags: [static, anti_helo]
+  description: Static ZU-23-2 twin 23mm. Dug-in position. 2.5 km range.
+  pydcs_id: ZU-23 Emplacement
+  pydcs_class: vehicles.AirDefence.ZU_23_Emplacement
+- id: ZU-23 Emplacement Closed
+  name: ZU-23 emplacement (closed)
+  category: ground
+  role: aaa
+  threat: medium
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED, INSURGENTS]
+  tags: [static, anti_helo]
+  description: Sandbagged ZU-23-2 position.
+  pydcs_id: ZU-23 Emplacement Closed
+  pydcs_class: vehicles.AirDefence.ZU_23_Emplacement_Closed
+- id: Vulcan
+  name: M163 Vulcan
+  category: ground
+  role: aaa
+  threat: low
+  eras: [late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: [radar]
+  description: M163 20mm Vulcan SPAAG.
+  pydcs_id: Vulcan
+  pydcs_class: vehicles.AirDefence.Vulcan
+- id: Gepard
+  name: Flakpanzer Gepard
+  category: ground
+  role: aaa
+  threat: medium
+  eras: [late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, UK, GERMANY, FRANCE, CJTF_BLUE]
+  tags: [radar]
+  description: Twin 35mm radar SPAAG.
+  pydcs_id: Gepard
+  pydcs_class: vehicles.AirDefence.Gepard
+- id: SA-18 Igla-S manpad
+  name: SA-18 Igla-S
+  category: ground
+  role: manpads
+  threat: high
+  eras: [modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED, INSURGENTS]
+  tags: [ir, infantry, anti_helo]
+  description: Igla-S MANPADS. IR-guided, 5 km range. Hard to spot infantry.
+  pydcs_id: SA-18 Igla-S manpad
+  pydcs_class: vehicles.AirDefence.SA_18_Igla_S_manpad
+- id: SA-18 Igla manpad
+  name: SA-18 Igla
+  category: ground
+  role: manpads
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED, INSURGENTS]
+  tags: [ir, infantry, anti_helo]
+  description: Igla MANPADS.
+  pydcs_id: SA-18 Igla manpad
+  pydcs_class: vehicles.AirDefence.SA_18_Igla_manpad
+- id: Igla manpad INS
+  name: Igla (insurgent)
+  category: ground
+  role: manpads
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [INSURGENTS, CJTF_RED]
+  tags: [ir, infantry, anti_helo]
+  description: Insurgent Igla gunner.
+  pydcs_id: Igla manpad INS
+  pydcs_class: vehicles.AirDefence.Igla_manpad_INS
+- id: Soldier stinger
+  name: Stinger
+  category: ground
+  role: manpads
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: [ir, infantry]
+  description: Stinger MANPADS. IR-guided, 4.5 km range.
+  pydcs_id: Soldier stinger
+  pydcs_class: vehicles.AirDefence.Soldier_stinger
+- id: T-55
+  name: T-55
+  category: ground
+  role: mbt
+  threat: low
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED, INSURGENTS]
+  tags: []
+  description: Cold War MBT. 100mm gun. Common with insurgent forces.
+  pydcs_id: T-55
+  pydcs_class: vehicles.Armor.T_55
+- id: T62M
+  name: T-62M
+  category: ground
+  role: mbt
+  threat: medium
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED, INSURGENTS]
+  tags: []
+  description: Upgraded T-62. 115mm gun.
+  pydcs_id: T62M
+  pydcs_class: vehicles.Armor.T62M
+- id: T-72B
+  name: T-72B
+  category: ground
+  role: mbt
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: []
+  description: T-72B. 125mm gun.
+  pydcs_id: T-72B
+  pydcs_class: vehicles.Armor.T_72B
+- id: T-72B3
+  name: T-72B3
+  category: ground
+  role: mbt
+  threat: high
+  eras: [modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: []
+  description: Modernised T-72. 125mm gun, ERA. Main Russian MBT.
+  pydcs_id: T-72B3
+  pydcs_class: vehicles.Armor.T_72B3
+- id: T-80UD
+  name: T-80UD
+  category: ground
+  role: mbt
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: []
+  description: T-80UD MBT.
+  pydcs_id: T-80UD
+  pydcs_class: vehicles.Armor.T_80UD
+- id: T-90
+  name: T-90
+  category: ground
+  role: mbt
+  threat: high
+  eras: [modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: []
+  description: T-90 MBT.
+  pydcs_id: T-90
+  pydcs_class: vehicles.Armor.T_90
+- id: CHAP_T90M
+  name: T-90M
+  category: ground
+  role: mbt
+  threat: high
+  eras: [modern]
+  coalitions: [red]
+  countries: [RUSSIA, CJTF_RED]
+  tags: [mod]
+  description: T-90M advanced MBT. Top-tier threat.
+  pydcs_id: CHAP_T90M
+  pydcs_class: vehicles.Armor.CHAP_T90M
+- id: M-60
+  name: M60A3 Patton
+  category: ground
+  role: mbt
+  threat: medium
+  eras: [early_cold_war, late_cold_war]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: []
+  description: M60 MBT.
+  pydcs_id: M-60
+  pydcs_class: vehicles.Armor.M_60
+- id: M-1 Abrams
+  name: M1A2 Abrams
+  category: ground
+  role: mbt
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, CJTF_BLUE]
+  tags: []
+  description: US MBT. 120mm gun.
+  pydcs_id: M-1 Abrams
+  pydcs_class: vehicles.Armor.M_1_Abrams
+- id: Leopard-2
+  name: Leopard 2
+  category: ground
+  role: mbt
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, UK, GERMANY, FRANCE, CJTF_BLUE]
+  tags: []
+  description: Leopard 2 MBT.
+  pydcs_id: Leopard-2
+  pydcs_class: vehicles.Armor.Leopard_2
+- id: Merkava_Mk4
+  name: Merkava Mk4
+  category: ground
+  role: mbt
+  threat: high
+  eras: [modern]
+  coalitions: [blue]
+  countries: [ISRAEL, CJTF_BLUE]
+  tags: []
+  description: Merkava Mk4 MBT.
+  pydcs_id: Merkava_Mk4
+  pydcs_class: vehicles.Armor.Merkava_Mk4
+- id: BMP-1
+  name: BMP-1
+  category: ground
+  role: ifv
+  threat: medium
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED, INSURGENTS]
+  tags: []
+  description: Soviet IFV. 73mm gun + AT-3.
+  pydcs_id: BMP-1
+  pydcs_class: vehicles.Armor.BMP_1
+- id: BMP-2
+  name: BMP-2
+  category: ground
+  role: ifv
+  threat: medium
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: []
+  description: 30mm autocannon + AT-5.
+  pydcs_id: BMP-2
+  pydcs_class: vehicles.Armor.BMP_2
+- id: BMP-3
+  name: BMP-3
+  category: ground
+  role: ifv
+  threat: high
+  eras: [modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: []
+  description: 100mm + 30mm + AT-10.
+  pydcs_id: BMP-3
+  pydcs_class: vehicles.Armor.BMP_3
+- id: CHAP_BMPT
+  name: BMPT Terminator
+  category: ground
+  role: ifv
+  threat: high
+  eras: [modern]
+  coalitions: [red]
+  countries: [RUSSIA, CJTF_RED]
+  tags: [mod]
+  description: Twin 30mm + ATGM tank support.
+  pydcs_id: CHAP_BMPT
+  pydcs_class: vehicles.Armor.CHAP_BMPT
+- id: M-2 Bradley
+  name: M2A2 Bradley
+  category: ground
+  role: ifv
+  threat: medium
+  eras: [late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, CJTF_BLUE]
+  tags: []
+  description: 25mm + TOW.
+  pydcs_id: M-2 Bradley
+  pydcs_class: vehicles.Armor.M_2_Bradley
+- id: LAV-25
+  name: LAV-25
+  category: ground
+  role: ifv
+  threat: medium
+  eras: [late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: [recon]
+  description: 8x8 25mm recon vehicle.
+  pydcs_id: LAV-25
+  pydcs_class: vehicles.Armor.LAV_25
+- id: BTR-60
+  name: BTR-60
+  category: ground
+  role: apc
+  threat: low
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED, INSURGENTS]
+  tags: []
+  description: 8x8 APC, 14.5mm.
+  pydcs_id: BTR-60
+  pydcs_class: vehicles.Armor.BTR_60
+- id: BTR-80
+  name: BTR-80
+  category: ground
+  role: apc
+  threat: low
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: []
+  description: 8x8 APC, 14.5mm.
+  pydcs_id: BTR-80
+  pydcs_class: vehicles.Armor.BTR_80
+- id: BTR-82A
+  name: BTR-82A
+  category: ground
+  role: apc
+  threat: medium
+  eras: [modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: []
+  description: BTR with 30mm cannon.
+  pydcs_id: BTR-82A
+  pydcs_class: vehicles.Armor.BTR_82A
+- id: MTLB
+  name: MT-LB
+  category: ground
+  role: apc
+  threat: low
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED, INSURGENTS]
+  tags: []
+  description: Tracked utility APC.
+  pydcs_id: MTLB
+  pydcs_class: vehicles.Armor.MTLB
+- id: M-113
+  name: M113
+  category: ground
+  role: apc
+  threat: low
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: []
+  description: Tracked APC.
+  pydcs_id: M-113
+  pydcs_class: vehicles.Armor.M_113
+- id: M1126 Stryker ICV
+  name: Stryker ICV
+  category: ground
+  role: apc
+  threat: low
+  eras: [modern]
+  coalitions: [blue]
+  countries: [USA, CJTF_BLUE]
+  tags: []
+  description: 8x8 APC.
+  pydcs_id: M1126 Stryker ICV
+  pydcs_class: vehicles.Armor.M1126_Stryker_ICV
+- id: M1128 Stryker MGS
+  name: Stryker MGS
+  category: ground
+  role: ifv
+  threat: medium
+  eras: [modern]
+  coalitions: [blue]
+  countries: [USA, CJTF_BLUE]
+  tags: []
+  description: Stryker 105mm fire support.
+  pydcs_id: M1128 Stryker MGS
+  pydcs_class: vehicles.Armor.M1128_Stryker_MGS
+- id: MaxxPro_MRAP
+  name: MaxxPro MRAP
+  category: ground
+  role: apc
+  threat: low
+  eras: [modern]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: []
+  description: Mine-resistant patrol vehicle.
+  pydcs_id: MaxxPro_MRAP
+  pydcs_class: vehicles.Armor.MaxxPro_MRAP
+- id: BRDM-2
+  name: BRDM-2
+  category: ground
+  role: recon
+  threat: low
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED, INSURGENTS]
+  tags: []
+  description: Amphibious scout car, 14.5mm.
+  pydcs_id: BRDM-2
+  pydcs_class: vehicles.Armor.BRDM_2
+- id: Cobra
+  name: Otokar Cobra
+  category: ground
+  role: recon
+  threat: low
+  eras: [modern]
+  coalitions: [blue]
+  countries: [TURKEY, CJTF_BLUE]
+  tags: []
+  description: Light armoured car.
+  pydcs_id: Cobra
+  pydcs_class: vehicles.Armor.Cobra
+- id: tt_KORD
+  name: KORD technical
+  category: ground
+  role: technical
+  threat: low
+  eras: [modern]
+  coalitions: [red]
+  countries: [INSURGENTS, CJTF_RED]
+  tags: []
+  description: Technical with KORD 12.7mm HMG.
+  pydcs_id: tt_KORD
+  pydcs_class: vehicles.Armor.Tt_KORD
+- id: tt_DSHK
+  name: DShK technical
+  category: ground
+  role: technical
+  threat: low
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [INSURGENTS, CJTF_RED]
+  tags: []
+  description: Technical with DShK 12.7mm.
+  pydcs_id: tt_DSHK
+  pydcs_class: vehicles.Armor.Tt_DSHK
+- id: HL_KORD
+  name: KORD HMG emplacement
+  category: ground
+  role: emplacement
+  threat: low
+  eras: [modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED, INSURGENTS]
+  tags: [static]
+  description: KORD 12.7mm static MG position.
+  pydcs_id: HL_KORD
+  pydcs_class: vehicles.Armor.HL_KORD
+- id: HL_DSHK
+  name: DShK HMG emplacement
+  category: ground
+  role: emplacement
+  threat: low
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED, INSURGENTS]
+  tags: [static]
+  description: DShK static MG position.
+  pydcs_id: HL_DSHK
+  pydcs_class: vehicles.Armor.HL_DSHK
+- id: M1043 HMMWV Armament
+  name: HMMWV (M2)
+  category: ground
+  role: technical
+  threat: low
+  eras: [late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: []
+  description: Armed Humvee, .50 cal.
+  pydcs_id: M1043 HMMWV Armament
+  pydcs_class: vehicles.Armor.M1043_HMMWV_Armament
+- id: M1045 HMMWV TOW
+  name: HMMWV (TOW)
+  category: ground
+  role: technical
+  threat: medium
+  eras: [late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: [at]
+  description: TOW-armed Humvee.
+  pydcs_id: M1045 HMMWV TOW
+  pydcs_class: vehicles.Armor.M1045_HMMWV_TOW
+- id: Soldier AK
+  name: Rifleman (AK)
+  category: ground
+  role: infantry
+  threat: low
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED, INSURGENTS]
+  tags: []
+  description: AK-74 rifleman.
+  pydcs_id: Soldier AK
+  pydcs_class: vehicles.Infantry.Soldier_AK
+- id: Infantry AK
+  name: Insurgent rifleman
+  category: ground
+  role: infantry
+  threat: low
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [INSURGENTS, CJTF_RED]
+  tags: []
+  description: AK insurgent fighter.
+  pydcs_id: Infantry AK
+  pydcs_class: vehicles.Infantry.Infantry_AK
+- id: Infantry AK Ins
+  name: Insurgent rifleman (alt)
+  category: ground
+  role: infantry
+  threat: low
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [INSURGENTS, CJTF_RED]
+  tags: []
+  description: Insurgent AK fighter.
+  pydcs_id: Infantry AK Ins
+  pydcs_class: vehicles.Infantry.Infantry_AK_Ins
+- id: Paratrooper AKS-74
+  name: Paratrooper (AKS-74)
+  category: ground
+  role: infantry
+  threat: low
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: []
+  description: VDV rifleman.
+  pydcs_id: Paratrooper AKS-74
+  pydcs_class: vehicles.Infantry.Paratrooper_AKS_74
+- id: Soldier RPG
+  name: RPG gunner
+  category: ground
+  role: infantry
+  threat: medium
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED, INSURGENTS]
+  tags: [at, anti_helo]
+  description: RPG-7. Anti-armour/helicopter threat.
+  pydcs_id: Soldier RPG
+  pydcs_class: vehicles.Infantry.Soldier_RPG
+- id: Paratrooper RPG-16
+  name: Paratrooper (RPG-16)
+  category: ground
+  role: infantry
+  threat: medium
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [at]
+  description: VDV AT infantry.
+  pydcs_id: Paratrooper RPG-16
+  pydcs_class: vehicles.Infantry.Paratrooper_RPG_16
+- id: Soldier M4
+  name: Rifleman (M4)
+  category: ground
+  role: infantry
+  threat: low
+  eras: [modern]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: []
+  description: M4 rifleman.
+  pydcs_id: Soldier M4
+  pydcs_class: vehicles.Infantry.Soldier_M4
+- id: Soldier M4 GRG
+  name: Rifleman (M4, Georgia)
+  category: ground
+  role: infantry
+  threat: low
+  eras: [modern]
+  coalitions: [blue]
+  countries: [GEORGIA, CJTF_BLUE]
+  tags: []
+  description: Georgian M4 rifleman.
+  pydcs_id: Soldier M4 GRG
+  pydcs_class: vehicles.Infantry.Soldier_M4_GRG
+- id: Soldier M249
+  name: Gunner (M249)
+  category: ground
+  role: infantry
+  threat: low
+  eras: [modern]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: []
+  description: M249 SAW gunner.
+  pydcs_id: Soldier M249
+  pydcs_class: vehicles.Infantry.Soldier_M249
+- id: JTAC
+  name: JTAC
+  category: ground
+  role: jtac
+  threat: none
+  eras: [modern]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: [infantry]
+  description: Joint Terminal Attack Controller with laser.
+  pydcs_id: JTAC
+  pydcs_class: vehicles.Infantry.JTAC
+- id: Ural-375
+  name: Ural-375
+  category: ground
+  role: transport
+  threat: none
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED, INSURGENTS]
+  tags: [convoy]
+  description: 6x6 cargo truck.
+  pydcs_id: Ural-375
+  pydcs_class: vehicles.Unarmed.Ural_375
+- id: Ural-4320T
+  name: Ural-4320T
+  category: ground
+  role: transport
+  threat: none
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED, INSURGENTS]
+  tags: [convoy]
+  description: 6x6 cargo truck.
+  pydcs_id: Ural-4320T
+  pydcs_class: vehicles.Unarmed.Ural_4320T
+- id: KAMAZ Truck
+  name: KAMAZ
+  category: ground
+  role: transport
+  threat: none
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [convoy]
+  description: Russian cargo truck.
+  pydcs_id: KAMAZ Truck
+  pydcs_class: vehicles.Unarmed.KAMAZ_Truck
+- id: GAZ-3308
+  name: GAZ-3308
+  category: ground
+  role: transport
+  threat: none
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED, INSURGENTS]
+  tags: [convoy]
+  description: Light cargo truck.
+  pydcs_id: GAZ-3308
+  pydcs_class: vehicles.Unarmed.GAZ_3308
+- id: GAZ-66
+  name: GAZ-66
+  category: ground
+  role: transport
+  threat: none
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED, INSURGENTS]
+  tags: [convoy]
+  description: Light 4x4 truck.
+  pydcs_id: GAZ-66
+  pydcs_class: vehicles.Unarmed.GAZ_66
+- id: ZIL-135
+  name: ZIL-135
+  category: ground
+  role: transport
+  threat: none
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [convoy]
+  description: Heavy 8x8 truck.
+  pydcs_id: ZIL-135
+  pydcs_class: vehicles.Unarmed.ZIL_135
+- id: ATMZ-5
+  name: ATMZ-5 fuel truck
+  category: ground
+  role: logistics
+  threat: none
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED, INSURGENTS]
+  tags: [convoy, fuel]
+  description: Fuel tanker. Logistics target.
+  pydcs_id: ATMZ-5
+  pydcs_class: vehicles.Unarmed.ATMZ_5
+- id: UAZ-469
+  name: UAZ-469
+  category: ground
+  role: transport
+  threat: none
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED, INSURGENTS]
+  tags: [convoy, hvt]
+  description: Light utility vehicle.
+  pydcs_id: UAZ-469
+  pydcs_class: vehicles.Unarmed.UAZ_469
+- id: Hummer
+  name: HMMWV
+  category: ground
+  role: transport
+  threat: none
+  eras: [late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: [convoy]
+  description: Unarmed HMMWV.
+  pydcs_id: Hummer
+  pydcs_class: vehicles.Unarmed.Hummer
+- id: M 818
+  name: M818 truck
+  category: ground
+  role: transport
+  threat: none
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: [convoy]
+  description: 5-ton cargo truck.
+  pydcs_id: M 818
+  pydcs_class: vehicles.Unarmed.M_818
+- id: M978 HEMTT Tanker
+  name: HEMTT tanker
+  category: ground
+  role: logistics
+  threat: none
+  eras: [late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: [convoy, fuel]
+  description: Fuel tanker.
+  pydcs_id: M978 HEMTT Tanker
+  pydcs_class: vehicles.Unarmed.M978_HEMTT_Tanker
+- id: Land_Rover_101_FC
+  name: Land Rover 101
+  category: ground
+  role: transport
+  threat: none
+  eras: [early_cold_war, late_cold_war]
+  coalitions: [blue]
+  countries: [UK, CJTF_BLUE]
+  tags: [convoy]
+  description: Land Rover truck.
+  pydcs_id: Land_Rover_101_FC
+  pydcs_class: vehicles.Unarmed.Land_Rover_101_FC
+- id: 2B11 mortar
+  name: 2B11 120mm mortar
+  category: ground
+  role: artillery
+  threat: medium
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED, INSURGENTS]
+  tags: [indirect]
+  description: Heavy mortar.
+  pydcs_id: 2B11 mortar
+  pydcs_class: vehicles.Artillery.X_2B11_mortar
+- id: SAU Gvozdika
+  name: 2S1 Gvozdika
+  category: ground
+  role: artillery
+  threat: medium
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [indirect]
+  description: 122mm SP howitzer.
+  pydcs_id: SAU Gvozdika
+  pydcs_class: vehicles.Artillery.SAU_Gvozdika
+- id: SAU Msta
+  name: 2S19 Msta
+  category: ground
+  role: artillery
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [indirect]
+  description: 152mm SP howitzer.
+  pydcs_id: SAU Msta
+  pydcs_class: vehicles.Artillery.SAU_Msta
+- id: Grad-URAL
+  name: BM-21 Grad
+  category: ground
+  role: mlrs
+  threat: high
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED, INSURGENTS]
+  tags: [indirect]
+  description: 122mm rocket artillery.
+  pydcs_id: Grad-URAL
+  pydcs_class: vehicles.Artillery.Grad_URAL
+- id: Smerch
+  name: BM-30 Smerch
+  category: ground
+  role: mlrs
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [indirect]
+  description: 300mm rocket artillery.
+  pydcs_id: Smerch
+  pydcs_class: vehicles.Artillery.Smerch
+- id: Scud_B
+  name: Scud-B
+  category: ground
+  role: ballistic_missile
+  threat: high
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [hvt]
+  description: Scud TEL. Classic HVT.
+  pydcs_id: Scud_B
+  pydcs_class: vehicles.MissilesSS.Scud_B
+- id: M-109
+  name: M109 Paladin
+  category: ground
+  role: artillery
+  threat: medium
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: [indirect]
+  description: 155mm SP howitzer.
+  pydcs_id: M-109
+  pydcs_class: vehicles.Artillery.M_109
+- id: MLRS
+  name: M270 MLRS
+  category: ground
+  role: mlrs
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: [indirect]
+  description: 227mm rockets.
+  pydcs_id: MLRS
+  pydcs_class: vehicles.Artillery.MLRS
+- id: CHAP_M142_ATACMS_M48
+  name: HIMARS (ATACMS)
+  category: ground
+  role: mlrs
+  threat: high
+  eras: [modern]
+  coalitions: [blue]
+  countries: [USA, CJTF_BLUE]
+  tags: [indirect, mod]
+  description: HIMARS with ATACMS. HVT.
+  pydcs_id: CHAP_M142_ATACMS_M48
+  pydcs_class: vehicles.Artillery.CHAP_M142_ATACMS_M48
+- id: L118_Unit
+  name: L118 light gun
+  category: ground
+  role: artillery
+  threat: medium
+  eras: [late_cold_war, modern]
+  coalitions: [blue]
+  countries: [UK, CJTF_BLUE]
+  tags: [indirect]
+  description: 105mm towed howitzer.
+  pydcs_id: L118_Unit
+  pydcs_class: vehicles.Artillery.L118_Unit
+- id: F-16C_50
+  name: F-16C Viper
+  category: plane
+  role: multirole
+  threat: high
+  eras: [modern]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: [cap, sead, strike, cas, player]
+  description: Multirole fighter.
+  pydcs_id: F-16C_50
+  pydcs_class: planes.F_16C_50
+- id: FA-18C_hornet
+  name: F/A-18C Hornet
+  category: plane
+  role: multirole
+  threat: high
+  eras: [modern]
+  coalitions: [blue]
+  countries: [USA, CJTF_BLUE]
+  tags: [cap, sead, strike, cas, player]
+  description: Carrier multirole fighter.
+  pydcs_id: FA-18C_hornet
+  pydcs_class: planes.FA_18C_hornet
+- id: F-15C
+  name: F-15C Eagle
+  category: plane
+  role: fighter
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, ISRAEL, CJTF_BLUE]
+  tags: [cap, player]
+  description: Air superiority fighter.
+  pydcs_id: F-15C
+  pydcs_class: planes.F_15C
+- id: F-15ESE
+  name: F-15E Strike Eagle
+  category: plane
+  role: strike
+  threat: high
+  eras: [modern]
+  coalitions: [blue]
+  countries: [USA, ISRAEL, CJTF_BLUE]
+  tags: [strike, player]
+  description: Deep strike fighter.
+  pydcs_id: F-15ESE
+  pydcs_class: planes.F_15ESE
+- id: F-15E
+  name: F-15E Strike Eagle (AI)
+  category: plane
+  role: strike
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, CJTF_BLUE]
+  tags: [strike]
+  description: Deep strike fighter (AI model).
+  pydcs_id: F-15E
+  pydcs_class: planes.F_15E
+- id: F-14B
+  name: F-14B Tomcat
+  category: plane
+  role: fighter
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, IRAN, CJTF_BLUE]
+  tags: [cap, player]
+  description: Carrier interceptor.
+  pydcs_id: F-14B
+  pydcs_class: planes.F_14B
+- id: F-4E-45MC
+  name: F-4E Phantom II
+  category: plane
+  role: multirole
+  threat: medium
+  eras: [early_cold_war, late_cold_war]
+  coalitions: [blue]
+  countries: [USA, ISRAEL, TURKEY, IRAN, CJTF_BLUE]
+  tags: [cap, strike, player]
+  description: Cold War fighter-bomber.
+  pydcs_id: F-4E-45MC
+  pydcs_class: planes.F_4E_45MC
+- id: F-5E-3
+  name: F-5E Tiger II
+  category: plane
+  role: fighter
+  threat: medium
+  eras: [early_cold_war, late_cold_war]
+  coalitions: [blue]
+  countries: [USA, IRAN, CJTF_BLUE]
+  tags: [cap, player]
+  description: Light fighter.
+  pydcs_id: F-5E-3
+  pydcs_class: planes.F_5E_3
+- id: A-10C_2
+  name: A-10C II Warthog
+  category: plane
+  role: attack
+  threat: medium
+  eras: [late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, CJTF_BLUE]
+  tags: [cas, player]
+  description: CAS aircraft.
+  pydcs_id: A-10C_2
+  pydcs_class: planes.A_10C_2
+- id: A-10C
+  name: A-10C Warthog
+  category: plane
+  role: attack
+  threat: medium
+  eras: [late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, CJTF_BLUE]
+  tags: [cas]
+  description: CAS aircraft (legacy A-10C).
+  pydcs_id: A-10C
+  pydcs_class: planes.A_10C
+- id: AV8BNA
+  name: AV-8B Harrier II
+  category: plane
+  role: attack
+  threat: medium
+  eras: [late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, CJTF_BLUE]
+  tags: [cas, player]
+  description: V/STOL attack.
+  pydcs_id: AV8BNA
+  pydcs_class: planes.AV8BNA
+- id: M-2000C
+  name: Mirage 2000C
+  category: plane
+  role: fighter
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [blue]
+  countries: [FRANCE, CJTF_BLUE]
+  tags: [cap, player]
+  description: Interceptor.
+  pydcs_id: M-2000C
+  pydcs_class: planes.M_2000C
+- id: E-3A
+  name: E-3A Sentry
+  category: plane
+  role: awacs
+  threat: none
+  eras: [late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, CJTF_BLUE]
+  tags: [support]
+  description: AWACS.
+  pydcs_id: E-3A
+  pydcs_class: planes.E_3A
+- id: KC-135
+  name: KC-135 Stratotanker
+  category: plane
+  role: tanker
+  threat: none
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, CJTF_BLUE]
+  tags: [support]
+  description: Boom tanker.
+  pydcs_id: KC-135
+  pydcs_class: planes.KC_135
+- id: KC135MPRS
+  name: KC-135 MPRS
+  category: plane
+  role: tanker
+  threat: none
+  eras: [late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, CJTF_BLUE]
+  tags: [support]
+  description: Drogue tanker.
+  pydcs_id: KC135MPRS
+  pydcs_class: planes.KC135MPRS
+- id: C-130
+  name: C-130 Hercules
+  category: plane
+  role: transport
+  threat: none
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: [support]
+  description: Tactical airlifter.
+  pydcs_id: C-130
+  pydcs_class: planes.C_130
+- id: B-52H
+  name: B-52H
+  category: plane
+  role: bomber
+  threat: low
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, CJTF_BLUE]
+  tags: [strike]
+  description: Strategic bomber.
+  pydcs_id: B-52H
+  pydcs_class: planes.B_52H
+- id: MQ-9 Reaper
+  name: MQ-9 Reaper
+  category: plane
+  role: uav
+  threat: low
+  eras: [modern]
+  coalitions: [blue]
+  countries: [USA, CJTF_BLUE]
+  tags: [recon, cas]
+  description: Armed UAV.
+  pydcs_id: MQ-9 Reaper
+  pydcs_class: planes.MQ_9_Reaper
+- id: MiG-21Bis
+  name: MiG-21bis
+  category: plane
+  role: fighter
+  threat: medium
+  eras: [early_cold_war, late_cold_war]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [cap, player]
+  description: Low-cost interceptor.
+  pydcs_id: MiG-21Bis
+  pydcs_class: planes.MiG_21Bis
+- id: MiG-23MLD
+  name: MiG-23MLD
+  category: plane
+  role: fighter
+  threat: medium
+  eras: [late_cold_war]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [cap]
+  description: Swing-wing fighter.
+  pydcs_id: MiG-23MLD
+  pydcs_class: planes.MiG_23MLD
+- id: MiG-25PD
+  name: MiG-25PD
+  category: plane
+  role: fighter
+  threat: medium
+  eras: [late_cold_war]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [cap]
+  description: High-speed interceptor.
+  pydcs_id: MiG-25PD
+  pydcs_class: planes.MiG_25PD
+- id: MiG-29A
+  name: MiG-29A
+  category: plane
+  role: fighter
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [cap, player]
+  description: Fulcrum A.
+  pydcs_id: MiG-29A
+  pydcs_class: planes.MiG_29A
+- id: MiG-29S
+  name: MiG-29S
+  category: plane
+  role: fighter
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [cap, player]
+  description: Fulcrum C.
+  pydcs_id: MiG-29S
+  pydcs_class: planes.MiG_29S
+- id: MiG-31
+  name: MiG-31
+  category: plane
+  role: fighter
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, CJTF_RED]
+  tags: [cap]
+  description: Long-range interceptor.
+  pydcs_id: MiG-31
+  pydcs_class: planes.MiG_31
+- id: Su-27
+  name: Su-27 Flanker
+  category: plane
+  role: fighter
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [cap, player]
+  description: Air superiority fighter.
+  pydcs_id: Su-27
+  pydcs_class: planes.Su_27
+- id: Su-30
+  name: Su-30
+  category: plane
+  role: multirole
+  threat: high
+  eras: [modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [cap, strike]
+  description: Multirole Flanker.
+  pydcs_id: Su-30
+  pydcs_class: planes.Su_30
+- id: Su-33
+  name: Su-33
+  category: plane
+  role: fighter
+  threat: high
+  eras: [modern]
+  coalitions: [red]
+  countries: [RUSSIA, CJTF_RED]
+  tags: [cap, player]
+  description: Carrier Flanker.
+  pydcs_id: Su-33
+  pydcs_class: planes.Su_33
+- id: Su-34
+  name: Su-34
+  category: plane
+  role: strike
+  threat: high
+  eras: [modern]
+  coalitions: [red]
+  countries: [RUSSIA, CJTF_RED]
+  tags: [strike]
+  description: Strike fighter.
+  pydcs_id: Su-34
+  pydcs_class: planes.Su_34
+- id: Su-24M
+  name: Su-24M Fencer
+  category: plane
+  role: strike
+  threat: medium
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [strike]
+  description: Strike aircraft.
+  pydcs_id: Su-24M
+  pydcs_class: planes.Su_24M
+- id: Su-25
+  name: Su-25 Frogfoot
+  category: plane
+  role: attack
+  threat: medium
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [cas, player]
+  description: CAS aircraft.
+  pydcs_id: Su-25
+  pydcs_class: planes.Su_25
+- id: Su-25T
+  name: Su-25T
+  category: plane
+  role: attack
+  threat: medium
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [cas, sead, player]
+  description: Anti-tank Frogfoot.
+  pydcs_id: Su-25T
+  pydcs_class: planes.Su_25T
+- id: L-39ZA
+  name: L-39ZA Albatros
+  category: plane
+  role: trainer
+  threat: low
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [cas, player]
+  description: Light attack/trainer.
+  pydcs_id: L-39ZA
+  pydcs_class: planes.L_39ZA
+- id: A-50
+  name: A-50 Mainstay
+  category: plane
+  role: awacs
+  threat: none
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, CJTF_RED]
+  tags: [support]
+  description: AWACS.
+  pydcs_id: A-50
+  pydcs_class: planes.A_50
+- id: IL-78M
+  name: Il-78M
+  category: plane
+  role: tanker
+  threat: none
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, CJTF_RED]
+  tags: [support]
+  description: Drogue tanker.
+  pydcs_id: IL-78M
+  pydcs_class: planes.IL_78M
+- id: An-26B
+  name: An-26B
+  category: plane
+  role: transport
+  threat: none
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [support]
+  description: Tactical transport.
+  pydcs_id: An-26B
+  pydcs_class: planes.An_26B
+- id: Tu-22M3
+  name: Tu-22M3 Backfire
+  category: plane
+  role: bomber
+  threat: low
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, CJTF_RED]
+  tags: [strike]
+  description: Strategic bomber.
+  pydcs_id: Tu-22M3
+  pydcs_class: planes.Tu_22M3
+- id: AH-64D_BLK_II
+  name: AH-64D Apache
+  category: helicopter
+  role: attack_helo
+  threat: high
+  eras: [modern]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: [cas, player]
+  description: Attack helicopter.
+  pydcs_id: AH-64D_BLK_II
+  pydcs_class: helicopters.AH_64D_BLK_II
+- id: AH-64D
+  name: AH-64D (AI)
+  category: helicopter
+  role: attack_helo
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, CJTF_BLUE]
+  tags: [cas]
+  description: Attack helicopter (AI model).
+  pydcs_id: AH-64D
+  pydcs_class: helicopters.AH_64D
+- id: AH-1W
+  name: AH-1W SuperCobra
+  category: helicopter
+  role: attack_helo
+  threat: medium
+  eras: [late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, TURKEY, CJTF_BLUE]
+  tags: [cas]
+  description: Attack helicopter.
+  pydcs_id: AH-1W
+  pydcs_class: helicopters.AH_1W
+- id: OH58D
+  name: OH-58D Kiowa Warrior
+  category: helicopter
+  role: scout_helo
+  threat: low
+  eras: [late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, CJTF_BLUE]
+  tags: [recon, cas, player]
+  description: Scout helicopter.
+  pydcs_id: OH58D
+  pydcs_class: helicopters.OH58D
+- id: UH-1H
+  name: UH-1H Huey
+  category: helicopter
+  role: utility_helo
+  threat: low
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: [transport, csar, player]
+  description: Utility helicopter.
+  pydcs_id: UH-1H
+  pydcs_class: helicopters.UH_1H
+- id: UH-60A
+  name: UH-60A Black Hawk
+  category: helicopter
+  role: utility_helo
+  threat: low
+  eras: [late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: [transport, csar]
+  description: Utility helicopter.
+  pydcs_id: UH-60A
+  pydcs_class: helicopters.UH_60A
+- id: CH-47D
+  name: CH-47D Chinook
+  category: helicopter
+  role: transport_helo
+  threat: none
+  eras: [late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: [transport]
+  description: Heavy-lift helicopter.
+  pydcs_id: CH-47D
+  pydcs_class: helicopters.CH_47D
+- id: CH-47Fbl1
+  name: CH-47F Chinook
+  category: helicopter
+  role: transport_helo
+  threat: none
+  eras: [modern]
+  coalitions: [blue]
+  countries: [USA, UK, ISRAEL, CJTF_BLUE]
+  tags: [transport, player]
+  description: Heavy-lift helicopter.
+  pydcs_id: CH-47Fbl1
+  pydcs_class: helicopters.CH_47Fbl1
+- id: SA342M
+  name: SA342M Gazelle
+  category: helicopter
+  role: scout_helo
+  threat: low
+  eras: [late_cold_war, modern]
+  coalitions: [blue]
+  countries: [FRANCE, UK, SYRIA, CJTF_BLUE]
+  tags: [recon, player]
+  description: Light attack/scout.
+  pydcs_id: SA342M
+  pydcs_class: helicopters.SA342M
+- id: Ka-50
+  name: Ka-50 Black Shark
+  category: helicopter
+  role: attack_helo
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, CJTF_RED]
+  tags: [cas, player]
+  description: Attack helicopter.
+  pydcs_id: Ka-50
+  pydcs_class: helicopters.Ka_50
+- id: Ka-50_3
+  name: Ka-50 III
+  category: helicopter
+  role: attack_helo
+  threat: high
+  eras: [modern]
+  coalitions: [red]
+  countries: [RUSSIA, CJTF_RED]
+  tags: [cas, player]
+  description: Attack helicopter.
+  pydcs_id: Ka-50_3
+  pydcs_class: helicopters.Ka_50_3
+- id: Mi-24P
+  name: Mi-24P Hind
+  category: helicopter
+  role: attack_helo
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [cas, transport, player]
+  description: Assault helicopter.
+  pydcs_id: Mi-24P
+  pydcs_class: helicopters.Mi_24P
+- id: Mi-24V
+  name: Mi-24V Hind
+  category: helicopter
+  role: attack_helo
+  threat: high
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [cas, transport]
+  description: Assault helicopter.
+  pydcs_id: Mi-24V
+  pydcs_class: helicopters.Mi_24V
+- id: Mi-28N
+  name: Mi-28N Havoc
+  category: helicopter
+  role: attack_helo
+  threat: high
+  eras: [modern]
+  coalitions: [red]
+  countries: [RUSSIA, CJTF_RED]
+  tags: [cas]
+  description: Attack helicopter.
+  pydcs_id: Mi-28N
+  pydcs_class: helicopters.Mi_28N
+- id: Mi-8MT
+  name: Mi-8MTV2 Hip
+  category: helicopter
+  role: utility_helo
+  threat: low
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [transport, player]
+  description: Utility helicopter.
+  pydcs_id: Mi-8MT
+  pydcs_class: helicopters.Mi_8MT
+- id: Mi-26
+  name: Mi-26 Halo
+  category: helicopter
+  role: transport_helo
+  threat: none
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [transport]
+  description: Heavy-lift helicopter.
+  pydcs_id: Mi-26
+  pydcs_class: helicopters.Mi_26
+- id: CVN_71
+  name: CVN-71 Theodore Roosevelt
+  category: ship
+  role: carrier
+  threat: high
+  eras: [modern]
+  coalitions: [blue]
+  countries: [USA, CJTF_BLUE]
+  tags: []
+  description: Supercarrier.
+  pydcs_id: CVN_71
+  pydcs_class: ships.CVN_71
+- id: USS_Arleigh_Burke_IIa
+  name: Arleigh Burke IIa
+  category: ship
+  role: destroyer
+  threat: high
+  eras: [modern]
+  coalitions: [blue]
+  countries: [USA, CJTF_BLUE]
+  tags: []
+  description: AEGIS destroyer.
+  pydcs_id: USS_Arleigh_Burke_IIa
+  pydcs_class: ships.USS_Arleigh_Burke_IIa
+- id: TICONDEROG
+  name: Ticonderoga
+  category: ship
+  role: cruiser
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, CJTF_BLUE]
+  tags: []
+  description: AEGIS cruiser.
+  pydcs_id: TICONDEROG
+  pydcs_class: ships.TICONDEROG
+- id: PERRY
+  name: Oliver Hazard Perry
+  category: ship
+  role: frigate
+  threat: medium
+  eras: [late_cold_war, modern]
+  coalitions: [blue]
+  countries: [USA, CJTF_BLUE]
+  tags: []
+  description: Frigate.
+  pydcs_id: PERRY
+  pydcs_class: ships.PERRY
+- id: KUZNECOW
+  name: Admiral Kuznetsov
+  category: ship
+  role: carrier
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, CJTF_RED]
+  tags: []
+  description: Carrier.
+  pydcs_id: KUZNECOW
+  pydcs_class: ships.KUZNECOW
+- id: MOSCOW
+  name: Moskva
+  category: ship
+  role: cruiser
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, CJTF_RED]
+  tags: []
+  description: Slava-class cruiser.
+  pydcs_id: MOSCOW
+  pydcs_class: ships.MOSCOW
+- id: NEUSTRASH
+  name: Neustrashimy
+  category: ship
+  role: frigate
+  threat: high
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, CJTF_RED]
+  tags: []
+  description: Frigate.
+  pydcs_id: NEUSTRASH
+  pydcs_class: ships.NEUSTRASH
+- id: ALBATROS
+  name: Grisha
+  category: ship
+  role: corvette
+  threat: medium
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: []
+  description: ASW corvette with SA-N-4.
+  pydcs_id: ALBATROS
+  pydcs_class: ships.ALBATROS
+- id: MOLNIYA
+  name: Molniya
+  category: ship
+  role: corvette
+  threat: medium
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: []
+  description: Missile corvette.
+  pydcs_id: MOLNIYA
+  pydcs_class: ships.MOLNIYA
+- id: speedboat
+  name: Armed speedboat
+  category: ship
+  role: patrol
+  threat: low
+  eras: [late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED, INSURGENTS]
+  tags: []
+  description: Fast attack boat.
+  pydcs_id: speedboat
+  pydcs_class: ships.Speedboat
+- id: Dry-cargo ship-1
+  name: Dry cargo ship
+  category: ship
+  role: cargo
+  threat: none
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [neutral, red, blue]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED, USA, UK, ISRAEL, CJTF_BLUE]
+  tags: [convoy]
+  description: Cargo ship.
+  pydcs_id: Dry-cargo ship-1
+  pydcs_class: ships.Dry_cargo_ship_1
+- id: ELNYA
+  name: Elnya tanker
+  category: ship
+  role: cargo
+  threat: none
+  eras: [early_cold_war, late_cold_war, modern]
+  coalitions: [red]
+  countries: [RUSSIA, SYRIA, IRAN, IRAQ, CJTF_RED]
+  tags: [fuel]
+  description: Fleet oiler.
+  pydcs_id: ELNYA
+  pydcs_class: ships.ELNYA

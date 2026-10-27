@@ -1,0 +1,66 @@
+{
+  "additionalProperties": false,
+  "description": "Current campaign state, updated by the debriefer after each flown mission.",
+  "properties": {
+    "values": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "description": "Quality id -> current value.",
+      "title": "Values",
+      "type": "object"
+    },
+    "flags": {
+      "additionalProperties": {
+        "type": "boolean"
+      },
+      "description": "Campaign-wide flags carried between missions, e.g. {'kirk_bridge_down': true}.",
+      "title": "Flags",
+      "type": "object"
+    },
+    "outcomes": {
+      "additionalProperties": {
+        "additionalProperties": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "type": "object"
+      },
+      "description": "Mission id -> outcome dict recorded from [DMS.OUTCOME] lines.",
+      "title": "Outcomes",
+      "type": "object"
+    },
+    "updated_after": {
+      "anyOf": [
+        {
+          "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Id of the last mission folded into this state.",
+      "title": "Updated After"
+    }
+  },
+  "title": "Qualities",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dms.local/schemas/qualities.schema.json"
+}

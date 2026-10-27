@@ -1,0 +1,172 @@
+# Dustoff Corridor voice lines (reference mission for the v0.4 vertical slice).
+#
+# Converted from VOICE-LINES.md in this folder; every line is kept, including the optional
+# variations (as `variants`) and the "future expansion" A-10 lines 120-127 (tagged `future`).
+# Shape: VoiceLineSet (docs/CONTRACTS.md). `beat` names the trigger event. In the legacy
+# mission each beat was a user flag (noted as "flag N" in `notes`) that the master-init
+# script sets and an ME trigger turns into SOUND TO COALITION. No takes have been rendered
+# yet, so there is no `audio:` field. Legacy file names are kept in `notes`.
+# Speaker voices are stand-ins from data/voice/voices.json until dedicated voices are made
+# from the Convoy Commander / A-10 Pilot design prompts in VOICE-LINES.md.
+version: 1
+speakers:
+  convoy_actual:
+    voice: ground_troops
+    role: "Convoy Actual - seasoned NCO convoy commander; calm under pressure, clear radio delivery"
+  hawg_11:
+    voice: warning_system
+    role: "Hawg One-One - A-10C CAS pilot; cool, laid-back 'Hawg driver' confidence, clipped brevity"
+lines:
+  - id: mission_start
+    speaker: convoy_actual
+    text: "Dustoff, this is Convoy Actual. We're rolling out now. Stick close, we're expecting contact."
+    variants: []
+    beat: mission_start
+    tags: [dustoff_corridor, mission_state]
+    notes: "flag 100; legacy file mission_start.mp3. Delivery: Confident, alert."
+  - id: mission_victory
+    speaker: convoy_actual
+    text: "Dustoff, Convoy Actual. We've reached the FOB. All vehicles accounted for. Outstanding work up there. Convoy Actual, out."
+    variants: []
+    beat: mission_victory
+    tags: [dustoff_corridor, mission_state]
+    notes: "flag 101; legacy file mission_victory.mp3. Delivery: Relieved, grateful."
+  - id: mission_defeat
+    speaker: convoy_actual
+    text: "Dustoff... we're... we're not gonna make it. Too many casualties. Mission... failed..."
+    variants: []
+    beat: mission_defeat
+    tags: [dustoff_corridor, mission_state]
+    notes: "flag 102; legacy file mission_defeat.mp3. Delivery: Strained, wounded, fading. This is the last transmission before convoy is overrun."
+  - id: convoy_alpha_enter
+    speaker: convoy_actual
+    text: "Convoy entering Alpha sector."
+    variants: []
+    beat: convoy_alpha_enter
+    tags: [dustoff_corridor, position_report]
+    notes: "flag 110; legacy file convoy_alpha_enter.mp3. Delivery: Calm, routine, professional."
+  - id: convoy_alpha_exit
+    speaker: convoy_actual
+    text: "Convoy clear of Alpha, continuing route."
+    variants: []
+    beat: convoy_alpha_exit
+    tags: [dustoff_corridor, position_report]
+    notes: "flag 111; legacy file convoy_alpha_exit.mp3. Delivery: Calm, routine, professional."
+  - id: convoy_bravo_enter
+    speaker: convoy_actual
+    text: "Convoy entering Bravo sector."
+    variants: []
+    beat: convoy_bravo_enter
+    tags: [dustoff_corridor, position_report]
+    notes: "flag 112; legacy file convoy_bravo_enter.mp3. Delivery: Calm, routine, professional."
+  - id: convoy_bravo_exit
+    speaker: convoy_actual
+    text: "Convoy clear of Bravo, continuing route."
+    variants: []
+    beat: convoy_bravo_exit
+    tags: [dustoff_corridor, position_report]
+    notes: "flag 113; legacy file convoy_bravo_exit.mp3. Delivery: Calm, routine, professional."
+  - id: convoy_charlie_enter
+    speaker: convoy_actual
+    text: "Convoy entering Charlie sector."
+    variants: []
+    beat: convoy_charlie_enter
+    tags: [dustoff_corridor, position_report]
+    notes: "flag 114; legacy file convoy_charlie_enter.mp3. Delivery: Calm, routine, professional."
+  - id: convoy_charlie_exit
+    speaker: convoy_actual
+    text: "Convoy clear of Charlie, final approach beginning."
+    variants: []
+    beat: convoy_charlie_exit
+    tags: [dustoff_corridor, position_report]
+    notes: "flag 115; legacy file convoy_charlie_exit.mp3. Delivery: Calm, routine, professional."
+  - id: convoy_arrived
+    speaker: convoy_actual
+    text: "Convoy has reached destination. All vehicles accounted for, standing by for orders."
+    variants: []
+    beat: convoy_arrived
+    tags: [dustoff_corridor, position_report]
+    notes: "flag 116; legacy file convoy_arrived.mp3. Delivery: Calm, routine, professional."
+  - id: convoy_taking_fire
+    speaker: convoy_actual
+    text: "Contact! Contact! We are taking fire!"
+    variants: 
+      - "Contact! We're taking fire!"
+      - "Ambush! Ambush! We're under fire!"
+      - "Convoy under attack! Taking effective fire!"
+    beat: convoy_first_hit
+    tags: [dustoff_corridor, combat]
+    notes: "flag 117; legacy file convoy_taking_fire.mp3. Delivery: Urgent but controlled. This is the first moment of contact."
+  - id: convoy_casualty
+    speaker: convoy_actual
+    text: "Vehicle destroyed! We're taking casualties! Dustoff, we need immediate air support!"
+    variants: []
+    beat: convoy_vehicle_lost
+    tags: [dustoff_corridor, combat]
+    notes: "flag 118; legacy file convoy_casualty.mp3. Delivery: Stressed, urgent. Situation is serious but commander is still in control."
+  - id: a10_checkin
+    speaker: hawg_11
+    text: "Convoy Actual, Hawg One-One checking in. I've got eyes on multiple hostile contacts. ETA two minutes to engagement range."
+    variants: 
+      - "Convoy Actual, Hawg One-One checking in. I see multiple targets. Commencing attack run."
+      - "Hawg One-One on station. I've got good visual on hostiles. Engaging now."
+      - "Convoy Actual, Hawg One-One. Tally multiple armor targets. Moving to engage."
+    beat: a10_checkin
+    tags: [dustoff_corridor, a10_cas]
+    notes: "flag 119; legacy file a10_checkin.mp3. Delivery: Professional, confident entry."
+  - id: a10_rifle
+    speaker: hawg_11
+    text: "Hawg One-One, rifle."
+    variants: []
+    beat: a10_maverick_launch
+    tags: [dustoff_corridor, a10_cas, future]
+    notes: "flag 120; legacy file a10_rifle.mp3. Delivery: Quick, clipped. Standard weapon release call. \"Rifle\" is brevity code for AGM-65 Maverick launch."
+  - id: a10_gun_run
+    speaker: hawg_11
+    text: "Hawg One-One, in hot with the gun."
+    variants: []
+    beat: a10_gun_run
+    tags: [dustoff_corridor, a10_cas, future]
+    notes: "flag 121; legacy file a10_gun_run.mp3. Delivery: Focused, steady. Standard gun run callout before engaging with the GAU-8."
+  - id: a10_target_killed
+    speaker: hawg_11
+    text: "Good kill on that BMP. Target destroyed."
+    variants: []
+    beat: a10_target_destroyed
+    tags: [dustoff_corridor, a10_cas, future]
+    notes: "flag 122; legacy file a10_target_killed.mp3. Delivery: Professional, matter-of-fact confirmation."
+  - id: a10_engaging_multiple
+    speaker: hawg_11
+    text: "Multiple armor contacts. I'm going to make a few passes here. Stay clear of the target area."
+    variants: []
+    beat: a10_engaging_multiple
+    tags: [dustoff_corridor, a10_cas, future]
+    notes: "flag 123; legacy file a10_engaging_multiple.mp3. Delivery: Calm, informing friendly forces of extended engagement."
+  - id: a10_rockets
+    speaker: hawg_11
+    text: "Hawg One-One, rockets away."
+    variants: []
+    beat: a10_rockets_away
+    tags: [dustoff_corridor, a10_cas, future]
+    notes: "flag 124; legacy file a10_rockets.mp3. Delivery: Quick brevity call. Standard rocket launch callout."
+  - id: a10_winchester
+    speaker: hawg_11
+    text: "Convoy Actual, Hawg One-One is winchester. Good kills on multiple armor targets. RTB for rearm. Good luck down there."
+    variants: []
+    beat: a10_winchester
+    tags: [dustoff_corridor, a10_cas, future]
+    notes: "flag 125; legacy file a10_winchester.mp3. Delivery: Relaxed, satisfied. Winchester = out of weapons. RTB = returning to base."
+  - id: a10_reacquiring
+    speaker: hawg_11
+    text: "Coming back around, reacquiring targets."
+    variants: []
+    beat: a10_reacquiring
+    tags: [dustoff_corridor, a10_cas, future]
+    notes: "flag 126; legacy file a10_reacquiring.mp3. Delivery: Calm, workmanlike. Setting up for another pass."
+  - id: a10_splash
+    speaker: hawg_11
+    text: "Splash one Shilka. That AAA is off the board."
+    variants: []
+    beat: a10_splash
+    tags: [dustoff_corridor, a10_cas, future]
+    notes: "flag 127; legacy file a10_splash.mp3. Delivery: Satisfied, confirming kill on AA threat. \"Splash\" = target destroyed."

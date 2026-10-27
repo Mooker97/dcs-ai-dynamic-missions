@@ -1,0 +1,10 @@
+# StyLua config for the DMS Lua runtime (lua/src, lua/spec, lua/mocks).
+# DCS mission scripting is Lua 5.1. 2-space indent matches the rebuild code in lua/src (legacy/ used 4, but is excluded).
+syntax = "Lua51"
+column_width = 120
+line_endings = "Unix"
+indent_type = "Spaces"
+indent_width = 2
+quote_style = "AutoPreferDouble"
+call_parentheses = "Always"
+collapse_simple_statement = "Never"

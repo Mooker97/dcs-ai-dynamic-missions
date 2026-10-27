@@ -1,0 +1,37 @@
+I am working on create a DCS mission in the mission editor, i need fairly specific instructions on what to do to make this happen.
+
+Map: Syria 
+Single Player
+Player Vehicle: Apache
+Player Callsign: Dusty
+Mission Type: CAS / Recon
+Loadout: 8 Hellfires, no FCR
+Starting Location: Taqha
+Route: 15NM east and back to base
+
+Win condition:
+- Reach the area at the end of the patrol and return to base
+
+Loss condition: 
+- player vehicle destroyed
+
+Wingmen: None
+Freindly Forces: None
+
+
+Idea: Quick out and back recon mission, may encounter some light resistance. Technicals, groups of enemy infantry. stuff of that nature, spread out and sporadic, also with dynamic spawns and moving around.
+
+Other entities:
+- SAM site or two in the distance outside of the AO
+- Some freindly vehicles at the airbase, enough to make it feel alive
+
+Voice lines: 
+- A quick breifing 10 seconds after mission start from the base commander.
+- A message from tower as you approach back to the base clearing you to land at own descretion
+
+Backstory: You are part of a small Australian detatchment and will be supporting the ground forces as they push east towards alleppo in the coming months
+
+
+I need specific instructions on placing troops and how to set up the triggers and everything else inside of DCS mission editor.
+
+I will also need a mission title, scripts for any voice lines, a breifing message, prompts for breifing images to be generated with AI.

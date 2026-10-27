@@ -1,0 +1,148 @@
+{
+  "additionalProperties": false,
+  "description": "One outcome report. A mission usually emits several (per beat, plus a final summary).",
+  "properties": {
+    "mission_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Mission id from DMS_CONFIG.",
+      "title": "Mission Id"
+    },
+    "time": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Mission time (s) when emitted.",
+      "title": "Time"
+    },
+    "kind": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Report kind, e.g. 'beat', 'objective', 'summary', 'end'.",
+      "title": "Kind"
+    },
+    "beat": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Beat id that emitted it, if any.",
+      "title": "Beat"
+    },
+    "result": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "'success' / 'failure' for end reports.",
+      "title": "Result"
+    },
+    "flags": {
+      "additionalProperties": {
+        "type": "boolean"
+      },
+      "description": "Flag states.",
+      "title": "Flags",
+      "type": "object"
+    },
+    "outcomes": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "string"
+          }
+        ]
+      },
+      "description": "Outcome facts, e.g. {hvt_killed: true}.",
+      "title": "Outcomes",
+      "type": "object"
+    },
+    "kills": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "description": "Enemy kills by category or type, e.g. {ground: 7}.",
+      "title": "Kills",
+      "type": "object"
+    },
+    "losses": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "description": "Friendly losses by category or type.",
+      "title": "Losses",
+      "type": "object"
+    },
+    "players": {
+      "description": "Player names involved.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Players",
+      "type": "array"
+    },
+    "log_timestamp": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "dcs.log wall-clock timestamp.",
+      "title": "Log Timestamp"
+    },
+    "extra": {
+      "additionalProperties": true,
+      "description": "Unrecognised keys, verbatim.",
+      "title": "Extra",
+      "type": "object"
+    }
+  },
+  "title": "MissionOutcome",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dms.local/schemas/mission-outcome.schema.json"
+}

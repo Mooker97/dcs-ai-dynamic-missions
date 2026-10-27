@@ -1,0 +1,2385 @@
+{
+  "$defs": {
+    "Adapt": {
+      "additionalProperties": false,
+      "description": "Clamp for hidden difficulty adaptation, in skill tiers.",
+      "properties": {
+        "min": {
+          "default": -1,
+          "description": "Lowest tier offset.",
+          "maximum": 0,
+          "minimum": -3,
+          "title": "Min",
+          "type": "integer"
+        },
+        "max": {
+          "default": 1,
+          "description": "Highest tier offset.",
+          "maximum": 3,
+          "minimum": 0,
+          "title": "Max",
+          "type": "integer"
+        }
+      },
+      "title": "Adapt",
+      "type": "object"
+    },
+    "Beat": {
+      "additionalProperties": false,
+      "description": "One storylet beat. Keep radio text short; 3-5 voice-line variants per beat.",
+      "properties": {
+        "id": {
+          "description": "Beat id, e.g. 'convoy_hit'.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "when": {
+          "$ref": "#/$defs/BeatTrigger",
+          "description": "Trigger."
+        },
+        "requires": {
+          "$ref": "#/$defs/Requires",
+          "description": "Preconditions (all must hold)."
+        },
+        "priority": {
+          "default": 50,
+          "description": "Higher wins when several beats are eligible at once.",
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Priority",
+          "type": "integer"
+        },
+        "once": {
+          "default": true,
+          "description": "Fire at most once per mission.",
+          "title": "Once",
+          "type": "boolean"
+        },
+        "cooldown_sec": {
+          "default": 0,
+          "description": "Minimum seconds between firings.",
+          "minimum": 0,
+          "title": "Cooldown Sec",
+          "type": "number"
+        },
+        "delay_sec": {
+          "default": 0,
+          "description": "Delay between trigger and delivery.",
+          "minimum": 0,
+          "title": "Delay Sec",
+          "type": "number"
+        },
+        "speaker": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Character id who speaks (must be in the mission cast).",
+          "title": "Speaker"
+        },
+        "lines": {
+          "description": "Voice line ids from lines.yaml; one is picked at random (no immediate repeats).",
+          "items": {
+            "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+            "type": "string"
+          },
+          "title": "Lines",
+          "type": "array"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Subtitle / fallback text shown if no audio plays.",
+          "title": "Text"
+        },
+        "mark": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BeatMark"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional F10 mark."
+        },
+        "effects": {
+          "$ref": "#/$defs/BeatEffects",
+          "description": "Effects on fire."
+        }
+      },
+      "required": [
+        "id",
+        "when"
+      ],
+      "title": "Beat",
+      "type": "object"
+    },
+    "BeatEffects": {
+      "additionalProperties": false,
+      "description": "What the beat changes when it fires.",
+      "properties": {
+        "set_flag": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Flag to set true.",
+          "title": "Set Flag"
+        },
+        "clear_flag": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Flag to clear.",
+          "title": "Clear Flag"
+        },
+        "outcome": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "description": "Outcome facts to record and emit via [DMS.OUTCOME], e.g. {hvt_killed: true}.",
+          "title": "Outcome",
+          "type": "object"
+        },
+        "start_encounter": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Encounter id (from mission-spec dynamic.encounters) to start.",
+          "title": "Start Encounter"
+        },
+        "spawn_pool": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Pool id to draw and spawn from once.",
+          "title": "Spawn Pool"
+        },
+        "quality_deltas": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "Campaign quality changes applied in the debrief, e.g. {trust: 1}.",
+          "title": "Quality Deltas",
+          "type": "object"
+        },
+        "end_mission": {
+          "anyOf": [
+            {
+              "enum": [
+                "success",
+                "failure"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Declare the mission over with this result.",
+          "title": "End Mission"
+        }
+      },
+      "title": "BeatEffects",
+      "type": "object"
+    },
+    "BeatMark": {
+      "additionalProperties": false,
+      "description": "An F10 map mark dropped when the beat fires.",
+      "properties": {
+        "type": {
+          "default": "circle",
+          "description": "Mark shape.",
+          "enum": [
+            "circle",
+            "text",
+            "point"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "at": {
+          "description": "Where: 'group:<name>', 'unit:<name>' or 'zone:<id>'.",
+          "pattern": "^(group|unit|zone):.+$",
+          "title": "At",
+          "type": "string"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Label shown on the map.",
+          "title": "Text"
+        },
+        "radius_m": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Circle radius in meters.",
+          "title": "Radius M"
+        },
+        "coalition": {
+          "anyOf": [
+            {
+              "enum": [
+                1,
+                2
+              ],
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Who sees it; default players' side.",
+          "title": "Coalition"
+        }
+      },
+      "required": [
+        "at"
+      ],
+      "title": "BeatMark",
+      "type": "object"
+    },
+    "BeatTrigger": {
+      "additionalProperties": false,
+      "description": "What wakes the beat up. Set `event` plus the matching filter fields.",
+      "properties": {
+        "event": {
+          "description": "Trigger event. timer: after_sec from mission start; flag: when `flag` becomes set; zone.entered: a player/group enters `zone`; group.dead: `group` (or any group with `group_prefix`) is destroyed; beat.fired: after another beat; encounter.spawned: an encounter spawned; director.state: director enters `state`; others mirror DCS events.",
+          "enum": [
+            "mission.start",
+            "timer",
+            "flag",
+            "zone.entered",
+            "group.dead",
+            "unit.dead",
+            "unit.hit",
+            "unit.shot",
+            "player.spawned",
+            "player.left",
+            "unit.landed",
+            "unit.takeoff",
+            "mark.added",
+            "beat.fired",
+            "encounter.spawned",
+            "director.state"
+          ],
+          "title": "Event",
+          "type": "string"
+        },
+        "group": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Exact group name filter, e.g. 'HVT'.",
+          "title": "Group"
+        },
+        "group_prefix": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Group name prefix filter, e.g. 'AAA_KIRK' matches AAA_KIRK_1..n.",
+          "title": "Group Prefix"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Exact unit name filter.",
+          "title": "Unit"
+        },
+        "zone": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Zone/area id (zone.entered).",
+          "title": "Zone"
+        },
+        "flag": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Flag name (flag event).",
+          "title": "Flag"
+        },
+        "beat": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Beat id (beat.fired).",
+          "title": "Beat"
+        },
+        "encounter": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Encounter id (encounter.spawned).",
+          "title": "Encounter"
+        },
+        "state": {
+          "anyOf": [
+            {
+              "enum": [
+                "BUILD_UP",
+                "PEAK",
+                "RELAX"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Director state (director.state).",
+          "title": "State"
+        },
+        "after_sec": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Seconds after mission start (timer).",
+          "title": "After Sec"
+        },
+        "coalition": {
+          "anyOf": [
+            {
+              "enum": [
+                1,
+                2
+              ],
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Coalition filter: 1 = red, 2 = blue.",
+          "title": "Coalition"
+        },
+        "type_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "DCS unit type filter, e.g. 'ZSU-23-4 Shilka'.",
+          "title": "Type Name"
+        },
+        "players_only": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Only count events caused by/affecting player aircraft.",
+          "title": "Players Only"
+        }
+      },
+      "required": [
+        "event"
+      ],
+      "title": "BeatTrigger",
+      "type": "object"
+    },
+    "Budgets": {
+      "additionalProperties": false,
+      "description": "Hard caps on live units and spawn rate.",
+      "properties": {
+        "max_active_ground": {
+          "default": 150,
+          "description": "Max active ground units.",
+          "minimum": 0,
+          "title": "Max Active Ground",
+          "type": "integer"
+        },
+        "max_active_air": {
+          "default": 16,
+          "description": "Max active air units.",
+          "minimum": 0,
+          "title": "Max Active Air",
+          "type": "integer"
+        },
+        "spawns_per_min": {
+          "default": 3,
+          "description": "Max spawns per minute.",
+          "minimum": 0,
+          "title": "Spawns Per Min",
+          "type": "number"
+        }
+      },
+      "title": "Budgets",
+      "type": "object"
+    },
+    "CircleZone": {
+      "additionalProperties": false,
+      "description": "Circular zone.",
+      "properties": {
+        "kind": {
+          "const": "circle",
+          "default": "circle",
+          "description": "Zone shape.",
+          "title": "Kind",
+          "type": "string"
+        },
+        "x": {
+          "description": "Center DCS x.",
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "description": "Center DCS y.",
+          "title": "Y",
+          "type": "number"
+        },
+        "radius": {
+          "description": "Radius in meters.",
+          "exclusiveMinimum": 0,
+          "title": "Radius",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "radius"
+      ],
+      "title": "CircleZone",
+      "type": "object"
+    },
+    "Director": {
+      "additionalProperties": false,
+      "description": "Intensity director settings.",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "description": "Run the director.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "peak": {
+          "default": 70,
+          "description": "Intensity that triggers RELAX.",
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Peak",
+          "type": "number"
+        },
+        "relax_sec": {
+          "default": [
+            40,
+            90
+          ],
+          "description": "[min, max] RELAX duration.",
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Relax Sec",
+          "type": "array"
+        },
+        "decay_per_sec": {
+          "default": 1.5,
+          "description": "Intensity decay per second.",
+          "minimum": 0,
+          "title": "Decay Per Sec",
+          "type": "number"
+        },
+        "adapt": {
+          "$ref": "#/$defs/Adapt",
+          "description": "Hidden difficulty clamp."
+        }
+      },
+      "title": "Director",
+      "type": "object"
+    },
+    "Encounter": {
+      "additionalProperties": false,
+      "description": "A runtime encounter.",
+      "properties": {
+        "id": {
+          "description": "Encounter id.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Encounter behaviour.",
+          "enum": [
+            "ambush_sam",
+            "waves",
+            "hunt",
+            "convoy",
+            "cap",
+            "pool"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "pool": {
+          "description": "Pool id.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Pool",
+          "type": "string"
+        },
+        "trigger": {
+          "$ref": "#/$defs/EncounterTrigger",
+          "description": "Start condition."
+        },
+        "chance": {
+          "default": 100,
+          "description": "Percent chance per play.",
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Chance",
+          "type": "integer"
+        },
+        "telegraph": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Warning, e.g. 'beat:sam_spike'.",
+          "title": "Telegraph"
+        },
+        "hunt": {
+          "default": false,
+          "description": "Spawned groups hunt players.",
+          "title": "Hunt",
+          "type": "boolean"
+        },
+        "waves": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Wave count (kind=waves).",
+          "title": "Waves"
+        },
+        "gap_sec": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "[min, max] wave gap.",
+          "title": "Gap Sec"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "pool",
+        "trigger"
+      ],
+      "title": "Encounter",
+      "type": "object"
+    },
+    "EncounterTrigger": {
+      "additionalProperties": false,
+      "description": "When an encounter starts.",
+      "properties": {
+        "type": {
+          "description": "Trigger kind.",
+          "enum": [
+            "proximity",
+            "beat",
+            "director",
+            "time"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "zone": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Zone id (proximity).",
+          "title": "Zone"
+        },
+        "radius_m": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Radius in meters (proximity).",
+          "title": "Radius M"
+        },
+        "beat": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Beat id (beat).",
+          "title": "Beat"
+        },
+        "after_sec": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Seconds after start (time).",
+          "title": "After Sec"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "EncounterTrigger",
+      "type": "object"
+    },
+    "Intel": {
+      "additionalProperties": false,
+      "description": "Fog-of-war / intel settings.",
+      "properties": {
+        "fog_of_war": {
+          "default": true,
+          "description": "Hide enemies; reveal by F10 marks.",
+          "title": "Fog Of War",
+          "type": "boolean"
+        },
+        "reveal_radius_m": {
+          "default": 5000,
+          "description": "Detection reveal radius.",
+          "exclusiveMinimum": 0,
+          "title": "Reveal Radius M",
+          "type": "number"
+        },
+        "mark_refresh_sec": {
+          "default": 15,
+          "description": "Mark refresh interval.",
+          "exclusiveMinimum": 0,
+          "title": "Mark Refresh Sec",
+          "type": "number"
+        },
+        "stale_sec": {
+          "default": 120,
+          "description": "Mark goes stale after this long.",
+          "exclusiveMinimum": 0,
+          "title": "Stale Sec",
+          "type": "number"
+        }
+      },
+      "title": "Intel",
+      "type": "object"
+    },
+    "Payload": {
+      "additionalProperties": false,
+      "description": "Aircraft payload.",
+      "properties": {
+        "pylons": {
+          "description": "Loaded pylons.",
+          "items": {
+            "$ref": "#/$defs/Pylon"
+          },
+          "title": "Pylons",
+          "type": "array"
+        },
+        "fuel_kg": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Internal fuel in kg; null = full.",
+          "title": "Fuel Kg"
+        },
+        "flare": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Flare count.",
+          "title": "Flare"
+        },
+        "chaff": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Chaff count.",
+          "title": "Chaff"
+        },
+        "gun_pct": {
+          "default": 100,
+          "description": "Gun ammo percent.",
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Gun Pct",
+          "type": "integer"
+        }
+      },
+      "title": "Payload",
+      "type": "object"
+    },
+    "PlanBriefing": {
+      "additionalProperties": false,
+      "description": "Mission editor briefing texts.",
+      "properties": {
+        "title": {
+          "description": "Mission title.",
+          "title": "Title",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "description": "Situation text.",
+          "title": "Description",
+          "type": "string"
+        },
+        "blue_task": {
+          "default": "",
+          "description": "Blue task text.",
+          "title": "Blue Task",
+          "type": "string"
+        },
+        "red_task": {
+          "default": "",
+          "description": "Red task text.",
+          "title": "Red Task",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title"
+      ],
+      "title": "PlanBriefing",
+      "type": "object"
+    },
+    "PlanGroup": {
+      "additionalProperties": false,
+      "description": "One group, exact.",
+      "properties": {
+        "name": {
+          "description": "Unique group name; beats/encounters refer to it.",
+          "title": "Name",
+          "type": "string"
+        },
+        "category": {
+          "description": "DCS group category.",
+          "enum": [
+            "plane",
+            "helicopter",
+            "vehicle",
+            "ship",
+            "static"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "coalition": {
+          "description": "Side.",
+          "enum": [
+            "blue",
+            "red",
+            "neutral"
+          ],
+          "title": "Coalition",
+          "type": "string"
+        },
+        "country": {
+          "description": "DCS country name.",
+          "title": "Country",
+          "type": "string"
+        },
+        "task": {
+          "anyOf": [
+            {
+              "enum": [
+                "CAS",
+                "SEAD",
+                "DEAD",
+                "CAP",
+                "STRIKE",
+                "ESCORT",
+                "CSAR",
+                "RECON",
+                "TRANSPORT",
+                "CONVOY_ESCORT"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Main task (air groups).",
+          "title": "Task"
+        },
+        "units": {
+          "description": "Units.",
+          "items": {
+            "$ref": "#/$defs/PlanUnit"
+          },
+          "minItems": 1,
+          "title": "Units",
+          "type": "array"
+        },
+        "route": {
+          "description": "Waypoints.",
+          "items": {
+            "$ref": "#/$defs/PlanWaypoint"
+          },
+          "title": "Route",
+          "type": "array"
+        },
+        "frequency_mhz": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Radio frequency, MHz.",
+          "title": "Frequency Mhz"
+        },
+        "modulation": {
+          "default": "AM",
+          "description": "Radio modulation.",
+          "enum": [
+            "AM",
+            "FM"
+          ],
+          "title": "Modulation",
+          "type": "string"
+        },
+        "late_activation": {
+          "default": false,
+          "description": "Spawn only when activated.",
+          "title": "Late Activation",
+          "type": "boolean"
+        },
+        "hidden": {
+          "default": false,
+          "description": "Hidden on the F10 map.",
+          "title": "Hidden",
+          "type": "boolean"
+        },
+        "uncontrolled": {
+          "default": false,
+          "description": "Air group sits uncontrolled.",
+          "title": "Uncontrolled",
+          "type": "boolean"
+        },
+        "client": {
+          "default": false,
+          "description": "True if units are player/client slots.",
+          "title": "Client",
+          "type": "boolean"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "MissionSpec id this group realises (threat/support/flight).",
+          "title": "Source"
+        }
+      },
+      "required": [
+        "name",
+        "category",
+        "coalition",
+        "country",
+        "units"
+      ],
+      "title": "PlanGroup",
+      "type": "object"
+    },
+    "PlanOptions": {
+      "additionalProperties": false,
+      "description": "Mission options.",
+      "properties": {
+        "fog_of_war_map": {
+          "default": true,
+          "description": "F10 map option 'Fog of War'.",
+          "title": "Fog Of War Map",
+          "type": "boolean"
+        },
+        "labels": {
+          "default": "none",
+          "description": "Labels.",
+          "enum": [
+            "none",
+            "abbreviated",
+            "full",
+            "dot"
+          ],
+          "title": "Labels",
+          "type": "string"
+        },
+        "civil_traffic": {
+          "default": "off",
+          "description": "Civ traffic.",
+          "enum": [
+            "off",
+            "low",
+            "medium",
+            "high"
+          ],
+          "title": "Civil Traffic",
+          "type": "string"
+        },
+        "external_views": {
+          "default": true,
+          "description": "Allow F2 external views.",
+          "title": "External Views",
+          "type": "boolean"
+        }
+      },
+      "title": "PlanOptions",
+      "type": "object"
+    },
+    "PlanResource": {
+      "additionalProperties": false,
+      "description": "A file embedded into the .miz.",
+      "properties": {
+        "path": {
+          "description": "Path inside the .miz, e.g. 'l10n/DEFAULT/dms.lua'.",
+          "title": "Path",
+          "type": "string"
+        },
+        "source": {
+          "description": "Local source path when building.",
+          "title": "Source",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Resource kind.",
+          "enum": [
+            "script",
+            "sound",
+            "kneeboard",
+            "briefing_image",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "source",
+        "kind"
+      ],
+      "title": "PlanResource",
+      "type": "object"
+    },
+    "PlanTask": {
+      "additionalProperties": false,
+      "description": "A DCS task attached to a waypoint (pydcs task id + params).",
+      "properties": {
+        "id": {
+          "description": "Task id, e.g. 'EngageTargets', 'Orbit', 'Hold'.",
+          "title": "Id",
+          "type": "string"
+        },
+        "params": {
+          "additionalProperties": true,
+          "description": "Task parameters.",
+          "title": "Params",
+          "type": "object"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "PlanTask",
+      "type": "object"
+    },
+    "PlanTrigger": {
+      "additionalProperties": false,
+      "description": "A mission editor trigger rule.",
+      "properties": {
+        "name": {
+          "description": "Rule comment/name.",
+          "title": "Name",
+          "type": "string"
+        },
+        "kind": {
+          "default": "once",
+          "description": "Trigger rule type.",
+          "enum": [
+            "once",
+            "continuous",
+            "mission_start",
+            "switched"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "conditions": {
+          "description": "Conditions (AND).",
+          "items": {
+            "$ref": "#/$defs/PlanTriggerItem"
+          },
+          "title": "Conditions",
+          "type": "array"
+        },
+        "actions": {
+          "description": "Actions.",
+          "items": {
+            "$ref": "#/$defs/PlanTriggerItem"
+          },
+          "minItems": 1,
+          "title": "Actions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "actions"
+      ],
+      "title": "PlanTrigger",
+      "type": "object"
+    },
+    "PlanTriggerItem": {
+      "additionalProperties": false,
+      "description": "A trigger condition or action.",
+      "properties": {
+        "type": {
+          "description": "pydcs condition/action name, e.g. 'TimeAfter', 'DoScriptFile'.",
+          "title": "Type",
+          "type": "string"
+        },
+        "params": {
+          "additionalProperties": true,
+          "description": "Parameters.",
+          "title": "Params",
+          "type": "object"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "PlanTriggerItem",
+      "type": "object"
+    },
+    "PlanUnit": {
+      "additionalProperties": false,
+      "description": "One unit, exact.",
+      "properties": {
+        "name": {
+          "description": "Unique unit name.",
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "description": "DCS unit type id.",
+          "title": "Type",
+          "type": "string"
+        },
+        "x": {
+          "description": "DCS x (north), meters.",
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "description": "DCS y (east), meters.",
+          "title": "Y",
+          "type": "number"
+        },
+        "alt_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Altitude in meters (air units).",
+          "title": "Alt M"
+        },
+        "heading_deg": {
+          "default": 0,
+          "description": "Heading, degrees true.",
+          "exclusiveMaximum": 360,
+          "minimum": 0,
+          "title": "Heading Deg",
+          "type": "number"
+        },
+        "skill": {
+          "default": "Good",
+          "description": "AI skill, or Client/Player for slots.",
+          "enum": [
+            "Average",
+            "Good",
+            "High",
+            "Excellent",
+            "Random",
+            "Client",
+            "Player"
+          ],
+          "title": "Skill",
+          "type": "string"
+        },
+        "payload": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Payload"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Aircraft payload."
+        },
+        "livery": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Livery id.",
+          "title": "Livery"
+        },
+        "onboard_num": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Side number / tail code.",
+          "title": "Onboard Num"
+        },
+        "parking_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Parking spot id for ramp starts.",
+          "title": "Parking Id"
+        }
+      },
+      "required": [
+        "name",
+        "type",
+        "x",
+        "y"
+      ],
+      "title": "PlanUnit",
+      "type": "object"
+    },
+    "PlanWaypoint": {
+      "additionalProperties": false,
+      "description": "One route point, exact.",
+      "properties": {
+        "x": {
+          "description": "DCS x, meters.",
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "description": "DCS y, meters.",
+          "title": "Y",
+          "type": "number"
+        },
+        "alt_m": {
+          "default": 0,
+          "description": "Altitude in meters.",
+          "title": "Alt M",
+          "type": "number"
+        },
+        "alt_type": {
+          "default": "BARO",
+          "description": "Altitude reference.",
+          "enum": [
+            "BARO",
+            "RADIO"
+          ],
+          "title": "Alt Type",
+          "type": "string"
+        },
+        "speed_kmh": {
+          "default": 0,
+          "description": "Speed in km/h.",
+          "minimum": 0,
+          "title": "Speed Kmh",
+          "type": "number"
+        },
+        "action": {
+          "default": "Turning Point",
+          "description": "DCS waypoint action.",
+          "enum": [
+            "Turning Point",
+            "Fly Over Point",
+            "From Parking Area",
+            "From Parking Area Hot",
+            "From Runway",
+            "Landing",
+            "Off Road",
+            "On Road"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Waypoint name.",
+          "title": "Name"
+        },
+        "airbase": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Airbase for takeoff/landing points.",
+          "title": "Airbase"
+        },
+        "tasks": {
+          "description": "Tasks at this point.",
+          "items": {
+            "$ref": "#/$defs/PlanTask"
+          },
+          "title": "Tasks",
+          "type": "array"
+        }
+      },
+      "required": [
+        "x",
+        "y"
+      ],
+      "title": "PlanWaypoint",
+      "type": "object"
+    },
+    "PlanWeather": {
+      "additionalProperties": false,
+      "description": "Exact weather.",
+      "properties": {
+        "cloud_preset": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "DCS cloud preset, e.g. 'Preset3'.",
+          "title": "Cloud Preset"
+        },
+        "cloud_base_m": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cloud base, meters.",
+          "title": "Cloud Base M"
+        },
+        "wind_dir_deg": {
+          "default": 0,
+          "description": "Ground wind from, degrees.",
+          "exclusiveMaximum": 360,
+          "minimum": 0,
+          "title": "Wind Dir Deg",
+          "type": "number"
+        },
+        "wind_speed_mps": {
+          "default": 0,
+          "description": "Ground wind speed, m/s.",
+          "minimum": 0,
+          "title": "Wind Speed Mps",
+          "type": "number"
+        },
+        "temperature_c": {
+          "default": 20,
+          "description": "Ground temperature, Celsius.",
+          "title": "Temperature C",
+          "type": "number"
+        },
+        "qnh_mmhg": {
+          "default": 760,
+          "description": "QNH in mmHg.",
+          "title": "Qnh Mmhg",
+          "type": "number"
+        },
+        "visibility_m": {
+          "default": 80000,
+          "description": "Visibility, meters.",
+          "exclusiveMinimum": 0,
+          "title": "Visibility M",
+          "type": "number"
+        },
+        "fog_visibility_m": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Fog visibility.",
+          "title": "Fog Visibility M"
+        },
+        "dust_visibility_m": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Dust visibility.",
+          "title": "Dust Visibility M"
+        },
+        "precipitation": {
+          "default": "none",
+          "description": "Precipitation.",
+          "enum": [
+            "none",
+            "rain",
+            "thunderstorm",
+            "snow"
+          ],
+          "title": "Precipitation",
+          "type": "string"
+        }
+      },
+      "title": "PlanWeather",
+      "type": "object"
+    },
+    "PlanZone": {
+      "additionalProperties": false,
+      "description": "A mission editor trigger zone.",
+      "properties": {
+        "name": {
+          "description": "Zone name (area id from the spec).",
+          "title": "Name",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Shape.",
+          "enum": [
+            "circle",
+            "polygon"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "x": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Center x (circle).",
+          "title": "X"
+        },
+        "y": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Center y (circle).",
+          "title": "Y"
+        },
+        "radius_m": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Radius (circle).",
+          "title": "Radius M"
+        },
+        "points": {
+          "description": "[x, y] vertices (polygon).",
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "title": "Points",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "kind"
+      ],
+      "title": "PlanZone",
+      "type": "object"
+    },
+    "Players": {
+      "additionalProperties": false,
+      "description": "Player side.",
+      "properties": {
+        "coalition": {
+          "default": 2,
+          "description": "1 = red, 2 = blue.",
+          "enum": [
+            1,
+            2
+          ],
+          "title": "Coalition",
+          "type": "integer"
+        }
+      },
+      "title": "Players",
+      "type": "object"
+    },
+    "PolygonZone": {
+      "additionalProperties": false,
+      "description": "Polygon zone.",
+      "properties": {
+        "kind": {
+          "const": "polygon",
+          "default": "polygon",
+          "description": "Zone shape.",
+          "title": "Kind",
+          "type": "string"
+        },
+        "points": {
+          "description": "Vertices in DCS x/y.",
+          "items": {
+            "$ref": "#/$defs/XY"
+          },
+          "minItems": 3,
+          "title": "Points",
+          "type": "array"
+        }
+      },
+      "required": [
+        "points"
+      ],
+      "title": "PolygonZone",
+      "type": "object"
+    },
+    "Pool": {
+      "additionalProperties": false,
+      "description": "Weighted template pool.",
+      "properties": {
+        "members": {
+          "description": "Weighted templates.",
+          "items": {
+            "$ref": "#/$defs/PoolMember"
+          },
+          "minItems": 1,
+          "title": "Members",
+          "type": "array"
+        },
+        "pick": {
+          "default": [
+            1,
+            1
+          ],
+          "description": "[min, max] groups per draw.",
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Pick",
+          "type": "array"
+        },
+        "zones": {
+          "description": "Zone ids to spawn in.",
+          "items": {
+            "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Zones",
+          "type": "array"
+        }
+      },
+      "required": [
+        "members",
+        "zones"
+      ],
+      "title": "Pool",
+      "type": "object"
+    },
+    "PoolMember": {
+      "additionalProperties": false,
+      "description": "Weighted reference to a template.",
+      "properties": {
+        "tpl": {
+          "description": "Template id.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Tpl",
+          "type": "string"
+        },
+        "w": {
+          "default": 1,
+          "description": "Weight.",
+          "exclusiveMinimum": 0,
+          "title": "W",
+          "type": "number"
+        }
+      },
+      "required": [
+        "tpl"
+      ],
+      "title": "PoolMember",
+      "type": "object"
+    },
+    "Pylon": {
+      "additionalProperties": false,
+      "description": "One loaded pylon.",
+      "properties": {
+        "num": {
+          "description": "Pylon station number.",
+          "maximum": 30,
+          "minimum": 1,
+          "title": "Num",
+          "type": "integer"
+        },
+        "clsid": {
+          "description": "Store CLSID, e.g. '{88D18A5E-99C8-4B04-B40B-1C02F2018B6E}'.",
+          "title": "Clsid",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Human-readable store name (informational).",
+          "title": "Name"
+        }
+      },
+      "required": [
+        "num",
+        "clsid"
+      ],
+      "title": "Pylon",
+      "type": "object"
+    },
+    "QualityCheck": {
+      "additionalProperties": false,
+      "description": "Compare a campaign quality (a named integer that persists across missions) to a value.",
+      "properties": {
+        "quality": {
+          "description": "Quality id declared in the campaign arc, e.g. 'trust'.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Quality",
+          "type": "string"
+        },
+        "op": {
+          "default": ">=",
+          "description": "Comparison operator.",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "value": {
+          "description": "Value to compare the quality against.",
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "quality",
+        "value"
+      ],
+      "title": "QualityCheck",
+      "type": "object"
+    },
+    "Requires": {
+      "additionalProperties": false,
+      "description": "Preconditions. ALL listed conditions must hold. Empty means 'always eligible'.",
+      "properties": {
+        "flags": {
+          "description": "Flags that must be set (true) for this to apply.",
+          "items": {
+            "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+            "type": "string"
+          },
+          "title": "Flags",
+          "type": "array"
+        },
+        "flags_not": {
+          "description": "Flags that must NOT be set.",
+          "items": {
+            "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+            "type": "string"
+          },
+          "title": "Flags Not",
+          "type": "array"
+        },
+        "qualities": {
+          "description": "Quality comparisons, e.g. [{quality: trust, op: '>=', value: 2}].",
+          "items": {
+            "$ref": "#/$defs/QualityCheck"
+          },
+          "title": "Qualities",
+          "type": "array"
+        },
+        "beats_fired": {
+          "description": "Beat ids that must already have fired this mission.",
+          "items": {
+            "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+            "type": "string"
+          },
+          "title": "Beats Fired",
+          "type": "array"
+        },
+        "beats_not_fired": {
+          "description": "Beat ids that must NOT have fired yet.",
+          "items": {
+            "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+            "type": "string"
+          },
+          "title": "Beats Not Fired",
+          "type": "array"
+        },
+        "chance": {
+          "default": 100,
+          "description": "Percent chance (rolled once per evaluation) that this is eligible. 100 = always.",
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Chance",
+          "type": "integer"
+        }
+      },
+      "title": "Requires",
+      "type": "object"
+    },
+    "RuntimeConfig": {
+      "additionalProperties": false,
+      "description": "DMS_CONFIG: everything the Lua runtime needs; generated by `dms plan`.",
+      "properties": {
+        "version": {
+          "const": 1,
+          "default": 1,
+          "description": "Config format version.",
+          "title": "Version",
+          "type": "integer"
+        },
+        "seed": {
+          "default": 0,
+          "description": "Planner seed; Lua mixes it with timer entropy.",
+          "title": "Seed",
+          "type": "integer"
+        },
+        "debug": {
+          "default": false,
+          "description": "Enable DMS debug logging.",
+          "title": "Debug",
+          "type": "boolean"
+        },
+        "mission_id": {
+          "description": "Mission id, echoed in [DMS.OUTCOME] lines.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Mission Id",
+          "type": "string"
+        },
+        "budgets": {
+          "$ref": "#/$defs/Budgets",
+          "description": "Unit/spawn caps."
+        },
+        "director": {
+          "$ref": "#/$defs/Director",
+          "description": "Pacing director."
+        },
+        "templates": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Template"
+          },
+          "description": "Template id -> template.",
+          "title": "Templates",
+          "type": "object"
+        },
+        "zones": {
+          "additionalProperties": {
+            "discriminator": {
+              "mapping": {
+                "circle": "#/$defs/CircleZone",
+                "polygon": "#/$defs/PolygonZone"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/CircleZone"
+              },
+              {
+                "$ref": "#/$defs/PolygonZone"
+              }
+            ]
+          },
+          "description": "Zone id -> zone.",
+          "title": "Zones",
+          "type": "object"
+        },
+        "pools": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Pool"
+          },
+          "description": "Pool id -> pool.",
+          "title": "Pools",
+          "type": "object"
+        },
+        "encounters": {
+          "description": "Encounters.",
+          "items": {
+            "$ref": "#/$defs/Encounter"
+          },
+          "title": "Encounters",
+          "type": "array"
+        },
+        "beats": {
+          "description": "Compiled beats (beats.yaml).",
+          "items": {
+            "$ref": "#/$defs/Beat"
+          },
+          "title": "Beats",
+          "type": "array"
+        },
+        "voice": {
+          "additionalProperties": {
+            "$ref": "#/$defs/VoiceEntry"
+          },
+          "description": "Line id -> audio.",
+          "title": "Voice",
+          "type": "object"
+        },
+        "intel": {
+          "$ref": "#/$defs/Intel",
+          "description": "Fog of war / intel."
+        },
+        "players": {
+          "$ref": "#/$defs/Players"
+        }
+      },
+      "required": [
+        "mission_id"
+      ],
+      "title": "RuntimeConfig",
+      "type": "object"
+    },
+    "Template": {
+      "additionalProperties": false,
+      "description": "A spawnable group template.",
+      "properties": {
+        "country": {
+          "description": "DCS country name, e.g. 'RUSSIA'.",
+          "title": "Country",
+          "type": "string"
+        },
+        "category": {
+          "description": "Group category.",
+          "enum": [
+            "ground",
+            "air",
+            "ship"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "skill": {
+          "default": "Good",
+          "description": "AI skill.",
+          "enum": [
+            "Average",
+            "Good",
+            "High",
+            "Excellent",
+            "Random"
+          ],
+          "title": "Skill",
+          "type": "string"
+        },
+        "units": {
+          "description": "Units in the group.",
+          "items": {
+            "$ref": "#/$defs/TemplateUnit"
+          },
+          "minItems": 1,
+          "title": "Units",
+          "type": "array"
+        }
+      },
+      "required": [
+        "country",
+        "category",
+        "units"
+      ],
+      "title": "Template",
+      "type": "object"
+    },
+    "TemplateUnit": {
+      "additionalProperties": false,
+      "description": "One unit within a group template, offset from the group anchor (meters).",
+      "properties": {
+        "type": {
+          "description": "DCS unit type id, e.g. 'Osa 9A33 ln'.",
+          "title": "Type",
+          "type": "string"
+        },
+        "dx": {
+          "default": 0,
+          "description": "Offset north (DCS x), meters.",
+          "title": "Dx",
+          "type": "number"
+        },
+        "dy": {
+          "default": 0,
+          "description": "Offset east (DCS y), meters.",
+          "title": "Dy",
+          "type": "number"
+        },
+        "heading": {
+          "default": 0,
+          "description": "Heading in radians.",
+          "title": "Heading",
+          "type": "number"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "TemplateUnit",
+      "type": "object"
+    },
+    "VoiceEntry": {
+      "additionalProperties": false,
+      "description": "Rendered audio for a voice line id.",
+      "properties": {
+        "file": {
+          "description": "File name inside the .miz (l10n/DEFAULT/).",
+          "title": "File",
+          "type": "string"
+        },
+        "text": {
+          "description": "Subtitle text.",
+          "title": "Text",
+          "type": "string"
+        },
+        "dur_sec": {
+          "description": "Duration in seconds.",
+          "exclusiveMinimum": 0,
+          "title": "Dur Sec",
+          "type": "number"
+        },
+        "speaker": {
+          "description": "Character id.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Speaker",
+          "type": "string"
+        }
+      },
+      "required": [
+        "file",
+        "text",
+        "dur_sec",
+        "speaker"
+      ],
+      "title": "VoiceEntry",
+      "type": "object"
+    },
+    "XY": {
+      "additionalProperties": false,
+      "description": "DCS map coordinates (x = north, y = east, meters).",
+      "properties": {
+        "x": {
+          "description": "DCS x (north), meters.",
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "description": "DCS y (east), meters.",
+          "title": "Y",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y"
+      ],
+      "title": "XY",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Exact build plan (plan.json). Seeded and reproducible.",
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "description": "Schema version.",
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "mission_id": {
+      "description": "Mission id.",
+      "maxLength": 64,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+      "title": "Mission Id",
+      "type": "string"
+    },
+    "seed": {
+      "description": "Seed used by the planner.",
+      "title": "Seed",
+      "type": "integer"
+    },
+    "theater": {
+      "description": "DCS map.",
+      "enum": [
+        "Caucasus",
+        "Syria",
+        "PersianGulf",
+        "Nevada",
+        "MarianaIslands",
+        "Sinai",
+        "Kola",
+        "Afghanistan",
+        "Normandy",
+        "TheChannel",
+        "Falklands",
+        "GermanyCW"
+      ],
+      "title": "Theater",
+      "type": "string"
+    },
+    "date": {
+      "description": "Mission date.",
+      "format": "date",
+      "title": "Date",
+      "type": "string"
+    },
+    "start_time_sec": {
+      "description": "Start time, seconds after midnight.",
+      "exclusiveMaximum": 86400,
+      "minimum": 0,
+      "title": "Start Time Sec",
+      "type": "integer"
+    },
+    "weather": {
+      "$ref": "#/$defs/PlanWeather",
+      "description": "Weather."
+    },
+    "blue_countries": {
+      "description": "Blue coalition countries.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Blue Countries",
+      "type": "array"
+    },
+    "red_countries": {
+      "description": "Red coalition countries.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Red Countries",
+      "type": "array"
+    },
+    "groups": {
+      "description": "All groups.",
+      "items": {
+        "$ref": "#/$defs/PlanGroup"
+      },
+      "title": "Groups",
+      "type": "array"
+    },
+    "zones": {
+      "description": "Trigger zones.",
+      "items": {
+        "$ref": "#/$defs/PlanZone"
+      },
+      "title": "Zones",
+      "type": "array"
+    },
+    "triggers": {
+      "description": "Trigger rules.",
+      "items": {
+        "$ref": "#/$defs/PlanTrigger"
+      },
+      "title": "Triggers",
+      "type": "array"
+    },
+    "resources": {
+      "description": "Embedded files.",
+      "items": {
+        "$ref": "#/$defs/PlanResource"
+      },
+      "title": "Resources",
+      "type": "array"
+    },
+    "briefing": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PlanBriefing"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Briefing texts."
+    },
+    "options": {
+      "$ref": "#/$defs/PlanOptions"
+    },
+    "runtime": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RuntimeConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "DMS_CONFIG to emit as dms_config.lua."
+    }
+  },
+  "required": [
+    "mission_id",
+    "seed",
+    "theater",
+    "date",
+    "start_time_sec"
+  ],
+  "title": "BuildPlan",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dms.local/schemas/build-plan.schema.json"
+}

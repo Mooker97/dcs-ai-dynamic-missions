@@ -1,0 +1,598 @@
+{
+  "$defs": {
+    "Character": {
+      "additionalProperties": false,
+      "description": "A recurring person in the story. Real people must have real_person=true and no invented quotes.",
+      "properties": {
+        "id": {
+          "description": "Stable id used as beat/line speaker, e.g. 'ops_mustang'.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "description": "Full name, or a role name like 'Battalion TOC watch officer'.",
+          "title": "Name",
+          "type": "string"
+        },
+        "callsign": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Radio callsign, e.g. 'Mustang'.",
+          "title": "Callsign"
+        },
+        "role": {
+          "description": "Function in the story and on the radio, e.g. 'JTAC', 'wingman'.",
+          "title": "Role",
+          "type": "string"
+        },
+        "faction": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Faction id this character belongs to.",
+          "title": "Faction"
+        },
+        "real_person": {
+          "default": false,
+          "description": "True for real historical people. Never write invented dialogue for them.",
+          "title": "Real Person",
+          "type": "boolean"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Personality, background, look.",
+          "title": "Description"
+        },
+        "arc": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How this character changes over the campaign.",
+          "title": "Arc"
+        },
+        "voice": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VoiceProfile"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Voice profile. Required if the character speaks on the radio."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "role"
+      ],
+      "title": "Character",
+      "type": "object"
+    },
+    "Faction": {
+      "additionalProperties": false,
+      "description": "A side or group in the story.",
+      "properties": {
+        "id": {
+          "description": "Stable id, e.g. 'red_militia'.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "description": "In-story name, e.g. 'Free Valley Front'.",
+          "title": "Name",
+          "type": "string"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Who they are and what they want.",
+          "title": "Description"
+        },
+        "doctrine": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How they fight: ambushes, IADS-heavy, massed armor, etc.",
+          "title": "Doctrine"
+        },
+        "dcs": {
+          "$ref": "#/$defs/FactionDCS",
+          "description": "Mapping to DCS country/coalition/unit types."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "dcs"
+      ],
+      "title": "Faction",
+      "type": "object"
+    },
+    "FactionDCS": {
+      "additionalProperties": false,
+      "description": "How a story faction maps onto what DCS can actually spawn.",
+      "properties": {
+        "country": {
+          "description": "DCS country name used for this faction's units, e.g. 'USA', 'Insurgents', 'Syria'.",
+          "title": "Country",
+          "type": "string"
+        },
+        "coalition": {
+          "description": "DCS coalition side.",
+          "enum": [
+            "blue",
+            "red",
+            "neutral"
+          ],
+          "title": "Coalition",
+          "type": "string"
+        },
+        "units": {
+          "description": "Representative DCS unit type ids this faction fields, e.g. ['BTR-80', 'ZU-23 Emplacement'].",
+          "items": {
+            "type": "string"
+          },
+          "title": "Units",
+          "type": "array"
+        },
+        "tech_veneer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "For fictional factions: which real equipment stands in for their gear and why.",
+          "title": "Tech Veneer"
+        }
+      },
+      "required": [
+        "country",
+        "coalition"
+      ],
+      "title": "FactionDCS",
+      "type": "object"
+    },
+    "Setting": {
+      "additionalProperties": false,
+      "description": "Where and when the story takes place.",
+      "properties": {
+        "era": {
+          "description": "Year the story is set in; constrains equipment.",
+          "maximum": 2100,
+          "minimum": 1900,
+          "title": "Era",
+          "type": "integer"
+        },
+        "theater": {
+          "description": "DCS map the campaign plays on.",
+          "enum": [
+            "Caucasus",
+            "Syria",
+            "PersianGulf",
+            "Nevada",
+            "MarianaIslands",
+            "Sinai",
+            "Kola",
+            "Afghanistan",
+            "Normandy",
+            "TheChannel",
+            "Falklands",
+            "GermanyCW"
+          ],
+          "title": "Theater",
+          "type": "string"
+        },
+        "region": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Area within the map, e.g. 'Orontes valley'.",
+          "title": "Region"
+        },
+        "premise_summary": {
+          "description": "Two to four sentence summary of the premise.",
+          "title": "Premise Summary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "era",
+        "theater",
+        "premise_summary"
+      ],
+      "title": "Setting",
+      "type": "object"
+    },
+    "Source": {
+      "additionalProperties": false,
+      "description": "A factual claim with its citation. Required for anything presented as real history.",
+      "properties": {
+        "claim": {
+          "description": "One factual sentence, e.g. 'Route X linked A and B in 2004'.",
+          "title": "Claim",
+          "type": "string"
+        },
+        "source_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "URL backing the claim. Omit only for fictional/adapted canon.",
+          "title": "Source Url"
+        },
+        "confidence": {
+          "default": "medium",
+          "description": "How well the source supports the claim: high (primary/official), medium, low.",
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ],
+          "title": "Confidence",
+          "type": "string"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Caveats, conflicting sources, etc.",
+          "title": "Note"
+        }
+      },
+      "required": [
+        "claim"
+      ],
+      "title": "Source",
+      "type": "object"
+    },
+    "TimelineEvent": {
+      "additionalProperties": false,
+      "description": "An event on the story timeline, real or invented.",
+      "properties": {
+        "date": {
+          "description": "ISO date or partial date ('2004-03', '2004-03-14').",
+          "title": "Date",
+          "type": "string"
+        },
+        "event": {
+          "description": "What happened, one or two sentences.",
+          "title": "Event",
+          "type": "string"
+        },
+        "fictional": {
+          "default": false,
+          "description": "True if invented for this story.",
+          "title": "Fictional",
+          "type": "boolean"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Source"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Citation; required when fictional=false and mode is historical."
+        }
+      },
+      "required": [
+        "date",
+        "event"
+      ],
+      "title": "TimelineEvent",
+      "type": "object"
+    },
+    "Tone": {
+      "additionalProperties": false,
+      "description": "Narrative voice of the campaign.",
+      "properties": {
+        "style": {
+          "default": "professional-terse",
+          "description": "Overall narrative register, e.g. 'professional-terse', 'gritty', 'pulp adventure'.",
+          "title": "Style",
+          "type": "string"
+        },
+        "themes": {
+          "description": "Themes, e.g. ['attrition', 'trust'].",
+          "items": {
+            "type": "string"
+          },
+          "title": "Themes",
+          "type": "array"
+        }
+      },
+      "title": "Tone",
+      "type": "object"
+    },
+    "VoiceProfile": {
+      "additionalProperties": false,
+      "description": "How a character sounds on the radio. Drives TTS rendering and line writing style.",
+      "properties": {
+        "eleven_voice_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Existing ElevenLabs voice id. Leave null to have one designed from design_prompt.",
+          "title": "Eleven Voice Id"
+        },
+        "design_prompt": {
+          "description": "Voice Design prompt describing the voice, e.g. 'Gravelly American male, 40s, calm under pressure, slight Texas drawl, clipped military radio delivery'.",
+          "title": "Design Prompt",
+          "type": "string"
+        },
+        "accent": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Accent, e.g. 'General American'.",
+          "title": "Accent"
+        },
+        "age": {
+          "anyOf": [
+            {
+              "maximum": 100,
+              "minimum": 10,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Apparent age in years.",
+          "title": "Age"
+        },
+        "gender": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Voice gender presentation, free text.",
+          "title": "Gender"
+        },
+        "cadence": {
+          "default": "measured",
+          "description": "Speaking pace on the radio.",
+          "enum": [
+            "slow",
+            "measured",
+            "brisk",
+            "rapid"
+          ],
+          "title": "Cadence",
+          "type": "string"
+        },
+        "brevity": {
+          "default": "terse",
+          "description": "How many words they use. Real military radio is terse; keep most characters terse.",
+          "enum": [
+            "terse",
+            "normal",
+            "chatty"
+          ],
+          "title": "Brevity",
+          "type": "string"
+        },
+        "radio_fx": {
+          "default": "uhf_clean",
+          "description": "Post-processing preset: uhf_clean (aircraft/ATC UHF), vhf_noisy (ground units, FM squad nets), intercom (cockpit crew), none (narrator/briefing).",
+          "enum": [
+            "uhf_clean",
+            "vhf_noisy",
+            "intercom",
+            "none"
+          ],
+          "title": "Radio Fx",
+          "type": "string"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Extra delivery notes for line writers.",
+          "title": "Notes"
+        }
+      },
+      "required": [
+        "design_prompt"
+      ],
+      "title": "VoiceProfile",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Canonical story bible (bible.yaml). Later agents read this instead of remembering.",
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "description": "Schema version; always 1.",
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "title": {
+      "description": "Campaign title.",
+      "title": "Title",
+      "type": "string"
+    },
+    "mode": {
+      "description": "historical: real events, every claim cited; adapted: real setting with invented characters/events; fictional: invented world mapped onto DCS hardware.",
+      "enum": [
+        "historical",
+        "adapted",
+        "fictional"
+      ],
+      "title": "Mode",
+      "type": "string"
+    },
+    "setting": {
+      "$ref": "#/$defs/Setting",
+      "description": "Era, theater, region and premise summary."
+    },
+    "tone": {
+      "$ref": "#/$defs/Tone",
+      "description": "Narrative register and themes."
+    },
+    "player_role": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Who the player is, e.g. 'AH-64D crew, 1-227 ARB'.",
+      "title": "Player Role"
+    },
+    "factions": {
+      "description": "All sides; at least the player's.",
+      "items": {
+        "$ref": "#/$defs/Faction"
+      },
+      "minItems": 1,
+      "title": "Factions",
+      "type": "array"
+    },
+    "characters": {
+      "description": "Recurring characters.",
+      "items": {
+        "$ref": "#/$defs/Character"
+      },
+      "title": "Characters",
+      "type": "array"
+    },
+    "timeline": {
+      "description": "Story chronology.",
+      "items": {
+        "$ref": "#/$defs/TimelineEvent"
+      },
+      "title": "Timeline",
+      "type": "array"
+    },
+    "sources": {
+      "description": "General citations.",
+      "items": {
+        "$ref": "#/$defs/Source"
+      },
+      "title": "Sources",
+      "type": "array"
+    },
+    "canon_rules": {
+      "description": "Hard rules later writers must respect, e.g. 'Mustang never swears on the net'.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Canon Rules",
+      "type": "array"
+    }
+  },
+  "required": [
+    "title",
+    "mode",
+    "setting",
+    "factions"
+  ],
+  "title": "StoryBible",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dms.local/schemas/story-bible.schema.json"
+}

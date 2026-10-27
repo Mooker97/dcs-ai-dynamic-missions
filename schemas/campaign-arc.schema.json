@@ -1,0 +1,407 @@
+{
+  "$defs": {
+    "Act": {
+      "additionalProperties": false,
+      "description": "A group of missions with a shared dramatic purpose.",
+      "properties": {
+        "id": {
+          "description": "Act id, e.g. 'act1'.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "description": "Act title.",
+          "title": "Title",
+          "type": "string"
+        },
+        "summary": {
+          "description": "What this act is about.",
+          "title": "Summary",
+          "type": "string"
+        },
+        "missions": {
+          "description": "Missions in play order.",
+          "items": {
+            "$ref": "#/$defs/ArcMission"
+          },
+          "minItems": 1,
+          "title": "Missions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "summary",
+        "missions"
+      ],
+      "title": "Act",
+      "type": "object"
+    },
+    "ArcMission": {
+      "additionalProperties": false,
+      "description": "One mission slot in the arc. Detail is filled in later by the mission-designer.",
+      "properties": {
+        "id": {
+          "description": "Mission id 'mNN-slug', e.g. 'm01-first-light'.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "description": "Mission title.",
+          "title": "Title",
+          "type": "string"
+        },
+        "mission_type": {
+          "description": "Primary mission type.",
+          "enum": [
+            "CAS",
+            "SEAD",
+            "DEAD",
+            "CAP",
+            "STRIKE",
+            "ESCORT",
+            "CSAR",
+            "RECON",
+            "TRANSPORT",
+            "CONVOY_ESCORT"
+          ],
+          "title": "Mission Type",
+          "type": "string"
+        },
+        "dramatic_question": {
+          "description": "The question this mission answers for the player, e.g. 'Can we trust the militia guides?'",
+          "title": "Dramatic Question",
+          "type": "string"
+        },
+        "synopsis": {
+          "description": "Two to five sentence plan of what happens.",
+          "title": "Synopsis",
+          "type": "string"
+        },
+        "player_aircraft": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "DCS aircraft type id the player flies, e.g. 'AH-64D_BLK_II'.",
+          "title": "Player Aircraft"
+        },
+        "characters": {
+          "description": "Bible character ids that appear in this mission.",
+          "items": {
+            "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+            "type": "string"
+          },
+          "title": "Characters",
+          "type": "array"
+        },
+        "key_beats": {
+          "description": "Guaranteed story moments, as short phrases; become beats later.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Key Beats",
+          "type": "array"
+        },
+        "quality_effects": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Quality id -> how this mission can move it, e.g. {'trust': '+1 if convoy survives'}.",
+          "title": "Quality Effects",
+          "type": "object"
+        },
+        "branches": {
+          "description": "Conditional next missions; empty means 'next in order'.",
+          "items": {
+            "$ref": "#/$defs/Branch"
+          },
+          "title": "Branches",
+          "type": "array"
+        },
+        "optional": {
+          "default": false,
+          "description": "True if this mission only appears via a branch.",
+          "title": "Optional",
+          "type": "boolean"
+        },
+        "status": {
+          "default": "planned",
+          "description": "Pipeline status of this mission.",
+          "enum": [
+            "planned",
+            "designed",
+            "built",
+            "flown"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "mission_type",
+        "dramatic_question",
+        "synopsis"
+      ],
+      "title": "ArcMission",
+      "type": "object"
+    },
+    "Branch": {
+      "additionalProperties": false,
+      "description": "A conditional jump to another arc mission, evaluated after the mission is flown.",
+      "properties": {
+        "when": {
+          "$ref": "#/$defs/Requires",
+          "description": "Conditions on campaign flags/qualities; first matching branch wins."
+        },
+        "goto": {
+          "description": "Arc mission id to play next if the condition holds.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Goto",
+          "type": "string"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Narrative reason for this branch.",
+          "title": "Description"
+        }
+      },
+      "required": [
+        "goto"
+      ],
+      "title": "Branch",
+      "type": "object"
+    },
+    "QualityCheck": {
+      "additionalProperties": false,
+      "description": "Compare a campaign quality (a named integer that persists across missions) to a value.",
+      "properties": {
+        "quality": {
+          "description": "Quality id declared in the campaign arc, e.g. 'trust'.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Quality",
+          "type": "string"
+        },
+        "op": {
+          "default": ">=",
+          "description": "Comparison operator.",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "value": {
+          "description": "Value to compare the quality against.",
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "quality",
+        "value"
+      ],
+      "title": "QualityCheck",
+      "type": "object"
+    },
+    "QualityDef": {
+      "additionalProperties": false,
+      "description": "Declares a campaign quality: a named integer that persists and steers later missions.",
+      "properties": {
+        "id": {
+          "description": "Quality id, e.g. 'trust', 'civilian_goodwill', 'enemy_morale'.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "description": {
+          "description": "What the number means narratively.",
+          "title": "Description",
+          "type": "string"
+        },
+        "initial": {
+          "default": 0,
+          "description": "Starting value.",
+          "title": "Initial",
+          "type": "integer"
+        },
+        "min": {
+          "default": -5,
+          "description": "Lowest allowed value (clamped).",
+          "title": "Min",
+          "type": "integer"
+        },
+        "max": {
+          "default": 5,
+          "description": "Highest allowed value (clamped).",
+          "title": "Max",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "description"
+      ],
+      "title": "QualityDef",
+      "type": "object"
+    },
+    "Requires": {
+      "additionalProperties": false,
+      "description": "Preconditions. ALL listed conditions must hold. Empty means 'always eligible'.",
+      "properties": {
+        "flags": {
+          "description": "Flags that must be set (true) for this to apply.",
+          "items": {
+            "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+            "type": "string"
+          },
+          "title": "Flags",
+          "type": "array"
+        },
+        "flags_not": {
+          "description": "Flags that must NOT be set.",
+          "items": {
+            "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+            "type": "string"
+          },
+          "title": "Flags Not",
+          "type": "array"
+        },
+        "qualities": {
+          "description": "Quality comparisons, e.g. [{quality: trust, op: '>=', value: 2}].",
+          "items": {
+            "$ref": "#/$defs/QualityCheck"
+          },
+          "title": "Qualities",
+          "type": "array"
+        },
+        "beats_fired": {
+          "description": "Beat ids that must already have fired this mission.",
+          "items": {
+            "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+            "type": "string"
+          },
+          "title": "Beats Fired",
+          "type": "array"
+        },
+        "beats_not_fired": {
+          "description": "Beat ids that must NOT have fired yet.",
+          "items": {
+            "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+            "type": "string"
+          },
+          "title": "Beats Not Fired",
+          "type": "array"
+        },
+        "chance": {
+          "default": 100,
+          "description": "Percent chance (rolled once per evaluation) that this is eligible. 100 = always.",
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Chance",
+          "type": "integer"
+        }
+      },
+      "title": "Requires",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "The campaign plan (arc.yaml), typically 5-8 missions over 2-3 acts.",
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "description": "Schema version; always 1.",
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "title": {
+      "description": "Campaign title (should match the bible).",
+      "title": "Title",
+      "type": "string"
+    },
+    "logline": {
+      "description": "One sentence pitch.",
+      "title": "Logline",
+      "type": "string"
+    },
+    "acts": {
+      "description": "Acts in order.",
+      "items": {
+        "$ref": "#/$defs/Act"
+      },
+      "minItems": 1,
+      "title": "Acts",
+      "type": "array"
+    },
+    "qualities": {
+      "description": "Qualities tracked across the campaign.",
+      "items": {
+        "$ref": "#/$defs/QualityDef"
+      },
+      "title": "Qualities",
+      "type": "array"
+    },
+    "ending_notes": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "How endings depend on qualities.",
+      "title": "Ending Notes"
+    }
+  },
+  "required": [
+    "title",
+    "logline",
+    "acts"
+  ],
+  "title": "CampaignArc",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dms.local/schemas/campaign-arc.schema.json"
+}

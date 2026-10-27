@@ -1,0 +1,64 @@
+{
+  "_comment": "Template for voices.json. Copy to voices.json and replace each YOUR_VOICE_ID_HERE with a voice ID from your ElevenLabs account (Voice Lab -> voice -> ID). Design prompts for each voice are in catalog.md. Never put API keys in this file; set ELEVENLABS_API_KEY in the environment.",
+  "version": 1,
+  "default_voice": "ground_troops",
+  "defaults": {
+    "model": "eleven_v3",
+    "settings": {
+      "stability": 0.55,
+      "similarity_boost": 0.75,
+      "style": 0.35,
+      "use_speaker_boost": true
+    }
+  },
+  "voices": {
+    "ground_troops": {
+      "voice_id": "YOUR_VOICE_ID_HERE",
+      "name": "Ground Troops",
+      "description": "Excited soldier under fire, high energy",
+      "categories": ["Requesting Support", "Reacting to Good Strike", "Good But Keep Going", "Taking Fire / Under Attack", "Target Spotted / Tally"],
+      "settings": null
+    },
+    "mission_control": {
+      "voice_id": "YOUR_VOICE_ID_HERE",
+      "name": "Mission Control",
+      "description": "Calm professional voice, AWACS/mission controller",
+      "categories": ["Mission Start", "Mission Complete", "Abort / Waveoff"],
+      "settings": null
+    },
+    "briefing_officer": {
+      "voice_id": "YOUR_VOICE_ID_HERE",
+      "name": "Briefing Officer",
+      "description": "Serious pre-mission briefing tone",
+      "categories": ["Mission Start"],
+      "settings": null
+    },
+    "warning_system": {
+      "voice_id": "YOUR_VOICE_ID_HERE",
+      "name": "Warning System / Wingman",
+      "description": "High clarity and urgency for threat calls",
+      "categories": ["SAM Warning", "Enemy Aircraft", "Friendly Fire Warning", "Weather / Visibility"],
+      "settings": null
+    },
+    "jtac": {
+      "voice_id": "YOUR_VOICE_ID_HERE",
+      "name": "JTAC",
+      "description": "Forward air controller, professional and precise",
+      "categories": ["Negative Results / Miss", "Winchester / Bingo"],
+      "settings": null
+    },
+    "awacs_magic": {
+      "voice_id": "YOUR_VOICE_ID_HERE",
+      "name": "AWACS",
+      "description": "AWACS controller",
+      "categories": [],
+      "settings": null
+    }
+  },
+  "_category_reference": [
+    "Requesting Support", "Reacting to Good Strike", "Good But Keep Going", "Mission Start",
+    "Mission Complete", "Taking Fire / Under Attack", "Target Spotted / Tally", "Negative Results / Miss",
+    "Winchester / Bingo", "Abort / Waveoff", "Friendly Fire Warning", "SAM Warning", "Enemy Aircraft",
+    "Weather / Visibility"
+  ]
+}

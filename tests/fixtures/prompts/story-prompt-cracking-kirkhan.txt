@@ -1,0 +1,49 @@
+I am working on create a DCS mission in the mission editor, i need fairly specific instructions on what to do to make this happen.
+
+Map: Syria
+Single Player
+Player Vehicle: Apache
+Player Callsign: Dusty
+Mission Type: Patrol / Recon
+Loadout: 8 Hellfires, no rockets, FCR equipped
+Starting Location: Hatay
+Route: Square patrol pattern (8NM x 4NM) approximately 30NM east of base
+Time: Early morning
+Weather: Clear/fine
+
+Win condition:
+- Complete the patrol route and return to base
+
+Loss condition:
+- Player vehicle destroyed
+
+Wingmen: None
+Friendly Forces: Base personnel at Hatay
+
+Idea: Routine patrol mission to establish situational awareness in the valley. We just arrived from the Mediterranean and need to understand what we're dealing with before pushing further inland. Light enemy presence expected - scattered patrols, technicals, possibly some infantry positions. The known AAA sites at Reyhanli and Kirikhan should be avoided or engaged at pilot's discretion. May encounter additional unknown AA threats. Relaxed pace, weapons free on armed targets.
+
+Known Threats (include in briefing):
+- AAA position at Reyhanli
+- AAA position at Kirikhan
+- Possible additional AA threats in the AO
+
+Other entities:
+- Light enemy patrols (technicals, infantry squads) scattered in the patrol area
+- 1-2 unknown/hidden AA positions to discover
+- Some friendly vehicles and personnel at Hatay to make base feel alive
+- Possible enemy convoy or staging area to spot
+
+Voice lines:
+- Briefing from ops at mission start - "Dusty, this is Hatay Ops. You're cleared for patrol. Intel has confirmed AAA positions at Reyhanli and Kirikhan - recommend you give those a wide berth unless you're feeling bold. Report anything interesting. Weapons free on armed targets. Good hunting."
+- Periodic check-ins or observations as player spots enemies
+- Tower clearance on RTB - "Dusty, Hatay Tower, welcome back. Cleared to land at your discretion, winds are calm."
+
+Backstory: Coalition forces have just arrived from the Mediterranean as part of the regime change operation in Syria. The carrier group dropped anchor two days ago and forward elements have secured Hatay airfield. Before the main push inland can begin, command needs eyes on the valley to identify threats and establish a picture of enemy disposition. This is the first of many patrols to map out what we're up against.
+
+Tone: Routine early-war patrol. Not expecting heavy contact but staying alert. The calm before things get busy.
+
+I need specific instructions on placing troops and how to set up the triggers and everything else inside of DCS mission editor.
+
+I will also need a mission title, scripts for any voice lines, a briefing message, prompts for briefing images to be generated with AI.
+
+I have access to LUa scripts and can create new ones to make the whole operation more dynamic.

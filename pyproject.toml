@@ -28,3 +28,7 @@ exclude = ["legacy/"]
 [tool.pytest.ini_options]
 testpaths = ["packages", "lua", "tests"]
 addopts = "-q --strict-markers"
+
+[[tool.mypy.overrides]]
+module = ["lupa", "lupa.*", "dcs", "dcs.*", "yaml", "imageio_ffmpeg", "elevenlabs", "elevenlabs.*"]
+ignore_missing_imports = true

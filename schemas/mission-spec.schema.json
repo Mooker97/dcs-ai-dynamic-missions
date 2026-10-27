@@ -1,0 +1,1379 @@
+{
+  "$defs": {
+    "Area": {
+      "additionalProperties": false,
+      "description": "A named area other parts of the spec refer to by id (objectives, threats, routes, pools).",
+      "properties": {
+        "id": {
+          "description": "Area id, e.g. 'ridge_north', 'fob_lion', 'hospital'.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What this place is in the story.",
+          "title": "Description"
+        },
+        "where": {
+          "description": "How to locate the area on the map.",
+          "discriminator": {
+            "mapping": {
+              "latlon": "#/$defs/LatLonArea",
+              "near_airbase": "#/$defs/NearAirbase",
+              "near_named_place": "#/$defs/NearNamedPlace",
+              "zone": "#/$defs/PolygonArea"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/NearAirbase"
+            },
+            {
+              "$ref": "#/$defs/NearNamedPlace"
+            },
+            {
+              "$ref": "#/$defs/LatLonArea"
+            },
+            {
+              "$ref": "#/$defs/PolygonArea"
+            }
+          ],
+          "title": "Where"
+        },
+        "terrain": {
+          "default": "any",
+          "description": "Placement hint the planner uses when choosing spawn points.",
+          "enum": [
+            "any",
+            "road",
+            "open",
+            "urban",
+            "high_ground",
+            "water"
+          ],
+          "title": "Terrain",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "where"
+      ],
+      "title": "Area",
+      "type": "object"
+    },
+    "DirectorIntent": {
+      "additionalProperties": false,
+      "description": "AI-director pacing intent.",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "description": "Use the intensity director.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "intensity": {
+          "default": "moderate",
+          "description": "Target peak intensity.",
+          "enum": [
+            "calm",
+            "moderate",
+            "intense"
+          ],
+          "title": "Intensity",
+          "type": "string"
+        },
+        "adaptive": {
+          "default": true,
+          "description": "Allow hidden difficulty adaptation (clamped to +-1 tier).",
+          "title": "Adaptive",
+          "type": "boolean"
+        }
+      },
+      "title": "DirectorIntent",
+      "type": "object"
+    },
+    "DynamicIntent": {
+      "additionalProperties": false,
+      "description": "High-level description of runtime randomness. Python decides the space; Lua picks the instance.",
+      "properties": {
+        "pools": {
+          "description": "Enemy spawn pools.",
+          "items": {
+            "$ref": "#/$defs/PoolIntent"
+          },
+          "title": "Pools",
+          "type": "array"
+        },
+        "encounters": {
+          "description": "Dynamic encounters.",
+          "items": {
+            "$ref": "#/$defs/EncounterIntent"
+          },
+          "title": "Encounters",
+          "type": "array"
+        },
+        "director": {
+          "$ref": "#/$defs/DirectorIntent",
+          "description": "Pacing intent."
+        },
+        "fog_of_war": {
+          "$ref": "#/$defs/FogOfWarIntent",
+          "description": "Fog-of-war intent."
+        }
+      },
+      "title": "DynamicIntent",
+      "type": "object"
+    },
+    "EncounterIntent": {
+      "additionalProperties": false,
+      "description": "A dynamic event: pop-up SAM, reinforcement waves, hunters, enemy CAP.",
+      "properties": {
+        "id": {
+          "description": "Encounter id, e.g. 'popup_sam', 'qrf'.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Encounter behaviour.",
+          "enum": [
+            "ambush_sam",
+            "waves",
+            "hunt",
+            "convoy",
+            "cap",
+            "pool"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "pool": {
+          "description": "Pool id it draws from.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Pool",
+          "type": "string"
+        },
+        "trigger": {
+          "$ref": "#/$defs/EncounterTriggerIntent",
+          "description": "What starts the encounter."
+        },
+        "chance": {
+          "default": 100,
+          "description": "Percent chance it happens per play.",
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Chance",
+          "type": "integer"
+        },
+        "telegraph_beat": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Beat that warns players 30-60 s before (e.g. RWR spike call). Strongly recommended.",
+          "title": "Telegraph Beat"
+        },
+        "waves": {
+          "anyOf": [
+            {
+              "maximum": 10,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Number of waves (kind=waves).",
+          "title": "Waves"
+        },
+        "gap_min": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "[min, max] minutes between waves.",
+          "title": "Gap Min"
+        },
+        "hunt": {
+          "default": false,
+          "description": "Spawned groups actively hunt the players.",
+          "title": "Hunt",
+          "type": "boolean"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Design intent.",
+          "title": "Notes"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "pool",
+        "trigger"
+      ],
+      "title": "EncounterIntent",
+      "type": "object"
+    },
+    "EncounterTriggerIntent": {
+      "additionalProperties": false,
+      "description": "When an encounter starts.",
+      "properties": {
+        "type": {
+          "description": "proximity: players near an area; beat: a beat fires; director: pacing; time: after N minutes.",
+          "enum": [
+            "proximity",
+            "beat",
+            "director",
+            "time"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "area": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Area id (proximity).",
+          "title": "Area"
+        },
+        "radius_nm": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Trigger radius in nm (proximity).",
+          "title": "Radius Nm"
+        },
+        "beat": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Beat id (beat).",
+          "title": "Beat"
+        },
+        "after_min": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Minutes after start (time).",
+          "title": "After Min"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "EncounterTriggerIntent",
+      "type": "object"
+    },
+    "FogOfWarIntent": {
+      "additionalProperties": false,
+      "description": "Fog-of-war intent: enemies hidden until detected, then shown as F10 marks.",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "description": "Hide enemies and reveal via F10 marks.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "reveal_radius_km": {
+          "default": 5,
+          "description": "Detection reveal radius.",
+          "exclusiveMinimum": 0,
+          "title": "Reveal Radius Km",
+          "type": "number"
+        },
+        "mark_refresh_sec": {
+          "default": 15,
+          "description": "How often marks update.",
+          "exclusiveMinimum": 0,
+          "title": "Mark Refresh Sec",
+          "type": "integer"
+        }
+      },
+      "title": "FogOfWarIntent",
+      "type": "object"
+    },
+    "LatLon": {
+      "additionalProperties": false,
+      "description": "A geographic point in WGS84 decimal degrees.",
+      "properties": {
+        "lat": {
+          "description": "Latitude in decimal degrees (north positive).",
+          "maximum": 90,
+          "minimum": -90,
+          "title": "Lat",
+          "type": "number"
+        },
+        "lon": {
+          "description": "Longitude in decimal degrees (east positive).",
+          "maximum": 180,
+          "minimum": -180,
+          "title": "Lon",
+          "type": "number"
+        }
+      },
+      "required": [
+        "lat",
+        "lon"
+      ],
+      "title": "LatLon",
+      "type": "object"
+    },
+    "LatLonArea": {
+      "additionalProperties": false,
+      "description": "A circle around an explicit lat/lon. Use when no named place fits.",
+      "properties": {
+        "kind": {
+          "const": "latlon",
+          "default": "latlon",
+          "description": "Area reference type (discriminator).",
+          "title": "Kind",
+          "type": "string"
+        },
+        "lat": {
+          "description": "Latitude, decimal degrees.",
+          "maximum": 90,
+          "minimum": -90,
+          "title": "Lat",
+          "type": "number"
+        },
+        "lon": {
+          "description": "Longitude, decimal degrees.",
+          "maximum": 180,
+          "minimum": -180,
+          "title": "Lon",
+          "type": "number"
+        },
+        "radius_nm": {
+          "default": 2,
+          "description": "Area radius in nautical miles.",
+          "exclusiveMinimum": 0,
+          "maximum": 200,
+          "title": "Radius Nm",
+          "type": "number"
+        }
+      },
+      "required": [
+        "lat",
+        "lon"
+      ],
+      "title": "LatLonArea",
+      "type": "object"
+    },
+    "NearAirbase": {
+      "additionalProperties": false,
+      "description": "An area around (or offset from) a DCS airbase.",
+      "properties": {
+        "kind": {
+          "const": "near_airbase",
+          "default": "near_airbase",
+          "description": "Area reference type (discriminator).",
+          "title": "Kind",
+          "type": "string"
+        },
+        "airbase": {
+          "description": "Airbase name as DCS knows it, e.g. 'Incirlik', 'Hatay', 'Kutaisi'. Use find_airbase.",
+          "title": "Airbase",
+          "type": "string"
+        },
+        "radius_nm": {
+          "default": 3,
+          "description": "Area radius in nautical miles.",
+          "exclusiveMinimum": 0,
+          "maximum": 200,
+          "title": "Radius Nm",
+          "type": "number"
+        },
+        "bearing_deg": {
+          "anyOf": [
+            {
+              "exclusiveMaximum": 360,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional true bearing to offset the area center.",
+          "title": "Bearing Deg"
+        },
+        "distance_nm": {
+          "anyOf": [
+            {
+              "maximum": 300,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Offset distance along bearing_deg.",
+          "title": "Distance Nm"
+        }
+      },
+      "required": [
+        "airbase"
+      ],
+      "title": "NearAirbase",
+      "type": "object"
+    },
+    "NearNamedPlace": {
+      "additionalProperties": false,
+      "description": "An area around a town, landmark or map label.",
+      "properties": {
+        "kind": {
+          "const": "near_named_place",
+          "default": "near_named_place",
+          "description": "Area reference type (discriminator).",
+          "title": "Kind",
+          "type": "string"
+        },
+        "place": {
+          "description": "Town or landmark name on the DCS map, e.g. 'Idlib', 'Jisr al-Shughur'.",
+          "title": "Place",
+          "type": "string"
+        },
+        "radius_nm": {
+          "default": 2,
+          "description": "Area radius in nautical miles.",
+          "exclusiveMinimum": 0,
+          "maximum": 200,
+          "title": "Radius Nm",
+          "type": "number"
+        },
+        "bearing_deg": {
+          "anyOf": [
+            {
+              "exclusiveMaximum": 360,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional offset bearing.",
+          "title": "Bearing Deg"
+        },
+        "distance_nm": {
+          "anyOf": [
+            {
+              "maximum": 300,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Offset distance.",
+          "title": "Distance Nm"
+        }
+      },
+      "required": [
+        "place"
+      ],
+      "title": "NearNamedPlace",
+      "type": "object"
+    },
+    "Objective": {
+      "additionalProperties": false,
+      "description": "A mission objective, checkable at runtime via flags.",
+      "properties": {
+        "id": {
+          "description": "Objective id, e.g. 'convoy_arrives'.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Objective type.",
+          "enum": [
+            "destroy",
+            "protect",
+            "escort",
+            "reach",
+            "recon",
+            "rescue",
+            "survive",
+            "land"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "description": {
+          "description": "Briefing text for this objective.",
+          "title": "Description",
+          "type": "string"
+        },
+        "primary": {
+          "default": true,
+          "description": "Primary objectives decide success.",
+          "title": "Primary",
+          "type": "boolean"
+        },
+        "area": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Area id where it happens.",
+          "title": "Area"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Threat or support id this objective is about.",
+          "title": "Target"
+        },
+        "success_flag": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Flag a beat sets when the objective succeeds.",
+          "title": "Success Flag"
+        },
+        "failure_flag": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Flag a beat sets when the objective fails.",
+          "title": "Failure Flag"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "description"
+      ],
+      "title": "Objective",
+      "type": "object"
+    },
+    "PlayerFlight": {
+      "additionalProperties": false,
+      "description": "A flight of player (client) aircraft.",
+      "properties": {
+        "callsign": {
+          "description": "Flight callsign, e.g. 'Dustoff', 'Gunfighter'.",
+          "title": "Callsign",
+          "type": "string"
+        },
+        "aircraft": {
+          "description": "DCS aircraft type id, e.g. 'AH-64D_BLK_II', 'F-16C_50', 'UH-60L'. Use list_units.",
+          "title": "Aircraft",
+          "type": "string"
+        },
+        "count": {
+          "default": 2,
+          "description": "Number of client slots in the flight.",
+          "maximum": 4,
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "coalition": {
+          "default": "blue",
+          "description": "Side the players fly for.",
+          "enum": [
+            "blue",
+            "red",
+            "neutral"
+          ],
+          "title": "Coalition",
+          "type": "string"
+        },
+        "country": {
+          "default": "USA",
+          "description": "DCS country of the aircraft.",
+          "title": "Country",
+          "type": "string"
+        },
+        "start_area": {
+          "description": "Area id where the flight starts (usually near_airbase/FARP).",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Start Area",
+          "type": "string"
+        },
+        "start_type": {
+          "default": "parking_cold",
+          "description": "How the flight starts.",
+          "enum": [
+            "runway",
+            "parking_hot",
+            "parking_cold",
+            "air"
+          ],
+          "title": "Start Type",
+          "type": "string"
+        },
+        "loadout": {
+          "default": "auto",
+          "description": "Loadout intent, e.g. 'anti-armor: 8 Hellfire + rockets', or 'auto' for role default.",
+          "title": "Loadout",
+          "type": "string"
+        },
+        "frequency_mhz": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Flight frequency in MHz; null lets the planner choose.",
+          "title": "Frequency Mhz"
+        },
+        "tasking": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What this flight is told to do.",
+          "title": "Tasking"
+        }
+      },
+      "required": [
+        "callsign",
+        "aircraft",
+        "start_area"
+      ],
+      "title": "PlayerFlight",
+      "type": "object"
+    },
+    "PolygonArea": {
+      "additionalProperties": false,
+      "description": "A polygon zone given as lat/lon vertices (at least 3), in order.",
+      "properties": {
+        "kind": {
+          "const": "zone",
+          "default": "zone",
+          "description": "Area reference type (discriminator).",
+          "title": "Kind",
+          "type": "string"
+        },
+        "points": {
+          "description": "Polygon vertices, clockwise or not.",
+          "items": {
+            "$ref": "#/$defs/LatLon"
+          },
+          "minItems": 3,
+          "title": "Points",
+          "type": "array"
+        }
+      },
+      "required": [
+        "points"
+      ],
+      "title": "PolygonArea",
+      "type": "object"
+    },
+    "PoolIntent": {
+      "additionalProperties": false,
+      "description": "A weighted set of enemy group types that the runtime draws from.",
+      "properties": {
+        "id": {
+          "description": "Pool id, e.g. 'aaa', 'qrf_btr'.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "roles": {
+          "description": "Roles the pool's templates fill.",
+          "items": {
+            "enum": [
+              "sam_short",
+              "sam_medium",
+              "sam_long",
+              "aaa",
+              "manpads",
+              "armor",
+              "ifv",
+              "technicals",
+              "infantry",
+              "artillery",
+              "fighters",
+              "attack_helicopters",
+              "ship",
+              "hvt"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Roles",
+          "type": "array"
+        },
+        "areas": {
+          "description": "Area ids where pool members may spawn.",
+          "items": {
+            "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Areas",
+          "type": "array"
+        },
+        "pick": {
+          "default": [
+            1,
+            3
+          ],
+          "description": "[min, max] groups drawn each time the pool is used.",
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Pick",
+          "type": "array"
+        },
+        "faction": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Bible faction id.",
+          "title": "Faction"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Weighting hints, e.g. 'mostly ZU-23, rare SA-8'.",
+          "title": "Notes"
+        }
+      },
+      "required": [
+        "id",
+        "roles",
+        "areas"
+      ],
+      "title": "PoolIntent",
+      "type": "object"
+    },
+    "Support": {
+      "additionalProperties": false,
+      "description": "Friendly assets: convoys to protect, JTACs, AWACS, tankers, FARPs.",
+      "properties": {
+        "id": {
+          "description": "Asset id, e.g. 'convoy_main'.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "role": {
+          "description": "Kind of friendly asset.",
+          "enum": [
+            "convoy",
+            "friendly_ground",
+            "jtac",
+            "awacs",
+            "tanker",
+            "escort",
+            "cap",
+            "cas",
+            "medevac",
+            "farp"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "callsign": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Radio callsign, e.g. 'Ripper 2-1'.",
+          "title": "Callsign"
+        },
+        "area": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Area id where it is placed or starts.",
+          "title": "Area"
+        },
+        "route": {
+          "description": "Ordered area ids for moving assets (convoys, orbits). First = start.",
+          "items": {
+            "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+            "type": "string"
+          },
+          "title": "Route",
+          "type": "array"
+        },
+        "composition": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Free-text composition, e.g. '4x M1126 Stryker, 2x HEMTT'.",
+          "title": "Composition"
+        },
+        "speaker": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Bible character who talks for this asset.",
+          "title": "Speaker"
+        },
+        "frequency_mhz": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Radio frequency in MHz.",
+          "title": "Frequency Mhz"
+        }
+      },
+      "required": [
+        "id",
+        "role"
+      ],
+      "title": "Support",
+      "type": "object"
+    },
+    "Threat": {
+      "additionalProperties": false,
+      "description": "Static (pre-placed) enemy presence, described by role and area.",
+      "properties": {
+        "id": {
+          "description": "Threat id, e.g. 'ridge_aaa'.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "role": {
+          "description": "What kind of threat this is.",
+          "enum": [
+            "sam_short",
+            "sam_medium",
+            "sam_long",
+            "aaa",
+            "manpads",
+            "armor",
+            "ifv",
+            "technicals",
+            "infantry",
+            "artillery",
+            "fighters",
+            "attack_helicopters",
+            "ship",
+            "hvt"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "area": {
+          "description": "Area id where it is placed.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Area",
+          "type": "string"
+        },
+        "strength": {
+          "default": "medium",
+          "description": "Rough size; the planner maps it to unit counts.",
+          "enum": [
+            "light",
+            "medium",
+            "heavy"
+          ],
+          "title": "Strength",
+          "type": "string"
+        },
+        "faction": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Bible faction id; sets country/equipment.",
+          "title": "Faction"
+        },
+        "skill": {
+          "default": "Good",
+          "description": "AI skill.",
+          "enum": [
+            "Average",
+            "Good",
+            "High",
+            "Excellent",
+            "Random"
+          ],
+          "title": "Skill",
+          "type": "string"
+        },
+        "hidden_on_map": {
+          "default": true,
+          "description": "Hide on the F10 map until detected (fog of war).",
+          "title": "Hidden On Map",
+          "type": "boolean"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Placement or behaviour hints.",
+          "title": "Notes"
+        }
+      },
+      "required": [
+        "id",
+        "role",
+        "area"
+      ],
+      "title": "Threat",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Declarative mission spec (mission-spec.yaml). Areas by reference, forces by role.",
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "description": "Schema version; always 1.",
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "id": {
+      "description": "Mission id, e.g. 'm01-first-light'.",
+      "maxLength": 64,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+      "title": "Id",
+      "type": "string"
+    },
+    "title": {
+      "description": "Mission title.",
+      "title": "Title",
+      "type": "string"
+    },
+    "campaign": {
+      "anyOf": [
+        {
+          "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Campaign slug, if part of one.",
+      "title": "Campaign"
+    },
+    "content_mode": {
+      "default": "fictional",
+      "description": "Inherited from the bible.",
+      "enum": [
+        "historical",
+        "adapted",
+        "fictional"
+      ],
+      "title": "Content Mode",
+      "type": "string"
+    },
+    "theater": {
+      "description": "DCS map.",
+      "enum": [
+        "Caucasus",
+        "Syria",
+        "PersianGulf",
+        "Nevada",
+        "MarianaIslands",
+        "Sinai",
+        "Kola",
+        "Afghanistan",
+        "Normandy",
+        "TheChannel",
+        "Falklands",
+        "GermanyCW"
+      ],
+      "title": "Theater",
+      "type": "string"
+    },
+    "era": {
+      "description": "Year; the planner filters units/weapons by it.",
+      "maximum": 2100,
+      "minimum": 1900,
+      "title": "Era",
+      "type": "integer"
+    },
+    "date": {
+      "description": "In-game date, YYYY-MM-DD.",
+      "format": "date",
+      "title": "Date",
+      "type": "string"
+    },
+    "start_time": {
+      "default": "06:00",
+      "description": "Local start time HH:MM (24h).",
+      "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+      "title": "Start Time",
+      "type": "string"
+    },
+    "weather_preset": {
+      "default": "clear",
+      "description": "Weather preset.",
+      "enum": [
+        "clear",
+        "scattered",
+        "broken",
+        "overcast",
+        "rain",
+        "storm",
+        "dust",
+        "fog",
+        "night_clear"
+      ],
+      "title": "Weather Preset",
+      "type": "string"
+    },
+    "mission_type": {
+      "description": "Primary mission type.",
+      "enum": [
+        "CAS",
+        "SEAD",
+        "DEAD",
+        "CAP",
+        "STRIKE",
+        "ESCORT",
+        "CSAR",
+        "RECON",
+        "TRANSPORT",
+        "CONVOY_ESCORT"
+      ],
+      "title": "Mission Type",
+      "type": "string"
+    },
+    "duration_min": {
+      "default": 60,
+      "description": "Intended mission length.",
+      "maximum": 360,
+      "minimum": 10,
+      "title": "Duration Min",
+      "type": "integer"
+    },
+    "blue_countries": {
+      "description": "DCS blue countries.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Blue Countries",
+      "type": "array"
+    },
+    "red_countries": {
+      "description": "DCS red countries.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Red Countries",
+      "type": "array"
+    },
+    "cast": {
+      "description": "Bible character ids who speak in this mission; beat/line speakers must be among them.",
+      "items": {
+        "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+        "maxLength": 64,
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+        "type": "string"
+      },
+      "title": "Cast",
+      "type": "array"
+    },
+    "areas": {
+      "description": "Named areas used throughout the spec.",
+      "items": {
+        "$ref": "#/$defs/Area"
+      },
+      "minItems": 1,
+      "title": "Areas",
+      "type": "array"
+    },
+    "player_flights": {
+      "description": "Client flights.",
+      "items": {
+        "$ref": "#/$defs/PlayerFlight"
+      },
+      "minItems": 1,
+      "title": "Player Flights",
+      "type": "array"
+    },
+    "objectives": {
+      "description": "Objectives, primary first.",
+      "items": {
+        "$ref": "#/$defs/Objective"
+      },
+      "minItems": 1,
+      "title": "Objectives",
+      "type": "array"
+    },
+    "threats": {
+      "description": "Pre-placed enemy presence.",
+      "items": {
+        "$ref": "#/$defs/Threat"
+      },
+      "title": "Threats",
+      "type": "array"
+    },
+    "support": {
+      "description": "Friendly assets.",
+      "items": {
+        "$ref": "#/$defs/Support"
+      },
+      "title": "Support",
+      "type": "array"
+    },
+    "dynamic": {
+      "$ref": "#/$defs/DynamicIntent",
+      "description": "Runtime randomness."
+    },
+    "seed": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Planner seed; null picks one and records it.",
+      "title": "Seed"
+    },
+    "notes": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Designer notes; not compiled.",
+      "title": "Notes"
+    }
+  },
+  "required": [
+    "id",
+    "title",
+    "theater",
+    "era",
+    "date",
+    "mission_type",
+    "areas",
+    "player_flights",
+    "objectives"
+  ],
+  "title": "MissionSpec",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dms.local/schemas/mission-spec.schema.json"
+}

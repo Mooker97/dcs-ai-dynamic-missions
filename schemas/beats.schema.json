@@ -1,0 +1,655 @@
+{
+  "$defs": {
+    "Beat": {
+      "additionalProperties": false,
+      "description": "One storylet beat. Keep radio text short; 3-5 voice-line variants per beat.",
+      "properties": {
+        "id": {
+          "description": "Beat id, e.g. 'convoy_hit'.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "when": {
+          "$ref": "#/$defs/BeatTrigger",
+          "description": "Trigger."
+        },
+        "requires": {
+          "$ref": "#/$defs/Requires",
+          "description": "Preconditions (all must hold)."
+        },
+        "priority": {
+          "default": 50,
+          "description": "Higher wins when several beats are eligible at once.",
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Priority",
+          "type": "integer"
+        },
+        "once": {
+          "default": true,
+          "description": "Fire at most once per mission.",
+          "title": "Once",
+          "type": "boolean"
+        },
+        "cooldown_sec": {
+          "default": 0,
+          "description": "Minimum seconds between firings.",
+          "minimum": 0,
+          "title": "Cooldown Sec",
+          "type": "number"
+        },
+        "delay_sec": {
+          "default": 0,
+          "description": "Delay between trigger and delivery.",
+          "minimum": 0,
+          "title": "Delay Sec",
+          "type": "number"
+        },
+        "speaker": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Character id who speaks (must be in the mission cast).",
+          "title": "Speaker"
+        },
+        "lines": {
+          "description": "Voice line ids from lines.yaml; one is picked at random (no immediate repeats).",
+          "items": {
+            "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+            "type": "string"
+          },
+          "title": "Lines",
+          "type": "array"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Subtitle / fallback text shown if no audio plays.",
+          "title": "Text"
+        },
+        "mark": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BeatMark"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional F10 mark."
+        },
+        "effects": {
+          "$ref": "#/$defs/BeatEffects",
+          "description": "Effects on fire."
+        }
+      },
+      "required": [
+        "id",
+        "when"
+      ],
+      "title": "Beat",
+      "type": "object"
+    },
+    "BeatEffects": {
+      "additionalProperties": false,
+      "description": "What the beat changes when it fires.",
+      "properties": {
+        "set_flag": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Flag to set true.",
+          "title": "Set Flag"
+        },
+        "clear_flag": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Flag to clear.",
+          "title": "Clear Flag"
+        },
+        "outcome": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "description": "Outcome facts to record and emit via [DMS.OUTCOME], e.g. {hvt_killed: true}.",
+          "title": "Outcome",
+          "type": "object"
+        },
+        "start_encounter": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Encounter id (from mission-spec dynamic.encounters) to start.",
+          "title": "Start Encounter"
+        },
+        "spawn_pool": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Pool id to draw and spawn from once.",
+          "title": "Spawn Pool"
+        },
+        "quality_deltas": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "Campaign quality changes applied in the debrief, e.g. {trust: 1}.",
+          "title": "Quality Deltas",
+          "type": "object"
+        },
+        "end_mission": {
+          "anyOf": [
+            {
+              "enum": [
+                "success",
+                "failure"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Declare the mission over with this result.",
+          "title": "End Mission"
+        }
+      },
+      "title": "BeatEffects",
+      "type": "object"
+    },
+    "BeatMark": {
+      "additionalProperties": false,
+      "description": "An F10 map mark dropped when the beat fires.",
+      "properties": {
+        "type": {
+          "default": "circle",
+          "description": "Mark shape.",
+          "enum": [
+            "circle",
+            "text",
+            "point"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "at": {
+          "description": "Where: 'group:<name>', 'unit:<name>' or 'zone:<id>'.",
+          "pattern": "^(group|unit|zone):.+$",
+          "title": "At",
+          "type": "string"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Label shown on the map.",
+          "title": "Text"
+        },
+        "radius_m": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Circle radius in meters.",
+          "title": "Radius M"
+        },
+        "coalition": {
+          "anyOf": [
+            {
+              "enum": [
+                1,
+                2
+              ],
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Who sees it; default players' side.",
+          "title": "Coalition"
+        }
+      },
+      "required": [
+        "at"
+      ],
+      "title": "BeatMark",
+      "type": "object"
+    },
+    "BeatTrigger": {
+      "additionalProperties": false,
+      "description": "What wakes the beat up. Set `event` plus the matching filter fields.",
+      "properties": {
+        "event": {
+          "description": "Trigger event. timer: after_sec from mission start; flag: when `flag` becomes set; zone.entered: a player/group enters `zone`; group.dead: `group` (or any group with `group_prefix`) is destroyed; beat.fired: after another beat; encounter.spawned: an encounter spawned; director.state: director enters `state`; others mirror DCS events.",
+          "enum": [
+            "mission.start",
+            "timer",
+            "flag",
+            "zone.entered",
+            "group.dead",
+            "unit.dead",
+            "unit.hit",
+            "unit.shot",
+            "player.spawned",
+            "player.left",
+            "unit.landed",
+            "unit.takeoff",
+            "mark.added",
+            "beat.fired",
+            "encounter.spawned",
+            "director.state"
+          ],
+          "title": "Event",
+          "type": "string"
+        },
+        "group": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Exact group name filter, e.g. 'HVT'.",
+          "title": "Group"
+        },
+        "group_prefix": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Group name prefix filter, e.g. 'AAA_KIRK' matches AAA_KIRK_1..n.",
+          "title": "Group Prefix"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Exact unit name filter.",
+          "title": "Unit"
+        },
+        "zone": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Zone/area id (zone.entered).",
+          "title": "Zone"
+        },
+        "flag": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Flag name (flag event).",
+          "title": "Flag"
+        },
+        "beat": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Beat id (beat.fired).",
+          "title": "Beat"
+        },
+        "encounter": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Encounter id (encounter.spawned).",
+          "title": "Encounter"
+        },
+        "state": {
+          "anyOf": [
+            {
+              "enum": [
+                "BUILD_UP",
+                "PEAK",
+                "RELAX"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Director state (director.state).",
+          "title": "State"
+        },
+        "after_sec": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Seconds after mission start (timer).",
+          "title": "After Sec"
+        },
+        "coalition": {
+          "anyOf": [
+            {
+              "enum": [
+                1,
+                2
+              ],
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Coalition filter: 1 = red, 2 = blue.",
+          "title": "Coalition"
+        },
+        "type_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "DCS unit type filter, e.g. 'ZSU-23-4 Shilka'.",
+          "title": "Type Name"
+        },
+        "players_only": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Only count events caused by/affecting player aircraft.",
+          "title": "Players Only"
+        }
+      },
+      "required": [
+        "event"
+      ],
+      "title": "BeatTrigger",
+      "type": "object"
+    },
+    "QualityCheck": {
+      "additionalProperties": false,
+      "description": "Compare a campaign quality (a named integer that persists across missions) to a value.",
+      "properties": {
+        "quality": {
+          "description": "Quality id declared in the campaign arc, e.g. 'trust'.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Quality",
+          "type": "string"
+        },
+        "op": {
+          "default": ">=",
+          "description": "Comparison operator.",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "value": {
+          "description": "Value to compare the quality against.",
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "quality",
+        "value"
+      ],
+      "title": "QualityCheck",
+      "type": "object"
+    },
+    "Requires": {
+      "additionalProperties": false,
+      "description": "Preconditions. ALL listed conditions must hold. Empty means 'always eligible'.",
+      "properties": {
+        "flags": {
+          "description": "Flags that must be set (true) for this to apply.",
+          "items": {
+            "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+            "type": "string"
+          },
+          "title": "Flags",
+          "type": "array"
+        },
+        "flags_not": {
+          "description": "Flags that must NOT be set.",
+          "items": {
+            "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+            "type": "string"
+          },
+          "title": "Flags Not",
+          "type": "array"
+        },
+        "qualities": {
+          "description": "Quality comparisons, e.g. [{quality: trust, op: '>=', value: 2}].",
+          "items": {
+            "$ref": "#/$defs/QualityCheck"
+          },
+          "title": "Qualities",
+          "type": "array"
+        },
+        "beats_fired": {
+          "description": "Beat ids that must already have fired this mission.",
+          "items": {
+            "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+            "type": "string"
+          },
+          "title": "Beats Fired",
+          "type": "array"
+        },
+        "beats_not_fired": {
+          "description": "Beat ids that must NOT have fired yet.",
+          "items": {
+            "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+            "type": "string"
+          },
+          "title": "Beats Not Fired",
+          "type": "array"
+        },
+        "chance": {
+          "default": 100,
+          "description": "Percent chance (rolled once per evaluation) that this is eligible. 100 = always.",
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Chance",
+          "type": "integer"
+        }
+      },
+      "title": "Requires",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Contents of beats.yaml. A bare YAML list of beats is also accepted.",
+  "properties": {
+    "mission_id": {
+      "anyOf": [
+        {
+          "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Mission these beats belong to.",
+      "title": "Mission Id"
+    },
+    "beats": {
+      "description": "All beats for the mission.",
+      "items": {
+        "$ref": "#/$defs/Beat"
+      },
+      "title": "Beats",
+      "type": "array"
+    }
+  },
+  "title": "BeatSheet",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dms.local/schemas/beats.schema.json"
+}

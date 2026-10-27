@@ -1,65 +1,59 @@
-# Python
+# ---- Python ----
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
-.installed.cfg
 *.egg
-
-# Virtual environments
-venv/
-env/
-ENV/
-.venv
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# Testing
+.eggs/
+/build/
+/sdist/
+/wheels/
+.mypy_cache/
+.ruff_cache/
 .pytest_cache/
 .coverage
 htmlcov/
 .tox/
 
-# Mission files (generated output)
+# ---- Virtual environments ----
+.venv/
+venv/
+
+# ---- Lua build output ----
+# tools/bundle_lua.py writes dist/dms.lua (rebuilt by CI; never hand-edited)
+/dist/
+luacov.*
+
+# ---- Generated missions / audio ----
+campaigns/**/out/
+examples/**/out/
+*.miz.bak
+miz-files/*
 missions/*.miz
-missions/*.zip
-miz-files/output/*.miz
-miz-files/output/*.json
 
-# Logs
-*.log
+# ---- Secrets ----
+.env
+.env.local
+claude_desktop_config.json
 
-# OS
+# ---- Claude Code (personal settings; settings.json is shared) ----
+.claude/settings.local.json
+
+# ---- IDE / OS ----
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 .DS_Store
 Thumbs.db
 NUL
 
-# Claude Desktop config
-claude_desktop_config.json
+# ---- Logs ----
+*.log
 
-# Environment variables
-.env
-.env.local
-miz-files/*
+# ---- Legacy working folders (local scratch, not part of the repo) ----
 claudedocs/*
 supporting Files/*
 mission assets/*

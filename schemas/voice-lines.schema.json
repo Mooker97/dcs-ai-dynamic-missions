@@ -1,0 +1,169 @@
+{
+  "$defs": {
+    "VoiceLine": {
+      "additionalProperties": false,
+      "description": "One spoken radio line. Write 3-5 variants per beat (ids like 'convoy_hit_v1'..'_v3').",
+      "properties": {
+        "id": {
+          "description": "Line id referenced by beats, e.g. 'convoy_hit_v1'.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "speaker": {
+          "description": "Character id (bible) who speaks it.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Speaker",
+          "type": "string"
+        },
+        "text": {
+          "description": "Exactly what is said. Terse radio style. Eleven v3 audio tags allowed, e.g. '[shouts] Troops in contact!'. Never put invented quotes in real people's mouths.",
+          "maxLength": 600,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "subtitle": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "On-screen text if different from `text` (tags stripped otherwise).",
+          "title": "Subtitle"
+        },
+        "beat": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Beat this line belongs to (informational).",
+          "title": "Beat"
+        },
+        "delivery": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Direction for the voice actor/TTS, e.g. 'out of breath, urgent'.",
+          "title": "Delivery"
+        },
+        "radio_fx": {
+          "anyOf": [
+            {
+              "enum": [
+                "uhf_clean",
+                "vhf_noisy",
+                "intercom",
+                "none"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Override the speaker's radio FX preset for this line.",
+          "title": "Radio Fx"
+        },
+        "file": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Rendered .ogg file name; filled in by `dms voice`.",
+          "title": "File"
+        },
+        "dur_sec": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Audio duration; filled by `dms voice`.",
+          "title": "Dur Sec"
+        }
+      },
+      "required": [
+        "id",
+        "speaker",
+        "text"
+      ],
+      "title": "VoiceLine",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Contents of lines.yaml. A bare YAML list of lines is also accepted.",
+  "properties": {
+    "mission_id": {
+      "anyOf": [
+        {
+          "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Mission these lines belong to.",
+      "title": "Mission Id"
+    },
+    "model": {
+      "default": "eleven_v3",
+      "description": "TTS model; flash for cheap drafts.",
+      "enum": [
+        "eleven_v3",
+        "eleven_flash_v2_5",
+        "eleven_multilingual_v2"
+      ],
+      "title": "Model",
+      "type": "string"
+    },
+    "lines": {
+      "description": "All voice lines.",
+      "items": {
+        "$ref": "#/$defs/VoiceLine"
+      },
+      "title": "Lines",
+      "type": "array"
+    }
+  },
+  "title": "VoiceLineSet",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dms.local/schemas/voice-lines.schema.json"
+}

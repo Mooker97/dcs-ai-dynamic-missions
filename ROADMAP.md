@@ -59,3 +59,11 @@ A feature is done when all of the following are true:
 - [ ] Golden prompt eval suite (~30 premises/specs)
 - [ ] Optional plugins: Skynet-IADS (+ MIST) and MOOSE, pinned
 - [ ] Headless dedicated-server smoke test automation
+
+## Arma 3 track ([plan](docs/arma/PLAN.md), [ADR 0012](docs/adr/0012-multiple-game-backends.md))
+- [x] Research, knowledge base (`docs/arma/kb/`), MVP mission "The Hill" written
+- [ ] Headless harness (`tools/arma_harness/`) + class/site verification in real Arma
+- [ ] The Hill passes unattended test mode across 3+ seeds
+- [ ] User playtest of The Hill (feel, comm menu, hold action, balance)
+- [ ] Generalise into a DMS backend (spec → `fn_config.sqf`), only after The Hill plays well
+

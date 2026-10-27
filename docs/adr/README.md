@@ -16,6 +16,7 @@ To change a decision, add a new ADR that supersedes the old one. Don't rewrite h
 | [0009](0009-definition-of-done-requires-flight.md) | Definition of Done requires a DCS flight test | Accepted |
 | [0010](0010-git-lfs-for-binaries.md) | Git LFS for `.miz` fixtures and audio | Accepted |
 | [0011](0011-retire-regex-mizparser.md) | Retire the regex MizParser / miz-modifier approach | Accepted |
+| [0012](0012-multiple-game-backends.md) | Support multiple game backends (DCS first, Arma 3 second) | Accepted |
 
 Template:
 

@@ -67,3 +67,7 @@ A feature is done when all of the following are true:
 - [ ] User playtest of The Hill (feel, comm menu, hold action, balance)
 - [ ] Generalise into a DMS backend (spec → `fn_config.sqf`), only after The Hill plays well
 
+## Ideas backlog (not scheduled) — see [docs/ideas/](docs/ideas/README.md)
+- [ ] Tacview ACMI debriefs for DCS: richer outcomes and Director tuning ([idea](docs/ideas/tacview.md))
+- [ ] BeamNG.drive backend: Tow Truck Shift or The Getaway MVP, BeamNGpy test loop ([idea](docs/ideas/beamng.md))
+

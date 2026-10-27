@@ -6,12 +6,15 @@ Status: idea, liked by the user 2026-10-27 · next backend candidate after Arma 
 ## Why it fits DMS
 
 - **Scriptable:**
-  - scenarios and missions in Lua, plus the Flowgraph visual editor used by career-mode missions [?]
-  - driving AI (chase, flee, follow, traffic, scripted waypoints) [?]
-  - ambient traffic and a police pursuit system [?]
+  - scenarios and missions in Lua, plus the Flowgraph visual editor used by career-mode missions (confirmed on disk: `gameplay/missions/<level>/<type>/<id>/info.json`, 27 mission types incl. `evade` and `chase`; legacy `levels/<lvl>/scenarios/*.json+.prefab+.lua` also present)
+  - driving AI (chase, flee, follow, traffic, scripted waypoints) (confirmed: AI modes `disabled/random/traffic/span/manual/chase/flee/stopping`)
+  - ambient traffic and a police pursuit system (confirmed: `gameplay_traffic`, `gameplay_police` with `placeRoadblock`, `setPursuitVars`, `arrestVehicle`/`evadeVehicle`, plus flowgraph pursuit/roadblock nodes)
 - **BeamNGpy:** an official Python API that can build scenarios, spawn and control vehicles, read
-  sensors and damage, and drive AI from code [? it targets BeamNG.tech; compatibility with
-  BeamNG.drive still to check]. With it, Claude could build *and test* missions with no human,
+  sensors and damage, and drive AI from code [mostly ruled out: BeamNGpy 1.36 targets BeamNG.tech 0.39 and
+  needs the `tech/techCore` extension, which isn't shipped in the installed .drive 0.40.3. Instead, **.drive 0.40
+  has a built-in MCP server** (`enableMcp`, `127.0.0.1:29292/mcp`) with `run_lua`, `spawn`, `set_ai`/`drive_to`,
+  `get_vehicle_damage`, `step_physics`, `get_logs`, which can serve as the harness. See
+  [FEASIBILITY](../beamng/FEASIBILITY.md)]. With it, Claude could build *and test* missions with no human,
   using an AI driver as the player. That's the same loop as the DCS and Arma harnesses.
 - **Soft-body damage:** missions can score *how much* damage you took (fragile cargo, careful
   driving), which suits the user's preference for realism.
@@ -37,7 +40,9 @@ Status: idea, liked by the user 2026-10-27 · next backend candidate after Arma 
 5. **Ambulance / Police Patrol:** shift-based calls, priority levels, response-time scoring.
 
 **Recommended MVP:** Tow Truck Shift (simplest, most realistic) or The Getaway (most exciting,
-reuses Director escalation, depends more on police AI).
+reuses Director escalation, depends more on police AI). *Research update 2026-10-27:* The Getaway first,
+because the stock `evade` mission type and police API already cover pursuit, roadblocks and scoring. Physical
+towing (winch/rope) is the riskiest part of Tow Truck Shift. See [FEASIBILITY](../beamng/FEASIBILITY.md).
 
 ## First steps when picked up
 

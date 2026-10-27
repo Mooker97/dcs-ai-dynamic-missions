@@ -214,6 +214,10 @@ class BuildPlan(DMSModel):
     weather: PlanWeather = Field(default_factory=PlanWeather, description="Weather.")
     blue_countries: list[str] = Field(default_factory=list, description="Blue coalition countries.")
     red_countries: list[str] = Field(default_factory=list, description="Red coalition countries.")
+    neutral_countries: list[str] = Field(
+        default_factory=list,
+        description="DCS countries placed in the neutral coalition (civilian / neutral factions).",
+    )
     groups: list[PlanGroup] = Field(default_factory=list, description="All groups.")
     zones: list[PlanZone] = Field(default_factory=list, description="Trigger zones.")
     triggers: list[PlanTrigger] = Field(default_factory=list, description="Trigger rules.")

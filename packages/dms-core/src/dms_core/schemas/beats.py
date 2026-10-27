@@ -31,7 +31,62 @@ BeatEvent = Literal[
     "beat.fired",
     "encounter.spawned",
     "director.state",
+    "mission.end",
+    "mission.result",
+    "mark.changed",
+    "mark.removed",
+    "spawner.spawned",
+    "encounter.telegraph",
+    "encounter.sam_hot",
+    "encounter.wave",
+    "encounter.cleared",
+    "encounter.proximity",
+    "convoy.halted",
+    "convoy.resumed",
+    "ground.stuck",
+    "intel.revealed",
 ]
+
+# camelCase (Lua) spellings accepted on input and mapped to the snake_case field names.
+_CAMEL_KEYS: dict[str, str] = {
+    "afterSec": "after_sec",
+    "delaySec": "delay_sec",
+    "groupPrefix": "group_prefix",
+    "unitPrefix": "unit_prefix",
+    "typeName": "type_name",
+    "playersOnly": "players_only",
+    "radiusM": "radius_m",
+    "cooldownSec": "cooldown_sec",
+    "setFlag": "set_flag",
+    "clearFlag": "clear_flag",
+    "flagValue": "flag_value",
+    "startEncounter": "start_encounter",
+    "spawnPool": "spawn_pool",
+    "qualityDeltas": "quality_deltas",
+    "endMission": "end_mission",
+    "directorState": "director_state",
+}
+
+
+def _snake_keys(data: dict[str, Any]) -> dict[str, Any]:
+    out: dict[str, Any] = {}
+    for k, v in data.items():
+        key = _CAMEL_KEYS.get(k, k)
+        if key in out and k != key:
+            continue
+        out[key] = v
+    return out
+
+
+_END_ALIASES: dict[str, str] = {
+    "success": "success",
+    "victory": "success",
+    "win": "success",
+    "failure": "failure",
+    "defeat": "failure",
+    "fail": "failure",
+    "loss": "failure",
+}
 
 # event -> field that must be set for the trigger to be meaningful
 _REQUIRED_BY_EVENT: dict[str, tuple[str, ...]] = {
@@ -71,8 +126,22 @@ class BeatTrigger(DMSModel):
     after_sec: float | None = Field(
         default=None, ge=0, description="Seconds after mission start (timer)."
     )
-    coalition: Literal[1, 2] | None = Field(
-        default=None, description="Coalition filter: 1 = red, 2 = blue."
+    coalition: Literal[0, 1, 2] | None = Field(
+        default=None,
+        description="Coalition filter: 0 = neutral (e.g. civilians), 1 = red, 2 = blue. For unit.hit it is the target's coalition.",
+    )
+    value: bool | int | float | str | None = Field(
+        default=None,
+        description="flag event: value to compare the flag with (number => equal, '>=2' style string, or true/false). Omit = 'flag is set'.",
+    )
+    flight: str | None = Field(
+        default=None, description="director.state: only this player flight (group name)."
+    )
+    unit_prefix: str | None = Field(default=None, description="Unit name prefix filter.")
+    delay_sec: float | None = Field(
+        default=None,
+        ge=0,
+        description="Per-trigger delivery delay; used only when the beat's own delay_sec is 0.",
     )
     type_name: str | None = Field(
         default=None, description="DCS unit type filter, e.g. 'ZSU-23-4 Shilka'."
@@ -80,6 +149,34 @@ class BeatTrigger(DMSModel):
     players_only: bool | None = Field(
         default=None, description="Only count events caused by/affecting player aircraft."
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _shorthand(cls, data: Any) -> Any:
+        """Accept Lua shorthand forms ({afterSec}, {flag}, {zone}, {director}, {beat}) and camelCase keys."""
+        if not isinstance(data, dict):
+            return data
+        d = _snake_keys(data)
+        if "director_state" in d:
+            d.setdefault("director", d.pop("director_state"))
+        if d.get("event") is None:
+            d.pop("event", None)
+            if "timer" in d and "after_sec" not in d:
+                d["after_sec"] = d.pop("timer")
+            if d.get("after_sec") is not None:
+                d["event"] = "timer"
+            elif d.get("flag") is not None:
+                d["event"] = "flag"
+            elif d.get("zone") is not None:
+                d["event"] = "zone.entered"
+            elif d.get("director") is not None:
+                d["event"] = "director.state"
+                d["state"] = d.pop("director")
+            elif d.get("beat") is not None:
+                d["event"] = "beat.fired"
+        elif "director" in d and d.get("state") is None:
+            d["state"] = d.pop("director")
+        return d
 
     @model_validator(mode="after")
     def _check_required(self) -> BeatTrigger:
@@ -94,8 +191,12 @@ class BeatMark(DMSModel):
 
     type: Literal["circle", "text", "point"] = Field(default="circle", description="Mark shape.")
     at: str = Field(
-        description="Where: 'group:<name>', 'unit:<name>' or 'zone:<id>'.",
-        pattern=r"^(group|unit|zone):.+$",
+        description=(
+            "Where: 'group:<name>' (exact group name, else the first group whose name, or name "
+            "without the runtime 'DMS_' prefix, starts with it), 'unit:<name>', 'zone:<id>' or "
+            "'point:<x>,<y>' (DCS map x/y, meters)."
+        ),
+        pattern=r"^(group|unit|zone|point):.+$",
     )
     text: str | None = Field(default=None, description="Label shown on the map.")
     radius_m: float | None = Field(default=None, gt=0, description="Circle radius in meters.")
@@ -103,29 +204,85 @@ class BeatMark(DMSModel):
         default=None, description="Who sees it; default players' side."
     )
 
+    @model_validator(mode="before")
+    @classmethod
+    def _shorthand(cls, data: Any) -> Any:
+        """Accept a bare 'zone:x' string, a {x, y} point and 'radius' (Lua spelling)."""
+        if isinstance(data, str):
+            return {"at": data}
+        if not isinstance(data, dict):
+            return data
+        d = _snake_keys(data)
+        if "radius" in d:
+            r = d.pop("radius")
+            d.setdefault("radius_m", r)
+        if "at" not in d and "x" in d and "y" in d:
+            x, y = d.pop("x"), d.pop("y")
+            d.pop("z", None)
+            d["at"] = f"point:{x},{y}"
+        elif isinstance(d.get("at"), dict):
+            at = d["at"]
+            d["at"] = f"point:{at.get('x')},{at.get('y')}"
+        return d
+
 
 class BeatEffects(DMSModel):
     """What the beat changes when it fires."""
 
-    set_flag: Ident | None = Field(default=None, description="Flag to set true.")
-    clear_flag: Ident | None = Field(default=None, description="Flag to clear.")
+    set_flag: Ident | list[Ident] | None = Field(
+        default=None,
+        description="Flag (or list of flags) to set (to flag_value, default 1 = true).",
+    )
+    flag_value: int | None = Field(
+        default=None, description="Value written by set_flag; default 1 (true)."
+    )
+    clear_flag: Ident | list[Ident] | None = Field(
+        default=None, description="Flag (or list of flags) to clear."
+    )
     outcome: dict[str, OutcomeValue] = Field(
         default_factory=dict,
         description="Outcome facts to record and emit via [DMS.OUTCOME], e.g. {hvt_killed: true}.",
     )
-    start_encounter: Ident | None = Field(
-        default=None, description="Encounter id (from mission-spec dynamic.encounters) to start."
+    start_encounter: Ident | list[Ident] | None = Field(
+        default=None,
+        description="Encounter id (or list) from mission-spec dynamic.encounters to start (encounter chance ignored, once respected).",
     )
     spawn_pool: Ident | None = Field(
         default=None, description="Pool id to draw and spawn from once."
     )
     quality_deltas: dict[str, int] = Field(
         default_factory=dict,
-        description="Campaign quality changes applied in the debrief, e.g. {trust: 1}.",
+        description=(
+            "Campaign quality changes, e.g. {trust: 1}. Applied live for later beats' requires in "
+            "this mission and reported as qualityDeltas in [DMS.OUTCOME]; the debriefer applies them."
+        ),
     )
     end_mission: Literal["success", "failure"] | None = Field(
         default=None, description="Declare the mission over with this result."
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _aliases(cls, data: Any) -> Any:
+        """Accept Lua aliases: finish/end/result -> end_mission, qualities -> quality_deltas."""
+        if not isinstance(data, dict):
+            return data
+        d = _snake_keys(data)
+        for alias in ("finish", "end", "result"):
+            if alias in d:
+                v = d.pop(alias)
+                if d.get("end_mission") is None and v is not None:
+                    key = str(v).lower()
+                    if key not in _END_ALIASES:
+                        raise ValueError(
+                            f"effects.{alias}: unknown result '{v}' (use success or failure)"
+                        )
+                    d["end_mission"] = _END_ALIASES[key]
+        if "qualities" in d:
+            merged = dict(d.pop("qualities") or {})
+            merged.update(d.get("quality_deltas") or {})
+            d["quality_deltas"] = merged
+        return d
 
 
 class Beat(DMSModel):
@@ -140,6 +297,13 @@ class Beat(DMSModel):
         default=50, ge=0, le=100, description="Higher wins when several beats are eligible at once."
     )
     once: bool = Field(default=True, description="Fire at most once per mission.")
+    guaranteed: bool = Field(
+        default=False,
+        description=(
+            "Story-spine beat that must play in every run: the runtime ignores chance, keeps it "
+            "pending until its requires hold, and never drops its radio line from a full queue."
+        ),
+    )
     cooldown_sec: float = Field(default=0, ge=0, description="Minimum seconds between firings.")
     delay_sec: float = Field(default=0, ge=0, description="Delay between trigger and delivery.")
     speaker: Ident | None = Field(
@@ -155,10 +319,21 @@ class Beat(DMSModel):
     mark: BeatMark | None = Field(default=None, description="Optional F10 mark.")
     effects: BeatEffects = Field(default_factory=BeatEffects, description="Effects on fire.")
 
+    @model_validator(mode="before")
+    @classmethod
+    def _camel(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            return _snake_keys(data)
+        return data
+
     @model_validator(mode="after")
     def _speaker_for_lines(self) -> Beat:
         if self.lines and self.speaker is None:
             raise ValueError(f"beat '{self.id}' has lines but no speaker")
+        if self.guaranteed and self.requires.chance < 100:
+            raise ValueError(
+                f"beat '{self.id}' is guaranteed but has requires.chance {self.requires.chance} < 100"
+            )
         return self
 
 

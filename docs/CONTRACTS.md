@@ -1,112 +1,277 @@
-# Interface contracts (v0.3)
+# Interface contracts (v0.3.1)
 
 These are the shared interfaces that parallel work builds against. Change them only by editing
 this file first. Background: `docs/rebuild/ARCHITECTURE-PROPOSAL.md`, `docs/rebuild/RESEARCH-NOTES.md`.
+The end-to-end check that Python and Lua agree is `tests/integration/test_config_roundtrip.py`
+(m01 config -> `dms_config.lua` -> `dist/dms.lua` in the DCS mock, 50 seeds).
+
+## Naming rules (Python <-> Lua)
+
+- Python model **field names** are snake_case. `RuntimeConfig.to_lua_table()` converts them to
+  camelCase (`max_active_ground` -> `maxActiveGround`, `flags_not` -> `flagsNot`).
+- **User keys are never converted**: template / zone / pool / voice-line / speaker ids, outcome
+  keys (`{patrol_complete = true}`), quality ids and flag names keep their authored spelling.
+- `None` values are dropped; tuples become Lua arrays.
+- Python schemas only grow additively: new optional fields, widened literals/unions, and
+  `mode="before"` validators that normalise the Lua-style aliases listed below into the canonical
+  shape. The Lua runtime accepts the canonical camelCase keys **and** those aliases.
 
 ## Lua runtime: core API (lua/src/dms/)
 
-The target is DCS mission scripting with **Lua 5.1**: no goto; os/io/lfs/require unavailable.
-Each module is a global table on `DMS` and uses the guard `DMS = DMS or {}; DMS.X = DMS.X or {}`.
-Load order is in `lua/manifest.txt`. The bundler concatenates into `dist/dms.lua`.
+Target: DCS mission scripting, **Lua 5.1** (no goto; os/io/lfs/require unavailable). Each module is a
+global table on `DMS` with the guard `DMS = DMS or {}; DMS.X = DMS.X or {}`. Load order is
+`lua/manifest.txt`; `tools/bundle_lua.py` concatenates it into `dist/dms.lua`.
+
+**Embed order in the .miz:** plugins -> `dms_config.lua` -> `dms.lua` (config first). The runtime
+tolerates either order: `init.lua` boots immediately when `DMS_CONFIG` exists at load, otherwise
+it re-checks for a few seconds via `DMS.Clock.after` and then logs a warning. `DMS.boot()` is
+idempotent.
 
 ```lua
 DMS.VERSION                       -- string stamped by bundler
 DMS_CONFIG                        -- global table emitted by the generator (see below); may be nil in tests
+DMS.boot() -> bool                -- start modules in DMS.START_ORDER, then emit "mission.start"; once only
+DMS.START_ORDER = { "Spawner", "Ground", "Director", "Encounters", "Narrative", "Comms", "Intel" }
+-- boot calls mod.start(mod) under safeCall; start functions ignore their arguments.
 
 -- core.lua
-DMS.Log.debug(prefix, fmt, ...)   -- only when DMS.Log.isDebug(); prints "[DMS][prefix] msg" via env.info
-DMS.Log.info(prefix, fmt, ...)    DMS.Log.warn(prefix, fmt, ...)    DMS.Log.error(prefix, fmt, ...)
-DMS.Log.setDebug(bool)            DMS.Log.isDebug() -> bool        -- default: DMS_CONFIG.debug or false
-DMS.safeCall(fn, ...) -> ok, resultOrErr   -- xpcall + traceback; logs errors with prefix "safeCall"
-DMS.Log.outcome(tbl)              -- env.info("[DMS.OUTCOME] " .. json(tbl)); a tiny JSON encoder lives in core
+DMS.Log.debug(prefix, fmt, ...)   -- only when DMS.Log.isDebug(); "[DMS][prefix] msg" via env.info
+DMS.Log.info / warn / error(prefix, fmt, ...)
+DMS.Log.setDebug(bool)            DMS.Log.isDebug() -> bool        -- default: DMS_CONFIG.debug
+DMS.safeCall(fn, ...) -> ok, ...  -- xpcall + traceback; logs errors with prefix "safeCall"
+DMS.Json.encode(v) -> string      -- deterministic (sorted keys), {} for empty tables, errors on cycles
+DMS.Log.outcome(tbl)              -- env.info("[DMS.OUTCOME] " .. DMS.Json.encode(tbl))
 
 -- clock.lua: the only module allowed to call timer.scheduleFunction
-DMS.Clock.now() -> seconds (timer.getTime())
-DMS.Clock.after(delaySec, fn, ...) -> id                    -- one-shot, fn pcall-guarded
-DMS.Clock.every(intervalSec, fn, opts) -> id                -- repeating; opts.jitter (sec), opts.firstDelay;
-                                                            -- always re-arms even if fn errors; return false from fn to stop
-DMS.Clock.cancel(id)
+DMS.Clock.now()                   DMS.Clock.after(delaySec, fn, ...) -> id
+DMS.Clock.every(intervalSec, fn, opts) -> id   -- opts.jitter, opts.firstDelay; return false to stop
+DMS.Clock.cancel(id)              DMS.Clock.isActive(id) -> bool
 
 -- rng.lua
-DMS.Rng.seed(n)                   -- if n nil: mix timer.getTime() fraction + DMS_CONFIG.seed; burns a few values
-DMS.Rng.random() -> [0,1)         DMS.Rng.int(a, b)          DMS.Rng.chance(pct0to100) -> bool
-DMS.Rng.weighted(items) -> item   -- items: { {w=3, ...}, {w=1, ...} } ; w defaults to 1
-DMS.Rng.pickN(list, n) -> list    -- without replacement
-DMS.Rng.shuffleBag(list) -> bag   -- bag:next() never repeats until exhausted, never same item twice in a row across refills
-DMS.Rng.jitter(base, spread) -> number in [base-spread, base+spread]
-DMS.Rng.range(t) -> number        -- t is a number or {min, max}
+DMS.Rng.seed(n)                   -- n nil: DMS_CONFIG.seed mixed with timer entropy
+DMS.Rng.random() DMS.Rng.int(a,b) DMS.Rng.chance(pct) DMS.Rng.weighted(items) DMS.Rng.pickN(list,n)
+DMS.Rng.shuffle(list)             DMS.Rng.shuffleBag(list) -> bag (bag:next())
+DMS.Rng.jitter(base, spread)      DMS.Rng.range(t) DMS.Rng.rangeInt(t)   -- t = number | {min, max}
 
 -- bus.lua: the only module allowed to call world.addEventHandler
-DMS.Bus.on(name, fn) -> token     DMS.Bus.off(token)        DMS.Bus.emit(name, payload)
--- Events emitted from DCS events (payload fields; all names are strings, pos is vec3):
---   "unit.hit"       {target=unitName, targetGroup, targetCoalition, initiator=unitName|nil, initiatorGroup, weapon}
---   "unit.shot"      {initiator, initiatorGroup, coalition, weapon}
---   "unit.dead"      {unit, group, coalition, category, typeName, pos}  -- de-duplicated across DEAD/UNIT_LOST/KILL/CRASH
---   "group.dead"     {group, coalition}                                  -- when last unit of a tracked/known group dies
---   "player.spawned" {unit, group, groupId, playerName, coalition, typeName}  -- from BIRTH with getPlayerName()
---   "player.left"    {unit, group, groupId, playerName}
---   "unit.landed" / "unit.takeoff" {unit, group, coalition, place}
---   "mark.added" / "mark.changed" / "mark.removed" {idx, text, pos, coalition, groupId}
--- Modules may emit their own events, namespaced: "zone.entered" {zone, group, unit}, "beat.fired" {id},
---   "encounter.spawned" {id, groups}, "director.state" {flight, state}
+DMS.Bus.on(name, fn(payload, name)) -> token   -- name "*" receives everything
+DMS.Bus.off(token)                DMS.Bus.emit(name, payload)
+DMS.Bus.learnGroup(groupOrName)   DMS.Bus.rescan()   DMS.Bus.unitInfo(unitName)
+DMS.Bus._players[unitName]        -- live player units (set at BIRTH, cleared after their unit.dead)
 
 -- registry.lua
-DMS.Registry.allocName(prefix) -> unique string "DMS_<prefix>_<n>"
-DMS.Registry.track(groupName, meta)        -- meta: {category="ground"|"air"|"ship", coalition=1|2, encounter=id, units=n}
-DMS.Registry.untrack(groupName)            DMS.Registry.get(groupName) -> meta|nil
-DMS.Registry.isAlive(groupName) -> bool    -- exists AND has ≥1 active unit (late activation aware)
-DMS.Registry.count(category, coalition) -> active unit count of tracked groups
-DMS.Registry.budgetAvailable(category, coalition, nUnits) -> bool   -- uses DMS_CONFIG.budgets
-DMS.Registry.list(filterFn) -> {groupName...}
+DMS.Registry.allocName(prefix) -> "DMS_<prefix>_<n>"   -- runtime spawns are named DMS_<poolOrTemplateId>_<n>
+DMS.Registry.track(groupName, meta)  -- meta {category="ground"|"air"|"ship", coalition, encounter, units, template}
+DMS.Registry.untrack(g)  DMS.Registry.get(g)  DMS.Registry.isAlive(g)  DMS.Registry.count(category, coalition)
+DMS.Registry.budgetAvailable(category, coalition, nUnits)   -- DMS_CONFIG.budgets
+DMS.Registry.spawnRateAvailable()  -- informational; the director owns the spawn-rate window
+DMS.Registry.list(filterFn(name, meta)) -> sorted names
 ```
 
-Runtime modules 6–12 (spawner, ground, director, encounters, narrative, comms, intel) build only on
-the API above plus the raw DCS API. Each exposes `DMS.<Module>.start()`, which `lua/src/dms/init.lua`
-(last in the manifest) calls in order when `DMS_CONFIG` is present.
+### Runtime modules
+
+```lua
+-- spawner.lua
+DMS.Spawner.spawn(templateId, zoneId|point|{zone=}|{x,y,radiusM}, opts) -> groupName|nil, reason
+--   opts: country, heading (DEGREES), hidden, encounter, minPlayerDistM (default 5 km ground / 37 km air),
+--         outOfLOS, buildingRadius, tries, prefix, skill, lateActivation, ignoreBudget, onReady(name),
+--         radiusM, cost. Ground points must be land (no water / shallow water) for every unit.
+DMS.Spawner.spawnPool(poolId, opts) -> {groupName...}   -- count = Rng.range(pool.pick), scaled by director
+DMS.Spawner.getZone(id) zoneCenter(z) zoneRadius(z) inZone(z, p) randomPointInZone(z) playerUnits()
+-- ground.lua
+DMS.Ground.routeTo(name, point, opts) halt resume holdFire openFire returnFire alarm(name, "GREEN"|"RED"|"AUTO")
+DMS.Ground.hunt(name, target, opts) stopHunt watch(name, opts) haltOnHit(convoy, resumeAfterSec) leadPos
+-- director.lua
+DMS.Director.canSpawn(cost, flight?) -> ok, reason   noteSpawn(cost)   state(flight?) intensity(flight?)
+DMS.Director.skillFor(skill) scaleCount(n) scaleDelay(sec) adapt(delta, why) level()
+-- encounters.lua
+DMS.Encounters.trigger(id, opts) -> bool   -- opts: boolean force | {force=bool, beat=id}; ignores chance,
+                                           --       respects once unless force
+DMS.Encounters.get(id) groups(id) add(def)
+-- narrative.lua
+DMS.Narrative.trigger(id, source) setFlag(name, value) getFlag(name) isFlagSet(name)
+DMS.Narrative.getQuality(q) addQuality(q, d) setOutcome(tbl) finish(result) firedList() firedCount(id)
+-- comms.lua
+DMS.Comms.say(speaker, lineIds, text, opts) -> lineId|true|false
+--   opts: coalition, groupId, frequency (MHz|Hz), modulation (0 AM, 1 FM), pos, power, priority,
+--         cooldownSec, key, callsign, durSec, keep (never dropped from a full queue)
+--   frequency/modulation default to DMS_CONFIG.speakers[speaker]; callsign likewise.
+DMS.Comms.text(msg, opts) repeatLast(groupId, coalition) history() addMenuCommand(path, label, fn)
+-- intel.lua
+DMS.Intel.reveal(groupName, reason, opts) forget(g) contacts() report(groupId) kills()
+DMS.Intel.mark(spec) -> handle            -- see "mark" below
+```
+
+### Events
+
+All payload names are strings; `pos` is vec3; coalition is 0 neutral / 1 red / 2 blue.
+
+| Event | Payload | Emitted by |
+|---|---|---|
+| `unit.hit` | `{target, targetGroup, targetCoalition, initiator?, initiatorGroup?, weapon}` | bus (HIT) |
+| `unit.shot` | `{initiator, initiatorGroup, coalition, weapon}` | bus (SHOT) |
+| `unit.dead` | `{unit, group, coalition, category="air"\|"ground"\|"ship"\|"static", typeName, pos, killer?}` | bus (DEAD/UNIT_LOST/KILL/CRASH, de-duplicated) |
+| `group.dead` | `{group, coalition}` | bus (last known unit died) |
+| `player.spawned` | `{unit, group, groupId, playerName, coalition, typeName}` | bus (BIRTH with player) |
+| `player.left` | `{unit, group, groupId, playerName}` | bus |
+| `unit.takeoff` / `unit.landed` | `{unit, group, coalition, place}` | bus |
+| `mark.added` / `mark.changed` / `mark.removed` | `{idx, text, pos, coalition, groupId}` | bus |
+| `mission.start` | `{missionId}` | init, after all modules started |
+| `mission.end` | `{}` | bus (S_EVENT_MISSION_END); narrative finishes on it |
+| `mission.result` | `{result}` | narrative.finish |
+| `zone.entered` | `{zone, group, unit}` | narrative zone poll (player units only) |
+| `beat.fired` | `{id, beat}` | narrative |
+| `beat.request` | `{id, encounter}` | encounters telegraph `"beat:<id>"`; narrative triggers the beat (normal eligibility) |
+| `spawner.spawned` | `{group, template, coalition, category, units, encounter, pos, cost}` | spawner |
+| `encounter.spawned` | `{id, encounter, groups, kind}` | encounters |
+| `encounter.telegraph` | `{id, encounter, telegraph, groups}` | encounters |
+| `encounter.sam_hot` | `{id, encounter, group}` | encounters |
+| `encounter.wave` | `{id, encounter, wave, of, groups}` | encounters |
+| `encounter.cleared` | `{id, encounter}` | encounters |
+| `encounter.proximity` | `{id, encounter, zone, group, unit}` | encounters proximity trigger (NOT `zone.entered`) |
+| `convoy.halted` / `convoy.resumed` | `{group, by?}` | ground.haltOnHit |
+| `ground.stuck` | `{group}` | ground.watch |
+| `director.state` | `{flight, state, intensity}` | director |
+| `intel.revealed` | `{group, reason}` | intel |
 
 ## DMS_CONFIG (generated by Python, consumed by Lua)
 
-The Python model is `dms_core.schemas.runtime.RuntimeConfig`, serialized to Lua as
-`DMS_CONFIG = {...}` in `dms_config.lua`. All keys are snake_case in Python and camelCase in Lua.
-The serializer converts them.
+Python model: `dms_core.schemas.runtime.RuntimeConfig`, serialized as `DMS_CONFIG = {...}` in
+`dms_config.lua`. Every key below is optional except `missionId`; every Lua module tolerates any
+key being absent (including `DMS_CONFIG = {}`). `Range` = number or `{min, max}`.
 
 ```lua
 DMS_CONFIG = {
   version = 1, seed = 12345, debug = false, missionId = "m01-first-light",
-  budgets  = { maxActiveGround = 150, maxActiveAir = 16, spawnsPerMin = 3 },
-  director = { enabled = true, peak = 70, relaxSec = {40, 90}, decayPerSec = 1.5, adapt = {min = -1, max = 1} },
-  templates = { sa8 = { country = "RUSSIA", category = "ground", skill = "High",
-                        units = { {type = "Osa 9A33 ln", dx = 0, dy = 0, heading = 0} } } },
-  zones = { ridge = { kind = "polygon", points = { {x=..., y=...} } }, town = { kind = "circle", x=..., y=..., radius=1500 } },
-  pools = { aaa = { members = { {tpl = "zsu", w = 3}, {tpl = "sa8", w = 1} }, pick = {2, 4}, zones = {"ridge"} } },
+  budgets  = { maxActiveGround = 150, maxActiveAir = 16, maxActiveShip = nil, spawnsPerMin = 3 },
+  director = { enabled = true, peak = 70, relaxSec = {40, 90}, decayPerSec = 1.5, adapt = {min = -1, max = 1},
+               peakHoldSec = 15, maxIntensity = 100, nearM = 10000, calmSec = 300,
+               gain = { hit = 25, nearShot = 5, samLaunch = 15, nearKill = 8, playerDead = 40 } },
+  templates = { zu23 = { country = "INSURGENTS", category = "ground",  -- ground|air|airplane|helicopter|ship
+                         skill = "Average", task = nil, altM = nil,
+                         units = { {type = "ZU-23 Emplacement", dx = 0, dy = 0, heading = 0,  -- heading DEGREES
+                                    skill = nil, payload = nil, livery = nil} } } },
+  zones = { ridge = { kind = "polygon", points = { {x = 0, y = 0}, ... } },
+            town  = { kind = "circle", x = 0, y = 0, radius = 1500 } },
+  pools = { aaa = { members = { {tpl = "zu23", w = 3} }, pick = {1, 2} --[[or a number]], zones = {"ridge"} } },
   encounters = {
-    { id = "popup_sam", kind = "ambush_sam", pool = "aaa", trigger = { type = "proximity", zone = "ridge", radiusM = 20000 },
-      chance = 60, telegraph = "beat:sam_spike", hunt = false },
-    { id = "qrf", kind = "waves", pool = "btr", trigger = { type = "beat", beat = "convoy_hit" }, waves = 3, gapSec = {120, 240}, hunt = true },
+    { id = "popup_aa", kind = "ambush_sam",            -- ambush_sam|waves|hunt|convoy|cap|pool
+      pool = "hidden_aa",                              -- or template = "zu23" (+ zone/spawnZone), or group = "Convoy1" (convoy)
+      trigger = { type = "proximity",                  -- proximity|beat|director|time|event|manual
+                  zone = "patrol_box", radiusM = 8334, point = nil, coalition = nil, checkSec = 5,
+                  beat = nil, state = nil, afterSec = nil --[[Range]], event = nil, group = nil },
+      chance = 70, once = true, telegraph = "beat:popup_aa_warning",  -- "beat:<id>" | "event:<name>" | "<name>"
+      hunt = false --[[or group name]], engageRadiusM = 15000, hotChance = nil, telegraphSec = {30, 60},
+      reactSec = {2, 8}, checkSec = 2, gated = true, cost = 1, maxDeferSec = 300, gateRetrySec = 15,
+      huntIntervalSec = 30, huntSpeed = 8, huntRadiusM = nil, target = nil, spawnZone = nil,
+      waves = nil --[[number or {min,max}]], gapSec = {120, 240},
+      destination = "kirikhan_road" --[[zone id or {x,y}]], resumeAfterSec = {60, 120}, escortRadiusM = 500,
+      speed = 10, action = "On Road" },
   },
-  beats = {
-    { id = "tgt_down", when = { event = "group.dead", group = "HVT" }, requires = {}, priority = 80, once = true,
-      cooldownSec = 0, speaker = "ops_mustang", lines = {"tgt_down_v1", "tgt_down_v2"}, text = "Splash HVT.",
-      mark = nil, effects = { setFlag = "tgt_down", outcome = { hvtKilled = true }, startEncounter = "egress_cap" } },
-  },
-  voice = { tgt_down_v1 = { file = "tgt_down_v1.ogg", text = "Splash HVT", durSec = 3, speaker = "ops_mustang" } },
-  intel = { fogOfWar = true, revealRadiusM = 5000, markRefreshSec = 15, staleSec = 120 },
+  beats = { --[[ see "Beats" ]] },
+  voice = { ops_cleared_v1 = { file = "ops_cleared_v1.ogg" --[[optional: nil/"" = subtitle only]], text = "Dusty, Hatay Ops...", durSec = 7.5,
+                               speaker = "ops_walsh", turns = nil --[[ { {speaker=, text=}, ... } ]] } },
+  speakers = { ops_walsh = { callsign = "Hatay Ops", frequency = nil --[[MHz]], modulation = nil --[[0 AM|1 FM]] } },
+  qualities = { intel = 0, enemy_aa = 2 },            -- campaign values at plan time; seeds `requires.qualities`
+  narrative = { minGapSec = 8, pendingTtlSec = 45, zonePollSec = 3 },
+  intel = { fogOfWar = true, revealRadiusM = 5000, markRefreshSec = 15, staleSec = 120,
+            removeSec = nil --[[default 3 * staleSec]], scanSec = 5, markRadiusM = 600, sensors = true },
   players = { coalition = 2 },
 }
 ```
+
+### Beats (`beats.yaml` -> `DMS_CONFIG.beats`, compiled verbatim)
+
+```lua
+{ id = "patrol_complete", guaranteed = true, priority = 80, once = true, cooldownSec = 0, delaySec = 0,
+  when = { event = "zone.entered", zone = "gate_west", playersOnly = true },
+  requires = { flags = {"on_station"}, flagsNot = {"patrol_complete"},
+               qualities = { {quality = "trust", op = ">=", value = 2} },
+               beatsFired = {}, beatsNotFired = {}, chance = 100 },
+  speaker = "ops_walsh", lines = {"ops_rtb_v1", "ops_rtb_v2"}, text = "Dusty, Ops. Good picture. RTB.",
+  mark = { type = "text", at = "zone:patrol_box", text = "PATROL BOX", radiusM = nil, coalition = nil },
+  effects = { setFlag = "patrol_complete" --[[or list]], flagValue = nil, clearFlag = nil --[[or list]],
+              outcome = { patrol_complete = true }, startEncounter = nil --[[or list]], spawnPool = nil,
+              qualityDeltas = { trust = 1 }, endMission = nil --[["success"|"failure"]] } }
+```
+
+**when** - canonical form is `event` plus filters:
+`timer` (`afterSec` since start) | `flag` (`flag`, optional `value`: number => `==`, `">=2"`, bool) |
+`zone.entered` (`zone`) | `beat.fired` (`beat`) | `encounter.spawned` (`encounter`) |
+`director.state` (`state`, optional `flight`) | `mission.start` | any event in the table above.
+`timer` and `flag` are state triggers (edge: fire when the condition becomes true); the rest are
+event triggers. Optional `delaySec` on `when` (used only when the beat-level `delaySec` is 0).
+Filter semantics:
+- `group` / `groupPrefix`: subject group = `payload.group` or `targetGroup` or `initiatorGroup`;
+  a prefix matches the name or the name with a leading `DMS_` stripped (so `hidden_aa` matches the
+  runtime spawn `DMS_hidden_aa_1`).
+- `unit` / `unitPrefix`: `payload.unit` or `target` or `initiator`.
+- `coalition` (0/1/2): `payload.coalition` or `targetCoalition`. `typeName`: `payload.typeName`.
+- `playersOnly`: the subject unit (unit.hit -> target, unit.shot -> initiator, else unit) is a
+  player; always true for `player.spawned`.
+- `beat`: `payload.beat` or `payload.id`; `encounter`: `payload.encounter` or `payload.id`;
+  `zone` / `state` / `flight`: equal; any other key: `payload[key] == value`.
+- Aliases (Lua and Python normaliser): no `event` with `afterSec`/`timer` -> timer, `flag` -> flag,
+  `zone` -> zone.entered, `director`/`directorState` -> director.state, `beat` -> beat.fired.
+
+**requires** - all must hold: `flags`, `flagsNot`, `qualities` (list of `{quality, op, value}`),
+`beatsFired`, `beatsNotFired`, `chance` (rolled once when the beat is triggered). Aliases: `flags` as
+a map `{f = true|false}`, `flagsSet`, `notFlags` / `flagsNotSet`, `qualities` as a map
+`{q = 2 (>=) | ">=2" | {min=, max=} | {op=, value=}}`.
+
+**effects** - `qualityDeltas` are applied live (later beats in the same mission see them) and
+reported cumulatively in the outcome; the debriefer applies them to `state/qualities.yaml`.
+`endMission` finishes the narrative (writes the `end` outcome line). Aliases: `finish` / `end` /
+`result` (victory -> success, defeat -> failure), `qualities` -> `qualityDeltas`.
+
+**mark** - `at` is `group:<name>` (exact, else first group whose name or `DMS_`-stripped name
+starts with it), `unit:<name>`, `zone:<id>` or `point:<x>,<y>` (DCS map meters). `type`
+`circle` draws a circle (`radiusM`, default zone radius / 1000 m) plus label; `text` / `point` draw
+the label only. Aliases: a bare string (= `at`), `{x, y}`, `radius`.
+
+**guaranteed** - spine beats: chance ignored; once queued, a guaranteed beat is exempt from the
+pending TTL while its requires still hold (it can be delayed by traffic, never lost to it); Comms
+never drops its line from a full queue. `guaranteed` is also a design-time promise checked by
+`dms check`: the beat must be reachable in every playthrough.
+
+**selection** - when a beat's `when` occurs, its `requires` must already hold (else it is not
+queued) and `chance` is rolled; queued beats wait in a pending queue (TTL
+`narrative.pendingTtlSec`, `delaySec` honoured) and `requires` are re-checked when they fire. Among
+ready beats the highest priority fires (ties random), at most one radio beat per
+`narrative.minGapSec`. Silent beats (no speaker, lines or text) bypass the gap and fire at once.
+Chains are expressed with `when: {event: beat.fired, beat: <id>}`, not with same-event flags.
+
+### Outcome lines
+
+`[DMS.OUTCOME] {json}` in dcs.log, written on every outcome change (`kind = "update"`) and once
+when the mission ends (`kind = "end"`, from `endMission`, `mission.end` or `DMS.Narrative.finish`):
+
+```json
+{"missionId": "m01-first-light", "kind": "end", "t": 1834.5, "result": "success",
+ "outcome": {"patrol_complete": true, "landed": true}, "qualityDeltas": {"trust": 1},
+ "qualities": {"intel": 0, "trust": 1}, "beats": ["mission_start", "..."], "flags": {"landed": true}}
+```
+
+Parsed by `dms_core.schemas.outcome.parse_dcs_log` into `MissionOutcome` (`outcome` -> `outcomes`,
+`t` -> `time`, `event` -> `kind` for older lines).
 
 ## Python schemas (packages/dms-core/src/dms_core/schemas/)
 
 | Module | Models | Written by |
 |---|---|---|
 | `story.py` | `StoryBible`, `Faction`, `Character`, `VoiceProfile`, `TimelineEvent`, `Source` | story-writer skill |
-| `campaign.py` | `CampaignArc`, `Act`, `ArcMission`, `Branch`, `Qualities` | campaign-planner skill |
+| `campaign.py` | `CampaignArc`, `Act`, `ArcMission`, `Branch`, `Qualities` (`next_mission` set by the debriefer) | campaign-planner / debriefer |
 | `mission.py` | `MissionSpec` (LLM-facing, declarative: theater, era, datetime, weather_preset, player_flights, mission_type, objectives, threats, support, dynamic) | mission-designer skill |
-| `beats.py` | `Beat`, `BeatTrigger`, `BeatEffects` | mission-designer skill |
-| `voice.py` | `VoiceLine`, `VoiceLineSet` (lines.yaml) | mission-designer / voice-director |
-| `plan.py` | `BuildPlan` (exact: positions x/y, unit types, payload CLSIDs, frequencies, group names, trigger list, resources) | `dms plan` |
+| `beats.py` | `Beat`, `BeatTrigger`, `BeatEffects`, `BeatMark` | mission-designer skill |
+| `voice.py` | `VoiceLine` (optional multi-speaker `turns` for Text-to-Dialogue), `VoiceLineSet` (lines.yaml) | mission-designer / voice-director |
+| `plan.py` | `BuildPlan` (exact: positions x/y, unit types, payload CLSIDs, frequencies, group names, trigger list, resources; `blue_countries` / `red_countries` / `neutral_countries` coalition membership) | `dms plan` |
 | `runtime.py` | `RuntimeConfig` (= DMS_CONFIG above) | `dms plan` |
 | `outcome.py` | `MissionOutcome` (parsed `[DMS.OUTCOME]` lines) | debriefer |
+
+Vocabulary notes: threat role `civilian` = unarmed civilian vehicles only (pair with a neutral
+faction; the planner must never pick armed types for it, and lists that faction's country in
+`BuildPlan.neutral_countries` so the builder creates it in the neutral coalition). Beat `coalition` filters accept 0
+(neutral), 1 (red), 2 (blue).
 
 Every model gets `model_config = ConfigDict(extra="forbid")` and `Field(description=...)` on
 fields; the descriptions double as LLM guidance. `dms_core.schemas.export_json_schemas(out_dir)`

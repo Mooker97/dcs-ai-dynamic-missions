@@ -57,6 +57,22 @@
       "default": null,
       "description": "Id of the last mission folded into this state.",
       "title": "Updated After"
+    },
+    "next_mission": {
+      "anyOf": [
+        {
+          "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Arc mission id chosen by the debriefer (first matching branch, else next in order).",
+      "title": "Next Mission"
     }
   },
   "title": "Qualities",

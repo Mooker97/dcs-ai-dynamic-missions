@@ -14,7 +14,7 @@ OUTCOME_MARKER = "[DMS.OUTCOME]"
 _LINE_RE = re.compile(r"\[DMS\.OUTCOME\]\s*(\{.*\})\s*$")
 _TS_RE = re.compile(r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?)")
 _CAMEL_RE = re.compile(r"(?<!^)(?=[A-Z])")
-_ALIASES = {"outcome": "outcomes", "t": "time", "mission": "mission_id"}
+_ALIASES = {"outcome": "outcomes", "t": "time", "mission": "mission_id", "event": "kind"}
 
 
 def camel_to_snake(name: str) -> str:
@@ -43,10 +43,27 @@ class MissionOutcome(DMSModel):
         default_factory=dict, description="Friendly losses by category or type."
     )
     players: list[str] = Field(default_factory=list, description="Player names involved.")
+    quality_deltas: dict[str, float] = Field(
+        default_factory=dict,
+        description="Cumulative quality changes from beat effects (the debriefer applies them).",
+    )
+    qualities: dict[str, float] = Field(
+        default_factory=dict, description="Live quality values in the mission (seed + deltas)."
+    )
+    beats: list[str] = Field(default_factory=list, description="Beat ids fired so far, in order.")
     log_timestamp: str | None = Field(default=None, description="dcs.log wall-clock timestamp.")
     extra: dict[str, Any] = Field(default_factory=dict, description="Unrecognised keys, verbatim.")
 
-    @field_validator("flags", "outcomes", "kills", "losses", "extra", mode="before")
+    @field_validator(
+        "flags",
+        "outcomes",
+        "kills",
+        "losses",
+        "extra",
+        "quality_deltas",
+        "qualities",
+        mode="before",
+    )
     @classmethod
     def _empty_lua_table(cls, v: Any) -> Any:
         # A tiny Lua JSON encoder cannot tell {} from [] and may emit [] for an empty table.
@@ -85,6 +102,9 @@ class MissionOutcome(DMSModel):
             kills=_max(self.kills, other.kills),
             losses=_max(self.losses, other.losses),
             players=list(dict.fromkeys([*self.players, *other.players])),
+            quality_deltas={**self.quality_deltas, **other.quality_deltas},
+            qualities={**self.qualities, **other.qualities},
+            beats=list(dict.fromkeys([*self.beats, *other.beats])),
             log_timestamp=other.log_timestamp or self.log_timestamp,
             extra={**self.extra, **other.extra},
         )

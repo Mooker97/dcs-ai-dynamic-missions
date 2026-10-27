@@ -473,37 +473,102 @@ local function zoneGeometry(name)
   return nil
 end
 
---- Draw a narrative mark. spec: "group:<name>" | "zone:<name>" | {x=,y=}/{x=,y=,z=} |
---- {type="circle"|"point", at=<one of the above>, text=, radius=}
---- Returns a handle (number) or nil.
+local function prefixMatch(name, prefix)
+  if type(name) ~= "string" then return false end
+  if string.sub(name, 1, #prefix) == prefix then return true end
+  return string.sub(name, 1, 4) == "DMS_" and string.sub(string.sub(name, 5), 1, #prefix) == prefix
+end
+
+-- Resolve "group:<name>": exact live group, else the first (sorted) live group whose name, or name
+-- without a leading "DMS_", starts with <name> (runtime spawns are named DMS_<poolId>_<n>).
+function Intel.resolveGroup(name)
+  if #aliveUnits(name) > 0 then return name end
+  local cands, seen = {}, {}
+  local function consider(n)
+    if n and not seen[n] then
+      seen[n] = true
+      if prefixMatch(n, name) and #aliveUnits(n) > 0 then cands[#cands + 1] = n end
+    end
+  end
+  if DMS.Registry and DMS.Registry.list then
+    local ok, names = pcall(DMS.Registry.list)
+    if ok and type(names) == "table" then for _, n in ipairs(names) do consider(n) end end
+  end
+  if coalition and coalition.getGroups then
+    for _, side in ipairs({ 0, 1, 2 }) do
+      local ok, groups = pcall(coalition.getGroups, side)
+      if ok and type(groups) == "table" then
+        for _, g in ipairs(groups) do
+          local okN, n = pcall(g.getName, g)
+          if okN then consider(n) end
+        end
+      end
+    end
+  end
+  table.sort(cands)
+  return cands[1]
+end
+
+local function unitPoint(name)
+  if not Unit then return nil end
+  local ok, p = pcall(function()
+    local u = Unit.getByName(name)
+    return u and u:isExist() and u:getPoint() or nil
+  end)
+  return ok and p or nil
+end
+
+--- Draw a narrative mark. spec: "group:<name>" | "unit:<name>" | "zone:<name>" | "point:<x>,<y>" |
+--- {x=,y=}/{x=,y=,z=} | {type="circle"|"text"|"point", at=<one of the above>, text=, radiusM= (or radius=)}
+--- type text/point draws only a label (no circle). Returns a handle (number) or nil.
 function Intel.mark(spec)
   local s = Intel._s
   if spec == nil then return nil end
   local at, text, radius, kind = spec, nil, nil, "circle"
   if type(spec) == "table" and (spec.at or spec.type) then
-    at, text, radius, kind = spec.at, spec.text, spec.radius, spec.type or "circle"
+    at, text, radius, kind = spec.at, spec.text, spec.radiusM or spec.radius, spec.type or "circle"
   end
   if type(at) == "string" then
     local gname = string.match(at, "^group:(.+)$")
+    local uname = string.match(at, "^unit:(.+)$")
     local zname = string.match(at, "^zone:(.+)$")
+    local px, py = string.match(at, "^point:%s*(-?[%d%.eE+-]+)%s*,%s*(-?[%d%.eE+-]+)%s*$")
     if gname then
-      local c = s.contacts[gname]
-      Intel.reveal(gname, "intel", { label = text })
-      c = s.contacts[gname]
+      local resolved = Intel.resolveGroup(gname)
+      if not resolved then
+        log("warn", "mark: group '%s' not found/alive", gname)
+        return nil
+      end
+      Intel.reveal(resolved, "intel", { label = text })
+      local c = s.contacts[resolved]
       if c then
-        if text and c.label ~= text then c.label = text drawContact(c) end
+        local changed = false
+        if radius and c.radius ~= radius then c.radius, changed = radius, true end
+        if text and c.label ~= text then c.label, changed = text, true end
+        if changed then drawContact(c) end
+        log("debug", "mark: group '%s' -> contact '%s'", gname, resolved)
         return c.textId
       end
-      log("warn", "mark: group '%s' not found/alive", gname)
+      log("warn", "mark: group '%s' could not be revealed", gname)
       return nil
+    elseif uname then
+      local p = unitPoint(uname)
+      if not p then
+        log("warn", "mark: unit '%s' not found/alive", uname)
+        return nil
+      end
+      at, text = p, text or uname
+    elseif px and tonumber(px) and tonumber(py) then
+      at = vec3From({ x = tonumber(px), y = tonumber(py) })
+    else
+      local pos, r = zoneGeometry(zname or at)
+      if not pos then
+        log("warn", "mark: unknown target '%s'", at)
+        return nil
+      end
+      text = text or (zname or at)
+      at, radius = pos, radius or r
     end
-    local pos, r = zoneGeometry(zname or at)
-    if not pos then
-      log("warn", "mark: unknown target '%s'", at)
-      return nil
-    end
-    at, radius = pos, radius or r
-    text = text or (zname or at)
   elseif type(at) == "table" and at.x then
     at = vec3From(at)
   else
@@ -512,7 +577,8 @@ function Intel.mark(spec)
   end
   local coal = playerCoalition()
   local ids = {}
-  if kind ~= "point" and trigger and trigger.action and trigger.action.circleToAll then
+  local withCircle = kind ~= "point" and kind ~= "text"
+  if withCircle and trigger and trigger.action and trigger.action.circleToAll then
     local id = newId()
     ids[#ids + 1] = id
     pcall(trigger.action.circleToAll, coal, id, at, radius or 1000, { 1, 0.8, 0, 1 }, { 1, 0.8, 0, 0.1 }, 1, true, "")
@@ -523,7 +589,7 @@ function Intel.mark(spec)
     pcall(trigger.action.markToCoalition, handle, tostring(text or "Objective"), at, coal, true)
   end
   s.statics[handle] = ids
-  log("debug", "mark %d drawn '%s'", handle, tostring(text))
+  log("debug", "mark %d drawn '%s' (%s)", handle, tostring(text), tostring(kind))
   return handle
 end
 

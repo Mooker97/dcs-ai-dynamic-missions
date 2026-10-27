@@ -159,14 +159,12 @@ dynamic:
       faction: nvc
       notes: "Ural-375 cargo trucks under nets (rocket resupply; the m02 reveal). Unarmed, but count as armed targets."
     - id: civilians
-      roles: [technicals]
+      roles: [civilian]
       areas: [canal_road]
       pick: [2, 4]
       faction: valley_civilians
       notes: >-
-        Civilian traffic. Faction valley_civilians is neutral and fields only civilian vehicle
-        types (bible), so the planner must spawn unarmed GAZ/VAZ/Land Rover/bus types here.
-        The role is 'technicals' only because schema v1 has no civilian role; silhouettes
+        Civilian traffic (unarmed GAZ/VAZ/Land Rover/bus types, neutral faction). Silhouettes
         resembling technicals are intended (positive ID matters).
   encounters:
     - id: popup_aa

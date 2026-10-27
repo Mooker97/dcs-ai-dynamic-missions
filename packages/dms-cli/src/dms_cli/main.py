@@ -340,7 +340,7 @@ def _write_runtime_config(plan: Any, out_dir: Path) -> Path | None:
             write_runtime_config,
         )
     except ImportError:
-        write_runtime_config = None
+        write_runtime_config = None  # type: ignore[assignment]
     src = Path(res.source)
     if not src.is_absolute():
         res.source = str((out_dir / src.name).resolve())

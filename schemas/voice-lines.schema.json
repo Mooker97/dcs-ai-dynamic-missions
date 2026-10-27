@@ -1,5 +1,44 @@
 {
   "$defs": {
+    "DialogueTurn": {
+      "additionalProperties": false,
+      "description": "One speaker's turn inside a multi-speaker exchange (ElevenLabs Text-to-Dialogue).",
+      "properties": {
+        "speaker": {
+          "description": "Character id (bible) who speaks this turn.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Speaker",
+          "type": "string"
+        },
+        "text": {
+          "description": "What this speaker says; v3 audio tags allowed.",
+          "maxLength": 600,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "delivery": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Direction for this turn.",
+          "title": "Delivery"
+        }
+      },
+      "required": [
+        "speaker",
+        "text"
+      ],
+      "title": "DialogueTurn",
+      "type": "object"
+    },
     "VoiceLine": {
       "additionalProperties": false,
       "description": "One spoken radio line. Write 3-5 variants per beat (ids like 'convoy_hit_v1'..'_v3').",
@@ -112,6 +151,23 @@
           "default": null,
           "description": "Audio duration; filled by `dms voice`.",
           "title": "Dur Sec"
+        },
+        "turns": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/DialogueTurn"
+              },
+              "minItems": 2,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional multi-speaker exchange rendered to ONE audio file (Text-to-Dialogue), e.g. Kestrel calls and Ops answers. `speaker` is the first turn's speaker; `text` is the full transcript (auto-filled from the turns when omitted).",
+          "title": "Turns"
         }
       },
       "required": [

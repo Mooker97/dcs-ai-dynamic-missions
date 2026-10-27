@@ -61,17 +61,21 @@ from .runtime import (
     Budgets,
     CircleZone,
     Director,
+    DirectorGain,
     Encounter,
     EncounterTrigger,
     Intel,
+    NarrativeSettings,
     Players,
     PolygonZone,
     Pool,
     PoolMember,
     RuntimeConfig,
+    Speaker,
     Template,
     TemplateUnit,
     VoiceEntry,
+    VoiceTurn,
 )
 from .story import (
     Character,
@@ -85,7 +89,7 @@ from .story import (
     VoiceProfile,
 )
 from .validation import Issue, validate_mission_bundle
-from .voice import VoiceLine, VoiceLineSet
+from .voice import DialogueTurn, VoiceLine, VoiceLineSet
 
 #: Top-level document models -> JSON Schema file stem (written as <stem>.schema.json).
 DOCUMENT_MODELS: dict[str, type[BaseModel]] = {
@@ -111,7 +115,8 @@ def export_json_schemas(out_dir: str | Path) -> list[Path]:
         schema["$schema"] = "https://json-schema.org/draft/2020-12/schema"
         schema["$id"] = f"https://dms.local/schemas/{stem}.schema.json"
         path = out / f"{stem}.schema.json"
-        path.write_text(json.dumps(schema, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        text = json.dumps(schema, indent=2, ensure_ascii=False) + "\n"
+        path.write_text(text, encoding="utf-8", newline="\n")
         written.append(path)
     return written
 
@@ -137,7 +142,9 @@ __all__ = [
     "Coalition",
     "ContentMode",
     "DMSModel",
+    "DialogueTurn",
     "Director",
+    "DirectorGain",
     "DirectorIntent",
     "DynamicIntent",
     "Encounter",
@@ -154,6 +161,7 @@ __all__ = [
     "MissionOutcome",
     "MissionSpec",
     "MissionType",
+    "NarrativeSettings",
     "NearAirbase",
     "NearNamedPlace",
     "Objective",
@@ -185,6 +193,7 @@ __all__ = [
     "RuntimeConfig",
     "Setting",
     "Source",
+    "Speaker",
     "StoryBible",
     "Support",
     "Template",
@@ -197,6 +206,7 @@ __all__ = [
     "VoiceLine",
     "VoiceLineSet",
     "VoiceProfile",
+    "VoiceTurn",
     "export_json_schemas",
     "parse_dcs_log",
     "summarize_outcomes",

@@ -45,11 +45,30 @@ local function estimateDur(text)
   return d
 end
 
+local function speakerCfg(speaker)
+  local sp = cfg().speakers
+  if type(sp) == "table" and speaker ~= nil and type(sp[speaker]) == "table" then return sp[speaker] end
+  return nil
+end
+
 local function speakerCallsign(speaker, opts)
   if opts and opts.callsign then return opts.callsign end
-  local sp = cfg().speakers
-  if sp and speaker and sp[speaker] and sp[speaker].callsign then return sp[speaker].callsign end
+  local sc = speakerCfg(speaker)
+  if sc and sc.callsign then return sc.callsign end
   return speaker
+end
+
+-- Multi-speaker exchange (voice entry `turns`): one subtitle line per turn, "<callsign>: text".
+local function turnsText(turns)
+  local out = {}
+  for _, t in ipairs(turns) do
+    if type(t) == "table" and t.text then
+      local cs = speakerCallsign(t.speaker)
+      out[#out + 1] = cs and (tostring(cs) .. ": " .. t.text) or t.text
+    end
+  end
+  if #out == 0 then return nil end
+  return table.concat(out, "\n")
 end
 
 -- ---------------------------------------------------------------------------
@@ -120,7 +139,12 @@ local function play(item)
   local s = Comms._s
   local t = now()
   if item.file then outSound(item, Comms.SOUND_PREFIX .. item.file) end
-  local msg = item.callsign and (item.callsign .. ": " .. (item.text or "")) or (item.text or "")
+  local msg
+  if item.turnsText then
+    msg = item.turnsText
+  else
+    msg = item.callsign and (item.callsign .. ": " .. (item.text or "")) or (item.text or "")
+  end
   if item.text and item.text ~= "" then
     local showFor = item.dur + 2
     if showFor < 5 then showFor = 5 end
@@ -165,11 +189,15 @@ local function enqueue(item)
   item.priority = item.priority or 0
   s.queue[#s.queue + 1] = item
   while #s.queue > Comms.MAX_QUEUE do
-    local wi = 1
-    for i = 2, #s.queue do
-      local a, b = s.queue[i], s.queue[wi]
-      if a.priority < b.priority or (a.priority == b.priority and a.seq < b.seq) then wi = i end
+    local wi
+    for i = 1, #s.queue do
+      local a = s.queue[i]
+      if not a.keep then
+        local b = wi and s.queue[wi]
+        if not b or a.priority < b.priority or (a.priority == b.priority and a.seq < b.seq) then wi = i end
+      end
     end
+    if not wi then break end   -- everything queued must be kept (guaranteed beats)
     local dropped = table.remove(s.queue, wi)
     log("warn", "queue full, dropped line %s", tostring(dropped.line))
   end
@@ -194,7 +222,9 @@ end
 -- @param lineIds string|list voice line id(s) into DMS_CONFIG.voice; variants rotate via shuffle-bag
 -- @param text string fallback subtitle text when the voice entry has none
 -- @param opts {coalition, groupId, frequency (MHz|Hz), modulation, pos, power, priority,
---              cooldownSec, key, callsign, durSec}
+--              cooldownSec, key, callsign, durSec, keep}
+--   frequency/modulation default to DMS_CONFIG.speakers[speaker].frequency/modulation;
+--   keep = true: never dropped when the queue overflows (guaranteed beats).
 -- @return chosen line id (or true for text-only), or false when suppressed by cooldown
 function Comms.say(speaker, lineIds, text, opts)
   opts = opts or {}
@@ -213,17 +243,21 @@ function Comms.say(speaker, lineIds, text, opts)
   local line = pickLine(speaker, lineIds)
   local v = line and cfg().voice and cfg().voice[line] or nil
   if line and not v then log("debug", "no voice entry for line '%s' (subtitle only)", line) end
+  local who = (v and v.speaker) or speaker
+  local sc = speakerCfg(who) or speakerCfg(speaker) or {}
   local item = {
-    speaker = (v and v.speaker) or speaker, line = line,
-    file = v and v.file or nil,
+    speaker = who, line = line,
+    file = (v and type(v.file) == "string" and v.file ~= "") and v.file or nil,   -- no file = subtitle only
     text = (v and v.text) or text,
     coalition = opts.coalition, groupId = opts.groupId,
-    frequency = opts.frequency, modulation = opts.modulation, pos = opts.pos, power = opts.power,
-    priority = opts.priority,
+    frequency = opts.frequency or sc.frequency, modulation = opts.modulation or sc.modulation,
+    pos = opts.pos, power = opts.power,
+    priority = opts.priority, keep = opts.keep and true or nil,
   }
   item.callsign = speakerCallsign(item.speaker, opts)
-  item.dur = opts.durSec or (v and v.durSec) or estimateDur(item.text)
-  if not item.file and (not item.text or item.text == "") then return false end
+  if v and type(v.turns) == "table" then item.turnsText = turnsText(v.turns) end
+  item.dur = opts.durSec or (v and v.durSec) or estimateDur(item.text or item.turnsText)
+  if not item.file and not item.turnsText and (not item.text or item.text == "") then return false end
   enqueue(item)
   return line or true
 end

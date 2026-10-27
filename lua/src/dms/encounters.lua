@@ -112,7 +112,7 @@ local function checkCleared(st)
   if aliveGroups(st) == 0 then
     st.cleared = true
     DMS.Log.info(P, "Encounter '%s' cleared", st.def.id)
-    DMS.Bus.emit("encounter.cleared", { id = st.def.id })
+    DMS.Bus.emit("encounter.cleared", { id = st.def.id, encounter = st.def.id })
   end
 end
 
@@ -136,7 +136,7 @@ local function spawnFor(st, opts)
     st.spawnedAny = true
     st.cleared = false
     DMS.Log.info(P, "Encounter '%s' spawned %d group(s)", def.id, #groups)
-    DMS.Bus.emit("encounter.spawned", { id = def.id, groups = groups, kind = def.kind })
+    DMS.Bus.emit("encounter.spawned", { id = def.id, encounter = def.id, groups = groups, kind = def.kind })
   end
   return groups
 end
@@ -219,7 +219,7 @@ KIND.waves = function(st)
     DMS.Log.info(P, "Encounter '%s' wave %d/%d", def.id, wave, n)
     gatedSpawn(st, { zone = zoneOpt(def) }, function(groups)
       if def.hunt then startHunts(st, groups) end
-      DMS.Bus.emit("encounter.wave", { id = def.id, wave = wave, of = n, groups = groups })
+      DMS.Bus.emit("encounter.wave", { id = def.id, encounter = def.id, wave = wave, of = n, groups = groups })
       if wave < n then
         addTimer(st, DMS.Clock.after(DMS.Rng.range(def.gapSec or { 120, 240 }), nextWave))
       end
@@ -233,7 +233,7 @@ local function telegraph(st, groups)
   local def = st.def
   local t = def.telegraph
   if not t then return end
-  DMS.Bus.emit("encounter.telegraph", { id = def.id, telegraph = t, groups = groups })
+  DMS.Bus.emit("encounter.telegraph", { id = def.id, encounter = def.id, telegraph = t, groups = groups })
   local beat = string.match(t, "^beat:(.+)$")
   if beat then
     DMS.Bus.emit("beat.request", { id = beat, encounter = def.id })
@@ -253,7 +253,7 @@ local function goHot(st, g)
   DMS.Ground.alarm(g, "RED")
   DMS.Ground.openFire(g)
   DMS.Log.info(P, "SAM '%s' (%s) going HOT", g, st.def.id)
-  DMS.Bus.emit("encounter.sam_hot", { id = st.def.id, group = g })
+  DMS.Bus.emit("encounter.sam_hot", { id = st.def.id, encounter = st.def.id, group = g })
 end
 
 KIND.ambush_sam = function(st)
@@ -372,9 +372,13 @@ local function fire(st, why, manual)
   return ok
 end
 
+-- trigger keys that configure the trigger rather than filter the event payload
+local NOT_FILTERS = { type = true, name = true, event = true, checkSec = true, radiusM = true,
+  afterSec = true, point = true, state = true }
+
 local function matches(payload, filt)
   for k, v in pairs(filt) do
-    if k ~= "type" and k ~= "name" and k ~= "event" and payload[k] ~= v then return false end
+    if not NOT_FILTERS[k] and payload[k] ~= v then return false end
   end
   return true
 end
@@ -390,7 +394,11 @@ local function arm(st)
       if ev and ev.id == t.beat then fire(st, "beat " .. tostring(t.beat)) end
     end))
   elseif ty == "event" then
-    local name = t.name or t.event
+    local name = t.event or t.name
+    if type(name) ~= "string" then
+      DMS.Log.warn(P, "Encounter '%s': event trigger without event name", def.id)
+      return
+    end
     addToken(st, DMS.Bus.on(name, function(ev)
       if matches(ev or {}, t) then fire(st, "event " .. tostring(name)) end
     end))
@@ -422,7 +430,7 @@ local function arm(st)
       if who and not st.inside then
         -- fire on entry only (re-arms after everyone leaves when once=false)
         st.inside = true
-        DMS.Bus.emit("zone.entered", { zone = t.zone, group = who.group, unit = who.name, encounter = def.id })
+        DMS.Bus.emit("encounter.proximity", { id = def.id, encounter = def.id, zone = t.zone, group = who.group, unit = who.name })
         fire(st, "proximity " .. tostring(who.name))
         if st.done then return false end
       elseif not who then
@@ -433,16 +441,27 @@ local function arm(st)
   end
 end
 
--- Manual trigger. Ignores chance; respects once unless force.
-function Enc.trigger(id, force)
+-- Manual trigger: DMS.Encounters.trigger(id, opts). opts = true (force) or {force=bool, beat=id}.
+-- Ignores chance; respects once unless force.
+function Enc.trigger(id, opts)
   local st = Enc._state[id]
   if not st then
     DMS.Log.warn(P, "trigger: unknown encounter '%s'", tostring(id))
     return false
   end
-  if st.done and not force then return false end
+  local force, beat = false, nil
+  if opts == true then
+    force = true
+  elseif type(opts) == "table" then
+    force = opts.force == true
+    beat = opts.beat
+  end
+  if st.done and not force then
+    DMS.Log.debug(P, "Encounter '%s' manual trigger ignored (already fired)", tostring(id))
+    return false
+  end
   st.done = false
-  return fire(st, "manual", true)
+  return fire(st, beat and ("beat " .. tostring(beat)) or "manual", true)
 end
 
 function Enc.get(id) return Enc._state[id] end

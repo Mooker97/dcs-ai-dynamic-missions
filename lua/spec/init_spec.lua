@@ -22,3 +22,40 @@ describe("DMS.boot", function()
     assert.is_false(DMS.boot())
   end)
 end)
+
+describe("DMS.boot load order", function()
+  local function banners()
+    local n = 0
+    for _, l in ipairs(MOCK.log) do if string.find(l.msg, "started: mission=", 1, true) then n = n + 1 end end
+    return n
+  end
+
+  it("bundle loaded before dms_config.lua boots once the config appears", function()
+    assert.is_nil(DMS._booted)
+    MOCK.advance(0.5)
+    DMS_CONFIG = { missionId = "late" }
+    MOCK.advance(1.5)
+    assert.is_true(DMS._booted)
+    assert.are.equal(1, banners())
+    assert.is_true((MOCK.logContains("DMS_CONFIG appeared after load")))
+    MOCK.advance(10)
+    assert.are.equal(1, banners())
+  end)
+
+  it("never-appearing config warns once and does not boot", function()
+    MOCK.advance(20)
+    assert.is_nil(DMS._booted)
+    local n = 0
+    for _, l in ipairs(MOCK.log) do if string.find(l.msg, "never appeared", 1, true) then n = n + 1 end end
+    assert.are.equal(1, n)
+    assert.is_true((MOCK.logContains("never appeared", "warning")))
+  end)
+
+  it("a manual DMS.boot() before the deferred check is not repeated", function()
+    DMS_CONFIG = { missionId = "manual" }
+    assert.is_true(DMS.boot())
+    MOCK.advance(10)
+    assert.are.equal(1, banners())
+    assert.is_false(DMS.boot())
+  end)
+end)

@@ -323,6 +323,11 @@ H[EV.S_EVENT_MARK_ADDED] = mark("mark.added")
 H[EV.S_EVENT_MARK_CHANGE] = mark("mark.changed")
 H[EV.S_EVENT_MARK_REMOVED] = mark("mark.removed")
 
+H[EV.S_EVENT_MISSION_END] = function()
+  log().debug("Bus", "mission.end")
+  Bus.emit("mission.end", {})
+end
+
 Bus._dcsHandlers = H
 
 function Bus._onEvent(e)

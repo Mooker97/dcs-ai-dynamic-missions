@@ -826,7 +826,8 @@
               "fighters",
               "attack_helicopters",
               "ship",
-              "hvt"
+              "hvt",
+              "civilian"
             ],
             "type": "string"
           },
@@ -1049,7 +1050,8 @@
             "fighters",
             "attack_helicopters",
             "ship",
-            "hvt"
+            "hvt",
+            "civilian"
           ],
           "title": "Role",
           "type": "string"

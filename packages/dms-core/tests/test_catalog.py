@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 import yaml
@@ -43,7 +44,7 @@ def test_every_pydcs_id_resolves(cat: catalog.Catalog) -> None:
     import dcs.ships
     import dcs.vehicles
 
-    maps = {
+    maps: dict[str, Any] = {
         "ground": dcs.vehicles.vehicle_map,
         "plane": dcs.planes.plane_map,
         "helicopter": dcs.helicopters.helicopter_map,

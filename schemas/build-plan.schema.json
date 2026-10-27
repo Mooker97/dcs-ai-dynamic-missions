@@ -57,6 +57,12 @@
           "title": "Once",
           "type": "boolean"
         },
+        "guaranteed": {
+          "default": false,
+          "description": "Story-spine beat that must play in every run: the runtime ignores chance, keeps it pending until its requires hold, and never drops its radio line from a full queue.",
+          "title": "Guaranteed",
+          "type": "boolean"
+        },
         "cooldown_sec": {
           "default": 0,
           "description": "Minimum seconds between firings.",
@@ -148,12 +154,34 @@
               "type": "string"
             },
             {
+              "items": {
+                "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+                "maxLength": 64,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
               "type": "null"
             }
           ],
           "default": null,
-          "description": "Flag to set true.",
+          "description": "Flag (or list of flags) to set (to flag_value, default 1 = true).",
           "title": "Set Flag"
+        },
+        "flag_value": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Value written by set_flag; default 1 (true).",
+          "title": "Flag Value"
         },
         "clear_flag": {
           "anyOf": [
@@ -164,11 +192,20 @@
               "type": "string"
             },
             {
+              "items": {
+                "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+                "maxLength": 64,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
               "type": "null"
             }
           ],
           "default": null,
-          "description": "Flag to clear.",
+          "description": "Flag (or list of flags) to clear.",
           "title": "Clear Flag"
         },
         "outcome": {
@@ -201,11 +238,20 @@
               "type": "string"
             },
             {
+              "items": {
+                "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+                "maxLength": 64,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
               "type": "null"
             }
           ],
           "default": null,
-          "description": "Encounter id (from mission-spec dynamic.encounters) to start.",
+          "description": "Encounter id (or list) from mission-spec dynamic.encounters to start (encounter chance ignored, once respected).",
           "title": "Start Encounter"
         },
         "spawn_pool": {
@@ -228,7 +274,7 @@
           "additionalProperties": {
             "type": "integer"
           },
-          "description": "Campaign quality changes applied in the debrief, e.g. {trust: 1}.",
+          "description": "Campaign quality changes, e.g. {trust: 1}. Applied live for later beats' requires in this mission and reported as qualityDeltas in [DMS.OUTCOME]; the debriefer applies them.",
           "title": "Quality Deltas",
           "type": "object"
         },
@@ -269,8 +315,8 @@
           "type": "string"
         },
         "at": {
-          "description": "Where: 'group:<name>', 'unit:<name>' or 'zone:<id>'.",
-          "pattern": "^(group|unit|zone):.+$",
+          "description": "Where: 'group:<name>' (exact group name, else the first group whose name, or name without the runtime 'DMS_' prefix, starts with it), 'unit:<name>', 'zone:<id>' or 'point:<x>,<y>' (DCS map x/y, meters).",
+          "pattern": "^(group|unit|zone|point):.+$",
           "title": "At",
           "type": "string"
         },
@@ -347,7 +393,21 @@
             "mark.added",
             "beat.fired",
             "encounter.spawned",
-            "director.state"
+            "director.state",
+            "mission.end",
+            "mission.result",
+            "mark.changed",
+            "mark.removed",
+            "spawner.spawned",
+            "encounter.telegraph",
+            "encounter.sam_hot",
+            "encounter.wave",
+            "encounter.cleared",
+            "encounter.proximity",
+            "convoy.halted",
+            "convoy.resumed",
+            "ground.stuck",
+            "intel.revealed"
           ],
           "title": "Event",
           "type": "string"
@@ -491,6 +551,7 @@
           "anyOf": [
             {
               "enum": [
+                0,
                 1,
                 2
               ],
@@ -501,8 +562,70 @@
             }
           ],
           "default": null,
-          "description": "Coalition filter: 1 = red, 2 = blue.",
+          "description": "Coalition filter: 0 = neutral (e.g. civilians), 1 = red, 2 = blue. For unit.hit it is the target's coalition.",
           "title": "Coalition"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "flag event: value to compare the flag with (number => equal, '>=2' style string, or true/false). Omit = 'flag is set'.",
+          "title": "Value"
+        },
+        "flight": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "director.state: only this player flight (group name).",
+          "title": "Flight"
+        },
+        "unit_prefix": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Unit name prefix filter.",
+          "title": "Unit Prefix"
+        },
+        "delay_sec": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Per-trigger delivery delay; used only when the beat's own delay_sec is 0.",
+          "title": "Delay Sec"
         },
         "type_name": {
           "anyOf": [
@@ -561,6 +684,20 @@
           "minimum": 0,
           "title": "Spawns Per Min",
           "type": "number"
+        },
+        "max_active_ship": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Max active ship units (unset = unlimited).",
+          "title": "Max Active Ship"
         }
       },
       "title": "Budgets",
@@ -649,9 +786,155 @@
         "adapt": {
           "$ref": "#/$defs/Adapt",
           "description": "Hidden difficulty clamp."
+        },
+        "peak_hold_sec": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Seconds held in PEAK before RELAX (default 15).",
+          "title": "Peak Hold Sec"
+        },
+        "max_intensity": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Intensity ceiling (default 100).",
+          "title": "Max Intensity"
+        },
+        "near_m": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "'Near a player' radius for shots/kills (default 10000).",
+          "title": "Near M"
+        },
+        "calm_sec": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Calm stretch that nudges difficulty up (default 300).",
+          "title": "Calm Sec"
+        },
+        "gain": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DirectorGain"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Intensity gains per event."
         }
       },
       "title": "Director",
+      "type": "object"
+    },
+    "DirectorGain": {
+      "additionalProperties": false,
+      "description": "Intensity added per event (unset keys keep the runtime defaults).",
+      "properties": {
+        "hit": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Player hit (default 25).",
+          "title": "Hit"
+        },
+        "near_shot": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Enemy shot near a player (default 5).",
+          "title": "Near Shot"
+        },
+        "sam_launch": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Ground launch near a player (default 15).",
+          "title": "Sam Launch"
+        },
+        "near_kill": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Kill near a player (default 8).",
+          "title": "Near Kill"
+        },
+        "player_dead": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Player killed (default 40).",
+          "title": "Player Dead"
+        }
+      },
+      "title": "DirectorGain",
       "type": "object"
     },
     "Encounter": {
@@ -679,11 +962,20 @@
           "type": "string"
         },
         "pool": {
-          "description": "Pool id.",
-          "maxLength": 64,
-          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
-          "title": "Pool",
-          "type": "string"
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Pool id (one of pool / template / group is required).",
+          "title": "Pool"
         },
         "trigger": {
           "$ref": "#/$defs/EncounterTrigger",
@@ -707,27 +999,46 @@
             }
           ],
           "default": null,
-          "description": "Warning, e.g. 'beat:sam_spike'.",
+          "description": "Warning: 'beat:<id>' (asks narrative to fire that beat), 'event:<name>' or '<name>'.",
           "title": "Telegraph"
         },
         "hunt": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": false,
-          "description": "Spawned groups hunt players.",
-          "title": "Hunt",
-          "type": "boolean"
+          "description": "Spawned groups hunt players (true) or this named group.",
+          "title": "Hunt"
         },
         "waves": {
           "anyOf": [
             {
-              "minimum": 1,
               "type": "integer"
+            },
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "type": "array"
             },
             {
               "type": "null"
             }
           ],
           "default": null,
-          "description": "Wave count (kind=waves).",
+          "description": "Wave count or [min, max] (kind=waves).",
           "title": "Waves"
         },
         "gap_sec": {
@@ -752,12 +1063,376 @@
           "default": null,
           "description": "[min, max] wave gap.",
           "title": "Gap Sec"
+        },
+        "once": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Fire at most once (default true).",
+          "title": "Once"
+        },
+        "engage_radius_m": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "ambush_sam: player distance that arms the site (default 15000).",
+          "title": "Engage Radius M"
+        },
+        "hot_chance": {
+          "anyOf": [
+            {
+              "maximum": 100,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "ambush_sam: percent chance an armed site goes hot.",
+          "title": "Hot Chance"
+        },
+        "telegraph_sec": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Delay between telegraph and going hot (default [30, 60]).",
+          "title": "Telegraph Sec"
+        },
+        "react_sec": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Go-hot delay without a telegraph (default [2, 8]).",
+          "title": "React Sec"
+        },
+        "check_sec": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "ambush_sam poll interval (default 2).",
+          "title": "Check Sec"
+        },
+        "gated": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Ask the director before spawning (default true).",
+          "title": "Gated"
+        },
+        "cost": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Spawn-budget cost (default 1).",
+          "title": "Cost"
+        },
+        "max_defer_sec": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Longest director deferral before spawning anyway (default 300).",
+          "title": "Max Defer Sec"
+        },
+        "gate_retry_sec": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Retry interval while deferred (default 15).",
+          "title": "Gate Retry Sec"
+        },
+        "hunt_interval_sec": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hunter re-route interval (default 30).",
+          "title": "Hunt Interval Sec"
+        },
+        "hunt_speed": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hunter speed m/s (default 8).",
+          "title": "Hunt Speed"
+        },
+        "hunt_radius_m": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hunters only chase players within this radius.",
+          "title": "Hunt Radius M"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Group name hunters chase instead of players.",
+          "title": "Target"
+        },
+        "spawn_zone": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Spawn in this zone instead of the pool's zones.",
+          "title": "Spawn Zone"
+        },
+        "template": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Template id (when no pool).",
+          "title": "Template"
+        },
+        "zone": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Zone for a template spawn.",
+          "title": "Zone"
+        },
+        "group": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "convoy: existing (mission editor) group to use as the convoy.",
+          "title": "Group"
+        },
+        "destination": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/XY"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "convoy: zone id or point the convoy drives to.",
+          "title": "Destination"
+        },
+        "resume_after_sec": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "convoy: resume delay after being hit (default [60, 120]).",
+          "title": "Resume After Sec"
+        },
+        "escort_radius_m": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "convoy: escort scatter radius (default 500).",
+          "title": "Escort Radius M"
+        },
+        "speed": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "convoy speed m/s (default 10).",
+          "title": "Speed"
+        },
+        "action": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "convoy route action, e.g. 'On Road' (default) or 'Off Road'.",
+          "title": "Action"
         }
       },
       "required": [
         "id",
         "kind",
-        "pool",
         "trigger"
       ],
       "title": "Encounter",
@@ -768,12 +1443,14 @@
       "description": "When an encounter starts.",
       "properties": {
         "type": {
-          "description": "Trigger kind.",
+          "description": "Trigger kind. manual: only started by a beat effect / DMS.Encounters.trigger.",
           "enum": [
             "proximity",
             "beat",
             "director",
-            "time"
+            "time",
+            "event",
+            "manual"
           ],
           "title": "Type",
           "type": "string"
@@ -805,7 +1482,7 @@
             }
           ],
           "default": null,
-          "description": "Radius in meters (proximity).",
+          "description": "Radius in meters around the zone centre/point (proximity); unset = inside the zone.",
           "title": "Radius M"
         },
         "beat": {
@@ -827,7 +1504,107 @@
         "after_sec": {
           "anyOf": [
             {
-              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Seconds after start, or [min, max] (time).",
+          "title": "After Sec"
+        },
+        "state": {
+          "anyOf": [
+            {
+              "enum": [
+                "BUILD_UP",
+                "PEAK",
+                "RELAX"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Director state (director).",
+          "title": "State"
+        },
+        "event": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Bus event name (event).",
+          "title": "Event"
+        },
+        "group": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Event payload group filter (event).",
+          "title": "Group"
+        },
+        "coalition": {
+          "anyOf": [
+            {
+              "enum": [
+                0,
+                1,
+                2
+              ],
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "proximity: coalition whose units count (default players); event: payload filter.",
+          "title": "Coalition"
+        },
+        "point": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/XY"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Centre point instead of a zone (proximity)."
+        },
+        "check_sec": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
               "type": "number"
             },
             {
@@ -835,8 +1612,8 @@
             }
           ],
           "default": null,
-          "description": "Seconds after start (time).",
-          "title": "After Sec"
+          "description": "Proximity poll interval (default 5).",
+          "title": "Check Sec"
         }
       },
       "required": [
@@ -875,9 +1652,93 @@
           "exclusiveMinimum": 0,
           "title": "Stale Sec",
           "type": "number"
+        },
+        "scan_sec": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Detection scan interval (default 5).",
+          "title": "Scan Sec"
+        },
+        "remove_sec": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Stale marks are removed after this long (default 3x stale_sec).",
+          "title": "Remove Sec"
+        },
+        "mark_radius_m": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Contact circle radius (default 600).",
+          "title": "Mark Radius M"
+        },
+        "sensors": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Also reveal what player-side sensors detect (default true).",
+          "title": "Sensors"
         }
       },
       "title": "Intel",
+      "type": "object"
+    },
+    "NarrativeSettings": {
+      "additionalProperties": false,
+      "description": "Beat engine pacing.",
+      "properties": {
+        "min_gap_sec": {
+          "default": 8,
+          "description": "Minimum seconds between beats.",
+          "minimum": 0,
+          "title": "Min Gap Sec",
+          "type": "number"
+        },
+        "pending_ttl_sec": {
+          "default": 45,
+          "description": "Triggered beats wait this long for their requires.",
+          "exclusiveMinimum": 0,
+          "title": "Pending Ttl Sec",
+          "type": "number"
+        },
+        "zone_poll_sec": {
+          "default": 3,
+          "description": "Player zone polling interval.",
+          "exclusiveMinimum": 0,
+          "title": "Zone Poll Sec",
+          "type": "number"
+        }
+      },
+      "title": "NarrativeSettings",
       "type": "object"
     },
     "Payload": {
@@ -1773,23 +2634,30 @@
           "type": "array"
         },
         "pick": {
-          "default": [
-            1,
-            1
-          ],
-          "description": "[min, max] groups per draw.",
-          "maxItems": 2,
-          "minItems": 2,
-          "prefixItems": [
+          "anyOf": [
             {
-              "type": "integer"
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "type": "array"
             },
             {
               "type": "integer"
             }
           ],
-          "title": "Pick",
-          "type": "array"
+          "default": [
+            1,
+            1
+          ],
+          "description": "[min, max] groups per draw (or a fixed count).",
+          "title": "Pick"
         },
         "zones": {
           "description": "Zone ids to spawn in.",
@@ -1913,7 +2781,7 @@
     },
     "Requires": {
       "additionalProperties": false,
-      "description": "Preconditions. ALL listed conditions must hold. Empty means 'always eligible'.",
+      "description": "Preconditions. ALL listed conditions must hold. Empty means 'always eligible'.\n\nCanonical form uses lists. Lua-style aliases are accepted and normalised: ``flags`` as a map\n``{flag: true|false}``, ``flags_set`` (= flags), ``not_flags`` / ``flags_not_set`` (= flags_not)\nand ``qualities`` as a map ``{trust: 2 | '>=2' | {min: 1, max: 3} | {op: '<', value: 0}}``.",
       "properties": {
         "flags": {
           "description": "Flags that must be set (true) for this to apply.",
@@ -2085,12 +2953,87 @@
         },
         "players": {
           "$ref": "#/$defs/Players"
+        },
+        "qualities": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "description": "Campaign quality values at plan time (state/qualities.yaml); seed beat requires.",
+          "title": "Qualities",
+          "type": "object"
+        },
+        "speakers": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Speaker"
+          },
+          "description": "Character id -> radio identity.",
+          "title": "Speakers",
+          "type": "object"
+        },
+        "narrative": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NarrativeSettings"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Beat engine pacing (unset = runtime defaults)."
         }
       },
       "required": [
         "mission_id"
       ],
       "title": "RuntimeConfig",
+      "type": "object"
+    },
+    "Speaker": {
+      "additionalProperties": false,
+      "description": "Radio identity of a character.",
+      "properties": {
+        "callsign": {
+          "description": "Callsign shown in subtitles, e.g. 'Kestrel Two-Two'.",
+          "title": "Callsign",
+          "type": "string"
+        },
+        "frequency": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Transmit frequency in MHz (unset = coalition-wide audio).",
+          "title": "Frequency"
+        },
+        "modulation": {
+          "anyOf": [
+            {
+              "enum": [
+                0,
+                1
+              ],
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "0 = AM, 1 = FM.",
+          "title": "Modulation"
+        }
+      },
+      "required": [
+        "callsign"
+      ],
+      "title": "Speaker",
       "type": "object"
     },
     "Template": {
@@ -2103,10 +3046,12 @@
           "type": "string"
         },
         "category": {
-          "description": "Group category.",
+          "description": "Group category ('air' = airplane).",
           "enum": [
             "ground",
             "air",
+            "airplane",
+            "helicopter",
             "ship"
           ],
           "title": "Category",
@@ -2133,6 +3078,33 @@
           "minItems": 1,
           "title": "Units",
           "type": "array"
+        },
+        "task": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "DCS group task, e.g. 'CAP' (default by category).",
+          "title": "Task"
+        },
+        "alt_m": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Spawn altitude for air groups.",
+          "title": "Alt M"
         }
       },
       "required": [
@@ -2166,9 +3138,56 @@
         },
         "heading": {
           "default": 0,
-          "description": "Heading in radians.",
+          "description": "Heading in DEGREES, relative to the group heading.",
           "title": "Heading",
           "type": "number"
+        },
+        "skill": {
+          "anyOf": [
+            {
+              "enum": [
+                "Average",
+                "Good",
+                "High",
+                "Excellent",
+                "Random"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Per-unit skill override.",
+          "title": "Skill"
+        },
+        "payload": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "DCS payload table for aircraft units.",
+          "title": "Payload"
+        },
+        "livery": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Livery id.",
+          "title": "Livery"
         }
       },
       "required": [
@@ -2182,9 +3201,17 @@
       "description": "Rendered audio for a voice line id.",
       "properties": {
         "file": {
-          "description": "File name inside the .miz (l10n/DEFAULT/).",
-          "title": "File",
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "File name inside the .miz (l10n/DEFAULT/); omit for subtitle-only lines.",
+          "title": "File"
         },
         "text": {
           "description": "Subtitle text.",
@@ -2203,15 +3230,54 @@
           "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
           "title": "Speaker",
           "type": "string"
+        },
+        "turns": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/VoiceTurn"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Multi-speaker exchange in this one file; subtitles show one line per turn.",
+          "title": "Turns"
         }
       },
       "required": [
-        "file",
         "text",
         "dur_sec",
         "speaker"
       ],
       "title": "VoiceEntry",
+      "type": "object"
+    },
+    "VoiceTurn": {
+      "additionalProperties": false,
+      "description": "One speaker's part of a multi-speaker voice file.",
+      "properties": {
+        "speaker": {
+          "description": "Character id.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Speaker",
+          "type": "string"
+        },
+        "text": {
+          "description": "Subtitle text for this turn.",
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "speaker",
+        "text"
+      ],
+      "title": "VoiceTurn",
       "type": "object"
     },
     "XY": {
@@ -2309,6 +3375,14 @@
         "type": "string"
       },
       "title": "Red Countries",
+      "type": "array"
+    },
+    "neutral_countries": {
+      "description": "DCS countries placed in the neutral coalition (civilian / neutral factions).",
+      "items": {
+        "type": "string"
+      },
+      "title": "Neutral Countries",
       "type": "array"
     },
     "groups": {

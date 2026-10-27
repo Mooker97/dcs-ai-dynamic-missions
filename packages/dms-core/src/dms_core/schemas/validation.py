@@ -118,14 +118,10 @@ def validate_mission_bundle(
             _ref(issues, f"{bp}.requires.beats_fired[{j}]", rb, beat_ids, "beat")
         for j, rb in enumerate(b.requires.beats_not_fired):
             _ref(issues, f"{bp}.requires.beats_not_fired[{j}]", rb, beat_ids, "beat")
-        if b.effects.start_encounter:
-            _ref(
-                issues,
-                bp + ".effects.start_encounter",
-                b.effects.start_encounter,
-                encounter_ids,
-                "encounter",
-            )
+        se = b.effects.start_encounter
+        for j, enc in enumerate([se] if isinstance(se, str) else (se or [])):
+            path = bp + ".effects.start_encounter" + ("" if isinstance(se, str) else f"[{j}]")
+            _ref(issues, path, enc, encounter_ids, "encounter")
         if b.effects.spawn_pool:
             _ref(issues, bp + ".effects.spawn_pool", b.effects.spawn_pool, pool_ids, "pool")
         if b.mark and b.mark.at.startswith("zone:"):
@@ -134,6 +130,8 @@ def validate_mission_bundle(
     for i, ln in enumerate(lines.lines):
         lp = f"lines.yaml:lines[{i}]"
         _ref(issues, lp + ".speaker", ln.speaker, speakers, "speaker")
+        for j, turn in enumerate(ln.turns or []):
+            _ref(issues, f"{lp}.turns[{j}].speaker", turn.speaker, speakers, "speaker")
         if ln.beat:
             _ref(issues, lp + ".beat", ln.beat, beat_ids, "beat")
         if ln.id not in used_lines:

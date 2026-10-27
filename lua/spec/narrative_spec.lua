@@ -215,8 +215,8 @@ end
 describe("DMS.Narrative", function()
   it("fires the highest-priority eligible beat first and spaces the rest by the min gap", function()
     withWorld(cfgWith({
-      { id = "low", when = { event = "group.dead", group = "HVT" }, priority = 10, once = true },
-      { id = "high", when = { event = "group.dead", group = "HVT" }, priority = 80, once = true },
+      { id = "low", when = { event = "group.dead", group = "HVT" }, priority = 10, once = true, text = "low" },
+      { id = "high", when = { event = "group.dead", group = "HVT" }, priority = 80, once = true, text = "high" },
       { id = "other", when = { event = "group.dead", group = "NOPE" }, priority = 99, once = true },
     }), function(w)
       DMS.Narrative.start()
@@ -354,7 +354,7 @@ describe("DMS.Narrative", function()
       { id = "tgt_down", when = { event = "group.dead", group = "HVT" }, priority = 80, once = true,
         speaker = "ops", lines = { "tgt_v1", "tgt_v2" }, text = "Splash HVT.", mark = "zone:town",
         effects = { setFlag = "tgt_down", outcome = { hvtKilled = true }, startEncounter = "egress_cap" } },
-      { id = "win", when = { beat = "tgt_down" }, once = true, effects = { finish = "victory" } },
+      { id = "win", when = { beat = "tgt_down" }, once = true, text = "RTB.", effects = { finish = "victory" } },
     }, { voice = { tgt_v1 = { file = "tgt_v1.ogg", text = "Splash one", durSec = 3, speaker = "ops" },
                    tgt_v2 = { file = "tgt_v2.ogg", text = "Target down", durSec = 3, speaker = "ops" } },
          zones = { town = { kind = "circle", x = 100, y = 200, radius = 1500 } } })

@@ -1,67 +1,73 @@
 # m01 First Light — beats. Schema: schemas/beats.schema.json (BeatSheet). Compiled into DMS_CONFIG.beats.
 # group_prefix values are spec ids (threat / pool / encounter); planned group names start with them.
-# GUARANTEED spine (reachable in every playthrough):
+# Guaranteed spine (guaranteed: true; reachable in every playthrough):
 #   mission_start → kestrel_checkin → on_station → patrol_complete → tower_welcome → on_deck
 # Everything else is optional and depends on what the player does and what the runtime rolled.
 mission_id: m01-first-light
 beats:
-  # ---- GUARANTEED spine ---------------------------------------------------------------------
-  - id: mission_start              # GUARANTEED
+  # ---- Guaranteed spine ---------------------------------------------------------------------
+  - id: mission_start
     when: {event: player.spawned, players_only: true}
     delay_sec: 10
     priority: 90
     once: true
+    guaranteed: true
     speaker: ops_walsh
     lines: [ops_cleared_v1, ops_cleared_v2, ops_cleared_v3, ops_cleared_v4]
     text: "Dusty, Hatay Ops. Cleared for patrol. Known AAA at Reyhanli and Kirikhan. Weapons free on armed targets."
     mark: {type: text, at: "zone:patrol_box", text: "PATROL BOX"}
     effects: {set_flag: started}
 
-  - id: kestrel_checkin            # GUARANTEED
+  - id: kestrel_checkin
     when: {event: zone.entered, zone: gate_west, players_only: true}
     requires: {flags_not: [kestrel_checked_in]}
     priority: 70
     once: true
+    guaranteed: true
     speaker: kestrel_ferris
     lines: [kestrel_checkin_v1, kestrel_checkin_v2, kestrel_checkin_v3, kestrel_checkin_v4]
     text: "Dusty, Kestrel Two-Two. On the high ground north of the canal. Eyes on the box."
     effects: {set_flag: kestrel_checked_in}
 
-  - id: on_station                 # GUARANTEED
+  - id: on_station
     when: {event: zone.entered, zone: patrol_box, players_only: true}
     requires: {flags_not: [on_station]}
     priority: 75
     once: true
+    guaranteed: true
     speaker: ops_walsh
     lines: [ops_on_station_v1, ops_on_station_v2, ops_on_station_v3]
     text: "Dusty, Ops. Copy on station. Report contacts."
     effects: {set_flag: on_station}
 
-  - id: patrol_complete            # GUARANTEED (re-crossing the gate after visiting the box)
+  - id: patrol_complete
     when: {event: zone.entered, zone: gate_west, players_only: true}
     requires: {flags: [on_station], flags_not: [patrol_complete]}
     priority: 80
     once: true
+    guaranteed: true
     speaker: ops_walsh
     lines: [ops_rtb_v1, ops_rtb_v2, ops_rtb_v3, ops_rtb_v4]
     text: "Dusty, Ops. Good picture. RTB."
     effects: {set_flag: patrol_complete, outcome: {patrol_complete: true}}
 
-  - id: tower_welcome              # GUARANTEED
+  - id: tower_welcome
     when: {event: zone.entered, zone: hatay_approach, players_only: true}
     requires: {flags: [patrol_complete]}
     priority: 80
     once: true
+    guaranteed: true
     speaker: tower_hatay
     lines: [tower_cleared_land_v1, tower_cleared_land_v2, tower_cleared_land_v3, tower_cleared_land_v4]
     text: "Dusty, Hatay Tower, welcome back. Cleared to land at your discretion, winds are calm."
     effects: {set_flag: cleared_to_land}
 
-  - id: on_deck                    # GUARANTEED
+  - id: on_deck
     when: {event: unit.landed, players_only: true}
     requires: {flags: [patrol_complete]}
     priority: 85
     once: true
+    guaranteed: true
     speaker: ops_walsh
     lines: [ops_on_deck_v1, ops_on_deck_v2, ops_on_deck_v3]
     text: "Dusty, Ops. Copy on deck. Debrief at the TOC."

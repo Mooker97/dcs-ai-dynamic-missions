@@ -121,6 +121,30 @@
       "title": "Players",
       "type": "array"
     },
+    "quality_deltas": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "description": "Cumulative quality changes from beat effects (the debriefer applies them).",
+      "title": "Quality Deltas",
+      "type": "object"
+    },
+    "qualities": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "description": "Live quality values in the mission (seed + deltas).",
+      "title": "Qualities",
+      "type": "object"
+    },
+    "beats": {
+      "description": "Beat ids fired so far, in order.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Beats",
+      "type": "array"
+    },
     "log_timestamp": {
       "anyOf": [
         {

@@ -39,7 +39,7 @@ end
 local function freshState()
   return {
     beats = {}, byId = {}, order = {},
-    flags = {}, qualities = {}, outcome = {},
+    flags = {}, qualities = {}, qualityDeltas = {}, outcome = {},
     fired = {},          -- id -> {count, lastAt}
     firedList = {},
     pending = {},        -- id -> {at, expires, source}
@@ -92,10 +92,13 @@ function N.getQuality(name) return N._s.qualities[name] or 0 end
 function N.qualities() return N._s.qualities end
 
 function N.addQuality(name, delta)
-  local q = N._s.qualities
-  q[name] = (q[name] or 0) + (tonumber(delta) or 0)
-  log("debug", "quality %s %+g -> %g", name, tonumber(delta) or 0, q[name])
+  local q, d = N._s.qualities, N._s.qualityDeltas
+  local n = tonumber(delta) or 0
+  q[name] = (q[name] or 0) + n
+  d[name] = (d[name] or 0) + n
+  log("debug", "quality %s %+g -> %g", tostring(name), n, q[name])
 end
+function N.qualityDeltas() return N._s.qualityDeltas end
 
 local function compare(actual, spec)
   if type(spec) == "number" then return actual >= spec end
@@ -143,10 +146,12 @@ local function requiresOk(beat)
       end
     end
   end
-  local notSet = r.notFlags or r.flagsNotSet
-  if type(notSet) == "string" then notSet = { notSet } end
-  if type(notSet) == "table" then
-    for _, f in ipairs(notSet) do if N.isFlagSet(f) then return false end end
+  for _, key in ipairs({ "flagsNot", "notFlags", "flagsNotSet" }) do
+    local notSet = r[key]
+    if type(notSet) == "string" then notSet = { notSet } end
+    if type(notSet) == "table" then
+      for _, f in ipairs(notSet) do if N.isFlagSet(f) then return false end end
+    end
   end
   local set = r.flagsSet
   if type(set) == "string" then set = { set } end
@@ -155,7 +160,14 @@ local function requiresOk(beat)
   end
   if type(r.qualities) == "table" then
     for q, spec in pairs(r.qualities) do
-      if not compare(N.getQuality(q), spec) then return false end
+      if type(q) == "number" and type(spec) == "table" and spec.quality then
+        -- canonical list form: {quality=, op=, value=}
+        local op = spec.op or ">="
+        if op == "=" then op = "==" end
+        if not compare(N.getQuality(spec.quality), op .. tostring(spec.value or 0)) then return false end
+      elseif not compare(N.getQuality(q), spec) then
+        return false
+      end
     end
   end
   if type(r.beatsFired) == "table" then
@@ -168,6 +180,7 @@ local function requiresOk(beat)
 end
 
 local function chanceOf(beat)
+  if beat.guaranteed then return nil end
   local c = beat.chance
   if c == nil and type(beat.requires) == "table" then c = beat.requires.chance end
   return c
@@ -177,13 +190,18 @@ end
 -- outcome
 -- ---------------------------------------------------------------------------
 
-local function writeOutcome(event)
+local function writeOutcome(kind)
   local s = N._s
   local fired = {}
   for _, id in ipairs(s.firedList) do fired[#fired + 1] = id end
+  local flags = {}
+  for k, v in pairs(s.flags) do
+    if type(k) == "string" then flags[k] = (v ~= 0 and v ~= false) end
+  end
   local rec = {
-    missionId = cfg().missionId, event = event, t = math.floor(now() * 10 + 0.5) / 10,
-    result = s.result, outcome = copy(s.outcome), qualities = copy(s.qualities), beats = fired,
+    missionId = cfg().missionId, kind = kind, t = math.floor(now() * 10 + 0.5) / 10,
+    result = s.result, outcome = copy(s.outcome), qualityDeltas = copy(s.qualityDeltas),
+    qualities = copy(s.qualities), beats = fired, flags = flags,
   }
   if DMS.Log and DMS.Log.outcome then DMS.Log.outcome(rec) end
   return rec
@@ -229,16 +247,18 @@ local function applyEffects(beat)
   if e.setFlag ~= nil then
     if type(e.setFlag) == "table" then
       for k, v in pairs(e.setFlag) do
-        if type(k) == "number" then N.setFlag(v, 1) else N.setFlag(k, v) end
+        if type(k) == "number" then N.setFlag(v, e.flagValue or 1) else N.setFlag(k, v) end
       end
     else
       N.setFlag(e.setFlag, e.flagValue or 1)
     end
   end
   for _, f in ipairs(asList(e.clearFlag)) do N.setFlag(f, 0) end
-  -- qualities
-  if type(e.qualities) == "table" then
-    for q, d in pairs(e.qualities) do N.addQuality(q, d) end
+  -- qualities (canonical qualityDeltas; legacy alias qualities): applied live + reported as deltas
+  for _, key in ipairs({ "qualityDeltas", "qualities" }) do
+    if type(e[key]) == "table" then
+      for q, d in pairs(e[key]) do N.addQuality(q, d) end
+    end
   end
   -- speech
   local sp = e.speak
@@ -248,7 +268,7 @@ local function applyEffects(beat)
   if speaker or lines or text then
     if DMS.Comms and DMS.Comms.say then
       DMS.Comms.say(speaker, lines, text, { coalition = playerCoalition(), priority = beat.priority or 0,
-        frequency = sp and sp.frequency or beat.frequency })
+        frequency = sp and sp.frequency or beat.frequency, keep = beat.guaranteed and true or nil })
     elseif text and trigger and trigger.action and trigger.action.outTextForCoalition then
       trigger.action.outTextForCoalition(playerCoalition(), (speaker and (speaker .. ": ") or "") .. text, 10)
     end
@@ -268,9 +288,22 @@ local function applyEffects(beat)
       log("warn", "beat '%s': encounter '%s' requested but DMS.Encounters missing", beat.id, tostring(enc))
     end
   end
+  -- pools
+  for _, pool in ipairs(asList(e.spawnPool)) do
+    if DMS.Spawner and DMS.Spawner.spawnPool then
+      local ok, res = call(DMS.Spawner.spawnPool, pool, {})
+      if not ok then
+        log("error", "spawnPool %s: %s", tostring(pool), tostring(res))
+      else
+        log("debug", "beat '%s' spawned pool '%s' (%d groups)", beat.id, tostring(pool), type(res) == "table" and #res or 0)
+      end
+    else
+      log("warn", "beat '%s': pool '%s' requested but DMS.Spawner missing", beat.id, tostring(pool))
+    end
+  end
   -- outcome / end
   if type(e.outcome) == "table" then N.setOutcome(e.outcome) end
-  local fin = e.finish or e["end"] or e.result
+  local fin = e.endMission or e.finish or e["end"] or e.result
   if fin then N.finish(fin) end
 end
 
@@ -283,12 +316,23 @@ local function ttlSec() return ncfg().pendingTtlSec or N.PENDING_TTL_SEC end
 
 local function blocked(beat, t)
   local f = N._s.fired[beat.id]
-  if f and beat.once ~= false and (beat.once == true) then return "once" end
+  if f and beat.once ~= false then return "once" end   -- once defaults to true (schema default)
   if f and beat.cooldownSec and beat.cooldownSec > 0 and t - f.lastAt < beat.cooldownSec then
     return "cooldown"
   end
   return nil
 end
+
+-- Silent beats (no speaker, lines, text or effects.speak) are not radio traffic: they bypass
+-- narrative.minGapSec and do not push lastFireAt.
+local function isSilent(beat)
+  if beat.speaker or beat.text then return false end
+  if type(beat.lines) == "table" and #beat.lines > 0 then return false end
+  if type(beat.lines) == "string" then return false end
+  if type(beat.effects) == "table" and beat.effects.speak ~= nil then return false end
+  return true
+end
+N._isSilent = isSilent
 
 local function fire(beat, t)
   local s = N._s
@@ -296,11 +340,11 @@ local function fire(beat, t)
   f.count, f.lastAt = f.count + 1, t
   s.fired[beat.id] = f
   s.firedList[#s.firedList + 1] = beat.id
-  s.lastFireAt = t
+  if not isSilent(beat) then s.lastFireAt = t end
   log("info", "beat '%s' fired (priority %s, #%d)", beat.id, tostring(beat.priority or 0), f.count)
   local ok, err = call(applyEffects, beat)
   if not ok then log("error", "effects of '%s' failed: %s", beat.id, tostring(err)) end
-  if DMS.Bus then DMS.Bus.emit("beat.fired", { id = beat.id }) end
+  if DMS.Bus then DMS.Bus.emit("beat.fired", { id = beat.id, beat = beat.id }) end
 end
 
 function N.pump()
@@ -312,20 +356,27 @@ function N.pump()
     -- expire / drop
     for id, p in pairs(s.pending) do
       local beat = s.byId[id]
-      local why = (not beat) and "unknown" or (t > p.expires and "expired") or (blocked(beat, t) == "once" and "once")
+      local why
+      if not beat then
+        why = "unknown"
+      elseif blocked(beat, t) == "once" then
+        why = "once"
+      elseif t > p.expires and not (beat.guaranteed and requiresOk(beat)) then
+        why = "expired"   -- guaranteed beats outlive the TTL only while their requires hold
+      end
       if why then
         s.pending[id] = nil
         log("debug", "pending beat '%s' dropped (%s)", id, why)
       end
     end
     for _ = 1, #s.order do   -- with minGapSec = 0 several ready beats may fire in one pump
-      if s.lastFireAt and t - s.lastFireAt < gapSec() then return end
+      local gapOk = not (s.lastFireAt and t - s.lastFireAt < gapSec())
       local best, bestP, ties = nil, nil, 0
       for _, id in ipairs(s.order) do
         local p = s.pending[id]
         if p and t >= p.at then
           local beat = s.byId[id]
-          if not blocked(beat, t) and requiresOk(beat) then
+          if (gapOk or isSilent(beat)) and not blocked(beat, t) and requiresOk(beat) then
             local pr = beat.priority or 0
             if best == nil or pr > bestP then
               best, bestP, ties = beat, pr, 1
@@ -353,6 +404,10 @@ function N.trigger(id, source, noPump)
   local t = now()
   if blocked(beat, t) == "once" then return false end
   if s.pending[id] then return true end
+  if not requiresOk(beat) then
+    log("debug", "beat '%s' not eligible (requires) on %s", id, tostring(source))
+    return false
+  end
   local c = chanceOf(beat)
   if c ~= nil and c < 100 then
     local roll = DMS.Rng.int(1, 100)
@@ -362,33 +417,80 @@ function N.trigger(id, source, noPump)
     end
     log("debug", "beat '%s' passed chance (rolled %d <= %d)", id, roll, c)
   end
-  local delay = (beat.when and beat.when.delaySec) or 0
+  local delay = tonumber(beat.delaySec) or 0
+  if delay <= 0 then delay = (type(beat.when) == "table" and tonumber(beat.when.delaySec)) or 0 end
   s.pending[id] = { at = t + delay, expires = t + delay + ttlSec(), source = source }
   log("debug", "beat '%s' triggered by %s", id, tostring(source))
   if delay > 0 and DMS.Clock then DMS.Clock.after(delay, N.pump) elseif not noPump then N.pump() end
   return true
 end
 
-local function matchesFilters(w, payload)
+local IGNORED = { event = true, delaySec = true, value = true, afterSec = true, timer = true }
+
+local function prefixMatch(name, prefix)
+  if type(name) ~= "string" or type(prefix) ~= "string" then return false end
+  if string.sub(name, 1, #prefix) == prefix then return true end
+  if string.sub(name, 1, 4) == "DMS_" then
+    return string.sub(string.sub(name, 5), 1, #prefix) == prefix
+  end
+  return false
+end
+N._prefixMatch = prefixMatch
+
+local function isPlayerUnit(u)
+  if type(u) ~= "string" then return false end
+  if N._s.players[u] then return true end
+  local bp = DMS.Bus and DMS.Bus._players
+  return type(bp) == "table" and bp[u] ~= nil
+end
+
+-- The unit an event is "about" (for unit / playersOnly filters).
+local function subjectUnit(name, payload)
+  if name == "unit.hit" then return payload.target or payload.unit end
+  if name == "unit.shot" then return payload.initiator or payload.unit end
+  return payload.unit or payload.target or payload.initiator
+end
+
+local function matchesFilters(w, payload, name)
+  local group = payload.group or payload.targetGroup or payload.initiatorGroup
   for k, v in pairs(w) do
-    if k ~= "event" and k ~= "delaySec" then
+    if not IGNORED[k] then
+      local ok
       if k == "groupPrefix" or k == "group_prefix" then
-        local g = payload.group or payload.targetGroup or payload.initiatorGroup
-        if type(g) ~= "string" or string.sub(g, 1, #v) ~= v then return false end
+        ok = prefixMatch(group, v)
+      elseif k == "group" then
+        ok = group == v
       elseif k == "unitPrefix" or k == "unit_prefix" then
-        local u = payload.unit or payload.target or payload.initiator
-        if type(u) ~= "string" or string.sub(u, 1, #v) ~= v then return false end
-      elseif payload[k] ~= v then
-        return false
+        ok = prefixMatch(subjectUnit(name, payload), v)
+      elseif k == "unit" then
+        ok = subjectUnit(name, payload) == v
+      elseif k == "coalition" then
+        local c = payload.coalition
+        if c == nil then c = payload.targetCoalition end
+        ok = c == v
+      elseif k == "typeName" or k == "type_name" then
+        ok = payload.typeName == v
+      elseif k == "playersOnly" or k == "players_only" then
+        ok = (not v) or name == "player.spawned" or isPlayerUnit(subjectUnit(name, payload))
+      elseif k == "beat" then
+        ok = (payload.beat or payload.id) == v
+      elseif k == "encounter" then
+        ok = (payload.encounter or payload.id) == v
+      else
+        ok = payload[k] == v
       end
+      if not ok then return false end
     end
   end
   return true
 end
+N._matchesFilters = matchesFilters
 
 -- Normalised trigger kind for a `when` table.
 local function whenKind(w)
   if type(w) ~= "table" then return nil end
+  if w.event == "timer" then return "timer" end
+  if w.event == "flag" then return "flag" end
   if w.event then return "event" end
   if w.beat then return "beat" end
   if w.zone then return "zone" end
@@ -405,7 +507,7 @@ local function onEvent(name, payload)
   payload = payload or {}
   for _, beat in ipairs(s.beats) do
     local w, k = beat.when, whenKind(beat.when)
-    if k == "event" and w.event == name and matchesFilters(w, payload) then
+    if k == "event" and w.event == name and matchesFilters(w, payload, name) then
       N.trigger(beat.id, name, true)
     elseif k == "beat" and name == "beat.fired" and payload.id == w.beat and payload.id ~= beat.id then
       N.trigger(beat.id, "beat:" .. w.beat, true)
@@ -428,7 +530,9 @@ local function stateHolds(beat, t)
     if w.value ~= nil then return compare(v, type(w.value) == "number" and ("==" .. w.value) or w.value) end
     return v ~= 0
   elseif k == "timer" then
-    return t - N._s.startedAt >= (w.afterSec or w.timer)
+    local after = tonumber(w.afterSec or w.timer)
+    if not after then return false end
+    return t - N._s.startedAt >= after
   end
   return nil
 end
@@ -585,8 +689,7 @@ function N.start()
       s.tokens[#s.tokens + 1] = DMS.Bus.on(name, function(p) onEvent(name, p) end)
     end
     for _, b in ipairs(s.beats) do
-      local w = b.when
-      if type(w) == "table" and w.event then sub(w.event) end
+      if whenKind(b.when) == "event" then sub(b.when.event) end
     end
     sub("beat.fired"); sub("zone.entered"); sub("director.state")
     s.tokens[#s.tokens + 1] = DMS.Bus.on("player.spawned", function(p)
@@ -596,6 +699,13 @@ function N.start()
       if p and p.unit then s.players[p.unit] = nil end
     end)
     s.tokens[#s.tokens + 1] = DMS.Bus.on("mission.end", function(p) N.finish(p and p.result) end)
+    -- encounter telegraphs ("beat:<id>") ask for a beat; normal eligibility applies
+    s.tokens[#s.tokens + 1] = DMS.Bus.on("beat.request", function(p)
+      if not (p and p.id) then return end
+      local queued = N.trigger(p.id, "request:" .. tostring(p.encounter or "?"))
+      log("debug", "beat.request '%s' (encounter %s) -> %s", tostring(p.id), tostring(p.encounter),
+        queued and "queued" or "ignored")
+    end)
   end
   if DMS.Clock then
     s.clocks[#s.clocks + 1] = DMS.Clock.every(N.TICK_SEC, function()

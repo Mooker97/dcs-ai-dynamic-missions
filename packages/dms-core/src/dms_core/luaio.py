@@ -22,7 +22,7 @@ import math
 from collections.abc import Mapping, Sequence
 from typing import Any, TypeAlias
 
-import lupa  # type: ignore[import-untyped]
+import lupa
 
 try:  # Lua 5.1 matches DCS; fall back to whatever lupa ships by default.
     from lupa import lua51 as _lua

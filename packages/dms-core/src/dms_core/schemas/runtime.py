@@ -13,10 +13,13 @@ import re
 from collections.abc import Callable
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
-from ._common import DMSModel, Ident, Skill
+from ._common import DirectorState, DMSModel, Ident, Skill
 from .beats import Beat
+
+Range = float | tuple[float, float]
+"""A number or a [min, max] pair; Lua rolls a uniform value (DMS.Rng.range)."""
 
 
 class Budgets(DMSModel):
@@ -25,6 +28,9 @@ class Budgets(DMSModel):
     max_active_ground: int = Field(default=150, ge=0, description="Max active ground units.")
     max_active_air: int = Field(default=16, ge=0, description="Max active air units.")
     spawns_per_min: float = Field(default=3, ge=0, description="Max spawns per minute.")
+    max_active_ship: int | None = Field(
+        default=None, ge=0, description="Max active ship units (unset = unlimited)."
+    )
 
 
 class Adapt(DMSModel):
@@ -32,6 +38,22 @@ class Adapt(DMSModel):
 
     min: int = Field(default=-1, ge=-3, le=0, description="Lowest tier offset.")
     max: int = Field(default=1, ge=0, le=3, description="Highest tier offset.")
+
+
+class DirectorGain(DMSModel):
+    """Intensity added per event (unset keys keep the runtime defaults)."""
+
+    hit: float | None = Field(default=None, ge=0, description="Player hit (default 25).")
+    near_shot: float | None = Field(
+        default=None, ge=0, description="Enemy shot near a player (default 5)."
+    )
+    sam_launch: float | None = Field(
+        default=None, ge=0, description="Ground launch near a player (default 15)."
+    )
+    near_kill: float | None = Field(
+        default=None, ge=0, description="Kill near a player (default 8)."
+    )
+    player_dead: float | None = Field(default=None, ge=0, description="Player killed (default 40).")
 
 
 class Director(DMSModel):
@@ -44,6 +66,19 @@ class Director(DMSModel):
     )
     decay_per_sec: float = Field(default=1.5, ge=0, description="Intensity decay per second.")
     adapt: Adapt = Field(default_factory=Adapt, description="Hidden difficulty clamp.")
+    peak_hold_sec: float | None = Field(
+        default=None, ge=0, description="Seconds held in PEAK before RELAX (default 15)."
+    )
+    max_intensity: float | None = Field(
+        default=None, gt=0, description="Intensity ceiling (default 100)."
+    )
+    near_m: float | None = Field(
+        default=None, gt=0, description="'Near a player' radius for shots/kills (default 10000)."
+    )
+    calm_sec: float | None = Field(
+        default=None, gt=0, description="Calm stretch that nudges difficulty up (default 300)."
+    )
+    gain: DirectorGain | None = Field(default=None, description="Intensity gains per event.")
 
 
 class TemplateUnit(DMSModel):
@@ -52,16 +87,29 @@ class TemplateUnit(DMSModel):
     type: str = Field(description="DCS unit type id, e.g. 'Osa 9A33 ln'.")
     dx: float = Field(default=0, description="Offset north (DCS x), meters.")
     dy: float = Field(default=0, description="Offset east (DCS y), meters.")
-    heading: float = Field(default=0, description="Heading in radians.")
+    heading: float = Field(
+        default=0, description="Heading in DEGREES, relative to the group heading."
+    )
+    skill: Skill | None = Field(default=None, description="Per-unit skill override.")
+    payload: dict[str, Any] | None = Field(
+        default=None, description="DCS payload table for aircraft units."
+    )
+    livery: str | None = Field(default=None, description="Livery id.")
 
 
 class Template(DMSModel):
     """A spawnable group template."""
 
     country: str = Field(description="DCS country name, e.g. 'RUSSIA'.")
-    category: Literal["ground", "air", "ship"] = Field(description="Group category.")
+    category: Literal["ground", "air", "airplane", "helicopter", "ship"] = Field(
+        description="Group category ('air' = airplane)."
+    )
     skill: Skill = Field(default="Good", description="AI skill.")
     units: list[TemplateUnit] = Field(min_length=1, description="Units in the group.")
+    task: str | None = Field(
+        default=None, description="DCS group task, e.g. 'CAP' (default by category)."
+    )
+    alt_m: float | None = Field(default=None, ge=0, description="Spawn altitude for air groups.")
 
 
 class XY(DMSModel):
@@ -101,18 +149,41 @@ class Pool(DMSModel):
     """Weighted template pool."""
 
     members: list[PoolMember] = Field(min_length=1, description="Weighted templates.")
-    pick: tuple[int, int] = Field(default=(1, 1), description="[min, max] groups per draw.")
+    pick: tuple[int, int] | int = Field(
+        default=(1, 1), description="[min, max] groups per draw (or a fixed count)."
+    )
     zones: list[Ident] = Field(min_length=1, description="Zone ids to spawn in.")
 
 
 class EncounterTrigger(DMSModel):
     """When an encounter starts."""
 
-    type: Literal["proximity", "beat", "director", "time"] = Field(description="Trigger kind.")
+    type: Literal["proximity", "beat", "director", "time", "event", "manual"] = Field(
+        description="Trigger kind. manual: only started by a beat effect / DMS.Encounters.trigger."
+    )
     zone: Ident | None = Field(default=None, description="Zone id (proximity).")
-    radius_m: float | None = Field(default=None, gt=0, description="Radius in meters (proximity).")
+    radius_m: float | None = Field(
+        default=None,
+        gt=0,
+        description="Radius in meters around the zone centre/point (proximity); unset = inside the zone.",
+    )
     beat: Ident | None = Field(default=None, description="Beat id (beat).")
-    after_sec: float | None = Field(default=None, ge=0, description="Seconds after start (time).")
+    after_sec: Range | None = Field(
+        default=None, description="Seconds after start, or [min, max] (time)."
+    )
+    state: DirectorState | None = Field(default=None, description="Director state (director).")
+    event: str | None = Field(default=None, description="Bus event name (event).")
+    group: str | None = Field(default=None, description="Event payload group filter (event).")
+    coalition: Literal[0, 1, 2] | None = Field(
+        default=None,
+        description="proximity: coalition whose units count (default players); event: payload filter.",
+    )
+    point: XY | None = Field(
+        default=None, description="Centre point instead of a zone (proximity)."
+    )
+    check_sec: float | None = Field(
+        default=None, gt=0, description="Proximity poll interval (default 5)."
+    )
 
 
 class Encounter(DMSModel):
@@ -122,22 +193,134 @@ class Encounter(DMSModel):
     kind: Literal["ambush_sam", "waves", "hunt", "convoy", "cap", "pool"] = Field(
         description="Encounter behaviour."
     )
-    pool: Ident = Field(description="Pool id.")
+    pool: Ident | None = Field(
+        default=None, description="Pool id (one of pool / template / group is required)."
+    )
     trigger: EncounterTrigger = Field(description="Start condition.")
     chance: int = Field(default=100, ge=0, le=100, description="Percent chance per play.")
-    telegraph: str | None = Field(default=None, description="Warning, e.g. 'beat:sam_spike'.")
-    hunt: bool = Field(default=False, description="Spawned groups hunt players.")
-    waves: int | None = Field(default=None, ge=1, description="Wave count (kind=waves).")
+    telegraph: str | None = Field(
+        default=None,
+        description="Warning: 'beat:<id>' (asks narrative to fire that beat), 'event:<name>' or '<name>'.",
+    )
+    hunt: bool | str = Field(
+        default=False, description="Spawned groups hunt players (true) or this named group."
+    )
+    waves: int | tuple[int, int] | None = Field(
+        default=None, description="Wave count or [min, max] (kind=waves)."
+    )
     gap_sec: tuple[float, float] | None = Field(default=None, description="[min, max] wave gap.")
+    once: bool | None = Field(default=None, description="Fire at most once (default true).")
+    engage_radius_m: float | None = Field(
+        default=None,
+        gt=0,
+        description="ambush_sam: player distance that arms the site (default 15000).",
+    )
+    hot_chance: int | None = Field(
+        default=None, ge=0, le=100, description="ambush_sam: percent chance an armed site goes hot."
+    )
+    telegraph_sec: Range | None = Field(
+        default=None, description="Delay between telegraph and going hot (default [30, 60])."
+    )
+    react_sec: Range | None = Field(
+        default=None, description="Go-hot delay without a telegraph (default [2, 8])."
+    )
+    check_sec: float | None = Field(
+        default=None, gt=0, description="ambush_sam poll interval (default 2)."
+    )
+    gated: bool | None = Field(
+        default=None, description="Ask the director before spawning (default true)."
+    )
+    cost: float | None = Field(default=None, gt=0, description="Spawn-budget cost (default 1).")
+    max_defer_sec: float | None = Field(
+        default=None,
+        ge=0,
+        description="Longest director deferral before spawning anyway (default 300).",
+    )
+    gate_retry_sec: float | None = Field(
+        default=None, gt=0, description="Retry interval while deferred (default 15)."
+    )
+    hunt_interval_sec: float | None = Field(
+        default=None, gt=0, description="Hunter re-route interval (default 30)."
+    )
+    hunt_speed: float | None = Field(
+        default=None, gt=0, description="Hunter speed m/s (default 8)."
+    )
+    hunt_radius_m: float | None = Field(
+        default=None, gt=0, description="Hunters only chase players within this radius."
+    )
+    target: str | None = Field(
+        default=None, description="Group name hunters chase instead of players."
+    )
+    spawn_zone: Ident | None = Field(
+        default=None, description="Spawn in this zone instead of the pool's zones."
+    )
+    template: Ident | None = Field(default=None, description="Template id (when no pool).")
+    zone: Ident | None = Field(default=None, description="Zone for a template spawn.")
+    group: str | None = Field(
+        default=None, description="convoy: existing (mission editor) group to use as the convoy."
+    )
+    destination: Ident | XY | None = Field(
+        default=None, description="convoy: zone id or point the convoy drives to."
+    )
+    resume_after_sec: Range | None = Field(
+        default=None, description="convoy: resume delay after being hit (default [60, 120])."
+    )
+    escort_radius_m: float | None = Field(
+        default=None, gt=0, description="convoy: escort scatter radius (default 500)."
+    )
+    speed: float | None = Field(default=None, gt=0, description="convoy speed m/s (default 10).")
+    action: str | None = Field(
+        default=None, description="convoy route action, e.g. 'On Road' (default) or 'Off Road'."
+    )
+
+    @model_validator(mode="after")
+    def _source(self) -> Encounter:
+        if self.pool is None and self.template is None and self.group is None:
+            raise ValueError(f"encounter '{self.id}' needs one of pool, template or group")
+        return self
+
+
+class VoiceTurn(DMSModel):
+    """One speaker's part of a multi-speaker voice file."""
+
+    speaker: Ident = Field(description="Character id.")
+    text: str = Field(description="Subtitle text for this turn.")
 
 
 class VoiceEntry(DMSModel):
     """Rendered audio for a voice line id."""
 
-    file: str = Field(description="File name inside the .miz (l10n/DEFAULT/).")
+    file: str | None = Field(
+        default=None,
+        description="File name inside the .miz (l10n/DEFAULT/); omit for subtitle-only lines.",
+    )
     text: str = Field(description="Subtitle text.")
     dur_sec: float = Field(gt=0, description="Duration in seconds.")
     speaker: Ident = Field(description="Character id.")
+    turns: list[VoiceTurn] | None = Field(
+        default=None,
+        description="Multi-speaker exchange in this one file; subtitles show one line per turn.",
+    )
+
+
+class Speaker(DMSModel):
+    """Radio identity of a character."""
+
+    callsign: str = Field(description="Callsign shown in subtitles, e.g. 'Kestrel Two-Two'.")
+    frequency: float | None = Field(
+        default=None, gt=0, description="Transmit frequency in MHz (unset = coalition-wide audio)."
+    )
+    modulation: Literal[0, 1] | None = Field(default=None, description="0 = AM, 1 = FM.")
+
+
+class NarrativeSettings(DMSModel):
+    """Beat engine pacing."""
+
+    min_gap_sec: float = Field(default=8, ge=0, description="Minimum seconds between beats.")
+    pending_ttl_sec: float = Field(
+        default=45, gt=0, description="Triggered beats wait this long for their requires."
+    )
+    zone_poll_sec: float = Field(default=3, gt=0, description="Player zone polling interval.")
 
 
 class Intel(DMSModel):
@@ -147,6 +330,20 @@ class Intel(DMSModel):
     reveal_radius_m: float = Field(default=5000, gt=0, description="Detection reveal radius.")
     mark_refresh_sec: float = Field(default=15, gt=0, description="Mark refresh interval.")
     stale_sec: float = Field(default=120, gt=0, description="Mark goes stale after this long.")
+    scan_sec: float | None = Field(
+        default=None, gt=0, description="Detection scan interval (default 5)."
+    )
+    remove_sec: float | None = Field(
+        default=None,
+        gt=0,
+        description="Stale marks are removed after this long (default 3x stale_sec).",
+    )
+    mark_radius_m: float | None = Field(
+        default=None, gt=0, description="Contact circle radius (default 600)."
+    )
+    sensors: bool | None = Field(
+        default=None, description="Also reveal what player-side sensors detect (default true)."
+    )
 
 
 class Players(DMSModel):
@@ -174,6 +371,16 @@ class RuntimeConfig(DMSModel):
     voice: dict[str, VoiceEntry] = Field(default_factory=dict, description="Line id -> audio.")
     intel: Intel = Field(default_factory=Intel, description="Fog of war / intel.")
     players: Players = Field(default_factory=Players, description="Player side.")
+    qualities: dict[str, float] = Field(
+        default_factory=dict,
+        description="Campaign quality values at plan time (state/qualities.yaml); seed beat requires.",
+    )
+    speakers: dict[str, Speaker] = Field(
+        default_factory=dict, description="Character id -> radio identity."
+    )
+    narrative: NarrativeSettings | None = Field(
+        default=None, description="Beat engine pacing (unset = runtime defaults)."
+    )
 
     def to_lua_table(self) -> dict[str, Any]:
         """Plain dict with camelCase field names (user map keys preserved), None values dropped."""

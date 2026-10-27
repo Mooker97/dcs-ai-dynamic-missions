@@ -145,7 +145,10 @@ ThreatRole = Literal[
     "attack_helicopters",
     "ship",
     "hvt",
+    "civilian",
 ]
+"""Threat roles. 'civilian' = unarmed civilian vehicles/people only (traffic, buses, farm trucks):
+pair it with a neutral faction; the planner must never pick armed types for it."""
 
 
 class Threat(DMSModel):

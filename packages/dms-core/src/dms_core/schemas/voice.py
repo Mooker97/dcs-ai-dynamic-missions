@@ -9,6 +9,16 @@ from pydantic import Field, model_validator
 from ._common import DMSModel, Ident, RadioFxPreset
 
 
+class DialogueTurn(DMSModel):
+    """One speaker's turn inside a multi-speaker exchange (ElevenLabs Text-to-Dialogue)."""
+
+    speaker: Ident = Field(description="Character id (bible) who speaks this turn.")
+    text: str = Field(
+        min_length=1, max_length=600, description="What this speaker says; v3 audio tags allowed."
+    )
+    delivery: str | None = Field(default=None, description="Direction for this turn.")
+
+
 class VoiceLine(DMSModel):
     """One spoken radio line. Write 3-5 variants per beat (ids like 'convoy_hit_v1'..'_v3')."""
 
@@ -41,6 +51,28 @@ class VoiceLine(DMSModel):
     dur_sec: float | None = Field(
         default=None, gt=0, description="Audio duration; filled by `dms voice`."
     )
+    turns: list[DialogueTurn] | None = Field(
+        default=None,
+        min_length=2,
+        description=(
+            "Optional multi-speaker exchange rendered to ONE audio file (Text-to-Dialogue), e.g. "
+            "Kestrel calls and Ops answers. `speaker` is the first turn's speaker; `text` is the "
+            "full transcript (auto-filled from the turns when omitted)."
+        ),
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _fill_from_turns(cls, data: Any) -> Any:
+        if not isinstance(data, dict) or not data.get("turns"):
+            return data
+        d = dict(data)
+        turns = [t if isinstance(t, dict) else getattr(t, "__dict__", {}) for t in d["turns"]]
+        if not d.get("speaker") and turns and turns[0].get("speaker"):
+            d["speaker"] = turns[0]["speaker"]
+        if not d.get("text"):
+            d["text"] = " ".join(str(t.get("text", "")) for t in turns).strip()[:600]
+        return d
 
 
 class VoiceLineSet(DMSModel):

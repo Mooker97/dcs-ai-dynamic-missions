@@ -35,6 +35,10 @@ class Qualities(DMSModel):
     updated_after: Ident | None = Field(
         default=None, description="Id of the last mission folded into this state."
     )
+    next_mission: Ident | None = Field(
+        default=None,
+        description="Arc mission id chosen by the debriefer (first matching branch, else next in order).",
+    )
 
 
 class Branch(DMSModel):

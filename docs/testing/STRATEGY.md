@@ -9,7 +9,7 @@ Status as of 2026-10-27, on DCS 2.9.30 Steam Edition.
 |---|---|---|---|---|
 | 1. Lua unit specs | Runtime modules against a mocked DCS API (timer, env, Group, coalition, world events) | busted / lupa under `lua/` | ms | CI and Claude, on every change |
 | 2. Python + structural .miz checks | Schemas, the planner, and the generated `mission`/`dictionary`/`mapResource` tables, plus a `luac -p` of every embedded script | pytest, `dms check <miz>` | s | CI and Claude, on every build |
-| 3. Headless DCS run | The real DCS sim loads the .miz as a private local server. In-mission assertions log `[DMS.TEST]` lines and the harness parses dcs.log | `tools/dcs_harness/run_mission.py` | 1.5–3 min of boot plus mission time, and the machine's GPU/CPU | Claude locally, before handing a mission to the user |
+| 3. Headless DCS run | The real DCS sim loads the .miz as a single-player mission (no login, time-accelerated). In-mission assertions log `[DMS.TEST]` lines and the harness parses dcs.log | `tools/dcs_harness/run_mission.py` | about 50 s of boot plus mission time divided by `--accel` | Claude locally, before handing a mission to the user |
 | 4. Manual cockpit | A human flies it | DCS + the debriefer skill | 30+ min | The user |
 
 Promote a bug down the pyramid. When a tier-3 or tier-4 run finds a bug, add a tier-1 spec that reproduces it whenever you can.
@@ -33,14 +33,16 @@ mission environment. Limitations:
   `tools/dcs_harness/test_mode.lua`). The proxy differs from a human in several ways: there are no `player.spawned` events from BIRTH
   (we synthesize them), `getPlayerName()` is nil, the AI flies its route rather than reacting, it never crashes or ejects,
   and there are no `S_EVENT_PLAYER_*` events. Encounters that depend on player behaviour need scripted proxy routes.
-- **Time.** The server runs in multiplayer mode, so time acceleration is not available. Mission time equals wall time.
-  `--accel` is wired in (`Export.LoSetCommand(53)` steps) but is expected to be ignored in MP. Design test missions so
-  everything interesting happens in the first 2–5 minutes. Use `DMS_CONFIG` overrides with short delays and
-  `chance = 100`, or a test-only seed.
-- **Run cost.** About 35–50 s to boot to idle on this machine (i7-10700KF), then mission load and mission time. It uses
-  the GPU/CPU and cannot run while the user is playing DCS (one instance at a time; the harness refuses if DCS is running).
-- **Multiplayer mode.** DMS runs inside a server session (`DCS.isMultiplayer()` is true). A single-player code path that differs
-  (for example, assuming `world.getPlayer()` exists) is not exercised.
+- **Time.** Single-player mode (the default) supports time acceleration. `--accel 16` ramps to x16 in about
+  3.5 s, and 300 s of model time then runs in about 21 s of wall time. Server mode (`--mode server`) has no acceleration, so model
+  time equals wall time there. Higher factors make AI and physics step coarsely. Use x16 or less for behaviour tests, and keep x1
+  for anything timing-sensitive (missile shots, close formation).
+- **Run cost.** About 30 s to load modules, 15 s of idle menu, and 4–5 s of mission load, then mission time divided by the
+  accel factor. A 300 s mission at x16 takes **about 78 s end to end** with `--norender`. It cannot run while the user is
+  playing DCS (one instance at a time; the harness refuses if DCS is running). Every run visibly opens and closes a DCS process,
+  so batch your checks into one test mission instead of launching many runs.
+- **Single-player mode.** DMS runs as an SP mission (`DCS.isMultiplayer()` is false), the same way the user flies it.
+  MP-only code paths (slots, `net.*` player lists) are exercised only by `--mode server`, which needs a login.
 
 **Tier 4, manual.** This is the only tier for feel, pacing, voice, menus and difficulty. Use the debriefer skill afterwards. The
 `[DMS.OUTCOME]` lines are the same ones tier 3 parses.
@@ -48,7 +50,8 @@ mission environment. Limitations:
 ## The harness (tier 3)
 
 ```
-uv run python tools/dcs_harness/run_mission.py path/to/test.miz --minutes 5 [--report out.json]
+uv run python tools/dcs_harness/run_mission.py path/to/test.miz --minutes 5 --accel 16 [--report out.json]
+    [--mode sp|server] [--render] [--probe]
 ```
 
 What it does:
@@ -60,13 +63,32 @@ What it does:
    `Config/serverSettings.lua`, `Config/autoexec.cfg` (`net.allow_dostring_in = {"mission"}`, so the hook can run
    `env.setErrorMessageBoxEnabled(false)` and optional `--inject` Lua in the mission env), `Config/nicknames.lua`,
    and `Scripts/Hooks/dms_harness_hook.lua`, generated from `hook_template.lua`.
-3. It launches `DCS.exe -w DCS.dms_test --server --norender` with `SteamAppId=223750` in the environment. Without that variable the
-   Steam build asks Steam to relaunch it ("Steam asked for app restart") and the arguments are lost. `--server` also
-   skips the 2.9 launcher window. Plain client mode (`--mode client`) stalls on that window, so don't use it.
-4. The hook, running in the GameGUI state, uses `onSimulationFrame` as a ticker. This callback also ticks while idle. About 20 s after the hook loads, it calls
-   `net.start_server()` for a private, LAN-bound, password-protected server with `resume_mode = 1` and only the test mission.
-   It keeps the sim unpaused and watches `DCS.getLogHistory()` for `[DMS.TEST] DONE`. It calls `DCS.exitProcess()`
-   3 s after DONE, at `--minutes` of model time, at mission end, or at its own wall limit.
+3. It launches `DCS.exe -w DCS.dms_test --norender` with `SteamAppId=223750` in the environment. Without that variable the
+   Steam build asks Steam to relaunch it ("Steam asked for app restart") and the arguments are lost. The 2.9 launcher window is
+   suppressed by `["miscellaneous"]["launcher"] = false` in the test profile's `options.lua`, which the harness forces on every run.
+   This is the `misc('launcher')` option in `MissionEditor/modules/Options/optionsDb.lua`. With that setting, plain client mode
+   boots straight to an idle main menu with no dialogs. `--mode server` adds `--server`.
+4. The hook, running in the GameGUI state, uses `onSimulationFrame` as a ticker. This callback also ticks while idle. About
+   15 s after the hook loads:
+   - **`--mode sp` (default)** does exactly what the GUI's **Fly** button does (`me_mission.runMission` then `Gui.doQuit`).
+     Through `net.dostring_in('gui', ...)` it sets `START_PARAMS.command = '--mission'`, `missionPath`, and
+     `returnScreen = 'quit'`, then calls `__EMBEDDED__.doAction()`. Hooks run in a sandboxed env, so `START_PARAMS` and
+     `__EMBEDDED__` are only reachable through `dostring_in('gui')`, which `autoexec.cfg` allows. The `dxgui` `Gui` table is
+     not a global there, and `DCS.startMission` is "NOT IMPLEMENTED YET" (`MissionEditor/GameGUI.lua`).
+     SP missions start paused on the briefing. The hook calls `DCS.setPause(false)` every second, which fires
+     `onSimulationResume` and hides the briefing. No click is needed.
+   - **`--mode server`** calls `net.start_server()` for a private, LAN-bound, password-protected server with
+     `resume_mode = 1`. This needs an ED login.
+
+   The hook watches `DCS.getLogHistory()` for `[DMS.TEST] DONE`. It calls `DCS.exitProcess()` 3 s after DONE, at
+   `--minutes` of model time, at mission end, or at its own wall limit.
+
+   **Time acceleration** (`--accel N`, SP only): the hook sends `Export.LoSetCommand(53)` ("Accelerate model time", Ctrl+Z)
+   at most once per 0.15 s and reads `Export.LoGetModelTimeAcceleration()` back until it equals N. Each press adds 1 (x1, x2,
+   x3 and so on), and command 191 steps down. Do not send several presses in one frame: they compound unpredictably (63 presses
+   in one frame gave x3700). Neither the hook env nor the GUI state has a `timer.setAcc` in 2.9.30. The console's
+   `acceleration` command uses one, but that object is not reachable. `--probe` logs the hook-visible `DCS.*`/`Export.*`
+   inventory and the GUI-state globals.
 5. Python kills our DCS process on a hard wall timeout. It matches the process by the write-dir name in the command line, so the user's own DCS is never
    killed. It then parses `DCS.dms_test\Logs\dcs.log` into JSON with these fields: `phases`, `tests` (PASS/FAIL/SKIP/INFO),
    `done`, `outcomes` (`[DMS.OUTCOME]` JSON), `script_errors` (SCRIPTING ERROR / "Mission script error"),
@@ -89,29 +111,48 @@ DMS.Test.expect("no_early_qrf", function() return Group.getByName("DMS_qrf_1") ~
 Log protocol: `[DMS.TEST] PASS|FAIL|SKIP|INFO <name_without_spaces> <detail>` and `[DMS.TEST] DONE <passed>/<total>`.
 Test-mode `DMS_CONFIG` additions: `test = { playerProxy = "Blue Proxy" }`.
 
-## Current status and the one-time user step
+## Current status (2026-10-27, DCS 2.9.30.28738 Steam, i7-10700KF + RTX 4070 Ti)
 
-What has been verified on this machine with a pydcs smoke mission (Caucasus, one blue AI vehicle, DO SCRIPT logging
-PASS then DONE after 30 s):
-- DCS 2.9.30 Steam launches unattended with `--server --norender` and an isolated write dir in about 35–50 s. It loads all modules,
-  and the harness hook loads and ticks. There are no modal dialogs in this mode.
-- **Blocker:** `net.start_server` fails with `ASYNCNET: server_start failed: login is required` (preceded by
-  `Login failed with code 400`). A server needs an Eagle Dynamics account login, and Steam auth alone is not enough. The test
-  write dir has no saved login.
+**Single-player mode works end to end with no login and no user step.** Verified runs of the pydcs smoke missions
+(Caucasus, one blue AI vehicle, DO SCRIPT logging PASS, then PASS + DONE after N model seconds):
 
-**One-time fix (user). Pick one:**
-- **A (easiest).** Run once with `--copy-login`. It copies your saved ED login (`Saved Games\DCS\Config\network.vault`, already present
-  because you have logged into multiplayer before) into `Saved Games\DCS.dms_test\Config\`. This is opt-in because it duplicates a
-  credential file. It is unverified whether the vault is portable between write dirs. If the next run still logs `Login failed`, use B.
-- **B.** Start DCS once with the test profile: in a terminal,
-  `set SteamAppId=223750 && "E:\SteamLibrary\steamapps\common\DCSWorld\bin\DCS.exe" -w DCS.dms_test`.
-  Get through the launcher, open **Multiplayer**, log in with your ED account and tick **Save password / auto login**, then quit. If your ED account is
-  not linked to Steam yet, link it at digitalcombatsimulator.com first.
-- **C.** Install the free **DCS dedicated server** (digitalcombatsimulator.com → Downloads → Dedicated Server) and log in once with
-  "remember me". The harness prefers `DCS_server.exe` automatically.
+| Run | Result | Model time | Wall time (in sim) | Wall time (total) |
+|---|---|---|---|---|
+| `smoke.miz` (DONE at t=30), early ramp that reached about x3 | pass, 2 PASS + DONE | 40 s | 14 s | about 70 s |
+| `smoke_long.miz` (DONE at t=300), `--accel 16`, `--norender` | pass, 2 PASS + DONE | 355 s | 24 s (x16 reached after 3.4 s) | **78 s** |
+| same, `--render` | pass, 2 PASS + DONE | 349 s | 25 s | 156 s |
 
-After that, re-run the smoke test:
-`uv run python tools/dcs_harness/run_mission.py <smoke.miz> --minutes 3`. The expected result is verdict `pass`, 2 PASS lines, and `done: true`.
+Phases in a typical `--norender` run: modules and hooks load at about 29 s, the menu is idle and `sp_start_called` fires at about 42 s,
+the mission is loaded at about 47 s, then `sim_start`, DONE, and `EXIT reason=done`.
+
+### `--norender` vs `--render`
+
+Measured during the x16 `smoke_long` runs (sampled every 2 s). GPU numbers are for the whole GPU, and the desktop was already using
+20–30% at idle.
+
+| | `--norender` (default) | `--render` (1280x720 window) |
+|---|---|---|
+| Total wall time | 78 s | 156 s (boot to hook about 64 s vs 29 s) |
+| DCS CPU, % of the whole machine | avg 4, peak 15 | avg 16, peak 57 |
+| DCS working set | avg 1.7 GB, peak 3.4 GB | avg 4.0 GB, peak 8.9 GB |
+| VRAM, whole GPU | no increase (2.2 GB, desktop only) | +4.6 GB (peak 6.9 GB) |
+| GPU utilisation | no measurable increase | peaks of 72% |
+| Can a human watch | no | yes |
+| Sim, AI and scripting fidelity | same | same |
+
+Use `--norender` for every automated run. Use `--render` only when a human wants to watch the run. The harness never asserts
+anything visual.
+
+### Server mode and the optional user step
+
+`--mode server` still fails with `ASYNCNET: server_start failed: login is required`, because the test profile has no ED login.
+You only need it to exercise MP-specific code. To enable it, do one of the following:
+- Run once with `--copy-login`. It copies `Saved Games\DCS\Config\network.vault` into the test profile only.
+  **The user has to run this command themselves**: Claude's auto-mode permission classifier blocks Claude from copying the
+  credential. It is unverified whether the vault is portable between write dirs.
+- Start `DCS.exe -w DCS.dms_test` once (with `SteamAppId=223750` set), open Multiplayer, log in with "Save password" ticked,
+  and quit.
+- Install the free DCS dedicated server and log in once. The harness prefers `DCS_server.exe`.
 
 ## How Claude uses this in the dev loop
 
@@ -130,7 +171,7 @@ After that, re-run the smoke test:
 - **Editing `MissionScripting.lua`** to desanitize: rejected because we never modify the install. Hooks already have `io`, `os` and `lfs`, and
   the mission env is reachable through `net.dostring_in('mission', 'a_do_script(...)')` when allowed by the write-dir `autoexec.cfg`.
 - **DCS-gRPC**: deferred, because it requires a `dofile` line added to the install's `MissionScripting.lua`. Hooks plus dcs.log cover our needs.
-- **Single-player autostart** (no login needed, time acceleration possible): the GUI starts single-player missions by setting
-  `START_PARAMS.command = '--mission'` / `missionPath` and calling `Gui.doQuit()` (`MissionEditor/modules/me_mission.lua`).
-  Driving that from a hook is unproven, and there would be a briefing screen to dismiss. It is worth a spike if
-  the login route stays blocked or acceleration becomes important.
+- **`DCS.startMission(path)`**: listed in `MissionEditor/GameGUI.lua` as "NOT IMPLEMENTED YET". **`net.load_mission`**
+  is server-only. The SP path uses `START_PARAMS` and `__EMBEDDED__.doAction()` instead (see above).
+- **Server mode as the default**: it boots fine, but `net.start_server` needs an ED login and gets no time acceleration.
+  SP mode replaced it as the default.

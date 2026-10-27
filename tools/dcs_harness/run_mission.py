@@ -1,20 +1,24 @@
 """Run a .miz in a real DCS World instance unattended, then parse dcs.log into a JSON report.
 
 Usage:
-    uv run python tools/dcs_harness/run_mission.py path/to/test.miz --minutes 5 [--accel N]
-        [--mode auto|server|client] [--wall-timeout SEC] [--write-dir-name DCS.dms_test]
-        [--report out.json] [--copy-login] [--keep-open] [--dry-run]
+    uv run python tools/dcs_harness/run_mission.py path/to/test.miz --minutes 5 [--accel 16]
+        [--mode sp|server] [--render] [--wall-timeout SEC] [--write-dir-name DCS.dms_test]
+        [--report out.json] [--probe] [--copy-login] [--keep-open] [--dry-run]
 
 How it works (details: docs/testing/STRATEGY.md):
   * Isolated write dir (default %USERPROFILE%/Saved Games/DCS.dms_test); the normal profile
     (Saved Games/DCS) is only ever read. Nothing inside the DCS install dir is modified.
-  * Writes Config/serverSettings.lua (mission list = test mission), Config/autoexec.cfg (lets the
-    hook run code in the mission env), Config/options.lua (copied from the main profile, forced
-    windowed/small/no-VR/muted) and Scripts/Hooks/dms_harness_hook.lua (from hook_template.lua).
-  * mode "server" (default): DCS.exe -w <dir> --server --norender. Skips the 2.9 launcher window;
-    the hook calls net.start_server() with a private local server running the test mission.
-    Needs a saved ED login (Config/network.vault) in the write dir: see --copy-login.
-  * mode "client": DCS.exe -w <dir> (normal client). Currently blocks on the launcher window.
+  * Writes Config/autoexec.cfg (lets the hook run code in the "mission" and "gui" Lua states),
+    Config/options.lua (copied once from the main profile, forced windowed/small/no-VR/muted, and
+    ["launcher"] = false so the 2.9 launcher window never appears), Config/serverSettings.lua and
+    Scripts/Hooks/dms_harness_hook.lua (from hook_template.lua).
+  * mode "sp" (default, no login needed): DCS.exe -w <dir> --norender. Once the main menu idles the
+    hook does what the GUI's Fly button does (START_PARAMS.command = '--mission' + missionPath,
+    then __EMBEDDED__.doAction()) via net.dostring_in('gui', ...). The sim is unpaused (no briefing
+    stop) and --accel N ramps model time to xN with iCommand 53 (Ctrl+Z).
+  * mode "server": DCS.exe -w <dir> --server --norender; the hook calls net.start_server() for a
+    private local server. Needs a saved ED login (Config/network.vault) in the write dir; no accel.
+  * --render shows a 1280x720 window instead of --norender (about 2x wall time, more CPU/GPU/VRAM).
   * The hook exits DCS after "[DMS.TEST] DONE", after --minutes of model time, or on wall
     timeout; this script also kills our DCS process (matched by write-dir name) on hard timeout.
 
@@ -42,7 +46,7 @@ HERE = Path(__file__).resolve().parent
 HOOK_TEMPLATE = HERE / "hook_template.lua"
 SAVED_GAMES = Path(os.environ.get("USERPROFILE", str(Path.home()))) / "Saved Games"
 
-# Export command ids for time acceleration (Ctrl+Z steps). Experimental: ignored in MP sessions.
+# iCommand 53 "Accelerate model time" (Ctrl+Z): +1 step per press, single-player only.
 ICOMMAND_ACCELERATE = 53
 STEAM_APP_ID = "223750"  # DCS World Steam Edition
 
@@ -210,6 +214,16 @@ def patch_options(src: Path | None, dst: Path, width: int, height: int) -> None:
         dst.write_text(text, encoding="utf-8")
 
 
+def force_unattended_options(opts: Path) -> None:
+    """Options that must hold on every run (test profile only): no 2.9 launcher window."""
+    if not opts.is_file():
+        return
+    text = opts.read_text(encoding="utf-8", errors="replace")
+    new = re.sub(r'(\["launcher"\]\s*=\s*)true', r"\1false", text)
+    if new != text:
+        opts.write_text(new, encoding="utf-8")
+
+
 def prepare_write_dir(
     write_dir: Path,
     miz: Path,
@@ -218,6 +232,7 @@ def prepare_write_dir(
     accel: int,
     wall_timeout: int,
     inject: str,
+    probe: bool = False,
 ) -> dict[str, object]:
     (write_dir / "Config").mkdir(parents=True, exist_ok=True)
     (write_dir / "Scripts" / "Hooks").mkdir(parents=True, exist_ok=True)
@@ -237,6 +252,7 @@ def prepare_write_dir(
     opts = write_dir / "Config" / "options.lua"
     if not opts.exists():
         patch_options(SAVED_GAMES / "DCS" / "Config" / "options.lua", opts, 1280, 720)
+    force_unattended_options(opts)
     # nicknames: give the server a name so no first-run prompt appears
     nick = write_dir / "Config" / "nicknames.lua"
     if not nick.exists():
@@ -275,7 +291,7 @@ def prepare_write_dir(
         "-- written by DMS harness: allow the harness hook to run code in the mission env\n"
         "if not net then net = {} end\n"
         'net.allow_unsafe_api = { "userhooks" }\n'
-        'net.allow_dostring_in = { "mission" }\n',
+        'net.allow_dostring_in = { "mission", "gui" }\n',
         encoding="utf-8",
     )
 
@@ -288,8 +304,10 @@ def prepare_write_dir(
         "maxRealSec": wall_timeout - 30,
         "graceSec": 3,
         "menuFrames": 30,
-        "menuDelaySec": 20 if mode == "server" else 5,
+        "menuDelaySec": 20 if mode == "server" else 15,
+        "accel": accel,
         "accelSteps": max(0, accel.bit_length() - 1) if accel > 1 else 0,
+        "probe": probe,
         "accelCommand": ICOMMAND_ACCELERATE,
         "injectLua": inject,
     }
@@ -419,9 +437,21 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("miz", type=Path)
     ap.add_argument("--minutes", type=float, default=5.0, help="model minutes before forced exit")
     ap.add_argument(
-        "--accel", type=int, default=1, help="time acceleration (power of 2; experimental, SP only)"
+        "--accel", type=int, default=1, help="model-time acceleration factor (sp mode only)"
     )
-    ap.add_argument("--mode", choices=["auto", "server", "client"], default="auto")
+    ap.add_argument(
+        "--mode",
+        choices=["sp", "server"],
+        default="sp",
+        help="sp: single-player mission, no login, accel works (default); "
+        "server: private local MP server (needs ED login, no accel)",
+    )
+    ap.add_argument(
+        "--render",
+        action="store_true",
+        help="render a 1280x720 window instead of --norender (more GPU load; for watching a run)",
+    )
+    ap.add_argument("--probe", action="store_true", help="log the hook-visible DCS API inventory")
     ap.add_argument(
         "--wall-timeout",
         type=int,
@@ -465,16 +495,16 @@ def main(argv: list[str] | None = None) -> int:
         if not installs:
             print("no DCS install found (set DCS_INSTALL or --exe)", file=sys.stderr)
             return 2
-        inst = installs[0]
+        # sp needs the client (DCS_server.exe has no single-player); server prefers dedicated
+        clients = [i for i in installs if not i.is_dedicated]
+        inst = clients[0] if a.mode == "sp" and clients else installs[0]
 
     mode = a.mode
-    if mode == "auto":
-        mode = "server"
     wall = a.wall_timeout or int(a.minutes * 60 / max(1, a.accel) + 420)
 
     write_dir = SAVED_GAMES / a.write_dir_name
     rep = Report(miz=str(miz), mode=mode, exe=str(inst.exe))
-    cfg = prepare_write_dir(write_dir, miz, mode, a.minutes, a.accel, wall, a.inject)
+    cfg = prepare_write_dir(write_dir, miz, mode, a.minutes, a.accel, wall, a.inject, a.probe)
     vault = write_dir / "Config" / "network.vault"
     if a.copy_login:
         src = SAVED_GAMES / "DCS" / "Config" / "network.vault"
@@ -483,7 +513,7 @@ def main(argv: list[str] | None = None) -> int:
             rep.notes.append("copied network.vault from main profile (--copy-login)")
         else:
             rep.notes.append("--copy-login: no network.vault in main profile")
-    if not vault.is_file():
+    if mode == "server" and not vault.is_file():
         rep.notes.append(
             "no Config/network.vault in write dir: server start will fail with 'login is required' "
             "(see docs/testing/STRATEGY.md, one-time login)"
@@ -491,7 +521,9 @@ def main(argv: list[str] | None = None) -> int:
 
     args = [str(inst.exe), "-w", a.write_dir_name]
     if mode == "server":
-        args += ["--server", "--norender"]
+        args += ["--server"]
+    if not a.render:
+        args += ["--norender"]
     rep.notes.append(f"install={inst.root} version={inst.version} dedicated={inst.is_dedicated}")
     rep.notes.append("cmd=" + " ".join(args))
 

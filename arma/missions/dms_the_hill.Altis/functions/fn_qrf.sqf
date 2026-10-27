@@ -47,14 +47,14 @@ switch (_mode) do {
 
 		[] spawn {
 			private _cfg = DMS_cfg;
-			private _d1 = DMS_rolls get "wave1Delay";
+			private _d1 = [DMS_rolls get "wave1Delay"] call DMS_fnc_t;
 			[format ["QRF wave 1 from %1 due in %2 s", DMS_rolls get "wave1SpawnName", round _d1]] call DMS_fnc_log;
 			sleep _d1;
 			if (DMS_over) exitWith {};
 			["WAVE", [1]] call DMS_fnc_qrf;
 
-			private _drag = DMS_alarmTime + (_cfg get "wave2DragTime");
-			private _quick = _cfg get "wave2QuickKill";
+			private _drag = DMS_alarmTime + ([_cfg get "wave2DragTime", 120] call DMS_fnc_t);
+			private _quick = [_cfg get "wave2QuickKill", 60] call DMS_fnc_t;
 			waitUntil {
 				sleep 5;
 				DMS_over || {time > _drag} || {
@@ -63,7 +63,7 @@ switch (_mode) do {
 				}
 			};
 			if (DMS_over) exitWith {};
-			private _d2 = DMS_rolls get "wave2Delay";
+			private _d2 = [DMS_rolls get "wave2Delay"] call DMS_fnc_t;
 			[format ["QRF wave 2 from %1 due in %2 s", DMS_rolls get "wave2SpawnName", round _d2]] call DMS_fnc_log;
 			sleep _d2;
 			if (DMS_over) exitWith {};
@@ -87,6 +87,10 @@ switch (_mode) do {
 			private _u = _inf createUnit [["PICK", _infClasses] call DMS_fnc_rng, _spawnPos, [], 20, "NONE"];
 			{ _u setSkill _x } forEach (_cfg get "enemySkill");
 			_u moveInCargo _veh;
+			_u addEventHandler ["Killed", {
+				params ["_unit", "_killer"];
+				[format ["QRF unit killed by %1 (%2) at %3 m", typeOf _killer, side (group _killer), round (_unit distance2D _killer)], "DEBUG"] call DMS_fnc_log;
+			}];
 			if (vehicle _u == _u) then { deleteVehicle _u; };
 		};
 		{

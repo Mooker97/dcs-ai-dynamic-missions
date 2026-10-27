@@ -7,6 +7,9 @@ anything not backed by them as TO-VERIFY.
 |---|---|---|
 | [functions.txt](functions.txt) | All 2,062 `BIS_fnc_*` / `BIN_fnc_*` function names, one per line | BI wiki "Arma 3: Functions" category, pasted by the user 2026-10-27 |
 | [wiki-pages.md](wiki-pages.md) | Scripting intro, getting started, Editing and Eden Editor category indexes | BI wiki, pasted by the user 2026-10-27 |
+| [classes-verified.md](classes-verified.md) | Every class the mission uses, checked with `isClass` on a dedicated server, plus building-position counts | Diag run, 2026-10-27 |
+| [sites-verified.md](sites-verified.md) | Altis outposts and towns measured in-engine, with the three chosen sites and how they were verified | Diag run, 2026-10-27 |
+| [../TESTING.md](../TESTING.md) | How to run the headless harness | |
 | [../RESEARCH.md](../RESEARCH.md) | MVP research: mission structure, headless server, class names (unverified), build plan | Agent research, partly from memory |
 
 ## Confirmed facts (from these pages)

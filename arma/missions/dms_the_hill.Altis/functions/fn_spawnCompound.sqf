@@ -1,9 +1,11 @@
 /*
 	DMS_fnc_spawnCompound - build the compound, its CSAT garrison and the intel item (server only).
-	[_center, _dir] call DMS_fnc_spawnCompound;
-	Sets: DMS_compoundObjects, DMS_garrison, DMS_enemyGroups, DMS_patrolGroup, DMS_intel
+	[_center, _dir, _mode] call DMS_fnc_spawnCompound;
+	_mode "BUILD": build "composition" on open ground. _mode "OUTPOST": garrison the vanilla terrain outpost at
+	_center (its cargo buildings) and place "outpostComposition" props on clear spots inside it.
+	Sets: DMS_compoundObjects, DMS_compoundBuildings, DMS_garrison, DMS_enemyGroups, DMS_patrolGroup, DMS_intel
 */
-params ["_center", "_dir"];
+params ["_center", "_dir", ["_mode", "BUILD", [""]]];
 private _cfg = DMS_cfg;
 private _skills = _cfg get "enemySkill";
 private _objects = [];
@@ -11,9 +13,6 @@ private _buildings = [];
 private _statics = [];
 private _sentryPosts = [];
 private _intelTable = objNull;
-
-// Clear vegetation, rocks and walls so the composition does not clip into terrain objects.
-{ hideObjectGlobal _x } forEach (nearestTerrainObjects [_center, ["TREE", "SMALL TREE", "BUSH", "ROCK", "ROCKS", "FENCE", "WALL"], _cfg get "clearRadius", false, true]);
 
 private _toWorld = {
 	params ["_off"];
@@ -25,30 +24,74 @@ private _applySkill = {
 	{ _unit setSkill _x } forEach _skills;
 };
 
-{
-	_x params ["_kind", "_cls", "_off", ["_rel", 0]];
-	private _pos = [_off] call _toWorld;
-	private _wdir = (_dir + _rel) mod 360;
-	if (_kind == "SENTRY") then {
-		_sentryPosts pushBack [_pos, _wdir];
-	} else {
-		if (isClass (configFile >> "CfgVehicles" >> _cls)) then {
-			private _obj = createVehicle [_cls, _pos, [], 0, "CAN_COLLIDE"];
-			_obj setDir _wdir;
-			_obj setPosATL _pos;
-			if (_kind == "OBJ") then { _obj setVectorUp (surfaceNormal _pos); };
-			_objects pushBack _obj;
-			switch (_kind) do {
-				case "BLD": { _buildings pushBack _obj; };
-				case "STATIC": { _statics pushBack _obj; };
-				case "INTEL": { _intelTable = _obj; };
-				default {};
-			};
+if (_mode == "OUTPOST") then {
+	// The terrain outpost's own cargo buildings hold the garrison; props go on clear ground between them.
+	_buildings = (nearestObjects [_center, _cfg get "outpostClasses", _cfg get "outpostRadius"]) select {count (_x buildingPos -1) > 0};
+	private _taken = [];
+	private _tablePos = [];
+	{
+		_x params ["_kind", "_cls", "_ring", "_clear"];
+		private _pos = [];
+		if (_kind == "OVER") then {
+			_pos = _tablePos;
 		} else {
-			[format ["Missing class %1 (skipped)", _cls], "WARN"] call DMS_fnc_log;
+			_pos = ["CLEAR", [_center, _ring select 0, _ring select 1, _clear, _taken]] call DMS_fnc_findPos;
 		};
-	};
-} forEach (_cfg get "composition");
+		if (_pos isEqualTo []) then {
+			[format ["Outpost: no clear spot for %1 %2 (skipped)", _kind, _cls], "WARN"] call DMS_fnc_log;
+		} else {
+			if (_kind != "OVER") then { _taken pushBack _pos; };
+			private _wdir = _center getDir _pos;
+			if (_kind == "SENTRY") then {
+				_sentryPosts pushBack [_pos, _wdir];
+			} else {
+				if (isClass (configFile >> "CfgVehicles" >> _cls)) then {
+					private _obj = createVehicle [_cls, _pos, [], 0, "CAN_COLLIDE"];
+					_obj setDir _wdir;
+					_obj setPosATL _pos;
+					if (_kind in ["OBJ", "OVER"]) then { _obj setVectorUp (surfaceNormal _pos); };
+					_objects pushBack _obj;
+					switch (_kind) do {
+						case "STATIC": { _statics pushBack _obj; };
+						case "INTEL": { _intelTable = _obj; _tablePos = _pos; };
+						default {};
+					};
+				} else {
+					[format ["Missing class %1 (skipped)", _cls], "WARN"] call DMS_fnc_log;
+				};
+			};
+		};
+	} forEach (_cfg get "outpostComposition");
+} else {
+	// Clear vegetation, rocks and walls so the composition does not clip into terrain objects.
+	{ hideObjectGlobal _x } forEach (nearestTerrainObjects [_center, ["TREE", "SMALL TREE", "BUSH", "ROCK", "ROCKS", "FENCE", "WALL"], _cfg get "clearRadius", false, true]);
+
+	{
+		_x params ["_kind", "_cls", "_off", ["_rel", 0]];
+		private _pos = [_off] call _toWorld;
+		private _wdir = (_dir + _rel) mod 360;
+		if (_kind == "SENTRY") then {
+			_sentryPosts pushBack [_pos, _wdir];
+		} else {
+			if (isClass (configFile >> "CfgVehicles" >> _cls)) then {
+				private _obj = createVehicle [_cls, _pos, [], 0, "CAN_COLLIDE"];
+				_obj setDir _wdir;
+				_obj setPosATL _pos;
+				if (_kind == "OBJ") then { _obj setVectorUp (surfaceNormal _pos); };
+				_objects pushBack _obj;
+				switch (_kind) do {
+					case "BLD": { _buildings pushBack _obj; };
+					case "STATIC": { _statics pushBack _obj; };
+					case "INTEL": { _intelTable = _obj; };
+					default {};
+				};
+			} else {
+				[format ["Missing class %1 (skipped)", _cls], "WARN"] call DMS_fnc_log;
+			};
+		};
+	} forEach (_cfg get "composition");
+
+};
 
 // ---------------------------------------------------------------- intel item on the table
 private _intelCls = _cfg get "intelClass";
@@ -129,9 +172,10 @@ private _garrison = [];
 } forEach _garrison;
 
 DMS_compoundObjects = _objects;
+DMS_compoundBuildings = _buildings;
 DMS_garrison = _garrison;
 DMS_enemyGroups = _groups;
 DMS_patrolGroup = _grpP;
 
-[format ["Compound built: %1 objects, %2 defenders (%3 sentries, %4 in buildings, %5 statics, %6 patrol)",
-	count _objects, count _garrison, count _sentryPosts, _n, count _statics, count units _grpP]] call DMS_fnc_log;
+[format ["Compound (%7) built: %1 objects, %8 buildings, %2 defenders (%3 sentries, %4 in buildings, %5 statics, %6 patrol)",
+	count _objects, count _garrison, count _sentryPosts, _n, count _statics, count units _grpP, _mode, count _buildings]] call DMS_fnc_log;

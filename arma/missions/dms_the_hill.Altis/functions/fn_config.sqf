@@ -9,12 +9,30 @@
 
 createHashMapFromArray [
 	// ---------------------------------------------------------------- sites
-	// [name, approxCenterXY (TO VERIFY), compoundDir, startBearing (compound -> squad start, also the
-	//  safe side for the LZ and the extraction approach), [qrfSpawnA_XY, qrfSpawnB_XY], [qrfNameA, qrfNameB]]
+	// [name, centerXY, compoundDir, startBearing (compound -> squad start, also the safe side for the LZ
+	//  and the extraction approach), [qrfSpawnA_XY, qrfSpawnB_XY], [qrfNameA, qrfNameB], mode]
+	// mode "OUTPOST": garrison the vanilla terrain outpost at centerXY (no snap; props placed on clear
+	//   ground inside it). mode "BUILD": snap to flat open ground and build "composition".
+	// Verified on a dedicated server with the diag sweep (docs/arma/kb/sites-verified.md): each centre is
+	// the centroid of the outpost's cargo structures; start/LZ bearings point at dry, open ground; QRF
+	// origins are the town centres from nearestLocations.
 	["sites", [
-		["Farmland east of Pyrgos", [17600, 13200], 58, 0, [[16800, 12700], [20200, 11700]], ["Pyrgos", "Chalkeia"]],
-		["Countryside near Zaros", [10600, 12800], 56, 140, [[9100, 11800], [12500, 14300]], ["Zaros", "Neochori"]],
-		["Plateau south of Frini", [14600, 20200], 22, 90, [[14000, 18700], [10300, 19100]], ["Athira", "Galati"]]
+		["Outpost between Zaros and Therisa", [10013, 11231], 0, 0, [[9092, 11962], [10619, 12237]], ["Zaros", "Therisa"], "OUTPOST"],
+		["Outpost south of Agia Triada", [16586, 19008], 0, 270, [[17827, 18129], [16207, 17297]], ["Kalithea", "Telos"], "OUTPOST"],
+		["Outpost north of Agios Petros", [20602, 18810], 0, 90, [[19339, 17642], [20885, 16959]], ["Agios Petros", "Paros"], "OUTPOST"]
+	]],
+	["outpostClasses", ["Land_Cargo_HQ_V1_F", "Land_Cargo_House_V1_F", "Land_Cargo_Patrol_V1_F", "Land_Cargo_Tower_V1_F"]],
+	["outpostRadius", 60],
+	// [kind, class, [minR, maxR], clearR] placed at seeded clear spots (no terrain objects within clearR);
+	// kind OVER is placed on the intel table spot (camo net over the table)
+	["outpostComposition", [
+		["INTEL", "Land_CampingTable_F", [0, 30], 4],
+		["OVER", "CamoNet_OPFOR_open_F", [0, 0], 0],
+		["OBJ", "Box_East_Ammo_F", [0, 35], 2],
+		["STATIC", "O_HMG_01_high_F", [12, 40], 3],
+		["STATIC", "O_HMG_01_high_F", [12, 40], 3],
+		["SENTRY", "", [20, 45], 2],
+		["SENTRY", "", [20, 45], 2]
 	]],
 	["siteSnapRadius", 250],
 	["clearRadius", 32],
@@ -28,17 +46,18 @@ createHashMapFromArray [
 	["squadClasses", ["B_soldier_AR_F", "B_Soldier_GL_F", "B_medic_F", "B_soldier_LAT_F", "B_soldier_M_F", "B_Soldier_F"]],
 	["squadSkill", 0.6],
 
-	// ---------------------------------------------------------------- compound composition
+	// ---------------------------------------------------------------- built compound (mode "BUILD")
+	// Land_Cargo_House_V1_F has 1 building position, _Patrol_V1_F 2, _HQ_V1_F 13 (diag sweep).
 	// [kind, class, [dx, dy], relDir]; dx/dy in metres in the compound frame (+y = compoundDir).
 	// kinds: BLD building (garrisoned via buildingPos), OBJ terrain-aligned prop,
 	//        STATIC crewed static weapon, SENTRY fixed sentry post (class unused), INTEL table for the intel item
 	["composition", [
-		["BLD", "Land_Cargo_House_V1_F", [-9, 6], 90],
-		["BLD", "Land_Cargo_House_V1_F", [9, 6], 270],
+		["BLD", "Land_Cargo_HQ_V1_F", [-10, 8], 90],
+		["BLD", "Land_Cargo_House_V1_F", [11, 6], 270],
 		["BLD", "Land_Cargo_Patrol_V1_F", [0, 17], 180],
-		["OBJ", "CamoNet_OPFOR_open_F", [0, -3], 0],
-		["INTEL", "Land_CampingTable_F", [0, -3], 0],
-		["OBJ", "Box_East_Ammo_F", [2.5, -4.5], 0],
+		["OBJ", "CamoNet_OPFOR_open_F", [3, -6], 0],
+		["INTEL", "Land_CampingTable_F", [3, -6], 0],
+		["OBJ", "Box_East_Ammo_F", [5.5, -7.5], 0],
 		["OBJ", "Land_BagBunker_Small_F", [-15, -15], 225],
 		["OBJ", "Land_BagFence_Round_F", [15, -15], 135],
 		["STATIC", "O_HMG_01_high_F", [15, -14], 135],

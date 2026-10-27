@@ -32,7 +32,7 @@ class Params
 	{
 		title = "Objective site";
 		values[] = {0, 1, 2, 3};
-		texts[] = {"From seed", "Pyrgos farmland", "Zaros countryside", "Frini plateau"};
+		texts[] = {"From seed", "Outpost Zaros/Therisa", "Outpost Agia Triada", "Outpost Agios Petros"};
 		default = 0;
 	};
 	class DMS_debug
@@ -56,6 +56,34 @@ class Params
 		texts[] = {"20", "30", "45", "60", "90"};
 		default = 45;
 	};
+	class DMS_testTimeScale
+	{
+		title = "Test mode time scale for mission delays (percent)";
+		values[] = {100, 50, 25, 15, 10};
+		texts[] = {"100% (real)", "50%", "25%", "15%", "10%"};
+		default = 100;
+	};
+	class DMS_testStartDist
+	{
+		title = "Test mode squad start distance (m, 0 = normal)";
+		values[] = {0, 300, 500};
+		texts[] = {"Normal", "300", "500"};
+		default = 0;
+	};
+	class DMS_testAssist
+	{
+		title = "Test mode assault assist (s after the squad closes to 200 m; 0 = off)";
+		values[] = {0, 120, 180, 300};
+		texts[] = {"Off", "120", "180", "300"};
+		default = 0;
+	};
+	class DMS_testForce
+	{
+		title = "Test mode forced failure";
+		values[] = {0, 1, 2};
+		texts[] = {"None", "Extraction helicopter destroyed", "Squad wiped out after the intel"};
+		default = 0;
+	};
 };
 
 class CfgFunctions
@@ -77,6 +105,7 @@ class CfgFunctions
 			class exfil {};
 			class end {};
 			class testMode {};
+			class t {};
 		};
 	};
 };

@@ -16,6 +16,7 @@ switch (_mode) do {
 		DMS_artyBusy = false;
 		DMS_artyLastSpot = [];
 		DMS_artyShellsFired = 0;
+		DMS_artyImpacts = [];
 		["MENU", [DMS_player, "DMS_ArtyFire"]] call DMS_fnc_support;
 		["MENU", [DMS_player, "DMS_ArtySpot"]] call DMS_fnc_support;
 	};
@@ -51,9 +52,9 @@ switch (_mode) do {
 
 		if (_isSpot) then { DMS_artySpots = DMS_artySpots - 1; } else { DMS_artyMissions = DMS_artyMissions - 1; };
 		DMS_artyBusy = true;
-		private _eta = (_cfg get "artyProcessTime") + (_cfg get "artyTimeOfFlight");
+		private _eta = [(_cfg get "artyProcessTime") + (_cfg get "artyTimeOfFlight")] call DMS_fnc_t;
 		[format ["Mortars: %1 at grid %2 received. Splash in about %3 s.",
-			["fire for effect", "spotting round"] select _isSpot, mapGridPosition _pos, _eta]] call _tell;
+			["fire for effect", "spotting round"] select _isSpot, mapGridPosition _pos, round _eta]] call _tell;
 
 		[_caller, _pos, _isSpot, _item, _eta] spawn {
 			params ["_caller", "_pos", "_isSpot", "_item", "_eta"];
@@ -63,7 +64,7 @@ switch (_mode) do {
 			private _cep = _cfg get "artyCEP";
 			if (!_isSpot && {DMS_artyLastSpot isNotEqualTo []}
 				&& {((DMS_artyLastSpot select 0) distance2D _pos) < (_cfg get "artyAdjustWindow")}
-				&& {(time - (DMS_artyLastSpot select 1)) < 600}) then {
+				&& {(time - (DMS_artyLastSpot select 1)) < ([600] call DMS_fnc_t)}) then {
 				_cep = _cfg get "artyAdjustedCEP";
 			};
 			private _sigma = _cep / 1.1774;
@@ -76,10 +77,24 @@ switch (_mode) do {
 				_shell setPosATL [_impact select 0, _impact select 1, 250];
 				_shell setVectorDirAndUp [[0, 0, -1], [0, 1, 0]];
 				_shell setVelocity [0, 0, -150];
+				// Track where the round actually goes off (the shell object is deleted on detonation).
+				[_shell, _pos] spawn {
+					params ["_shell", "_aim"];
+					private _last = getPosATL _shell;
+					private _t = time;
+					waitUntil {
+						if (!isNull _shell) then { _last = getPosATL _shell; };
+						isNull _shell || {time - _t > 30}
+					};
+					if (isNull _shell) then {
+						DMS_artyImpacts pushBack [_last, _last distance2D _aim];
+						[format ["Mortar round detonated %1 m from the target, %2 m AGL", round (_last distance2D _aim), round (_last select 2)], "DEBUG"] call DMS_fnc_log;
+					};
+				};
 				if (_isSpot) then { DMS_artyLastSpot = [_impact, time]; };
 				DMS_artyShellsFired = DMS_artyShellsFired + 1;
 				[format ["Mortar round %1/%2 aimed %3 m from target (CEP %4)", _r, _rounds, round _dist, _cep], "DEBUG"] call DMS_fnc_log;
-				sleep (["RANGE", _cfg get "artyInterval"] call DMS_fnc_rng);
+				sleep ([["RANGE", _cfg get "artyInterval"] call DMS_fnc_rng, 1] call DMS_fnc_t);
 			};
 			DMS_artyBusy = false;
 			private _text = format ["Mortars: rounds complete. Fire missions left: %1. Spotting rounds left: %2.", DMS_artyMissions, DMS_artySpots];

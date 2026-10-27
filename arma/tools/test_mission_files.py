@@ -148,9 +148,22 @@ def test_config_sites_and_composition() -> None:
     for _name, x, y, cdir, brg in sites:
         assert 0 < int(x) < 30720 and 0 < int(y) < 30720
         assert 0 <= int(cdir) < 360 and 0 <= int(brg) < 360
-    kinds = re.findall(r'^\t\t\["(BLD|OBJ|STATIC|SENTRY|INTEL)",', src, flags=re.MULTILINE)
+    modes = re.findall(r'^\t\t\["[^"]+", \[\d+, \d+\].*"(OUTPOST|BUILD)"\],?$', src, re.MULTILINE)
+    assert len(modes) == len(sites)
+
+    def kinds_of(key: str) -> list[str]:
+        block = re.search(rf'\["{key}", \[(.*?)\n\t\]\]', src, flags=re.DOTALL)
+        assert block, key
+        return re.findall(
+            r'^\t\t\["(BLD|OBJ|STATIC|SENTRY|INTEL|OVER)",', block.group(1), flags=re.MULTILINE
+        )
+
+    kinds = kinds_of("composition")
     assert kinds.count("INTEL") == 1
     assert kinds.count("BLD") >= 2 and 1 <= kinds.count("STATIC") <= 2
+    okinds = kinds_of("outpostComposition")
+    assert okinds.count("INTEL") == 1 and "BLD" not in okinds
+    assert 1 <= okinds.count("STATIC") <= 2
 
 
 def test_config_keys_unique() -> None:

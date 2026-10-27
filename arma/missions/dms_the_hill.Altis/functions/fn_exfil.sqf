@@ -65,7 +65,7 @@ switch (_mode) do {
 		private _warned = false;
 		while {alive _heli && {!DMS_over} && {call _hot}} do {
 			if (!_warned) then { _warned = true; ["Extraction: LZ is hot, holding off until it is clear."] call _tell; };
-			sleep 15;
+			sleep ([15, 3] call DMS_fnc_t);
 		};
 
 		// 2. approach and land
@@ -84,13 +84,13 @@ switch (_mode) do {
 		if (_landed && {!DMS_over}) then {
 			DMS_exfilLanded = true;
 			if (DMS_testMode) then { ["CHECK", ["exfil_landed", true]] call DMS_fnc_testMode; };
-			private _wait = _cfg get "exfilWaitOnGround";
+			private _wait = round ([_cfg get "exfilWaitOnGround", 120] call DMS_fnc_t);
 			[format ["Extraction: on the ground. Board now, departing in %1 s.", _wait]] call _tell;
 			private _tOn = time;
 			private _lastOrder = -100;
 			while {alive _heli && {!DMS_over} && {!_boarded} && {(time - _tOn) < _wait}} do {
 				private _need = (units DMS_squad) select {alive _x && {_x distance2D _heli < (_cfg get "exfilBoardRadius")}};
-				if ((time - _lastOrder) > 30) then {
+				if ((time - _lastOrder) > ([30, 15] call DMS_fnc_t)) then {
 					_lastOrder = time;
 					{
 						if (!isPlayer _x && {vehicle _x != _heli}) then {
@@ -99,7 +99,7 @@ switch (_mode) do {
 						};
 					} forEach _need;
 				};
-				if ((time - _tOn) > 60) then {
+				if ((time - _tOn) > ([60, 30] call DMS_fnc_t)) then {
 					{
 						if (!isPlayer _x && {vehicle _x != _heli} && {_x distance2D _heli < 30}) then {
 							[_x, _heli] remoteExecCall ["moveInCargo", _x];

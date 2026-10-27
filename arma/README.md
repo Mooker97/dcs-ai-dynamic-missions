@@ -4,8 +4,16 @@ This is a small, grounded solo mission for Altis. You lead a NATO squad on foot 
 compound, retrieve the intel, survive the reaction force and extract by helicopter. It uses no mods,
 no dialogue and no voice.
 
-None of this has been run in Arma yet. The code is checked statically only (see **Verification**).
-Class names and coordinates still need an in-game pass (see **TO VERIFY**).
+**Status 2026-10-27 (real Arma 3 2.22, dedicated server, `tools/arma_harness`, see `docs/arma/TESTING.md`):**
+- **Verified:** all class names (`docs/arma/kb/classes-verified.md`); the sites are now real terrain outposts
+  (`docs/arma/kb/sites-verified.md`); there were no script errors in 3 runs. These steps PASS in real
+  runs: spawns, alarm, artillery (5/5 rounds detonate within 150 m), QRF waves 1 and 2, intel, exfil
+  request and heli spawn.
+- **Not yet passing:** the AI test squad does not clear the outpost within 10 min (`compound_cleared`
+  FAIL), so the exfil landing, boarding and win were never observed. A test-only `DMS_testAssist`
+  param (harness `--assist 180`) was added but has not been run yet.
+- **Needs a human playtest:** the comm menu and hold-action UI, feel and balance.
+The TO VERIFY list below predates these runs. Items 1, 2 and 8 are now verified.
 
 ## Layout
 

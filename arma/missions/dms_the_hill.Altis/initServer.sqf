@@ -7,6 +7,17 @@ DMS_cfg = call DMS_fnc_config;
 DMS_debug = (["DMS_debug", 0] call BIS_fnc_getParamValue) == 1;
 DMS_testMode = (["DMS_testMode", 0] call BIS_fnc_getParamValue) == 1;
 DMS_testMinutes = ["DMS_testMinutes", 45] call BIS_fnc_getParamValue;
+DMS_timeScale = 1;
+if (DMS_testMode) then { DMS_timeScale = ((["DMS_testTimeScale", 100] call BIS_fnc_getParamValue) max 1) / 100; };
+private _startDist = DMS_cfg get "startDistance";
+private _lzDist = DMS_cfg get "lzDistance";
+DMS_testAssist = 0;
+if (DMS_testMode) then {
+	private _sd = ["DMS_testStartDist", 0] call BIS_fnc_getParamValue;
+	if (_sd > 0) then { _startDist = _sd; _lzDist = (_lzDist min (_sd * 0.5)) max 120; };
+	DMS_testAssist = ["DMS_testAssist", 0] call BIS_fnc_getParamValue;
+};
+DMS_testForce = ["DMS_testForce", 0] call BIS_fnc_getParamValue; // 1 = destroy the exfil heli, 2 = wipe the squad
 publicVariable "DMS_debug";
 
 private _seedParam = ["DMS_seed", 0] call BIS_fnc_getParamValue;
@@ -33,12 +44,17 @@ private _sites = _cfg get "sites";
 private _siteParam = ["DMS_site", 0] call BIS_fnc_getParamValue;
 private _site = ["PICK", _sites] call DMS_fnc_rng;
 if (_siteParam > 0 && {_siteParam <= count _sites}) then { _site = _sites select (_siteParam - 1); };
-_site params ["_siteName", "_siteXY", "_siteDir", "_startBearing", "_qrfXY", "_qrfNames"];
+_site params ["_siteName", "_siteXY", "_siteDir", "_startBearing", "_qrfXY", "_qrfNames", ["_siteMode", "BUILD"]];
 DMS_siteName = _siteName;
 DMS_startBearing = _startBearing;
-DMS_compoundCenter = ["FLAT", [_siteXY, 0, _cfg get "siteSnapRadius", _cfg get "clearRadius"]] call DMS_fnc_findPos;
-DMS_start = ["FLAT", [DMS_compoundCenter getPos [_cfg get "startDistance", _startBearing], 0, 150, 10]] call DMS_fnc_findPos;
-DMS_lz = ["FLAT", [DMS_compoundCenter getPos [_cfg get "lzDistance", _startBearing], 0, 150, 25]] call DMS_fnc_findPos;
+DMS_siteMode = _siteMode;
+DMS_compoundCenter = if (_siteMode == "OUTPOST") then {
+	[_siteXY select 0, _siteXY select 1, 0]
+} else {
+	["FLAT", [_siteXY, 0, _cfg get "siteSnapRadius", _cfg get "clearRadius"]] call DMS_fnc_findPos
+};
+DMS_start = ["FLAT", [DMS_compoundCenter getPos [_startDist, _startBearing], 0, (_startDist * 0.15) min 150, 10]] call DMS_fnc_findPos;
+DMS_lz = ["FLAT", [DMS_compoundCenter getPos [_lzDist, _startBearing], 0, (_lzDist * 0.4) min 150, 25, true]] call DMS_fnc_findPos;
 
 private _w1 = ["INT", [0, 1]] call DMS_fnc_rng;
 DMS_rolls = createHashMapFromArray [
@@ -49,8 +65,9 @@ DMS_rolls = createHashMapFromArray [
 	["wave1Delay", ["RANGE", _cfg get "wave1Delay"] call DMS_fnc_rng],
 	["wave2Delay", ["RANGE", _cfg get "wave2Delay"] call DMS_fnc_rng]
 ];
-[format ["Start: seed=%1 site='%2' center=%3 start=%4 lz=%5 debug=%6 test=%7",
-	DMS_seed, _siteName, DMS_compoundCenter, DMS_start, DMS_lz, DMS_debug, DMS_testMode]] call DMS_fnc_log;
+[format ["Start: seed=%1 site='%2' mode=%8 center=%3 start=%4 lz=%5 debug=%6 test=%7",
+	DMS_seed, _siteName, DMS_compoundCenter, DMS_start, DMS_lz, DMS_debug, DMS_testMode, _siteMode]] call DMS_fnc_log;
+if (DMS_testMode) then { [format ["Test: timeScale=%1 startDist=%2 lzDist=%3 assist=%4 force=%5", DMS_timeScale, round _startDist, round _lzDist, DMS_testAssist, DMS_testForce]] call DMS_fnc_log; };
 [format ["Rolls: wave1 from %1 after %2 s, wave2 from %3 after +%4 s",
 	DMS_rolls get "wave1SpawnName", round (DMS_rolls get "wave1Delay"),
 	DMS_rolls get "wave2SpawnName", round (DMS_rolls get "wave2Delay")]] call DMS_fnc_log;
@@ -94,7 +111,7 @@ private _face = DMS_start getDir DMS_compoundCenter;
 if (DMS_testMode && {hasInterface} && {!isNull player}) then { (leader DMS_squad) switchCamera "EXTERNAL"; };
 
 // ---------------------------------------------------------------- compound, intel, task, markers
-[DMS_compoundCenter, _siteDir] call DMS_fnc_spawnCompound;
+[DMS_compoundCenter, _siteDir, _siteMode] call DMS_fnc_spawnCompound;
 ["INIT", [DMS_intel]] call DMS_fnc_intel;
 createVehicle ["Land_HelipadEmpty_F", DMS_lz, [], 0, "CAN_COLLIDE"];
 

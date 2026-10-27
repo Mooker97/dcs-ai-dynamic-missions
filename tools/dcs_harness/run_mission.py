@@ -4,6 +4,7 @@ Usage:
     uv run python tools/dcs_harness/run_mission.py path/to/test.miz --minutes 5 [--accel 16]
         [--mode sp|server] [--render] [--wall-timeout SEC] [--write-dir-name DCS.dms_test]
         [--report out.json] [--probe] [--copy-login] [--keep-open] [--dry-run]
+        [--priority idle|belownormal|normal] [--min-free-gb 6] [--ram-wait-sec 900]
 
 How it works (details: docs/testing/STRATEGY.md):
   * Isolated write dir (default %USERPROFILE%/Saved Games/DCS.dms_test); the normal profile
@@ -30,6 +31,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import ctypes
 import json
 import os
 import re
@@ -157,6 +159,60 @@ def list_dcs_processes() -> list[dict[str, str]]:
     if isinstance(data, dict):
         data = [data]
     return [{k: str(v or "") for k, v in d.items()} for d in data]
+
+
+PRIORITY_CLASSES = {
+    "idle": 0x00000040,  # IDLE_PRIORITY_CLASS
+    "belownormal": 0x00004000,  # BELOW_NORMAL_PRIORITY_CLASS
+    "normal": 0x00000020,  # NORMAL_PRIORITY_CLASS
+}
+PS_PRIORITY = {"idle": "Idle", "belownormal": "BelowNormal", "normal": "Normal"}
+
+
+class _MemStatus(ctypes.Structure):
+    _fields_ = [
+        ("dwLength", ctypes.c_ulong),
+        ("dwMemoryLoad", ctypes.c_ulong),
+        ("ullTotalPhys", ctypes.c_ulonglong),
+        ("ullAvailPhys", ctypes.c_ulonglong),
+        ("ullTotalPageFile", ctypes.c_ulonglong),
+        ("ullAvailPageFile", ctypes.c_ulonglong),
+        ("ullTotalVirtual", ctypes.c_ulonglong),
+        ("ullAvailVirtual", ctypes.c_ulonglong),
+        ("ullAvailExtendedVirtual", ctypes.c_ulonglong),
+    ]
+
+
+def free_ram_gb() -> float:
+    """Available physical memory in GB (Windows GlobalMemoryStatusEx)."""
+    st = _MemStatus()
+    st.dwLength = ctypes.sizeof(_MemStatus)
+    if not ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(st)):  # type: ignore[attr-defined]
+        return float("inf")
+    return st.ullAvailPhys / 1024**3
+
+
+def wait_for_ram(min_gb: float, max_wait_sec: int) -> tuple[bool, float]:
+    """Poll free RAM until >= min_gb (every 30 s, up to max_wait_sec). Returns (ok, last_gb)."""
+    t0 = time.monotonic()
+    while True:
+        gb = free_ram_gb()
+        if gb >= min_gb:
+            return True, gb
+        if time.monotonic() - t0 >= max_wait_sec:
+            return False, gb
+        print(f"[harness] only {gb:.1f} GB RAM free (< {min_gb} GB); waiting 30 s", flush=True)
+        time.sleep(30)
+
+
+def set_priority(pids: list[str], priority: str) -> None:
+    if not pids:
+        return
+    ps = "; ".join(
+        f"try {{ (Get-Process -Id {pid}).PriorityClass = '{PS_PRIORITY[priority]}' }} catch {{}}"
+        for pid in pids
+    )
+    subprocess.run(["powershell", "-NoProfile", "-Command", ps], capture_output=True, timeout=30)
 
 
 def ours(proc: dict[str, str], write_dir_name: str) -> bool:
@@ -470,6 +526,19 @@ def main(argv: list[str] | None = None) -> int:
         "--allow-running", action="store_true", help="launch even if another DCS is running"
     )
     ap.add_argument(
+        "--priority",
+        choices=sorted(PRIORITY_CLASSES),
+        default="belownormal",
+        help="CPU priority class of the DCS process (default belownormal: be nice to other apps)",
+    )
+    ap.add_argument(
+        "--min-free-gb",
+        type=float,
+        default=6.0,
+        help="wait (up to --ram-wait-sec) until this much physical RAM is free before launching",
+    )
+    ap.add_argument("--ram-wait-sec", type=int, default=900, help="max wait for free RAM")
+    ap.add_argument(
         "--copy-login",
         action="store_true",
         help="opt-in: copy your saved ED login (Saved Games/DCS/Config/network.vault) "
@@ -542,15 +611,32 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     kill_ours(a.write_dir_name)
 
+    ok_ram, gb = wait_for_ram(a.min_free_gb, a.ram_wait_sec)
+    if not ok_ram:
+        print(
+            f"only {gb:.1f} GB RAM free after waiting {a.ram_wait_sec}s "
+            f"(need {a.min_free_gb}); not launching",
+            file=sys.stderr,
+        )
+        return 2
+    rep.notes.append(f"free_ram_gb_at_launch={gb:.1f} priority={a.priority}")
+
     t0 = time.monotonic()
     env = dict(os.environ)
     if "steamapps" in str(inst.exe).lower():
         # Steam edition: without these, DCS asks Steam to relaunch it and our args are lost.
         env.setdefault("SteamAppId", STEAM_APP_ID)
         env.setdefault("SteamGameId", STEAM_APP_ID)
-    subprocess.Popen(args, cwd=str(inst.exe.parent), close_fds=True, env=env)
+    subprocess.Popen(
+        args,
+        cwd=str(inst.exe.parent),
+        close_fds=True,
+        env=env,
+        creationflags=PRIORITY_CLASSES[a.priority],
+    )
     rep.launched = True
     seen_ours = False
+    prioritised: set[str] = set()
     log_path = write_dir / "Logs" / "dcs.log"
     print(f"[harness] launched {' '.join(args)}; wall timeout {wall}s; log {log_path}", flush=True)
     while True:
@@ -559,6 +645,10 @@ def main(argv: list[str] | None = None) -> int:
         procs = [p for p in list_dcs_processes() if ours(p, a.write_dir_name)]
         if procs:
             seen_ours = True
+            fresh = [p["ProcessId"] for p in procs if p["ProcessId"] not in prioritised]
+            if fresh:  # creationflags covers DCS.exe; re-apply in case it re-spawned itself
+                set_priority(fresh, a.priority)
+                prioritised.update(fresh)
         elif elapsed > 60 or seen_ours:
             # Steam may relaunch DCS without our args: detect a foreign DCS that appeared
             foreign_now = [p for p in list_dcs_processes() if not ours(p, a.write_dir_name)]

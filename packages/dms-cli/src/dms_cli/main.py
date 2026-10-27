@@ -356,24 +356,32 @@ def _write_runtime_config(plan: Any, out_dir: Path) -> Path | None:
 
 def _build(plan_path: Path, out: Path | None, lua: Path | None) -> tuple[Path, list[str]]:
     from dms_core.schemas import BuildPlan
-    from dms_gen.builder import build_from_plan  # type: ignore[import-untyped,unused-ignore]
 
-    root = _root()
     try:
         plan = BuildPlan.model_validate_json(plan_path.read_text(encoding="utf-8"))
     except ValidationError as exc:
         _print_findings(pydantic_findings(exc, plan_path.name, BuildPlan))
         raise CliError(f"{plan_path.name} is not a valid BuildPlan", 1) from None
     mdir = mission_dir_for_plan(plan_path)
-    out = (out or mdir / "out" / f"{plan.mission_id}.miz").resolve()
+    out = out or mdir / "out" / f"{plan.mission_id}.miz"
+    return _build_obj(plan, mdir, out, lua, mdir / "out", plan_path.parent)
+
+
+def _build_obj(
+    plan: Any, mdir: Path, out: Path, lua: Path | None, cfg_dir: Path, plan_dir: Path
+) -> tuple[Path, list[str]]:
+    from dms_gen.builder import build_from_plan  # type: ignore[import-untyped,unused-ignore]
+
+    root = _root()
+    out = out.resolve()
     out.parent.mkdir(parents=True, exist_ok=True)
     lua_path, lua_state = _ensure_lua(root, lua)
     notes = [f"lua: {lua_path} ({lua_state})"]
     with tempfile.TemporaryDirectory(prefix="dms-cli-") as tmp:
-        cfg = _write_runtime_config(plan, mdir / "out")
+        cfg = _write_runtime_config(plan, cfg_dir)
         if cfg is not None:
             notes.append(f"runtime config: {cfg}")
-        _resolve_resources(plan, mdir, root, plan_path.parent)
+        _resolve_resources(plan, mdir, root, plan_dir)
         notes.append(f"lua resource {_attach_lua(plan, lua_path, Path(tmp))}")
         missing = [r.source for r in plan.resources if not Path(r.source).exists()]
         if missing:
@@ -382,10 +390,68 @@ def _build(plan_path: Path, out: Path | None, lua: Path | None) -> tuple[Path, l
     return Path(built), notes
 
 
+TEST_DIR = "test"
+TEST_PLAN_FILE = "plan.test.json"
+
+
+def _make_test(mp: MissionPaths, bundle: Bundle, plan_obj: Any, minutes: float | None) -> Any:
+    """make_test_plan + write out/test/{dms_test.lua, plan.test.json}; returns the TestBuild."""
+    from dms_gen.planner import (  # type: ignore[import-untyped,unused-ignore]
+        make_test_plan,
+        write_test_lua,
+    )
+
+    try:
+        tb = make_test_plan(plan_obj, bundle.spec, bundle.beats, minutes=minutes)
+    except ValueError as exc:
+        raise CliError(f"test build failed: {exc}", 1) from exc
+    tdir = mp.out_dir / TEST_DIR
+    lua = write_test_lua(tb, tdir)
+    (tdir / TEST_PLAN_FILE).write_text(tb.plan.model_dump_json(indent=2), encoding="utf-8")
+    _echo(f"test: proxy '{tb.proxy}'  route {tb.route_km} km  minutes {tb.minutes:g}")
+    _echo(f"test: wrote {lua} and {tdir / TEST_PLAN_FILE}")
+    return tb
+
+
+def _build_test(
+    mp: MissionPaths, tb: Any, output: Path | None, lua: Path | None
+) -> tuple[Path, list[str]]:
+    out = output or mp.out_dir / f"{tb.plan.mission_id}-test.miz"
+    tdir = mp.out_dir / TEST_DIR
+    return _build_obj(tb.plan, mp.dir, out, lua, tdir, tdir)
+
+
+def _harness_hint(miz: Path, minutes: float) -> str:
+    return f"uv run python tools/dcs_harness/run_mission.py {miz} --minutes {minutes:g} --accel 16"
+
+
+def _saved_seed(mp: MissionPaths) -> int | None:
+    p = mp.out_dir / PLAN_FILE
+    if not p.is_file():
+        return None
+    try:
+        seed = json.loads(p.read_text(encoding="utf-8")).get("seed")
+    except (OSError, ValueError):
+        return None
+    return int(seed) if isinstance(seed, int) else None
+
+
 # ---- commands ----------------------------------------------------------------------------------
 
 Target = Annotated[Path, typer.Argument(help="Mission folder or mission-spec.yaml.")]
 JsonOpt = Annotated[bool, typer.Option("--json", help="Machine-readable JSON output.")]
+TestOpt = Annotated[
+    bool,
+    typer.Option(
+        "--test",
+        help="Headless-DCS test variant: AI player proxy + in-mission checks (out/test/, "
+        "<id>-test.miz). Normal outputs are left untouched.",
+    ),
+]
+TestMinutesOpt = Annotated[
+    float | None,
+    typer.Option("--test-minutes", help="Override the test's model minutes (default: derived)."),
+]
 
 
 @app.command()
@@ -438,6 +504,8 @@ def plan(
     voice_manifest: Annotated[
         Path | None, typer.Option(help="Default <mission>/voice/manifest.json if present.")
     ] = None,
+    test: TestOpt = False,
+    test_minutes: TestMinutesOpt = None,
 ) -> None:
     """Compile a mission spec into an exact, seeded plan.json."""
     mp = resolve_mission(target, root=_root())
@@ -447,6 +515,11 @@ def plan(
         raise CliError("schema errors; run `dms validate` and fix them first", 1)
     manifest_path = voice_manifest or (mp.voice_manifest if mp.voice_manifest.is_file() else None)
     plan_obj = _plan(bundle, seed, manifest_path)
+    if test:
+        for line in _plan_summary(plan_obj):
+            _echo(line)
+        _make_test(mp, bundle, plan_obj, test_minutes)
+        return
     out = (output or mp.out_dir / PLAN_FILE).resolve()
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(plan_obj.model_dump_json(indent=2), encoding="utf-8")
@@ -498,8 +571,16 @@ def build(
     lua: Annotated[
         Path | None, typer.Option(help="Lua bundle (default dist/dms.lua, auto-rebuilt).")
     ] = None,
+    test: TestOpt = False,
+    test_minutes: TestMinutesOpt = None,
+    seed: Annotated[
+        int | None, typer.Option(help="--test: planner seed (default: seed of out/plan.json).")
+    ] = None,
 ) -> None:
     """Build a .miz from plan.json, then run check on it."""
+    if test:
+        _build_test_cmd(target, output, lua, test_minutes, seed)
+        return
     t = target.resolve()
     plan_path = t / "out" / PLAN_FILE if t.is_dir() else t
     if not plan_path.is_file():
@@ -509,6 +590,33 @@ def build(
         _echo(n)
     _echo(f"built {built}")
     if not _print_check(_check(built)):
+        _echo("the .miz was written but check found problems")
+        raise typer.Exit(1)
+
+
+def _build_test_cmd(
+    target: Path, output: Path | None, lua: Path | None, minutes: float | None, seed: int | None
+) -> None:
+    t = target.resolve()
+    if t.is_file() and t.suffix == ".json":
+        t = mission_dir_for_plan(t)
+    mp = resolve_mission(t, root=_root())
+    findings, bundle = _load_bundle(mp)
+    if bundle is None:
+        _print_findings(findings)
+        raise CliError("schema errors; run `dms validate` and fix them first", 1)
+    seed = seed if seed is not None else _saved_seed(mp)
+    manifest_path = mp.voice_manifest if mp.voice_manifest.is_file() else None
+    plan_obj = _plan(bundle, seed, manifest_path)
+    _echo(f"test: planned seed {plan_obj.seed}")
+    tb = _make_test(mp, bundle, plan_obj, minutes)
+    built, notes = _build_test(mp, tb, output, lua)
+    for n in notes:
+        _echo(n)
+    _echo(f"built {built}")
+    ok = _print_check(_check(built))
+    _echo("harness: " + _harness_hint(built, tb.minutes))
+    if not ok:
         _echo("the .miz was written but check found problems")
         raise typer.Exit(1)
 
@@ -539,6 +647,8 @@ def run(
     seed: Annotated[int | None, typer.Option(help="Override the planner seed.")] = None,
     skip_voice: Annotated[bool, typer.Option("--skip-voice", help="Never render voice.")] = False,
     output: Annotated[Path | None, typer.Option("-o", "--output", help=".miz path.")] = None,
+    test: TestOpt = False,
+    test_minutes: TestMinutesOpt = None,
 ) -> None:
     """validate -> voice -> plan -> build -> check, stopping at the first failure."""
     root = _root()
@@ -561,15 +671,22 @@ def run(
     _echo("[3/5] plan")
     manifest_path = mp.voice_manifest if mp.voice_manifest.is_file() else None
     plan_obj = _plan(bundle, seed, manifest_path)
-    plan_path = mp.out_dir / PLAN_FILE
-    plan_path.parent.mkdir(parents=True, exist_ok=True)
-    plan_path.write_text(plan_obj.model_dump_json(indent=2), encoding="utf-8")
     for line in _plan_summary(plan_obj):
         _echo(f"  {line}")
-    _echo(f"  wrote {plan_path}")
+    tb: Any = None
+    plan_path = mp.out_dir / PLAN_FILE
+    if test:
+        tb = _make_test(mp, bundle, plan_obj, test_minutes)
+    else:
+        plan_path.parent.mkdir(parents=True, exist_ok=True)
+        plan_path.write_text(plan_obj.model_dump_json(indent=2), encoding="utf-8")
+        _echo(f"  wrote {plan_path}")
 
     _echo("[4/5] build")
-    built, notes = _build(plan_path, output, None)
+    if tb is not None:
+        built, notes = _build_test(mp, tb, output, None)
+    else:
+        built, notes = _build(plan_path, output, None)
     for n in notes:
         _echo(f"  {n}")
     _echo(f"  built {built}")
@@ -578,6 +695,8 @@ def run(
     if not _print_check(_check(built)):
         _echo(f"FAILED: {built} was written but check found problems")
         raise typer.Exit(1)
+    if tb is not None:
+        _echo("harness: " + _harness_hint(built, tb.minutes))
     _echo(f"DONE: {built}")
 
 

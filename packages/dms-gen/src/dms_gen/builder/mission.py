@@ -33,6 +33,7 @@ from .env import ensure_configured
 from .payloads import resolve_payload
 from .specs import (
     XY,
+    AirWaypoint,
     AiTask,
     Coalition,
     MapView,
@@ -424,6 +425,56 @@ class MissionBuilder:
             u.skill = DcsSkill(skill)
         self._apply_payload(group, payload)
         if frequency_mhz is not None and task_kind in ("cap", "cas"):
+            group.set_frequency(frequency_mhz)
+        return group
+
+    def add_ai_route_flight(
+        self,
+        coalition: Coalition,
+        country: str,
+        aircraft: str | type[FlyingType],
+        name: str,
+        waypoints: Sequence[AirWaypoint],
+        airbase: str | None = None,
+        start: StartKind = "hot",
+        count: int = 1,
+        payload: Mapping[int, str] | str | None = None,
+        skill: Skill = "High",
+        frequency_mhz: float | None = None,
+        land_at: str | None = None,
+        position: XY | None = None,
+        altitude_m: float | None = None,
+    ) -> unitgroup.FlyingGroup[Any]:
+        """AI flight that flies ``waypoints`` in order, optionally landing at ``land_at``.
+
+        ``start`` "air" spawns in flight at ``position`` (default: the first waypoint).
+        """
+        if start == "air" and position is None:
+            if not waypoints:
+                raise ValueError("air start needs position or a waypoint")
+            position = (waypoints[0].x, waypoints[0].y)
+            altitude_m = altitude_m if altitude_m is not None else waypoints[0].alt_m
+        group = self._flight(
+            coalition,
+            country,
+            aircraft,
+            airbase if start != "air" else None,
+            name,
+            start,
+            count,
+            task_=None,
+            position=position,
+            altitude_m=altitude_m,
+        )
+        for wp in waypoints:
+            mp = group.add_waypoint(self.point(wp.x, wp.y), wp.alt_m, wp.speed_kmh)
+            mp.alt_type = wp.alt_type
+        if land_at:
+            group.land_at(self.airbase(land_at))
+        for u in group.units:
+            u.skill = DcsSkill(skill)
+        self._apply_payload(group, payload)
+        if frequency_mhz is not None:
             group.set_frequency(frequency_mhz)
         return group
 

@@ -2,8 +2,9 @@
 -- Lua 5.1, mission scripting env (no os/io/require). Safe to load when not testing: does nothing
 -- until DMS.Test.expect/check/done is called.
 --
--- To be bundled by the Lua owner (e.g. lua/src/dms/test_mode.lua, near the end of the manifest) or
--- loaded by a separate DO SCRIPT FILE in test missions only.
+-- DMS missions do NOT need this file: the runtime bundles DMS.Test (lua/src/dms/test.lua, with the
+-- player proxy and declarative DMS_CONFIG.test.checks). Keep this standalone copy only for
+-- non-DMS smoke missions loaded with a separate DO SCRIPT FILE.
 --
 -- Log protocol (parsed by tools/dcs_harness/run_mission.py):
 --   [DMS.TEST] PASS <name> <detail>

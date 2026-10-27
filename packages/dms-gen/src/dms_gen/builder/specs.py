@@ -55,3 +55,14 @@ def as_waypoint(w: WaypointLike) -> GroundWaypoint:
         return w
     x, y, speed, on_road = w
     return GroundWaypoint(x=float(x), y=float(y), speed=float(speed), on_road=bool(on_road))
+
+
+@dataclass(frozen=True)
+class AirWaypoint:
+    """One turning point of an AI air route (DCS map x/y, meters)."""
+
+    x: float
+    y: float
+    alt_m: float = 150
+    speed_kmh: float = 220
+    alt_type: Literal["BARO", "RADIO"] = "BARO"

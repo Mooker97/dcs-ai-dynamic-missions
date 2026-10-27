@@ -149,6 +149,8 @@ def check_miz(path: str | os.PathLike[str]) -> CheckReport:
     _check_groups(rep, mission)
     _check_resources(rep, res, files)
     scripts = _check_triggers(rep, mission, res, files)
+    if "dms_test.lua" in scripts:
+        _relax_for_test_build(rep, scripts)
     config = _check_config(rep, miz, files, scripts)
     _check_lua_syntax(rep, miz, files)
     if config is not None:
@@ -160,6 +162,17 @@ def check_miz(path: str | os.PathLike[str]) -> CheckReport:
         voice=len((config or {}).get("voice") or {}),
     )
     return rep
+
+
+def _relax_for_test_build(rep: CheckReport, scripts: list[str]) -> None:
+    """A ``dms build --test`` miz has an AI player proxy instead of a slot (headless runs)."""
+    for i in rep.issues:
+        if i.code == "no_player_slot":
+            i.severity = "warning"
+            i.message = "no Client/Player slot (test build: AI player proxy, not flyable)"
+    rep.ok = not rep.errors
+    if "dms.lua" in scripts and scripts.index("dms_test.lua") > scripts.index("dms.lua"):
+        rep.add("error", "test_script_order", "dms_test.lua must load before dms.lua")
 
 
 def _check_groups(rep: CheckReport, mission: dict[Any, Any]) -> None:

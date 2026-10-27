@@ -4,7 +4,9 @@ Covers what the builder supports today. Unsupported plan features raise
 ``NotImplementedError`` instead of being silently dropped:
 
 * static groups
-* AI air groups whose task is not CAP / CAS / AWACS / tanker
+* AI air groups whose task is not CAP / CAS / AWACS / tanker *and* that have no route
+  (with turning points they become a generic route flight: optional airfield start,
+  the turning points in order, optional ``Landing`` waypoint -> land at that airbase)
 * polygon zones with a vertex count other than 4 (DCS ME quads have exactly 4; arbitrary
   polygons belong in ``DMS_CONFIG.zones`` for the Lua runtime)
 
@@ -28,7 +30,7 @@ from dcs import triggers as dcs_triggers
 from dcs.forcedoptions import ForcedOptions
 
 from .mission import MissionBuilder
-from .specs import Coalition, GroundWaypoint, StartKind, UnitSpec
+from .specs import AirWaypoint, Coalition, GroundWaypoint, StartKind, UnitSpec
 
 if TYPE_CHECKING:
     from dms_core.schemas.plan import (  # type: ignore[import-untyped,unused-ignore]
@@ -204,7 +206,12 @@ def _add_group(b: MissionBuilder, g: PlanGroup) -> None:
     else:
         kind = _AI_TASKS.get(str(g.task or ""))
         if kind is None:
-            raise NotImplementedError(f"AI air group {g.name!r}: task {g.task!r} not supported")
+            if not any(p.action in ("Turning Point", "Fly Over Point") for p in g.route):
+                raise NotImplementedError(
+                    f"AI air group {g.name!r}: task {g.task!r} not supported without a route"
+                )
+            _add_route_flight(b, g, coal, payload)
+            return
         legs = [p for p in g.route if p.action in ("Turning Point", "Fly Over Point")]
         p1 = (legs[0].x, legs[0].y) if legs else (u0.x, u0.y)
         p2 = (legs[1].x, legs[1].y) if len(legs) > 1 else (p1[0] + 20000, p1[1])
@@ -222,6 +229,48 @@ def _add_group(b: MissionBuilder, g: PlanGroup) -> None:
             payload=payload,
             frequency_mhz=g.frequency_mhz,
         )
+    b.rename_units(group, [u.name for u in g.units])
+    group.late_activation = g.late_activation
+    group.hidden = g.hidden
+    group.uncontrolled = g.uncontrolled
+
+
+def _add_route_flight(
+    b: MissionBuilder, g: PlanGroup, coal: Coalition, payload: dict[int, str] | None
+) -> None:
+    """Generic AI air route: optional airfield start, turning points, optional landing."""
+    u0 = g.units[0]
+    first = g.route[0] if g.route else None
+    start: StartKind = _START_BY_ACTION.get(first.action, "air") if first else "air"
+    landing = next((p for p in g.route if p.action == "Landing"), None)
+    legs = [
+        AirWaypoint(p.x, p.y, p.alt_m or 150, p.speed_kmh or 220, p.alt_type)
+        for p in g.route
+        if p.action in ("Turning Point", "Fly Over Point")
+    ]
+    if start == "air" and first is not None and first.action in ("Turning Point", "Fly Over Point"):
+        position: tuple[float, float] | None = (first.x, first.y)
+        alt: float | None = first.alt_m or u0.alt_m or 150
+        legs = legs[1:]
+    else:
+        position, alt = None, None
+    skill = u0.skill if u0.skill in ("Average", "Good", "High", "Excellent", "Random") else "High"
+    group = b.add_ai_route_flight(
+        coal,
+        g.country,
+        u0.type,
+        g.name,
+        legs,
+        airbase=first.airbase if first else None,
+        start=start,
+        count=len(g.units),
+        payload=payload,
+        skill=skill,
+        frequency_mhz=g.frequency_mhz,
+        land_at=(landing.airbase or (first.airbase if first else None)) if landing else None,
+        position=position,
+        altitude_m=alt,
+    )
     b.rename_units(group, [u.name for u in g.units])
     group.late_activation = g.late_activation
     group.hidden = g.hidden

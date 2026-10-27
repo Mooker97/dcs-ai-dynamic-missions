@@ -160,15 +160,37 @@ function Spawner.groundHeight(p)
 end
 
 -- All player units currently alive, as list of {unit=, pos=vec3, coalition=}.
+-- coalition.getPlayers plus units registered in DMS.Bus._players (BIRTH players and the
+-- DMS.Test player proxy, which is an AI group and so never appears in getPlayers).
 function Spawner.playerUnits()
-  local out = {}
+  local out, seen = {}, {}
   for _, side in ipairs({ 1, 2 }) do
     local ok, players = pcall(coalition.getPlayers, side)
     if ok and players then
       for _, u in ipairs(players) do
-        local ok2, pos = pcall(function() return u:isExist() and u:getPoint() or nil end)
-        if ok2 and pos then out[#out + 1] = { unit = u, pos = pos, coalition = side } end
+        local ok2, pos, name = pcall(function()
+          if u:isExist() then return u:getPoint(), u:getName() end
+          return nil
+        end)
+        if ok2 and pos then
+          out[#out + 1] = { unit = u, pos = pos, coalition = side }
+          if name then seen[name] = true end
+        end
       end
+    end
+  end
+  local bp = DMS.Bus and DMS.Bus._players
+  if type(bp) == "table" and Unit and Unit.getByName then
+    local names = {}
+    for name in pairs(bp) do if not seen[name] then names[#names + 1] = name end end
+    table.sort(names)
+    for _, name in ipairs(names) do
+      local ok2, u, pos, side = pcall(function()
+        local un = Unit.getByName(name)
+        if un and un:isExist() then return un, un:getPoint(), un:getCoalition() end
+        return nil
+      end)
+      if ok2 and u and pos then out[#out + 1] = { unit = u, pos = pos, coalition = side or bp[name].coalition } end
     end
   end
   return out

@@ -478,3 +478,25 @@ def test_build_writes_runtime_config(
     cfg = mission / "out" / "dms_config.lua"
     assert "DMS_CONFIG" in cfg.read_text(encoding="utf-8")
     assert "runtime config:" in res.output
+
+
+def test_build_test_writes_out_test_only(mission: Path, lua_file: Path) -> None:
+    pytest.importorskip("dms_gen.planner")
+    pytest.importorskip("dms_gen.check")
+    out = mission / "out"
+    out.mkdir(exist_ok=True)
+    sentinel = '{"seed": 5}'
+    (out / "plan.json").write_text(sentinel, encoding="utf-8")
+    res = invoke("build", "--test", str(mission), "--lua", str(lua_file))
+    assert res.exit_code == 0, res.output
+    assert (out / "plan.json").read_text(encoding="utf-8") == sentinel
+    assert not (out / "m01-first-light.miz").exists()
+    assert (out / "m01-first-light-test.miz").is_file()
+    assert (out / "test" / "plan.test.json").is_file()
+    assert (out / "test" / "dms_config.lua").is_file()
+    assert "playerProxy" in (out / "test" / "dms_test.lua").read_text(encoding="utf-8")
+    assert "test: planned seed 5" in res.output
+    assert "Proxy Dusty 1" in res.output
+    assert "run_mission.py" in res.output and "--accel 16" in res.output
+    with zipfile.ZipFile(out / "m01-first-light-test.miz") as z:
+        assert "l10n/DEFAULT/dms_test.lua" in z.namelist()

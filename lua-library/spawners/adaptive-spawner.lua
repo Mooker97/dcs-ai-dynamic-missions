@@ -1,5 +1,6 @@
 -- Adaptive Spawner System for DCS Missions
 -- Dynamically adjusts spawn density based on player performance
+-- Requires: spawners/spawn-core.lua
 -- Place in mission via DO SCRIPT FILE
 
 DMS = DMS or {}
@@ -120,7 +121,8 @@ function DMS.AdaptiveSpawner.registerPool(poolId, groups, options)
         maxSpawns = options.maxSpawns or -1,
         spawned = 0,
         cooldown = options.cooldown or 0,
-        lastSpawned = 0,
+        hidden = options.hidden,      -- Fog of war override (nil = settings default)
+        lastSpawned = -math.huge,
         enabled = true,
     }
 
@@ -184,45 +186,39 @@ function DMS.AdaptiveSpawner.getUnitComposition()
            DMS.AdaptiveSpawner.Compositions.normal
 end
 
---- Count active groups
--- @return number Active group count
-local function countActiveGroups()
-    local count = 0
+--- Count active groups / units (late-activation groups that are not yet
+-- activated still "exist", so Unit:isActive() is checked via SpawnCore)
+-- @return number groups, number units
+local function countActive()
+    local groupCount, unitCount = 0, 0
+    local Core = DMS.SpawnCore
     local groups = coalition.getGroups(DMS.AdaptiveSpawner.Config.spawnCoalition)
-    if groups then
-        for _, group in ipairs(groups) do
-            if group:isExist() then
-                local units = group:getUnits()
-                for _, unit in ipairs(units or {}) do
-                    if unit and unit:isExist() and unit:getLife() > 1 then
-                        count = count + 1
-                        break
-                    end
+    for _, group in ipairs(groups or {}) do
+        local active = Core and Core.isGroupActive(group)
+        if active then
+            local alive = 0
+            for _, unit in ipairs(group:getUnits() or {}) do
+                if unit and unit:isExist() and unit:getLife() > 1 then
+                    alive = alive + 1
                 end
+            end
+            if alive > 0 then
+                groupCount = groupCount + 1
+                unitCount = unitCount + alive
             end
         end
     end
-    return count
+    return groupCount, unitCount
 end
 
---- Count active units
--- @return number Active unit count
+local function countActiveGroups()
+    local g = countActive()
+    return g
+end
+
 local function countActiveUnits()
-    local count = 0
-    local groups = coalition.getGroups(DMS.AdaptiveSpawner.Config.spawnCoalition)
-    if groups then
-        for _, group in ipairs(groups) do
-            if group:isExist() then
-                local units = group:getUnits()
-                for _, unit in ipairs(units or {}) do
-                    if unit and unit:isExist() and unit:getLife() > 1 then
-                        count = count + 1
-                    end
-                end
-            end
-        end
-    end
-    return count
+    local _, u = countActive()
+    return u
 end
 
 --- Select pool based on composition
@@ -280,17 +276,46 @@ local function spawnFromPool(poolId)
     local pool = DMS.AdaptiveSpawner.Pools[poolId]
     if not pool or #pool.groups == 0 then return false end
 
-    -- Select random group from pool
-    local groupName = pool.groups[math.random(#pool.groups)]
-    local group = Group.getByName(groupName)
+    local Core = DMS.SpawnCore
+    if not Core then
+        env.error("[AdaptiveSpawner] spawners/spawn-core.lua is not loaded")
+        return false
+    end
 
-    if group then
-        trigger.action.activateGroup(group)
+    -- Select a random group from the pool that has not been activated yet
+    local candidates = {}
+    for _, name in ipairs(pool.groups) do
+        if Group.getByName(name) and not Core.isGroupActive(name) then
+            table.insert(candidates, name)
+        end
+    end
+    if #candidates == 0 then
+        Core.log("AdaptiveSpawner", "Pool '%s' has no inactive groups left", poolId)
+        return false
+    end
+    local groupName = candidates[math.random(#candidates)]
+
+    -- Optional spawn zone: relocate to a random valid point inside it
+    local opts = {hidden = pool.hidden, prefix = "AdaptiveSpawner"}
+    if pool.spawnZone then
+        local zone = trigger.misc.getZone(pool.spawnZone)
+        if zone then
+            local x, y = Core.findValidPoint(function() return Core.randomPointInZone(zone) end)
+            opts.x, opts.y = x, y
+        end
+    end
+
+    local ok, activated = Core.safeCall(Core.activate, "AdaptiveSpawner.activate(" .. groupName .. ")",
+        groupName, opts)
+    if ok and activated then
         pool.spawned = pool.spawned + 1
         pool.lastSpawned = timer.getTime()
         DMS.AdaptiveSpawner.Stats.totalSpawned = DMS.AdaptiveSpawner.Stats.totalSpawned + 1
         DMS.AdaptiveSpawner.Stats.spawnsSinceAdjust = DMS.AdaptiveSpawner.Stats.spawnsSinceAdjust + 1
         DMS.AdaptiveSpawner.Stats.lastSpawnTime = timer.getTime()
+
+        Core.log("AdaptiveSpawner", "Spawned '%s' (pool %s, difficulty %s)",
+            groupName, poolId, DMS.AdaptiveSpawner.Stats.currentDifficulty)
 
         if DMS.AdaptiveSpawner.Config.announceSpawns then
             trigger.action.outText(string.format(
@@ -415,12 +440,12 @@ end
 local function processSpawning(args, time)
     local success, result = pcall(processSpawningInternal, args, time)
     if not success then
-        if DMS.Error then
-            DMS.Error.log("AdaptiveSpawner.processSpawning", result)
-        else
+        local logged = DMS.Error and DMS.Error.log and pcall(DMS.Error.log, "AdaptiveSpawner.processSpawning", result)
+        if not logged then
             env.error("[DMS LUA ERROR] AdaptiveSpawner.processSpawning: " .. tostring(result))
         end
-        -- Continue running despite error
+        -- Continue running despite error (unless stopped)
+        if not DMS.AdaptiveSpawner.Active then return nil end
         return time + (DMS.AdaptiveSpawner.Config.checkInterval or 30)
     end
     return result
@@ -452,14 +477,14 @@ end
 --- Force a spawn
 -- @param poolId string|nil Specific pool (nil = auto-select)
 function DMS.AdaptiveSpawner.forceSpawn(poolId)
-    if poolId then
-        spawnFromPool(poolId)
-    else
-        local selected = selectPool()
-        if selected then
-            spawnFromPool(selected)
-        end
+    local target = poolId or selectPool()
+    if not target then return false end
+    local ok, result = pcall(spawnFromPool, target)
+    if not ok then
+        env.error("[AdaptiveSpawner] forceSpawn: " .. tostring(result))
+        return false
     end
+    return result
 end
 
 --- Get spawner stats

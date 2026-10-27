@@ -3,22 +3,21 @@
 -- Place in mission via DO SCRIPT FILE
 
 DMS = DMS or {}
-DMS.PhaseManager = {}
+DMS.PhaseManager = DMS.PhaseManager or {}
 
--- Phase definitions
-DMS.PhaseManager.Phases = {}
-DMS.PhaseManager.Transitions = {}
-DMS.PhaseManager.CurrentPhase = nil
-DMS.PhaseManager.PhaseStartTime = 0
-DMS.PhaseManager.Active = false
-DMS.PhaseManager.TimerId = nil
+-- Phase definitions (preserved if the script is loaded twice)
+DMS.PhaseManager.Phases = DMS.PhaseManager.Phases or {}
+DMS.PhaseManager.Transitions = DMS.PhaseManager.Transitions or {}
+-- DMS.PhaseManager.CurrentPhase: current phase id (nil until started)
+DMS.PhaseManager.PhaseStartTime = DMS.PhaseManager.PhaseStartTime or 0
+DMS.PhaseManager.Active = DMS.PhaseManager.Active or false
 
 -- Callbacks
-DMS.PhaseManager.OnEnterCallbacks = {}
-DMS.PhaseManager.OnExitCallbacks = {}
+DMS.PhaseManager.OnEnterCallbacks = DMS.PhaseManager.OnEnterCallbacks or {}
+DMS.PhaseManager.OnExitCallbacks = DMS.PhaseManager.OnExitCallbacks or {}
 
 -- Configuration
-DMS.PhaseManager.Config = {
+DMS.PhaseManager.Config = DMS.PhaseManager.Config or {
     checkInterval = 5,
     playerCoalition = coalition.side.BLUE,
     announcePhaseChanges = true,
@@ -27,7 +26,46 @@ DMS.PhaseManager.Config = {
 
 --- Configure phase manager
 -- @param settings table Configuration overrides
+local function isDebug()
+    return DMS.Settings and DMS.Settings.isDebug and DMS.Settings.isDebug()
+end
+
+local function debugLog(fmt, ...)
+    if isDebug() then
+        env.info(string.format("[PhaseManager] " .. fmt, ...))
+    end
+end
+
+local function logError(context, msg)
+    if DMS.Error and DMS.Error.log then
+        DMS.Error.log(context, msg)
+    else
+        env.error("[DMS LUA ERROR] " .. tostring(context) .. ": " .. tostring(msg))
+    end
+end
+
+--- Run a user callback under pcall; returns its result or nil on error
+local function safeInvoke(func, context, ...)
+    if type(func) ~= "function" then return nil end
+    local ok, result = pcall(func, ...)
+    if not ok then
+        logError(context, result)
+        return nil
+    end
+    return result
+end
+
+--- Call an optional method on an optional module (e.g. DMS.RandomSpawn.start)
+local function callOptional(module, method, ...)
+    if type(module) == "table" and type(module[method]) == "function" then
+        return safeInvoke(module[method], "PhaseManager." .. tostring(method), ...)
+    end
+    debugLog("Optional call skipped: %s not available", tostring(method))
+    return nil
+end
+
 function DMS.PhaseManager.configure(settings)
+    if type(settings) ~= "table" then return end
     for key, value in pairs(settings) do
         DMS.PhaseManager.Config[key] = value
     end
@@ -59,6 +97,7 @@ end
 -- @param toPhase string Target phase ID
 -- @param conditions table Transition conditions
 function DMS.PhaseManager.addTransition(fromPhase, toPhase, conditions)
+    conditions = conditions or {}
     if not DMS.PhaseManager.Transitions[fromPhase] then
         DMS.PhaseManager.Transitions[fromPhase] = {}
     end
@@ -81,8 +120,9 @@ end
 -- @param coalition number Coalition to check
 -- @return boolean
 local function isCoalitionInZone(zoneName, coalitionSide)
+    if not zoneName then return false end
     local zone = trigger.misc.getZone(zoneName)
-    if not zone then return false end
+    if not zone or not zone.point then return false end
 
     local players = coalition.getPlayers(coalitionSide)
     if not players then return false end
@@ -106,12 +146,13 @@ end
 -- @param groupName string Group name
 -- @return boolean
 local function isGroupAlive(groupName)
+    if not groupName then return false end
     local group = Group.getByName(groupName)
     if not group or not group:isExist() then return false end
 
     local units = group:getUnits()
     for _, unit in ipairs(units or {}) do
-        if unit and unit:isExist() and unit:getLife() > 1 then
+        if unit and unit:isExist() and unit:getLife() >= 1 then
             return true
         end
     end
@@ -124,7 +165,8 @@ end
 -- @param value any Expected value
 -- @return boolean
 local function checkFlag(flagName, value)
-    local flagValue = trigger.misc.getUserFlag(flagName)
+    if flagName == nil then return false end
+    local flagValue = tonumber(trigger.misc.getUserFlag(flagName)) or 0
     if value == true then
         return flagValue > 0
     elseif value == false then
@@ -138,6 +180,7 @@ end
 -- @param conditions table Conditions to check
 -- @return boolean All conditions met
 local function evaluateConditions(conditions)
+    if type(conditions) ~= "table" then return false end
     local condType = conditions.type
 
     if condType == "zone" then
@@ -153,7 +196,7 @@ local function evaluateConditions(conditions)
         return isGroupAlive(conditions.group)
 
     elseif condType == "groups_dead" then
-        for _, groupName in ipairs(conditions.groups) do
+        for _, groupName in ipairs(conditions.groups or {}) do
             if isGroupAlive(groupName) then
                 return false
             end
@@ -165,15 +208,15 @@ local function evaluateConditions(conditions)
 
     elseif condType == "time" then
         local elapsed = timer.getTime() - DMS.PhaseManager.PhaseStartTime
-        return elapsed >= conditions.seconds
+        return elapsed >= (tonumber(conditions.seconds) or math.huge)
 
     elseif condType == "time_less" then
         local elapsed = timer.getTime() - DMS.PhaseManager.PhaseStartTime
-        return elapsed < conditions.seconds
+        return elapsed < (tonumber(conditions.seconds) or 0)
 
     elseif condType == "objectives" then
         -- Check if all required objectives complete
-        for _, objId in ipairs(conditions.required) do
+        for _, objId in ipairs(conditions.required or {}) do
             if not checkFlag(objId, true) then
                 return false
             end
@@ -182,7 +225,7 @@ local function evaluateConditions(conditions)
 
     elseif condType == "any_objective" then
         -- Check if any objective complete
-        for _, objId in ipairs(conditions.objectives) do
+        for _, objId in ipairs(conditions.objectives or {}) do
             if checkFlag(objId, true) then
                 return true
             end
@@ -190,10 +233,10 @@ local function evaluateConditions(conditions)
         return false
 
     elseif condType == "custom" then
-        return conditions.check()
+        return safeInvoke(conditions.check, "PhaseManager.customCondition") and true or false
 
     elseif condType == "AND" then
-        for _, subCondition in ipairs(conditions.conditions) do
+        for _, subCondition in ipairs(conditions.conditions or {}) do
             if not evaluateConditions(subCondition) then
                 return false
             end
@@ -201,7 +244,7 @@ local function evaluateConditions(conditions)
         return true
 
     elseif condType == "OR" then
-        for _, subCondition in ipairs(conditions.conditions) do
+        for _, subCondition in ipairs(conditions.conditions or {}) do
             if evaluateConditions(subCondition) then
                 return true
             end
@@ -221,7 +264,8 @@ end
 function DMS.PhaseManager.transitionTo(newPhaseId, reason)
     local newPhase = DMS.PhaseManager.Phases[newPhaseId]
     if not newPhase then
-        trigger.action.outText(string.format("[PhaseManager] Unknown phase: %s", newPhaseId), 10)
+        env.warning(string.format("[PhaseManager] Unknown phase: %s", tostring(newPhaseId)))
+        trigger.action.outText(string.format("[PhaseManager] Unknown phase: %s", tostring(newPhaseId)), 10)
         return false
     end
 
@@ -229,15 +273,13 @@ function DMS.PhaseManager.transitionTo(newPhaseId, reason)
 
     -- Exit current phase
     if oldPhase then
-        if oldPhase.onExit then
-            oldPhase.onExit(oldPhase.id, newPhaseId)
-        end
+        safeInvoke(oldPhase.onExit, "PhaseManager.onExit." .. tostring(oldPhase.id), oldPhase.id, newPhaseId)
 
         -- Call registered exit callbacks
         local exitCallbacks = DMS.PhaseManager.OnExitCallbacks[oldPhase.id]
         if exitCallbacks then
             for _, callback in ipairs(exitCallbacks) do
-                callback(oldPhase.id, newPhaseId)
+                safeInvoke(callback, "PhaseManager.exitCallback." .. tostring(oldPhase.id), oldPhase.id, newPhaseId)
             end
         end
     end
@@ -245,33 +287,33 @@ function DMS.PhaseManager.transitionTo(newPhaseId, reason)
     -- Update current phase
     DMS.PhaseManager.CurrentPhase = newPhaseId
     DMS.PhaseManager.PhaseStartTime = timer.getTime()
+    debugLog("Phase %s -> %s (%s)", tostring(oldPhase and oldPhase.id or "none"), tostring(newPhaseId), tostring(reason or "conditions met"))
 
     -- Set phase flags
-    for flagName, flagValue in pairs(newPhase.flags) do
+    for flagName, flagValue in pairs(newPhase.flags or {}) do
+        if flagValue == true then flagValue = 1 elseif flagValue == false then flagValue = 0 end
         trigger.action.setUserFlag(flagName, flagValue)
     end
 
     -- Enter new phase
-    if newPhase.onEnter then
-        newPhase.onEnter(newPhaseId, oldPhase and oldPhase.id or nil)
-    end
+    safeInvoke(newPhase.onEnter, "PhaseManager.onEnter." .. tostring(newPhaseId), newPhaseId, oldPhase and oldPhase.id or nil)
 
     -- Call registered enter callbacks
     local enterCallbacks = DMS.PhaseManager.OnEnterCallbacks[newPhaseId]
     if enterCallbacks then
         for _, callback in ipairs(enterCallbacks) do
-            callback(newPhaseId, oldPhase and oldPhase.id or nil)
+            safeInvoke(callback, "PhaseManager.enterCallback." .. tostring(newPhaseId), newPhaseId, oldPhase and oldPhase.id or nil)
         end
     end
 
     -- Announce phase change
     if DMS.PhaseManager.Config.announcePhaseChanges then
-        local msg = string.format("=== %s ===", newPhase.name:upper())
+        local msg = string.format("=== %s ===", tostring(newPhase.name):upper())
         if newPhase.briefing and newPhase.briefing ~= "" then
             msg = msg .. "\n\n" .. newPhase.briefing
         end
         if reason then
-            msg = msg .. "\n\n(" .. reason .. ")"
+            msg = msg .. "\n\n(" .. tostring(reason) .. ")"
         end
 
         trigger.action.outTextForCoalition(
@@ -288,37 +330,31 @@ end
 local function processPhaseCheckInternal(_, time)
     if not DMS.PhaseManager.Active then return nil end
 
-    local currentPhase = DMS.PhaseManager.Phases[DMS.PhaseManager.CurrentPhase]
+    local interval = tonumber(DMS.PhaseManager.Config.checkInterval) or 5
+    local currentId = DMS.PhaseManager.CurrentPhase
+    local currentPhase = currentId and DMS.PhaseManager.Phases[currentId]
     if not currentPhase then
-        return time + DMS.PhaseManager.Config.checkInterval
+        return time + interval
     end
 
     local elapsed = timer.getTime() - DMS.PhaseManager.PhaseStartTime
 
     -- Call onUpdate if defined
-    if currentPhase.onUpdate then
-        currentPhase.onUpdate(currentPhase.id, elapsed)
-    end
+    safeInvoke(currentPhase.onUpdate, "PhaseManager.onUpdate." .. tostring(currentPhase.id), currentPhase.id, elapsed)
 
     -- Check timeout
     if currentPhase.duration and elapsed >= currentPhase.duration then
         if currentPhase.timeoutPhase then
             DMS.PhaseManager.transitionTo(currentPhase.timeoutPhase, "Phase timeout")
-            return time + DMS.PhaseManager.Config.checkInterval
+            return time + interval
         end
     end
 
-    -- Check success/failure conditions
-    if currentPhase.success and currentPhase.success() then
-        -- Handled by transitions
-    end
-
-    if currentPhase.failure and currentPhase.failure() then
-        -- Handled by transitions
-    end
+    -- Note: phase success/failure functions are informational; use
+    -- addTransition(..., {type = "custom", check = fn}) to act on them.
 
     -- Check transitions
-    local transitions = DMS.PhaseManager.Transitions[DMS.PhaseManager.CurrentPhase]
+    local transitions = DMS.PhaseManager.Transitions[currentId]
     if transitions then
         for _, transition in ipairs(transitions) do
             if evaluateConditions(transition.conditions) then
@@ -328,19 +364,16 @@ local function processPhaseCheckInternal(_, time)
         end
     end
 
-    return time + DMS.PhaseManager.Config.checkInterval
+    return time + interval
 end
 
 --- Process phase checks with error handling
 local function processPhaseCheck(args, time)
     local success, result = pcall(processPhaseCheckInternal, args, time)
     if not success then
-        if DMS.Error then
-            DMS.Error.log("PhaseManager.processPhaseCheck", result)
-        else
-            env.error("[DMS LUA ERROR] PhaseManager.processPhaseCheck: " .. tostring(result))
-        end
-        return time + (DMS.PhaseManager.Config.checkInterval or 5)
+        logError("PhaseManager.processPhaseCheck", result)
+        if not DMS.PhaseManager.Active then return nil end
+        return time + (tonumber(DMS.PhaseManager.Config.checkInterval) or 5)
     end
     return result
 end
@@ -409,22 +442,25 @@ function DMS.PhaseManager.start(initialPhase)
     if DMS.PhaseManager.Active then return end
 
     DMS.PhaseManager.Active = true
-    DMS.PhaseManager.transitionTo(initialPhase, "Mission start")
+    local ok, err = pcall(DMS.PhaseManager.transitionTo, initialPhase, "Mission start")
+    if not ok then logError("PhaseManager.start", err) end
 
     DMS.PhaseManager.TimerId = timer.scheduleFunction(
         processPhaseCheck,
         nil,
-        timer.getTime() + DMS.PhaseManager.Config.checkInterval
+        timer.getTime() + (tonumber(DMS.PhaseManager.Config.checkInterval) or 5)
     )
+    debugLog("Started in phase '%s' (interval %ss)", tostring(initialPhase), tostring(DMS.PhaseManager.Config.checkInterval))
 end
 
 --- Stop phase manager
 function DMS.PhaseManager.stop()
     DMS.PhaseManager.Active = false
     if DMS.PhaseManager.TimerId then
-        timer.removeFunction(DMS.PhaseManager.TimerId)
+        pcall(timer.removeFunction, DMS.PhaseManager.TimerId)
         DMS.PhaseManager.TimerId = nil
     end
+    debugLog("Stopped")
 end
 
 --- Define standard mission phases
@@ -442,9 +478,7 @@ function DMS.PhaseManager.defineStandardPhases()
         briefing = "Proceed to target area. Maintain awareness of threats.",
         flags = {INGRESS_ACTIVE = 1},
         onEnter = function()
-            if DMS.RandomSpawn then
-                DMS.RandomSpawn.start()
-            end
+            callOptional(DMS.RandomSpawn, "start")
         end,
     })
 
@@ -453,8 +487,8 @@ function DMS.PhaseManager.defineStandardPhases()
         briefing = "You have reached the target area. Engage all objectives.",
         flags = {ATTACK_ACTIVE = 1},
         onEnter = function()
-            if DMS.Awareness then
-                DMS.Awareness.setAllState(DMS.Awareness.STATES.ALERT)
+            if DMS.Awareness and DMS.Awareness.STATES then
+                callOptional(DMS.Awareness, "setAllState", DMS.Awareness.STATES.ALERT)
             end
         end,
     })
@@ -464,9 +498,7 @@ function DMS.PhaseManager.defineStandardPhases()
         briefing = "Objectives complete. Return to base.",
         flags = {EGRESS_ACTIVE = 1},
         onEnter = function()
-            if DMS.RandomSpawn then
-                DMS.RandomSpawn.stop()
-            end
+            callOptional(DMS.RandomSpawn, "stop")
         end,
     })
 
@@ -481,18 +513,16 @@ function DMS.PhaseManager.defineStandardPhases()
         briefing = "Mission accomplished. Well done.",
         flags = {MISSION_COMPLETE = 1},
         onEnter = function()
-            if DMS.SkillScaling then
-                local report = DMS.SkillScaling.getReport()
-                if report then
-                    trigger.action.outTextForCoalition(
-                        DMS.PhaseManager.Config.playerCoalition,
-                        string.format(
-                            "Mission Statistics:\nKills: %d\nDeaths: %d\nFinal Difficulty: %s",
-                            report.kills, report.deaths, report.currentSkill
-                        ),
-                        30
-                    )
-                end
+            local report = callOptional(DMS.SkillScaling, "getReport")
+            if type(report) == "table" then
+                trigger.action.outTextForCoalition(
+                    DMS.PhaseManager.Config.playerCoalition,
+                    string.format(
+                        "Mission Statistics:\nKills: %d\nDeaths: %d\nFinal Difficulty: %s",
+                        tonumber(report.kills) or 0, tonumber(report.deaths) or 0, tostring(report.currentSkill)
+                    ),
+                    30
+                )
             end
         end,
     })

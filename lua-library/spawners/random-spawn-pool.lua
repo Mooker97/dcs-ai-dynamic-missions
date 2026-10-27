@@ -1,5 +1,6 @@
 -- Random Spawn Pool System for DCS Missions
 -- Pick N random groups from a pool with overall spawn chance
+-- Requires: spawners/spawn-core.lua
 -- Place in mission via DO SCRIPT FILE
 
 DMS = DMS or {}
@@ -75,21 +76,54 @@ function DMS.SpawnPool.addPattern(poolId, prefix, count)
     end
 end
 
---- Shuffle array (Fisher-Yates)
--- @param arr table Array to shuffle
--- @return table Shuffled array
-local function shuffle(arr)
-    local shuffled = {}
-    for i, v in ipairs(arr) do
-        shuffled[i] = v
+--- Activate the selected groups of a pool (shared by executePool / forceSpawn)
+-- @param pool table
+-- @param selected table Array of group names
+-- @return number Count activated
+local function activateSelected(pool, selected)
+    local Core = DMS.SpawnCore
+    if not Core then
+        env.error("[SpawnPool] spawners/spawn-core.lua is not loaded")
+        return 0
     end
-
-    for i = #shuffled, 2, -1 do
-        local j = math.random(1, i)
-        shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
+    local spawned = 0
+    for _, groupName in ipairs(selected) do
+        local ok, activated = Core.safeCall(Core.activate,
+            "SpawnPool.activate(" .. tostring(groupName) .. ")",
+            groupName, {hidden = pool.hidden, prefix = "SpawnPool"})
+        if ok and activated then
+            table.insert(pool.spawnedGroups, groupName)
+            spawned = spawned + 1
+        end
     end
+    return spawned
+end
 
-    return shuffled
+--- Pick up to pool.count groups that are not active yet
+local function selectGroups(pool, count)
+    local Core = DMS.SpawnCore
+    local candidates = {}
+    for _, name in ipairs(pool.groups) do
+        if not (Core and Core.isGroupActive(name)) then
+            table.insert(candidates, name)
+        end
+    end
+    if Core then
+        return Core.pickRandom(candidates, count or pool.count)
+    end
+    return {}
+end
+
+--- Spawn (activate) groups of a pool after an optional delay
+local function spawnWithDelay(pool, selected, delay)
+    if delay and delay > 0 and DMS.SpawnCore then
+        pool.timerId = DMS.SpawnCore.schedule(function()
+            pool.timerId = nil
+            activateSelected(pool, selected)
+        end, delay, "SpawnPool.doSpawn(" .. pool.id .. ")")
+        return #selected, true
+    end
+    return activateSelected(pool, selected), false
 end
 
 --- Execute spawn for a specific pool
@@ -113,45 +147,7 @@ function DMS.SpawnPool.executePool(poolId)
         return {success = false, spawned = 0, selected = {}}
     end
 
-    -- Shuffle and pick N groups
-    local shuffled = shuffle(pool.groups)
-    local toSpawn = math.min(pool.count, #shuffled)
-    local selected = {}
-
-    for i = 1, toSpawn do
-        table.insert(selected, shuffled[i])
-    end
-
-    -- Spawn function
-    local function doSpawn()
-        local spawned = 0
-        -- Determine hidden state: pool override > settings default
-        local hidden = pool.hidden
-        if hidden == nil and DMS.Settings then
-            hidden = DMS.Settings.getSpawnHidden()
-        end
-
-        for _, groupName in ipairs(selected) do
-            local group = Group.getByName(groupName)
-            if group then
-                -- Use fog of war system if available and hidden is needed
-                if hidden and DMS.FogOfWar then
-                    DMS.FogOfWar.activateGroup(groupName, true)
-                else
-                    trigger.action.activateGroup(group)
-                end
-                table.insert(pool.spawnedGroups, groupName)
-                spawned = spawned + 1
-
-                -- Debug logging
-                if DMS.Settings and DMS.Settings.isDebug() then
-                    env.info(string.format("[SpawnPool] Activated: %s (hidden: %s)",
-                        groupName, tostring(hidden or false)))
-                end
-            end
-        end
-        return spawned
-    end
+    local selected = selectGroups(pool)
 
     -- Calculate delay
     local delay = pool.delay
@@ -159,14 +155,37 @@ function DMS.SpawnPool.executePool(poolId)
         delay = math.random(pool.minDelay, pool.maxDelay)
     end
 
-    -- Execute with or without delay
-    if delay > 0 then
-        DMS.Error.safeSchedule(doSpawn, delay, "SpawnPool.doSpawn(" .. poolId .. ")")
-        return {success = true, spawned = toSpawn, selected = selected, delayed = true}
-    else
-        local success, spawned = DMS.Error.safeCall(doSpawn, "SpawnPool.doSpawn(" .. poolId .. ")")
-        return {success = true, spawned = spawned or 0, selected = selected, delayed = false}
+    local spawned, delayed = spawnWithDelay(pool, selected, delay)
+
+    if DMS.Settings and DMS.Settings.isDebug() then
+        env.info(string.format("[SpawnPool] Pool '%s' rolled %d <= %d: %d group(s)%s",
+            poolId, roll, pool.chance, #selected, delayed and string.format(" in %ds", delay) or ""))
     end
+
+    return {success = true, spawned = spawned, selected = selected, delayed = delayed}
+end
+
+--- Force a pool to spawn now, ignoring its chance roll and executed state.
+-- Used by events/conditional-triggers.lua and events/event-chain.lua.
+-- @param poolId string Pool identifier
+-- @param count number|nil Override how many groups to activate
+-- @return table Results {success, spawned, selected}
+function DMS.SpawnPool.forceSpawn(poolId, count)
+    local pool = DMS.SpawnPool.Pools[poolId]
+    if not pool then
+        env.warning(string.format("[SpawnPool] forceSpawn: pool '%s' not found", tostring(poolId)))
+        return {success = false, spawned = 0, selected = {}}
+    end
+
+    pool.executed = true
+    local selected = selectGroups(pool, count)
+    local spawned = activateSelected(pool, selected)
+
+    if DMS.Settings and DMS.Settings.isDebug() then
+        env.info(string.format("[SpawnPool] Force-spawned pool '%s': %d group(s)", poolId, spawned))
+    end
+
+    return {success = spawned > 0, spawned = spawned, selected = selected}
 end
 
 --- Execute all registered pools
@@ -186,6 +205,10 @@ end
 function DMS.SpawnPool.reset(poolId)
     local pool = DMS.SpawnPool.Pools[poolId]
     if pool then
+        if pool.timerId then
+            pcall(timer.removeFunction, pool.timerId)
+            pool.timerId = nil
+        end
         pool.executed = false
         pool.spawnedGroups = {}
     end

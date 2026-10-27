@@ -1,13 +1,13 @@
 -- Stats Collector System for DCS Missions
 -- Comprehensive mission statistics tracking
--- Requires: utils/messaging.lua
+-- Optional: utils/error-handler.lua (falls back to pcall if absent)
 -- Place in mission via DO SCRIPT FILE
 
 DMS = DMS or {}
-DMS.Stats = {}
+DMS.Stats = DMS.Stats or {}
 
--- Statistics storage
-DMS.Stats.Data = {
+-- Statistics storage (preserved if the script is loaded twice)
+DMS.Stats.Data = DMS.Stats.Data or {
     mission = {
         startTime = 0,
         endTime = 0,
@@ -15,6 +15,7 @@ DMS.Stats.Data = {
     },
     players = {},
     coalition = {
+        [0] = {kills = 0, losses = 0, score = 0},  -- NEUTRAL
         [1] = {kills = 0, losses = 0, score = 0},  -- RED
         [2] = {kills = 0, losses = 0, score = 0},  -- BLUE
     },
@@ -36,27 +37,71 @@ DMS.Stats.Data = {
     },
 }
 
-DMS.Stats.EventHandler = nil
-DMS.Stats.Active = false
-DMS.Stats.TimerId = nil
+DMS.Stats.Active = DMS.Stats.Active or false
 
 -- Configuration
-DMS.Stats.Config = {
+DMS.Stats.Config = DMS.Stats.Config or {
     playerCoalition = coalition.side.BLUE,
     trackWeapons = true,
     trackMovement = false,  -- Can be performance intensive
     displayDuration = 30,
 }
 
---- Configure stats system
+-- ============================================================
+-- SAFE HELPERS
+-- ============================================================
+
+local function isDebug()
+    return DMS.Settings and DMS.Settings.isDebug and DMS.Settings.isDebug()
+end
+
+local function debugLog(fmt, ...)
+    if isDebug() then
+        env.info(string.format("[Stats] " .. fmt, ...))
+    end
+end
+
+local function logError(context, msg)
+    if DMS.Error and DMS.Error.log then
+        DMS.Error.log(context, msg)
+    else
+        env.error("[DMS LUA ERROR] " .. tostring(context) .. ": " .. tostring(msg))
+    end
+end
+
+local function safeMethod(obj, method, ...)
+    if type(obj) ~= "table" or type(obj[method]) ~= "function" then return nil end
+    local ok, result = pcall(obj[method], obj, ...)
+    if ok then return result end
+    return nil
+end
+
+local function isUnitObject(obj)
+    return safeMethod(obj, "getCategory") == Object.Category.UNIT
+end
+
+local function getPlayerNameOf(obj)
+    if not isUnitObject(obj) then return nil end
+    return safeMethod(obj, "getPlayerName")
+end
+
+--- Unit.Category (AIRPLANE/HELICOPTER/GROUND_UNIT/SHIP/STRUCTURE) via getDesc
+local function getUnitTypeCategory(obj)
+    local desc = safeMethod(obj, "getDesc")
+    if type(desc) == "table" then return desc.category end
+    return nil
+end
+
+--- Configure stats collector
 -- @param settings table Configuration overrides
 function DMS.Stats.configure(settings)
+    if type(settings) ~= "table" then return end
     for key, value in pairs(settings) do
         DMS.Stats.Config[key] = value
     end
 end
 
---- Get or create player stats record
+--- Get or create player stats
 -- @param playerName string Player name
 -- @return table Player stats
 local function getPlayerStats(playerName)
@@ -86,150 +131,119 @@ local function getPlayerStats(playerName)
     return DMS.Stats.Data.players[playerName]
 end
 
---- Record a kill
--- @param killer table Unit that made the kill
--- @param target table Unit that was killed
-local function recordKill(killer, target)
-    if not killer or not target then return end
-
-    local targetCategory = target:getCategory()
-    local killerCoalition = killer:getCoalition()
-    local targetCoalition = target:getCoalition()
-
-    -- Track coalition stats
-    if DMS.Stats.Data.coalition[killerCoalition] then
-        DMS.Stats.Data.coalition[killerCoalition].kills = DMS.Stats.Data.coalition[killerCoalition].kills + 1
-    end
-    if DMS.Stats.Data.coalition[targetCoalition] then
-        DMS.Stats.Data.coalition[targetCoalition].losses = DMS.Stats.Data.coalition[targetCoalition].losses + 1
-    end
-
-    -- Track by type
-    local typeName = target:getTypeName()
-    DMS.Stats.Data.units.byType[typeName] = (DMS.Stats.Data.units.byType[typeName] or 0) + 1
-    DMS.Stats.Data.units.destroyed = DMS.Stats.Data.units.destroyed + 1
-
-    -- Track player kills
-    if killer.getPlayerName then
-        local playerName = killer:getPlayerName()
-        if playerName then
-            local stats = getPlayerStats(playerName)
-            stats.lastActivity = timer.getTime()
-
-            -- Friendly fire check
-            if killerCoalition == targetCoalition then
-                stats.friendlyFire = stats.friendlyFire + 1
-            else
-                stats.kills.total = stats.kills.total + 1
-
-                if targetCategory == Unit.Category.AIRPLANE or
-                   targetCategory == Unit.Category.HELICOPTER then
-                    stats.kills.air = stats.kills.air + 1
-                elseif targetCategory == Unit.Category.SHIP then
-                    stats.kills.ship = stats.kills.ship + 1
-                else
-                    stats.kills.ground = stats.kills.ground + 1
-                end
-            end
-        end
+--- Increment a per-player counter if obj is a player-controlled unit
+local function bumpPlayer(obj, field)
+    local playerName = getPlayerNameOf(obj)
+    if playerName then
+        local stats = getPlayerStats(playerName)
+        stats[field] = (stats[field] or 0) + 1
+        stats.lastActivity = timer.getTime()
     end
 end
 
---- Create event handler (internal)
+--- Record a kill
+-- @param killer Object Killing object (may be nil / non-unit)
+-- @param target Object Killed object (unit, static or scenery)
+local function recordKill(killer, target)
+    if not target then return end
+
+    local killerCoalition = safeMethod(killer, "getCoalition")
+    local targetCoalition = safeMethod(target, "getCoalition")
+
+    -- Update coalition stats
+    local coal = DMS.Stats.Data.coalition
+    if killerCoalition and coal[killerCoalition] then
+        coal[killerCoalition].kills = coal[killerCoalition].kills + 1
+    end
+    if targetCoalition and coal[targetCoalition] then
+        coal[targetCoalition].losses = coal[targetCoalition].losses + 1
+    end
+
+    -- Update unit type stats
+    local typeName = safeMethod(target, "getTypeName") or "Unknown"
+    DMS.Stats.Data.units.byType[typeName] = (DMS.Stats.Data.units.byType[typeName] or 0) + 1
+    DMS.Stats.Data.units.destroyed = DMS.Stats.Data.units.destroyed + 1
+
+    -- Update player stats
+    local playerName = getPlayerNameOf(killer)
+    if playerName then
+        local stats = getPlayerStats(playerName)
+        stats.lastActivity = timer.getTime()
+
+        if killerCoalition and killerCoalition == targetCoalition then
+            stats.friendlyFire = stats.friendlyFire + 1
+        else
+            stats.kills.total = stats.kills.total + 1
+
+            local targetCategory = getUnitTypeCategory(target)
+            if targetCategory == Unit.Category.AIRPLANE or
+               targetCategory == Unit.Category.HELICOPTER then
+                stats.kills.air = stats.kills.air + 1
+            elseif targetCategory == Unit.Category.SHIP then
+                stats.kills.ship = stats.kills.ship + 1
+            else
+                stats.kills.ground = stats.kills.ground + 1
+            end
+        end
+        debugLog("%s killed %s", tostring(playerName), typeName)
+    end
+end
+
+--- Event handler (raw; wrapped with pcall in start())
 DMS.Stats._EventHandlerInternal = {
     onEvent = function(self, event)
-        if not DMS.Stats.Active then
+        if not DMS.Stats.Active or type(event) ~= "table" then
             return
         end
 
-        -- Kill event
-        if event.id == world.event.S_EVENT_KILL then
+        local id = event.id
+
+        if id == world.event.S_EVENT_KILL then
             recordKill(event.initiator, event.target)
 
-        -- Takeoff
-        elseif event.id == world.event.S_EVENT_TAKEOFF then
+        elseif id == world.event.S_EVENT_TAKEOFF then
             DMS.Stats.Data.events.takeoffs = DMS.Stats.Data.events.takeoffs + 1
-            if event.initiator and event.initiator.getPlayerName then
-                local playerName = event.initiator:getPlayerName()
-                if playerName then
-                    local stats = getPlayerStats(playerName)
-                    stats.takeoffs = stats.takeoffs + 1
-                end
-            end
+            bumpPlayer(event.initiator, "takeoffs")
 
-        -- Landing
-        elseif event.id == world.event.S_EVENT_LAND then
+        elseif id == world.event.S_EVENT_LAND then
             DMS.Stats.Data.events.landings = DMS.Stats.Data.events.landings + 1
-            if event.initiator and event.initiator.getPlayerName then
-                local playerName = event.initiator:getPlayerName()
-                if playerName then
-                    local stats = getPlayerStats(playerName)
-                    stats.landings = stats.landings + 1
-                end
-            end
+            bumpPlayer(event.initiator, "landings")
 
-        -- Ejection
-        elseif event.id == world.event.S_EVENT_EJECTION then
+        elseif id == world.event.S_EVENT_EJECTION then
             DMS.Stats.Data.events.ejections = DMS.Stats.Data.events.ejections + 1
-            if event.initiator and event.initiator.getPlayerName then
-                local playerName = event.initiator:getPlayerName()
-                if playerName then
-                    local stats = getPlayerStats(playerName)
-                    stats.ejections = stats.ejections + 1
-                end
-            end
+            bumpPlayer(event.initiator, "ejections")
 
-        -- Crash
-        elseif event.id == world.event.S_EVENT_CRASH then
+        elseif id == world.event.S_EVENT_CRASH then
             DMS.Stats.Data.events.crashes = DMS.Stats.Data.events.crashes + 1
 
-        -- Pilot death
-        elseif event.id == world.event.S_EVENT_PILOT_DEAD then
-            if event.initiator and event.initiator.getPlayerName then
-                local playerName = event.initiator:getPlayerName()
-                if playerName then
-                    local stats = getPlayerStats(playerName)
-                    stats.deaths = stats.deaths + 1
-                end
-            end
+        elseif id == world.event.S_EVENT_PILOT_DEAD then
+            bumpPlayer(event.initiator, "deaths")
 
-        -- Weapon fired
-        elseif event.id == world.event.S_EVENT_SHOT and DMS.Stats.Config.trackWeapons then
+        elseif id == world.event.S_EVENT_SHOT and DMS.Stats.Config.trackWeapons then
             DMS.Stats.Data.weapons.fired = DMS.Stats.Data.weapons.fired + 1
-            if event.weapon then
-                local weaponName = event.weapon:getTypeName()
+            local weaponName = safeMethod(event.weapon, "getTypeName")
+            if weaponName then
                 DMS.Stats.Data.weapons.byType[weaponName] = (DMS.Stats.Data.weapons.byType[weaponName] or 0) + 1
             end
-            if event.initiator and event.initiator.getPlayerName then
-                local playerName = event.initiator:getPlayerName()
-                if playerName then
-                    local stats = getPlayerStats(playerName)
-                    stats.weaponsFired = stats.weaponsFired + 1
-                end
-            end
+            bumpPlayer(event.initiator, "weaponsFired")
 
-        -- Weapon hit
-        elseif event.id == world.event.S_EVENT_HIT and DMS.Stats.Config.trackWeapons then
+        elseif id == world.event.S_EVENT_HIT and DMS.Stats.Config.trackWeapons then
             DMS.Stats.Data.weapons.hits = DMS.Stats.Data.weapons.hits + 1
-            if event.initiator and event.initiator.getPlayerName then
-                local playerName = event.initiator:getPlayerName()
-                if playerName then
-                    local stats = getPlayerStats(playerName)
-                    stats.weaponsHit = stats.weaponsHit + 1
-                end
-            end
+            bumpPlayer(event.initiator, "weaponsHit")
 
-        -- Birth (unit spawned)
-        elseif event.id == world.event.S_EVENT_BIRTH then
-            DMS.Stats.Data.units.spawned = DMS.Stats.Data.units.spawned + 1
+        elseif id == world.event.S_EVENT_BIRTH then
+            if isUnitObject(event.initiator) then
+                DMS.Stats.Data.units.spawned = DMS.Stats.Data.units.spawned + 1
+            end
         end
     end
 }
 
 --- Format duration as HH:MM:SS
 -- @param seconds number Duration in seconds
--- @return string Formatted time
+-- @return string Formatted duration
 local function formatDuration(seconds)
+    seconds = math.max(0, tonumber(seconds) or 0)
     local hours = math.floor(seconds / 3600)
     local mins = math.floor((seconds % 3600) / 60)
     local secs = math.floor(seconds % 60)
@@ -244,13 +258,22 @@ function DMS.Stats.start()
 
     DMS.Stats.Active = true
     DMS.Stats.Data.mission.startTime = timer.getTime()
+    DMS.Stats.Data.mission.endTime = 0
 
-    -- Wrap event handler with error protection
-    DMS.Stats.EventHandler = DMS.Error.safeHandler(
-        DMS.Stats._EventHandlerInternal,
-        "Stats.EventHandler"
-    )
-    world.addEventHandler(DMS.Stats.EventHandler)
+    if not DMS.Stats.EventHandler then
+        if DMS.Error and DMS.Error.safeHandler then
+            DMS.Stats.EventHandler = DMS.Error.safeHandler(DMS.Stats._EventHandlerInternal, "Stats.EventHandler")
+        else
+            DMS.Stats.EventHandler = {
+                onEvent = function(self, event)
+                    local ok, err = pcall(DMS.Stats._EventHandlerInternal.onEvent, DMS.Stats._EventHandlerInternal, event)
+                    if not ok then logError("Stats.EventHandler", err) end
+                end
+            }
+        end
+        world.addEventHandler(DMS.Stats.EventHandler)
+    end
+    debugLog("Started (trackWeapons=%s)", tostring(DMS.Stats.Config.trackWeapons))
 end
 
 --- Stop stats collection
@@ -258,13 +281,19 @@ function DMS.Stats.stop()
     DMS.Stats.Active = false
     DMS.Stats.Data.mission.endTime = timer.getTime()
     DMS.Stats.Data.mission.duration = DMS.Stats.Data.mission.endTime - DMS.Stats.Data.mission.startTime
+    if DMS.Stats.EventHandler then
+        pcall(world.removeEventHandler, DMS.Stats.EventHandler)
+        DMS.Stats.EventHandler = nil
+    end
+    debugLog("Stopped (duration %s)", formatDuration(DMS.Stats.Data.mission.duration))
 end
 
 --- Get mission summary
 -- @return table Mission summary data
 function DMS.Stats.getSummary()
-    local currentTime = timer.getTime()
-    local duration = currentTime - DMS.Stats.Data.mission.startTime
+    local endTime = DMS.Stats.Active and timer.getTime() or DMS.Stats.Data.mission.endTime
+    if not endTime or endTime == 0 then endTime = timer.getTime() end
+    local duration = endTime - DMS.Stats.Data.mission.startTime
 
     return {
         duration = duration,
@@ -377,7 +406,7 @@ function DMS.Stats.showPlayerStats(playerName)
     local stats = DMS.Stats.Data.players[playerName]
 
     if not stats then
-        trigger.action.outText("No stats found for " .. playerName, 5)
+        trigger.action.outText("No stats found for " .. tostring(playerName), 5)
         return
     end
 

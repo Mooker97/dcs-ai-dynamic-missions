@@ -2,7 +2,20 @@
   DMS Audio Player
   Play WAV/OGG audio files from mission assets
 
-  Audio files should be located in: l10n/DEFAULT/ within the .miz file
+  Audio files must be embedded in the .miz and live in l10n/DEFAULT/ (flat,
+  no sub-folders). They are played with:
+    trigger.action.outSound("l10n/DEFAULT/<file>.ogg")
+    trigger.action.outSoundForCoalition(side, "l10n/DEFAULT/<file>.ogg")
+    trigger.action.outSoundForGroup(groupId, "l10n/DEFAULT/<file>.ogg")
+
+  IMPORTANT: DCS only packs a sound file into the .miz (and keeps it in the
+  mission resource list / mapResource) if the Mission Editor references it.
+  Add every sound file ONCE via the ME, e.g. a dummy trigger
+  (TIME MORE 99999 -> SOUND TO ALL <file>) so it is kept in l10n/DEFAULT/.
+  File names passed to this module are resolved to "l10n/DEFAULT/<file>";
+  any path components (e.g. "radio_click.wav") are stripped because the ME
+  stores resources flat. Prefer .ogg; .wav also works.
+
   Supports queuing, delays, and targeted playback (coalition/group/unit)
 
   SOURCE AUDIO FILES:
@@ -26,10 +39,11 @@
         - Mission Start.wav
         - Clear To Land.wav
 
-    Copy these to your .miz file's l10n/DEFAULT/ folder when building missions.
+    Add these to the mission via the ME (see note above) so they end up in
+    the .miz file's l10n/DEFAULT/ folder.
 
   Usage:
-    DMS.Audio.configure({ basePath = "audio/" })
+    DMS.Audio.configure({ basePath = "l10n/DEFAULT/" })
     DMS.Audio.play("warning_siren.wav")
     DMS.Audio.playForCoalition(coalition.side.BLUE, "briefing.ogg")
     DMS.Audio.queue("sound1.wav", "sound2.wav", "sound3.wav")
@@ -43,7 +57,7 @@ DMS.Audio = {}
 --------------------------------------------------------------------------------
 
 local config = {
-  basePath = "audio/",           -- Path prefix within l10n/DEFAULT/
+  basePath = "l10n/DEFAULT/",    -- Resource path inside the .miz (DCS default)
   defaultDelay = 0,              -- Default delay before playing (seconds)
   queueGap = 0.5,                -- Gap between queued sounds (seconds)
   logPlayback = true,            -- Log audio playback events
@@ -73,12 +87,40 @@ local function log(msg)
   end
 end
 
+local function debugLog(fmt, ...)
+  if DMS.Settings and DMS.Settings.isDebug and DMS.Settings.isDebug() then
+    env.info(string.format("[DMS.Audio] " .. fmt, ...))
+  end
+end
+
+local function tableLength(t)
+  local n = 0
+  if type(t) == "table" then
+    for _ in pairs(t) do n = n + 1 end
+  end
+  return n
+end
+
+--- Schedule a function safely (pcall-guarded, one-shot)
+local function safeSchedule(fn, delay, name)
+  return timer.scheduleFunction(function()
+    local ok, err = pcall(fn)
+    if not ok then
+      env.error("[DMS.Audio] " .. (name or "scheduled") .. " failed: " .. tostring(err))
+    end
+    return nil
+  end, nil, timer.getTime() + (delay or 0))
+end
+
 local function getFullPath(filename)
-  -- If filename already has path or starts with audio/, use as-is
-  if filename:match("^audio/") or filename:match("^l10n/") then
+  filename = tostring(filename)
+  -- Already a full resource path
+  if filename:match("^l10n/") then
     return filename
   end
-  return config.basePath .. filename
+  -- ME stores resources flat in l10n/DEFAULT/: strip any folder prefix
+  local base = filename:match("([^/\\]+)$") or filename
+  return config.basePath .. base
 end
 
 local function validateFile(filename)
@@ -123,12 +165,10 @@ function DMS.Audio.play(filename, delay)
   end
 
   if delay and delay > 0 then
-    timer.scheduleFunction(function()
-      doPlay()
-      return nil
-    end, nil, timer.getTime() + delay)
+    safeSchedule(doPlay, delay, "play")
   else
-    doPlay()
+    local ok, err = pcall(doPlay)
+    if not ok then log("ERROR: playback failed: " .. tostring(err)) return false end
   end
 
   return true
@@ -159,12 +199,10 @@ function DMS.Audio.playForCoalition(side, filename, delay)
   end
 
   if delay and delay > 0 then
-    timer.scheduleFunction(function()
-      doPlay()
-      return nil
-    end, nil, timer.getTime() + delay)
+    safeSchedule(doPlay, delay, "play")
   else
-    doPlay()
+    local ok, err = pcall(doPlay)
+    if not ok then log("ERROR: playback failed: " .. tostring(err)) return false end
   end
 
   return true
@@ -193,12 +231,10 @@ function DMS.Audio.playForGroup(groupId, filename, delay)
   end
 
   if delay and delay > 0 then
-    timer.scheduleFunction(function()
-      doPlay()
-      return nil
-    end, nil, timer.getTime() + delay)
+    safeSchedule(doPlay, delay, "play")
   else
-    doPlay()
+    local ok, err = pcall(doPlay)
+    if not ok then log("ERROR: playback failed: " .. tostring(err)) return false end
   end
 
   return true
@@ -227,12 +263,10 @@ function DMS.Audio.playForUnit(unitId, filename, delay)
   end
 
   if delay and delay > 0 then
-    timer.scheduleFunction(function()
-      doPlay()
-      return nil
-    end, nil, timer.getTime() + delay)
+    safeSchedule(doPlay, delay, "play")
   else
-    doPlay()
+    local ok, err = pcall(doPlay)
+    if not ok then log("ERROR: playback failed: " .. tostring(err)) return false end
   end
 
   return true
@@ -261,12 +295,10 @@ function DMS.Audio.playForCountry(countryId, filename, delay)
   end
 
   if delay and delay > 0 then
-    timer.scheduleFunction(function()
-      doPlay()
-      return nil
-    end, nil, timer.getTime() + delay)
+    safeSchedule(doPlay, delay, "play")
   else
-    doPlay()
+    local ok, err = pcall(doPlay)
+    if not ok then log("ERROR: playback failed: " .. tostring(err)) return false end
   end
 
   return true
@@ -323,6 +355,7 @@ function DMS.Audio.processQueue()
   state.isProcessingQueue = true
   local item = table.remove(state.queue, 1)
 
+  -- Queued items may carry their own gap (radio effect)
   if item.target == "all" then
     DMS.Audio.play(item.filename)
   elseif item.target == "coalition" then
@@ -334,10 +367,9 @@ function DMS.Audio.processQueue()
   end
 
   -- Schedule next sound
-  timer.scheduleFunction(function()
+  safeSchedule(function()
     DMS.Audio.processQueue()
-    return nil
-  end, nil, timer.getTime() + config.queueGap)
+  end, config.queueGap, "processQueue")
 end
 
 --- Clear the sound queue
@@ -356,7 +388,7 @@ end
 -- @param sounds Table of sound names to filenames
 function DMS.Audio.registerLibrary(name, sounds)
   libraries[name] = sounds
-  log("Registered library: " .. name .. " with " .. DMS.Utils.tableLength(sounds) .. " sounds")
+  log("Registered library: " .. name .. " with " .. tableLength(sounds) .. " sounds")
 end
 
 --- Play a sound from a library
@@ -366,13 +398,13 @@ end
 function DMS.Audio.playFromLibrary(libraryName, soundName, delay)
   local lib = libraries[libraryName]
   if not lib then
-    log("ERROR: Unknown library: " .. libraryName)
+    log("ERROR: Unknown library: " .. tostring(libraryName))
     return false
   end
 
   local filename = lib[soundName]
   if not filename then
-    log("ERROR: Unknown sound '" .. soundName .. "' in library: " .. libraryName)
+    log("ERROR: Unknown sound '" .. tostring(soundName) .. "' in library: " .. tostring(libraryName))
     return false
   end
 
@@ -408,35 +440,36 @@ end
 -- Preset Sound Categories
 --------------------------------------------------------------------------------
 
--- Common mission sounds (register these with actual filenames)
+-- Common mission sounds (override with actual filenames; each file must be
+-- added to the mission via the ME so it exists in l10n/DEFAULT/)
 DMS.Audio.Presets = {
   -- Alerts
-  ALERT_WARNING = "alerts/warning.wav",
-  ALERT_CRITICAL = "alerts/critical.wav",
-  ALERT_ALARM = "alerts/alarm.wav",
-  ALERT_INCOMING = "alerts/incoming.wav",
+  ALERT_WARNING = "alerts_warning.wav",
+  ALERT_CRITICAL = "alerts_critical.wav",
+  ALERT_ALARM = "alerts_alarm.wav",
+  ALERT_INCOMING = "alerts_incoming.wav",
 
   -- Mission Events
-  MISSION_START = "mission/start.wav",
-  MISSION_COMPLETE = "mission/complete.wav",
-  MISSION_FAILED = "mission/failed.wav",
-  OBJECTIVE_COMPLETE = "mission/objective_complete.wav",
+  MISSION_START = "mission_start.wav",
+  MISSION_COMPLETE = "mission_complete.wav",
+  MISSION_FAILED = "mission_failed.wav",
+  OBJECTIVE_COMPLETE = "mission_objective_complete.wav",
 
   -- Radio
-  RADIO_STATIC = "radio/static.wav",
-  RADIO_CLICK_ON = "radio/click_on.wav",
-  RADIO_CLICK_OFF = "radio/click_off.wav",
-  RADIO_BEEP = "radio/beep.wav",
+  RADIO_STATIC = "radio_static.wav",
+  RADIO_CLICK_ON = "radio_click_on.wav",
+  RADIO_CLICK_OFF = "radio_click_off.wav",
+  RADIO_BEEP = "radio_beep.wav",
 
   -- Ambient
-  AMBIENT_WIND = "ambient/wind.ogg",
-  AMBIENT_RAIN = "ambient/rain.ogg",
-  AMBIENT_THUNDER = "ambient/thunder.wav",
+  AMBIENT_WIND = "ambient_wind.ogg",
+  AMBIENT_RAIN = "ambient_rain.ogg",
+  AMBIENT_THUNDER = "ambient_thunder.wav",
 
   -- UI
-  UI_SELECT = "ui/select.wav",
-  UI_CONFIRM = "ui/confirm.wav",
-  UI_CANCEL = "ui/cancel.wav",
+  UI_SELECT = "ui_select.wav",
+  UI_CONFIRM = "ui_confirm.wav",
+  UI_CANCEL = "ui_cancel.wav",
 }
 
 --- Play a preset sound
@@ -445,7 +478,7 @@ DMS.Audio.Presets = {
 function DMS.Audio.playPreset(presetName, delay)
   local filename = DMS.Audio.Presets[presetName]
   if not filename then
-    log("ERROR: Unknown preset: " .. presetName)
+    log("ERROR: Unknown preset: " .. tostring(presetName))
     return false
   end
   return DMS.Audio.play(filename, delay)
@@ -457,11 +490,10 @@ end
 
 --- Play sound with radio effect (click on, sound, click off)
 -- @param filename Sound file
--- @param options { coalition, group, unit, delay }
+-- @param options { coalition, group, unit, delay, duration }
 function DMS.Audio.playWithRadioEffect(filename, options)
   options = options or {}
   local delay = options.delay or 0
-  local target = options.coalition or options.group or options.unit
 
   local playFunc
   if options.coalition then
@@ -474,23 +506,21 @@ function DMS.Audio.playWithRadioEffect(filename, options)
     playFunc = function(f) DMS.Audio.play(f) end
   end
 
+  local duration = options.duration or 5.0
+
   -- Schedule: click on -> sound -> click off
-  timer.scheduleFunction(function()
-    playFunc(DMS.Audio.Presets.RADIO_CLICK_ON or "radio/click_on.wav")
-    return nil
-  end, nil, timer.getTime() + delay)
+  safeSchedule(function()
+    playFunc(DMS.Audio.Presets.RADIO_CLICK_ON or "radio_click_on.wav")
+  end, delay, "radioClickOn")
 
-  timer.scheduleFunction(function()
-    playFunc(getFullPath(filename))
-    return nil
-  end, nil, timer.getTime() + delay + 0.3)
+  safeSchedule(function()
+    playFunc(filename)
+  end, delay + 0.3, "radioSound")
 
-  -- Note: Click off timing depends on actual sound duration
-  -- User should adjust or use actual sound duration
-  timer.scheduleFunction(function()
-    playFunc(DMS.Audio.Presets.RADIO_CLICK_OFF or "radio/click_off.wav")
-    return nil
-  end, nil, timer.getTime() + delay + 5.0)  -- Assumes ~5 second sound
+  -- Note: Click off timing depends on actual sound duration (options.duration)
+  safeSchedule(function()
+    playFunc(DMS.Audio.Presets.RADIO_CLICK_OFF or "radio_click_off.wav")
+  end, delay + 0.3 + duration, "radioClickOff")
 
   log("Playing with radio effect: " .. filename)
   return true
@@ -545,30 +575,43 @@ end
 -- Integration Hooks
 --------------------------------------------------------------------------------
 
---- Hook into DMS.Events for automatic sound triggers
--- @param eventSounds Table mapping event types to sounds
+--- Hook DCS world events for automatic sound triggers
+-- @param eventSounds Table mapping world.event ids to sound file (or list of files)
 function DMS.Audio.hookEvents(eventSounds)
-  if not DMS.Events then
-    log("WARNING: DMS.Events not available for hooking")
+  if type(eventSounds) ~= "table" then
+    log("WARNING: hookEvents requires a table of world.event id -> sound")
     return
+  end
+
+  if state.eventHandler then
+    pcall(world.removeEventHandler, state.eventHandler)
   end
 
   local handler = {
     onEvent = function(self, event)
-      local sound = eventSounds[event.id]
-      if sound then
-        if type(sound) == "table" then
-          -- Random from list
-          DMS.Audio.play(sound[math.random(#sound)])
-        else
-          DMS.Audio.play(sound)
+      local ok, err = pcall(function()
+        if not event then return end
+        local sound = eventSounds[event.id]
+        if sound then
+          if type(sound) == "table" then
+            if #sound > 0 then
+              DMS.Audio.play(sound[math.random(#sound)])
+            end
+          else
+            DMS.Audio.play(sound)
+          end
         end
+      end)
+      if not ok then
+        env.error("[DMS.Audio] event hook error: " .. tostring(err))
       end
     end
   }
 
+  state.eventHandler = handler
   world.addEventHandler(handler)
   log("Hooked event sounds")
+  debugLog("Hooked %d event sound mappings", tableLength(eventSounds))
 end
 
 --- Hook into DMS.PhaseManager for phase transition sounds
@@ -580,12 +623,17 @@ function DMS.Audio.hookPhases(phaseSounds)
   end
 
   local originalTransition = DMS.PhaseManager.transitionTo
-  DMS.PhaseManager.transitionTo = function(phaseName)
-    local sound = phaseSounds[phaseName]
+  if type(originalTransition) ~= "function" then
+    log("WARNING: DMS.PhaseManager.transitionTo not available for hooking")
+    return
+  end
+  DMS.PhaseManager.transitionTo = function(...)
+    local phaseName = ...
+    local sound = phaseSounds and phaseSounds[phaseName]
     if sound then
-      DMS.Audio.play(sound)
+      pcall(DMS.Audio.play, sound)
     end
-    return originalTransition(phaseName)
+    return originalTransition(...)
   end
 
   log("Hooked phase transition sounds")

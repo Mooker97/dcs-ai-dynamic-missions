@@ -1,19 +1,18 @@
 -- Reinforcement Waves System for DCS Missions
 -- Spawns enemy reinforcements based on triggers
--- Requires: utils/timer-utils.lua, utils/group-utils.lua
+-- Optional: utils/error-handler.lua, utils/mission-settings.lua
 -- Place in mission via DO SCRIPT FILE
 
 DMS = DMS or {}
-DMS.Reinforcements = {}
+DMS.Reinforcements = DMS.Reinforcements or {}
 
 -- Wave definitions
-DMS.Reinforcements.Waves = {}
-DMS.Reinforcements.CurrentWave = 0
-DMS.Reinforcements.Active = false
-DMS.Reinforcements.TimerId = nil
+DMS.Reinforcements.Waves = DMS.Reinforcements.Waves or {}
+DMS.Reinforcements.CurrentWave = DMS.Reinforcements.CurrentWave or 0
+DMS.Reinforcements.Active = DMS.Reinforcements.Active or false
 
 -- Configuration
-DMS.Reinforcements.Config = {
+DMS.Reinforcements.Config = DMS.Reinforcements.Config or {
     playerCoalition = coalition.side.BLUE,
     enemyCoalition = coalition.side.RED,
     announceWaves = true,
@@ -22,9 +21,41 @@ DMS.Reinforcements.Config = {
     spawnDelay = 2,              -- Delay between individual spawns
 }
 
+local function isDebug()
+    return DMS.Settings and DMS.Settings.isDebug and DMS.Settings.isDebug()
+end
+
+local function logError(context, err)
+    if DMS.Error and DMS.Error.log then
+        DMS.Error.log(context, err)
+    else
+        env.error("[DMS LUA ERROR] " .. tostring(context) .. ": " .. tostring(err))
+    end
+end
+
+--- One-shot pcall-guarded schedule (works without utils/error-handler.lua)
+local function safeSchedule(func, delay, context)
+    timer.scheduleFunction(function()
+        local ok, err = pcall(func)
+        if not ok then logError(context, err) end
+        return nil
+    end, nil, timer.getTime() + (tonumber(delay) or 0))
+end
+
+--- Safely call obj:method(...) returning nil on error
+local function safeMethod(obj, method, ...)
+    if obj == nil or type(obj) ~= "table" or type(obj[method]) ~= "function" then
+        return nil
+    end
+    local ok, res = pcall(obj[method], obj, ...)
+    if ok then return res end
+    return nil
+end
+
 --- Configure reinforcement system
 -- @param settings table Configuration overrides
 function DMS.Reinforcements.configure(settings)
+    if type(settings) ~= "table" then return end
     for key, value in pairs(settings) do
         DMS.Reinforcements.Config[key] = value
     end
@@ -38,28 +69,33 @@ function DMS.Reinforcements.registerWave(waveNumber, groups, options)
     options = options or {}
 
     DMS.Reinforcements.Waves[waveNumber] = {
-        groups = groups,
+        groups = type(groups) == "table" and groups or {},
         triggered = false,
         spawned = false,
         delay = options.delay or 0,
-        announcement = options.announcement or string.format("Warning: Enemy reinforcements inbound! (Wave %d)", waveNumber),
+        announcement = options.announcement or string.format("Warning: Enemy reinforcements inbound! (Wave %s)", tostring(waveNumber)),
         condition = options.condition or nil,  -- Function that returns true when wave should trigger
     }
 end
 
 --- Count current enemy units
--- @return number Count of alive enemy units
+-- Late-activated (not yet active) units are excluded, otherwise the
+-- reinforcement groups themselves would count as "alive enemies".
+-- @return number Count of alive, active enemy units
 local function countEnemies()
     local count = 0
-    local groups = coalition.getGroups(DMS.Reinforcements.Config.enemyCoalition)
+    local ok, groups = pcall(coalition.getGroups, DMS.Reinforcements.Config.enemyCoalition)
+    if not ok or type(groups) ~= "table" then return 0 end
 
-    if groups then
-        for _, group in ipairs(groups) do
-            if group:isExist() then
-                local units = group:getUnits()
-                if units then
-                    for _, unit in ipairs(units) do
-                        if unit:isExist() and unit:getLife() >= 1 then
+    for _, group in ipairs(groups) do
+        if safeMethod(group, "isExist") then
+            local units = safeMethod(group, "getUnits")
+            if type(units) == "table" then
+                for _, unit in ipairs(units) do
+                    if safeMethod(unit, "isExist") then
+                        local life = safeMethod(unit, "getLife")
+                        local active = safeMethod(unit, "isActive")
+                        if (life == nil or life >= 1) and active ~= false then
                             count = count + 1
                         end
                     end
@@ -70,6 +106,9 @@ local function countEnemies()
 
     return count
 end
+
+--- Public: count alive, active enemy units
+DMS.Reinforcements.countEnemies = countEnemies
 
 --- Spawn a wave
 -- @param waveNumber number Wave to spawn
@@ -91,15 +130,24 @@ local function spawnWave(waveNumber)
         )
     end
 
+    if isDebug() then
+        env.info(string.format("[Reinforcements] Spawning wave %s (%d groups)", tostring(waveNumber), #wave.groups))
+    end
+
     -- Spawn groups with delay
     for i, groupName in ipairs(wave.groups) do
-        local delay = (i - 1) * DMS.Reinforcements.Config.spawnDelay
-        DMS.Error.safeSchedule(function()
+        local delay = (i - 1) * (tonumber(DMS.Reinforcements.Config.spawnDelay) or 0)
+        safeSchedule(function()
             local group = Group.getByName(groupName)
-            if group then
+            if group and safeMethod(group, "isExist") then
                 trigger.action.activateGroup(group)
+                if isDebug() then
+                    env.info(string.format("[Reinforcements] Activated '%s' (wave %s)", tostring(groupName), tostring(waveNumber)))
+                end
+            elseif isDebug() then
+                env.info(string.format("[Reinforcements] Skipped '%s' (group not found)", tostring(groupName)))
             end
-        end, delay, "Reinforcements.spawnGroup(" .. groupName .. ")")
+        end, delay, "Reinforcements.spawnGroup(" .. tostring(groupName) .. ")")
     end
 end
 
@@ -113,19 +161,20 @@ function DMS.Reinforcements.triggerWave(waveNumber)
 
     wave.triggered = true
 
-    if DMS.Settings and DMS.Settings.isDebug() then
-        env.info(string.format("[Reinforcements] Wave %d triggered (delay: %ds, groups: %d)",
-            waveNumber, wave.delay or 0, #wave.groups))
+    local delay = tonumber(wave.delay) or 0
+    if isDebug() then
+        env.info(string.format("[Reinforcements] Wave %s triggered (delay: %ds, groups: %d)",
+            tostring(waveNumber), delay, #wave.groups))
     end
 
-    if wave.delay > 0 then
-        DMS.Error.safeSchedule(function()
+    local context = "Reinforcements.spawnWave(" .. tostring(waveNumber) .. ")"
+    if delay > 0 then
+        safeSchedule(function()
             spawnWave(waveNumber)
-        end, wave.delay, "Reinforcements.spawnWave(" .. waveNumber .. ")")
+        end, delay, context)
     else
-        DMS.Error.safeCall(function()
-            spawnWave(waveNumber)
-        end, "Reinforcements.spawnWave(" .. waveNumber .. ")")
+        local ok, err = pcall(spawnWave, waveNumber)
+        if not ok then logError(context, err) end
     end
 
     return true
@@ -154,8 +203,11 @@ local function checkWaveConditionsInternal(_, time)
 
     -- Check each wave's condition
     for waveNumber, wave in pairs(DMS.Reinforcements.Waves) do
-        if not wave.triggered and wave.condition then
-            if wave.condition() then
+        if not wave.triggered and type(wave.condition) == "function" then
+            local ok, met = pcall(wave.condition)
+            if not ok then
+                logError("Reinforcements.condition(wave " .. tostring(waveNumber) .. ")", met)
+            elseif met then
                 DMS.Reinforcements.triggerWave(waveNumber)
             end
         end
@@ -168,13 +220,11 @@ end
 local function checkWaveConditions(args, time)
     local success, result = pcall(checkWaveConditionsInternal, args, time)
     if not success then
-        if DMS.Error then
-            DMS.Error.log("Reinforcements.checkWaveConditions", result)
-        else
-            env.error("[DMS LUA ERROR] Reinforcements.checkWaveConditions: " .. tostring(result))
-        end
+        logError("Reinforcements.checkWaveConditions", result)
+        if not DMS.Reinforcements.Active then return nil end
         return time + 5
     end
+    if result == nil then DMS.Reinforcements.TimerId = nil end
     return result
 end
 
@@ -191,7 +241,7 @@ function DMS.Reinforcements.start()
         timer.getTime() + 5
     )
 
-    if DMS.Settings and DMS.Settings.isDebug() then
+    if isDebug() then
         local count = 0
         for _ in pairs(DMS.Reinforcements.Waves) do count = count + 1 end
         env.info(string.format("[Reinforcements] Started monitoring %d waves", count))
@@ -202,8 +252,11 @@ end
 function DMS.Reinforcements.stop()
     DMS.Reinforcements.Active = false
     if DMS.Reinforcements.TimerId then
-        timer.removeFunction(DMS.Reinforcements.TimerId)
+        pcall(timer.removeFunction, DMS.Reinforcements.TimerId)
         DMS.Reinforcements.TimerId = nil
+    end
+    if isDebug() then
+        env.info("[Reinforcements] Stopped")
     end
 end
 
@@ -216,7 +269,7 @@ function DMS.Reinforcements.waveOnEnemyCount(waveNumber, groups, threshold)
         condition = function()
             return countEnemies() < threshold
         end,
-        announcement = string.format("Enemy reinforcements detected! (Wave %d - they're bringing more!)", waveNumber)
+        announcement = string.format("Enemy reinforcements detected! (Wave %s - they're bringing more!)", tostring(waveNumber))
     })
 end
 
@@ -229,7 +282,7 @@ function DMS.Reinforcements.waveOnTime(waveNumber, groups, missionTime)
         condition = function()
             return timer.getTime() >= missionTime
         end,
-        announcement = string.format("INTEL: Enemy reinforcements arriving on schedule. (Wave %d)", waveNumber)
+        announcement = string.format("INTEL: Enemy reinforcements arriving on schedule. (Wave %s)", tostring(waveNumber))
     })
 end
 

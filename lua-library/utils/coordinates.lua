@@ -4,7 +4,16 @@
 -- Place in mission via DO SCRIPT FILE or embed in mission
 
 DMS = DMS or {}
-DMS.Coords = {}
+DMS.Coords = DMS.Coords or {}
+
+-- Internal: does a DCS object handle still exist?
+local function exists(obj)
+    if obj == nil or type(obj) ~= "table" or type(obj.isExist) ~= "function" then
+        return false
+    end
+    local ok, e = pcall(obj.isExist, obj)
+    return ok and e and true or false
+end
 
 --[[
 DCS COORDINATE SYSTEM:
@@ -152,10 +161,12 @@ end
 -- @return table|nil Vec3 position {x, y, z} or nil if not found
 function DMS.Coords.getUnitPos(unit)
     if type(unit) == "string" then
-        unit = Unit.getByName(unit)
+        local okU, u = pcall(Unit.getByName, unit)
+        unit = okU and u or nil
     end
-    if unit and unit:isExist() then
-        return unit:getPoint()
+    if exists(unit) then
+        local ok, p = pcall(unit.getPoint, unit)
+        if ok then return p end
     end
     return nil
 end
@@ -165,12 +176,18 @@ end
 -- @return table|nil Vec3 position {x, y, z} or nil if not found
 function DMS.Coords.getGroupPos(group)
     if type(group) == "string" then
-        group = Group.getByName(group)
+        local okG, g = pcall(Group.getByName, group)
+        group = okG and g or nil
     end
-    if group and group:isExist() then
-        local units = group:getUnits()
-        if units and #units > 0 and units[1]:isExist() then
-            return units[1]:getPoint()
+    if exists(group) then
+        local okU, units = pcall(group.getUnits, group)
+        if okU and type(units) == "table" then
+            for _, unit in ipairs(units) do
+                if exists(unit) then
+                    local ok, p = pcall(unit.getPoint, unit)
+                    if ok then return p end
+                end
+            end
         end
     end
     return nil
@@ -183,11 +200,12 @@ function DMS.Coords.getPlayerPos(coalitionId)
     local searchCoalitions = coalitionId and {coalitionId} or {coalition.side.BLUE, coalition.side.RED}
 
     for _, side in ipairs(searchCoalitions) do
-        local players = coalition.getPlayers(side)
-        if players then
+        local okP, players = pcall(coalition.getPlayers, side)
+        if okP and players then
             for _, unit in ipairs(players) do
-                if unit and unit:isExist() then
-                    return unit:getPoint()
+                if exists(unit) then
+                    local ok, p = pcall(unit.getPoint, unit)
+                    if ok and p then return p end
                 end
             end
         end
@@ -263,14 +281,16 @@ end
 -- @param velocity table Vec3 velocity from getVelocity()
 -- @return number Speed in m/s
 function DMS.Coords.getSpeed(velocity)
-    return math.sqrt(velocity.x^2 + velocity.y^2 + velocity.z^2)
+    if type(velocity) ~= "table" then return 0 end
+    return math.sqrt((velocity.x or 0)^2 + (velocity.y or 0)^2 + (velocity.z or 0)^2)
 end
 
 --- Get ground speed from velocity Vec3 (ignores vertical)
 -- @param velocity table Vec3 velocity
 -- @return number Ground speed in m/s
 function DMS.Coords.getGroundSpeed(velocity)
-    return math.sqrt(velocity.x^2 + velocity.z^2)
+    if type(velocity) ~= "table" then return 0 end
+    return math.sqrt((velocity.x or 0)^2 + (velocity.z or 0)^2)
 end
 
 -- Export for global access

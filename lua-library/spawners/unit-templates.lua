@@ -891,8 +891,23 @@ function DMS.UnitTemplates.spawnCustom(name, units, position, options)
         units = unitData,
     }
 
+    -- Fog of war: hide at spawn time when enabled (or explicitly requested)
+    local hidden = false
+    if DMS.FogOfWar and DMS.FogOfWar.applyToSpawnTable then
+        local _, h = DMS.FogOfWar.applyToSpawnTable(groupData, options.hidden)
+        hidden = h
+    elseif options.hidden then
+        groupData.hidden = true
+        groupData.hiddenOnMFD = true
+        hidden = true
+    end
+
     -- Spawn via coalition.addGroup
     local group = coalition.addGroup(groupDef.country, Group.Category.GROUND, groupData)
+
+    if group and hidden and DMS.FogOfWar then
+        DMS.FogOfWar.registerHiddenGroup(name, group:getCoalition())
+    end
 
     if group then
         if DMS.Settings and DMS.Settings.isDebug() then

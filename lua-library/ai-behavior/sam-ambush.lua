@@ -80,7 +80,7 @@ function DMS.SAMAmbush.setRadar(groupName, state)
             -- Option 9 = RADAR_USE (0=Never, 1=For Attack, 2=For Search, 3=For Continuous Search)
             if state then
                 controller:setOption(AI.Option.Ground.id.ALARM_STATE, AI.Option.Ground.val.ALARM_STATE.RED)
-                controller:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.WEAPON_FREE)
+                controller:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.OPEN_FIRE)
             else
                 controller:setOption(AI.Option.Ground.id.ALARM_STATE, AI.Option.Ground.val.ALARM_STATE.GREEN)
                 controller:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.WEAPON_HOLD)
@@ -137,20 +137,13 @@ local function isInEnvelope(site, aircraft)
     return range <= site.engageRadius
 end
 
---- Process SAM ambush checks (internal, wrapped with error handler)
-local function processAmbushCheckInternal(_, time)
-    if not DMS.SAMAmbush.Active then
-        return nil
-    end
-
-    local playerAircraft = getPlayerAircraft()
-
-    for groupName, site in pairs(DMS.SAMAmbush.Sites) do
+--- Process a single SAM site
+local function processSite(groupName, site, playerAircraft, time)
         -- Check if SAM group still exists
         local group = Group.getByName(groupName)
         if not group or not group:isExist() then
             site.radarOn = false
-            goto continue
+            return
         end
 
         local targetInEnvelope = false
@@ -200,8 +193,18 @@ local function processAmbushCheckInternal(_, time)
                 end
             end
         end
+end
 
-        ::continue::
+--- Process SAM ambush checks (internal, wrapped with error handler)
+local function processAmbushCheckInternal(_, time)
+    if not DMS.SAMAmbush.Active then
+        return nil
+    end
+
+    local playerAircraft = getPlayerAircraft()
+
+    for groupName, site in pairs(DMS.SAMAmbush.Sites) do
+        processSite(groupName, site, playerAircraft, time)
     end
 
     return time + DMS.SAMAmbush.Config.checkInterval
@@ -211,12 +214,12 @@ end
 local function processAmbushCheck(args, time)
     local success, result = pcall(processAmbushCheckInternal, args, time)
     if not success then
-        if DMS.Error then
-            DMS.Error.log("SAMAmbush.processAmbushCheck", result)
-        else
-            env.error("[DMS LUA ERROR] SAMAmbush.processAmbushCheck: " .. tostring(result))
+        if DMS.Error and DMS.Error.log then
+            pcall(DMS.Error.log, "SAMAmbush.processAmbushCheck", result)
         end
+        env.error("[SAMAmbush] processAmbushCheck error: " .. tostring(result))
         -- Continue running despite error
+        if not DMS.SAMAmbush.Active then return nil end
         return time + (DMS.SAMAmbush.Config.checkInterval or 2)
     end
     return result

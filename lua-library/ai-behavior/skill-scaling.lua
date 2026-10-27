@@ -1,5 +1,10 @@
 -- AI Skill Scaling System for DCS Missions
--- Dynamically adjusts AI difficulty based on player performance
+-- Tracks player performance and maintains a "current difficulty" level.
+--
+-- IMPORTANT: DCS cannot change the skill of a unit that already exists.
+-- The scaled skill only takes effect for groups spawned AFTER the change,
+-- via coalition.addGroup. Use DMS.SkillScaling.getSpawnSkill() /
+-- DMS.SkillScaling.applyToGroupData() when building spawn tables.
 -- Place in mission via DO SCRIPT FILE
 
 DMS = DMS or {}
@@ -131,54 +136,77 @@ local function calculatePerformance(metrics)
     return math.max(-1, math.min(1, score))
 end
 
---- Adjust AI skill for group
--- @param groupName string Group name
--- @param skill string Target skill level
-function DMS.SkillScaling.setGroupSkill(groupName, skill)
-    local group = Group.getByName(groupName)
-    if not group or not group:isExist() then return end
+-- Map DMS difficulty levels to valid DCS unit skill strings.
+-- DCS has no "Rookie" unit skill; the lowest valid value is "Average".
+DMS.SkillScaling.DCS_SKILL = {
+    ["Rookie"] = "Average",
+    ["Average"] = "Average",
+    ["Good"] = "Good",
+    ["High"] = "High",
+    ["Excellent"] = "Excellent",
+}
 
-    local controller = group:getController()
-    if not controller then return end
+-- Global difficulty level (most recent adjustment, any player)
+DMS.SkillScaling.GlobalSkill = nil
 
-    -- DCS AI skill settings
-    local skillValue
-    if skill == "Rookie" then
-        skillValue = AI.Skill.AVERAGE
-        controller:setOption(AI.Option.Air.id.REACTION_ON_THREAT, AI.Option.Air.val.REACTION_ON_THREAT.ALLOW_ABORT_MISSION)
-    elseif skill == "Average" then
-        skillValue = AI.Skill.GOOD
-    elseif skill == "Good" then
-        skillValue = AI.Skill.HIGH
-    elseif skill == "High" then
-        skillValue = AI.Skill.EXCELLENT
-    elseif skill == "Excellent" then
-        skillValue = AI.Skill.EXCELLENT
-    end
-
-    -- Apply to all units in group
-    local units = group:getUnits()
-    if units then
-        for _, unit in ipairs(units) do
-            if unit and unit:isExist() then
-                -- Unit skill is set at mission creation, but we can affect behavior
-                -- through controller options
-            end
-        end
+local function debugLog(fmt, ...)
+    if DMS.Settings and DMS.Settings.isDebug() then
+        env.info(string.format("[SkillScaling] " .. fmt, ...))
     end
 end
 
---- Apply skill level to all enemy groups
--- @param skill string Skill level
-function DMS.SkillScaling.setAllEnemySkill(skill)
-    local groups = coalition.getGroups(DMS.SkillScaling.Config.enemyCoalition)
-    if groups then
-        for _, group in ipairs(groups) do
-            if group:isExist() then
-                DMS.SkillScaling.setGroupSkill(group:getName(), skill)
-            end
+--- Get the DCS skill string to use for newly spawned units
+-- Pass the result as unit.skill in a coalition.addGroup group table.
+-- @param playerName string|nil Player to base it on (default: global/current)
+-- @return string Valid DCS skill ("Average", "Good", "High", "Excellent")
+function DMS.SkillScaling.getSpawnSkill(playerName)
+    local level
+    if playerName then
+        level = DMS.SkillScaling.getCurrentSkill(playerName)
+    else
+        level = DMS.SkillScaling.GlobalSkill or DMS.SkillScaling.getCurrentSkill()
+    end
+    return DMS.SkillScaling.DCS_SKILL[level] or "Good"
+end
+
+--- Apply the scaled skill to a group data table before coalition.addGroup
+-- Units with "Player"/"Client" skill are left untouched.
+-- @param groupData table Group table for coalition.addGroup (with .units)
+-- @param skill string|nil DMS level or DCS skill (default: getSpawnSkill())
+-- @return table The same groupData (modified in place)
+function DMS.SkillScaling.applyToGroupData(groupData, skill)
+    if not groupData or not groupData.units then return groupData end
+    local dcsSkill
+    if skill then
+        dcsSkill = DMS.SkillScaling.DCS_SKILL[skill] or skill
+    else
+        dcsSkill = DMS.SkillScaling.getSpawnSkill()
+    end
+    for _, unitData in pairs(groupData.units) do
+        if unitData.skill ~= "Player" and unitData.skill ~= "Client" then
+            unitData.skill = dcsSkill
         end
     end
+    return groupData
+end
+
+--- DEPRECATED: DCS cannot change the skill of existing units.
+-- Kept for API compatibility; does nothing to live units. Use
+-- getSpawnSkill()/applyToGroupData() for groups spawned via coalition.addGroup.
+-- @param groupName string Group name
+-- @param skill string Target skill level
+function DMS.SkillScaling.setGroupSkill(groupName, skill)
+    debugLog("setGroupSkill('%s', %s) ignored: DCS cannot change skill of existing units",
+        tostring(groupName), tostring(skill))
+end
+
+--- Set the difficulty used for future spawns.
+-- Does NOT modify existing enemy groups (not possible in DCS).
+-- @param skill string Skill level
+function DMS.SkillScaling.setAllEnemySkill(skill)
+    DMS.SkillScaling.GlobalSkill = skill
+    debugLog("Difficulty for new spawns set to %s (DCS skill: %s)",
+        tostring(skill), tostring(DMS.SkillScaling.DCS_SKILL[skill]))
 end
 
 --- Get spawn rate multiplier for current skill
@@ -211,6 +239,52 @@ function DMS.SkillScaling.getCurrentSkill(playerName)
     return metrics and metrics.currentSkill or DMS.SkillScaling.Config.initialSkill
 end
 
+--- Adjust difficulty for one player
+local function adjustPlayer(playerName, metrics, currentTime)
+    -- Check cooldown
+    if currentTime - metrics.lastAdjustmentTime < DMS.SkillScaling.Config.adjustmentCooldown then
+        return
+    end
+
+    -- Calculate performance
+    local performance = calculatePerformance(metrics)
+
+    -- Determine adjustment
+    local currentIndex = getSkillIndex(metrics.currentSkill)
+    local newIndex = currentIndex
+
+    if performance > 0.3 then
+        -- Player doing well, increase difficulty
+        newIndex = math.min(5, currentIndex + 1)
+    elseif performance < -0.3 then
+        -- Player struggling, decrease difficulty
+        newIndex = math.max(1, currentIndex - 1)
+    end
+
+    local minIndex = getSkillIndex(DMS.SkillScaling.Config.minSkill)
+    local maxIndex = getSkillIndex(DMS.SkillScaling.Config.maxSkill)
+    newIndex = math.max(minIndex, math.min(maxIndex, newIndex))
+
+    if newIndex ~= currentIndex then
+        local newSkill = getSkillByIndex(newIndex)
+        metrics.currentSkill = newSkill
+        metrics.lastAdjustmentTime = currentTime
+
+        -- Record for future spawns (existing units are unaffected)
+        DMS.SkillScaling.setAllEnemySkill(newSkill)
+        debugLog("Player '%s' performance %.2f: difficulty %s -> %s",
+            tostring(playerName), performance, getSkillByIndex(currentIndex), newSkill)
+
+        if DMS.SkillScaling.Config.announceChanges then
+            local direction = newIndex > currentIndex and "increased" or "decreased"
+            trigger.action.outText(string.format(
+                "[Difficulty] Enemy skill %s to %s (new spawns)",
+                direction, newSkill
+            ), 10)
+        end
+    end
+end
+
 --- Process skill adjustments (internal)
 local function processSkillAdjustmentInternal(_, time)
     if not DMS.SkillScaling.Active then return nil end
@@ -218,48 +292,7 @@ local function processSkillAdjustmentInternal(_, time)
     local currentTime = timer.getTime()
 
     for playerName, metrics in pairs(DMS.SkillScaling.Metrics) do
-        -- Check cooldown
-        if currentTime - metrics.lastAdjustmentTime < DMS.SkillScaling.Config.adjustmentCooldown then
-            goto continue
-        end
-
-        -- Calculate performance
-        local performance = calculatePerformance(metrics)
-
-        -- Determine adjustment
-        local currentIndex = getSkillIndex(metrics.currentSkill)
-        local newIndex = currentIndex
-
-        if performance > 0.3 then
-            -- Player doing well, increase difficulty
-            newIndex = math.min(5, currentIndex + 1)
-        elseif performance < -0.3 then
-            -- Player struggling, decrease difficulty
-            newIndex = math.max(1, currentIndex - 1)
-        end
-
-        local minIndex = getSkillIndex(DMS.SkillScaling.Config.minSkill)
-        local maxIndex = getSkillIndex(DMS.SkillScaling.Config.maxSkill)
-        newIndex = math.max(minIndex, math.min(maxIndex, newIndex))
-
-        if newIndex ~= currentIndex then
-            local newSkill = getSkillByIndex(newIndex)
-            metrics.currentSkill = newSkill
-            metrics.lastAdjustmentTime = currentTime
-
-            -- Apply changes
-            DMS.SkillScaling.setAllEnemySkill(newSkill)
-
-            if DMS.SkillScaling.Config.announceChanges then
-                local direction = newIndex > currentIndex and "increased" or "decreased"
-                trigger.action.outText(string.format(
-                    "[Difficulty] Enemy skill %s to %s",
-                    direction, newSkill
-                ), 10)
-            end
-        end
-
-        ::continue::
+        adjustPlayer(playerName, metrics, currentTime)
     end
 
     return time + DMS.SkillScaling.Config.checkInterval
@@ -269,11 +302,11 @@ end
 local function processSkillAdjustment(args, time)
     local success, result = pcall(processSkillAdjustmentInternal, args, time)
     if not success then
-        if DMS.Error then
-            DMS.Error.log("SkillScaling.processSkillAdjustment", result)
-        else
-            env.error("[DMS LUA ERROR] SkillScaling.processSkillAdjustment: " .. tostring(result))
+        if DMS.Error and DMS.Error.log then
+            pcall(DMS.Error.log, "SkillScaling.processSkillAdjustment", result)
         end
+        env.error("[SkillScaling] processSkillAdjustment error: " .. tostring(result))
+        if not DMS.SkillScaling.Active then return nil end
         return time + (DMS.SkillScaling.Config.checkInterval or 30)
     end
     return result
@@ -351,13 +384,26 @@ function DMS.SkillScaling.start()
 
     DMS.SkillScaling.Active = true
     -- Wrap event handler with error protection
-    DMS.SkillScaling.EventHandler = DMS.Error.safeHandler(
-        DMS.SkillScaling._EventHandlerInternal,
-        "SkillScaling.EventHandler"
-    )
+    if DMS.Error and DMS.Error.safeHandler then
+        DMS.SkillScaling.EventHandler = DMS.Error.safeHandler(
+            DMS.SkillScaling._EventHandlerInternal,
+            "SkillScaling.EventHandler"
+        )
+    else
+        DMS.SkillScaling.EventHandler = {
+            onEvent = function(self, event)
+                local ok, err = pcall(DMS.SkillScaling._EventHandlerInternal.onEvent,
+                    DMS.SkillScaling._EventHandlerInternal, event)
+                if not ok then
+                    env.error("[SkillScaling] EventHandler error: " .. tostring(err))
+                end
+            end
+        }
+    end
     world.addEventHandler(DMS.SkillScaling.EventHandler)
 
-    timer.scheduleFunction(
+    DMS.SkillScaling.GlobalSkill = DMS.SkillScaling.GlobalSkill or DMS.SkillScaling.Config.initialSkill
+    DMS.SkillScaling.TimerId = timer.scheduleFunction(
         processSkillAdjustment,
         nil,
         timer.getTime() + DMS.SkillScaling.Config.checkInterval
@@ -372,14 +418,25 @@ function DMS.SkillScaling.start()
             end
         end
     end
+
+    debugLog("Started (initial skill: %s, interval: %ds). Skill applies to new spawns only.",
+        tostring(DMS.SkillScaling.Config.initialSkill), DMS.SkillScaling.Config.checkInterval)
 end
 
 --- Stop skill scaling system
 function DMS.SkillScaling.stop()
     DMS.SkillScaling.Active = false
+    if DMS.SkillScaling.EventHandler then
+        world.removeEventHandler(DMS.SkillScaling.EventHandler)
+        DMS.SkillScaling.EventHandler = nil
+    end
+    if DMS.SkillScaling.TimerId then
+        timer.removeFunction(DMS.SkillScaling.TimerId)
+        DMS.SkillScaling.TimerId = nil
+    end
 end
 
---- Manually set difficulty
+--- Manually set difficulty (affects groups spawned afterwards only)
 -- @param skill string Skill level
 function DMS.SkillScaling.setDifficulty(skill)
     for playerName, metrics in pairs(DMS.SkillScaling.Metrics) do
@@ -425,7 +482,8 @@ DMS.SkillScaling.start()
 -- System automatically:
 -- 1. Tracks player kills, deaths, damage taken
 -- 2. Calculates performance score
--- 3. Adjusts AI skill level accordingly
+-- 3. Adjusts the difficulty level used for NEW spawns
+--    (DCS cannot change skill of units that already exist)
 
 -- Manual control
 DMS.SkillScaling.setDifficulty("High")  -- Force specific difficulty
@@ -438,6 +496,12 @@ local multiplier = DMS.SkillScaling.getSpawnMultiplier(skill)
 if math.random() < (baseChance * multiplier) then
     -- Spawn enemy
 end
+
+-- Apply to a spawn table before coalition.addGroup
+local groupData = { name = "Reinf-1", task = "Ground Nothing", units = { ... } }
+DMS.SkillScaling.applyToGroupData(groupData)        -- sets units[i].skill
+-- or: unitData.skill = DMS.SkillScaling.getSpawnSkill()
+coalition.addGroup(country.id.RUSSIA, Group.Category.GROUND, groupData)
 
 -- Get detailed report
 local report = DMS.SkillScaling.getReport("Player-1")

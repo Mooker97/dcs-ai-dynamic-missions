@@ -6,6 +6,71 @@
 DMS = DMS or {}
 DMS.Rescue = {}
 
+-- ============================================================
+-- LOCAL HELPERS (no cross-module dependencies)
+-- ============================================================
+
+local LOG_PREFIX = "[Rescue]"
+
+local function debugLog(fmt, ...)
+    if DMS.Settings and DMS.Settings.isDebug and DMS.Settings.isDebug() then
+        local ok, msg = pcall(string.format, fmt, ...)
+        env.info(LOG_PREFIX .. " " .. (ok and msg or tostring(fmt)))
+    end
+end
+
+local function logError(context, err)
+    if DMS.Error and DMS.Error.log then
+        local ok = pcall(DMS.Error.log, context, err)
+        if ok then return end
+    end
+    env.error("[DMS LUA ERROR] " .. tostring(context) .. ": " .. tostring(err))
+end
+
+--- Wrap an event handler table so errors never escape into DCS
+local function protectHandler(handler, name)
+    if DMS.Error and DMS.Error.safeHandler then
+        local ok, wrapped = pcall(DMS.Error.safeHandler, handler, name)
+        if ok and wrapped then return wrapped end
+    end
+    return {
+        onEvent = function(_, event)
+            local ok, err = pcall(handler.onEvent, handler, event)
+            if not ok then logError(name, err) end
+        end
+    }
+end
+
+--- Is this object a live unit?
+local function unitAlive(unit)
+    if not unit then return false end
+    local ok, exists = pcall(function() return unit:isExist() end)
+    return ok and exists == true
+end
+
+--- Return the player name of a unit (nil for AI / non-units)
+local function playerNameOf(unit)
+    if not unitAlive(unit) or not unit.getPlayerName then return nil end
+    local ok, name = pcall(unit.getPlayerName, unit)
+    if ok then return name end
+    return nil
+end
+
+--- Find the player-controlled (or first alive) unit of a group by name
+local function getGroupUnit(groupName)
+    local group = groupName and Group.getByName(groupName)
+    if not group or not group:isExist() then return nil end
+    local units = group:getUnits() or {}
+    local fallback = nil
+    for _, unit in ipairs(units) do
+        if unitAlive(unit) then
+            if playerNameOf(unit) then return unit end
+            fallback = fallback or unit
+        end
+    end
+    return fallback
+end
+
 -- Downed pilots
 DMS.Rescue.DownedPilots = {}
 DMS.Rescue.EventHandler = nil
@@ -59,6 +124,12 @@ end
 -- @param pilotName string Pilot name
 -- @param isPlayer boolean Is player pilot
 local function registerDownedPilot(position, pilotName, isPlayer)
+    -- Ejection point is at aircraft altitude; the survivor ends up on the ground
+    local groundY = position.y
+    local okH, h = pcall(land.getHeight, {x = position.x, y = position.z})
+    if okH and h then groundY = h end
+    position = {x = position.x, y = groundY, z = position.z}
+
     DMS.Rescue.PilotIdCounter = DMS.Rescue.PilotIdCounter + 1
 
     local pilotId = "PILOT-" .. DMS.Rescue.PilotIdCounter
@@ -97,6 +168,8 @@ local function registerDownedPilot(position, pilotName, isPlayer)
         )
     end
 
+    debugLog("Registered downed pilot %s (%s, player=%s)", pilotId, tostring(pilotName), tostring(isPlayer))
+
     return pilotId
 end
 
@@ -111,22 +184,32 @@ DMS.Rescue._EventHandlerInternal = {
         if event.id == world.event.S_EVENT_EJECTION then
             local unit = event.initiator
 
-            if unit then
+            if unitAlive(unit) then
+                local okC, side = pcall(unit.getCoalition, unit)
+                if not okC or side ~= DMS.Rescue.Config.playerCoalition then
+                    return
+                end
+
                 local isPlayer = false
                 local pilotName = "Unknown Pilot"
 
-                if unit.getPlayerName then
-                    local pName = unit:getPlayerName()
-                    if pName then
-                        isPlayer = true
-                        pilotName = pName
-                    end
+                local pName = playerNameOf(unit)
+                if pName then
+                    isPlayer = true
+                    pilotName = pName
+                else
+                    local okN, uName = pcall(unit.getName, unit)
+                    if okN and uName then pilotName = uName end
                 end
 
                 -- Only track if player or config allows AI
                 if isPlayer or DMS.Rescue.Config.trackAIPilots then
-                    local position = unit:getPoint()
-                    registerDownedPilot(position, pilotName, isPlayer)
+                    local okP, position = pcall(unit.getPoint, unit)
+                    if okP and position then
+                        registerDownedPilot(position, pilotName, isPlayer)
+                    end
+                else
+                    debugLog("Skipped AI ejection '%s' (trackAIPilots=false)", pilotName)
                 end
             end
         end
@@ -146,6 +229,7 @@ local function checkRescuesInternal(_, time)
             -- Check expiration
             if time >= pilot.expirationTime then
                 pilot.status = "expired"
+                debugLog("%s expired (survival time elapsed)", pilot.name)
 
                 trigger.action.outTextForCoalition(
                     DMS.Rescue.Config.playerCoalition,
@@ -165,7 +249,8 @@ local function checkRescuesInternal(_, time)
                 -- Check for rescue by helicopters or slow aircraft
                 if rescuers then
                     for _, rescuer in ipairs(rescuers) do
-                        if rescuer:isExist() then
+                        if pilot.status ~= "awaiting_rescue" then break end
+                        if unitAlive(rescuer) then
                             local rescuerPos = rescuer:getPoint()
                             local distance = getDistance(rescuerPos, pilot.position)
                             local altitude = rescuerPos.y - pilot.position.y
@@ -179,7 +264,8 @@ local function checkRescuesInternal(_, time)
                                 if speed < 30 then  -- Less than ~60 knots
                                     -- Successful rescue!
                                     pilot.status = "rescued"
-                                    pilot.rescuedBy = rescuer:getPlayerName() or "Unknown"
+                                    pilot.rescuedBy = playerNameOf(rescuer) or "Unknown"
+                                    debugLog("%s rescued by %s", pilot.name, pilot.rescuedBy)
                                     pilot.rescueTime = time
 
                                     if DMS.Rescue.Config.announceRescues then
@@ -215,11 +301,7 @@ end
 local function checkRescues(args, time)
     local success, result = pcall(checkRescuesInternal, args, time)
     if not success then
-        if DMS.Error then
-            DMS.Error.log("Rescue.checkRescues", result)
-        else
-            env.error("[DMS LUA ERROR] Rescue.checkRescues: " .. tostring(result))
-        end
+        logError("Rescue.checkRescues", result)
         return time + (DMS.Rescue.Config.checkInterval or 10)
     end
     return result
@@ -234,17 +316,21 @@ function DMS.Rescue.start()
     DMS.Rescue.Active = true
 
     -- Wrap event handler with error protection
-    DMS.Rescue.EventHandler = DMS.Error.safeHandler(
-        DMS.Rescue._EventHandlerInternal,
-        "Rescue.EventHandler"
-    )
-    world.addEventHandler(DMS.Rescue.EventHandler)
+    if not DMS.Rescue.EventHandler then
+        DMS.Rescue.EventHandler = protectHandler(
+            DMS.Rescue._EventHandlerInternal,
+            "Rescue.EventHandler"
+        )
+        world.addEventHandler(DMS.Rescue.EventHandler)
+    end
 
     DMS.Rescue.TimerId = timer.scheduleFunction(
         checkRescues,
         nil,
         timer.getTime() + DMS.Rescue.Config.checkInterval
     )
+    debugLog("Started (survival %ds, radius %dm, interval %ds)",
+        DMS.Rescue.Config.pilotSurvivalTime, DMS.Rescue.Config.rescueRadius, DMS.Rescue.Config.checkInterval)
 end
 
 --- Stop rescue coordination
@@ -254,6 +340,7 @@ function DMS.Rescue.stop()
         timer.removeFunction(DMS.Rescue.TimerId)
         DMS.Rescue.TimerId = nil
     end
+    debugLog("Stopped")
 end
 
 --- Get list of active downed pilots
@@ -268,8 +355,18 @@ function DMS.Rescue.getActivePilots()
     return active
 end
 
+--- Send text to a group if given, else to the player coalition
+local function sendText(groupId, msg, duration)
+    if groupId then
+        trigger.action.outTextForGroup(groupId, msg, duration, true)
+    else
+        trigger.action.outTextForCoalition(DMS.Rescue.Config.playerCoalition, msg, duration, true)
+    end
+end
+
 --- Display CSAR status
-function DMS.Rescue.showStatus()
+-- @param groupId number|nil Group to show it to (nil = coalition)
+function DMS.Rescue.showStatus(groupId)
     local active = DMS.Rescue.getActivePilots()
     local lines = {"=== CSAR STATUS ===", ""}
 
@@ -299,27 +396,18 @@ function DMS.Rescue.showStatus()
         table.insert(lines, string.format("Pilots rescued this mission: %d", rescuedCount))
     end
 
-    trigger.action.outTextForCoalition(
-        DMS.Rescue.Config.playerCoalition,
-        table.concat(lines, "\n"),
-        20,
-        true
-    )
+    sendText(groupId, table.concat(lines, "\n"), 20)
 end
 
 --- Mark smoke at pilot location (refresh)
 -- @param pilotId string Pilot ID
-function DMS.Rescue.markPilot(pilotId)
+-- @param groupId number|nil Group to notify (nil = coalition)
+function DMS.Rescue.markPilot(pilotId, groupId)
     local pilot = DMS.Rescue.DownedPilots[pilotId]
     if pilot and pilot.status == "awaiting_rescue" then
         trigger.action.smoke(pilot.position, DMS.Rescue.Config.smokeColor)
 
-        trigger.action.outTextForCoalition(
-            DMS.Rescue.Config.playerCoalition,
-            string.format("Smoke marker refreshed for %s", pilot.name),
-            5,
-            true
-        )
+        sendText(groupId, string.format("Smoke marker refreshed for %s", pilot.name), 5)
     end
 end
 
@@ -347,6 +435,89 @@ function DMS.Rescue.getStats()
     return stats
 end
 
+--- Mark the survivor nearest to the calling group
+-- @param groupName string Calling group name
+function DMS.Rescue.markNearestFor(groupName)
+    local active = DMS.Rescue.getActivePilots()
+    local unit = getGroupUnit(groupName)
+    local group = groupName and Group.getByName(groupName)
+    local groupId = group and group:isExist() and group:getID() or nil
+    if #active == 0 then
+        sendText(groupId, "No active CSAR operations.", 5)
+        return
+    end
+    local best, bestDist = active[1], math.huge
+    if unit then
+        local pos = unit:getPoint()
+        for _, pilot in ipairs(active) do
+            local dist = getDistance(pos, pilot.position)
+            if dist < bestDist then best, bestDist = pilot, dist end
+        end
+    end
+    DMS.Rescue.markPilot(best.id, groupId)
+end
+
+--- Build the CSAR menu for one player group (used by setupMenus)
+local function buildGroupMenu(groupId, groupName)
+    local menu = missionCommands.addSubMenuForGroup(groupId, "CSAR")
+    missionCommands.addCommandForGroup(groupId, "CSAR Status", menu, function()
+        local ok, err = pcall(DMS.Rescue.showStatus, groupId)
+        if not ok then logError("Rescue.menu.status", err) end
+    end)
+    missionCommands.addCommandForGroup(groupId, "Mark Nearest Survivor", menu, function()
+        local ok, err = pcall(DMS.Rescue.markNearestFor, groupName)
+        if not ok then logError("Rescue.menu.mark", err) end
+    end)
+end
+
+-- ============================================================
+-- PER-GROUP F10 MENUS
+-- Coalition menus cannot tell who pressed them, so menus are built per
+-- player group on S_EVENT_BIRTH / S_EVENT_PLAYER_ENTER_UNIT (deduped by
+-- group id) and callbacks receive the group name.
+-- ============================================================
+
+DMS.Rescue.MenuGroups = DMS.Rescue.MenuGroups or {}
+DMS.Rescue.MenuEventHandler = nil
+
+local function ensureGroupMenu(unit)
+    if not playerNameOf(unit) then return end
+    local okC, side = pcall(unit.getCoalition, unit)
+    if not okC or side ~= DMS.Rescue.Config.playerCoalition then return end
+    local group = unit:getGroup()
+    if not group or not group:isExist() then return end
+    local groupId = group:getID()
+    local groupName = group:getName()
+    if DMS.Rescue.MenuGroups[groupId] then return end
+    local ok, err = pcall(buildGroupMenu, groupId, groupName)
+    if ok then
+        DMS.Rescue.MenuGroups[groupId] = true
+        debugLog("Menu built for group '%s' (id %d)", groupName, groupId)
+    else
+        logError("Rescue.buildGroupMenu", err)
+    end
+end
+
+--- Register the F10 menus (call once from mission init, not at load time)
+function DMS.Rescue.setupMenus()
+    if DMS.Rescue.MenuEventHandler then return end
+    DMS.Rescue.MenuEventHandler = protectHandler({
+        onEvent = function(_, event)
+            if event.id == world.event.S_EVENT_BIRTH or
+               event.id == world.event.S_EVENT_PLAYER_ENTER_UNIT then
+                ensureGroupMenu(event.initiator)
+            end
+        end
+    }, "Rescue.MenuEventHandler")
+    world.addEventHandler(DMS.Rescue.MenuEventHandler)
+
+    -- Catch players already in their aircraft
+    for _, unit in ipairs(coalition.getPlayers(DMS.Rescue.Config.playerCoalition) or {}) do
+        ensureGroupMenu(unit)
+    end
+    debugLog("Per-group menus enabled")
+end
+
 --[[
 USAGE EXAMPLE:
 
@@ -363,19 +534,8 @@ DMS.Rescue.configure({
 -- Start system
 DMS.Rescue.start()
 
--- Add F10 menu commands
-local csarMenu = missionCommands.addSubMenuForCoalition(coalition.side.BLUE, "CSAR")
-
-missionCommands.addCommandForCoalition(coalition.side.BLUE, "CSAR Status", csarMenu,
-    function() DMS.Rescue.showStatus() end)
-
-missionCommands.addCommandForCoalition(coalition.side.BLUE, "Mark Nearest Survivor", csarMenu,
-    function()
-        local active = DMS.Rescue.getActivePilots()
-        if #active > 0 then
-            DMS.Rescue.markPilot(active[1].id)
-        end
-    end)
+-- Add per-group F10 menus (CSAR Status / Mark Nearest Survivor)
+DMS.Rescue.setupMenus()
 
 -- For helicopter CSAR missions, the rescue happens automatically
 -- when the helicopter hovers low and slow near the survivor

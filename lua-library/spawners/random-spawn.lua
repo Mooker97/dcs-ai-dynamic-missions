@@ -1,5 +1,6 @@
 -- Random Spawn System for DCS Missions
 -- Basic percentage-based spawning at mission start
+-- Requires: spawners/spawn-core.lua
 -- Place in mission via DO SCRIPT FILE
 
 DMS = DMS or {}
@@ -7,6 +8,8 @@ DMS.RandomSpawn = {}
 
 -- Registered spawn groups
 DMS.RandomSpawn.Groups = {}
+DMS.RandomSpawn.Active = false
+DMS.RandomSpawn.TimerId = nil
 
 -- Configuration
 DMS.RandomSpawn.Config = {
@@ -24,10 +27,12 @@ end
 --- Register a group for random spawning
 -- @param groupName string Group name (must be LATE ACTIVATION in ME)
 -- @param spawnChance number|nil Percentage chance to spawn (1-100)
-function DMS.RandomSpawn.register(groupName, spawnChance)
+-- @param hidden boolean|nil Fog of war override (nil = settings default)
+function DMS.RandomSpawn.register(groupName, spawnChance, hidden)
     table.insert(DMS.RandomSpawn.Groups, {
         name = groupName,
         chance = spawnChance or DMS.RandomSpawn.Config.defaultChance,
+        hidden = hidden,
     })
 end
 
@@ -51,25 +56,17 @@ function DMS.RandomSpawn.registerPattern(prefix, count, spawnChance)
     end
 end
 
---- Attempt to spawn a single group
--- @param groupConfig table Group configuration {name, chance}
+--- Attempt to spawn a single group (thin wrapper over DMS.SpawnCore)
+-- @param groupConfig table Group configuration {name, chance, hidden}
 -- @return boolean True if spawned
 local function trySpawn(groupConfig)
-    local roll = math.random(1, 100)
-
-    if roll <= groupConfig.chance then
-        local success, result = DMS.Error.safeCallArgs(function(name)
-            local group = Group.getByName(name)
-            if group then
-                trigger.action.activateGroup(group)
-                return true
-            end
-            return false
-        end, "RandomSpawn.trySpawn(" .. groupConfig.name .. ")", groupConfig.name)
-
-        return success and result
+    local Core = DMS.SpawnCore
+    if not Core then
+        env.error("[RandomSpawn] spawners/spawn-core.lua is not loaded")
+        return false
     end
-    return false
+    return (Core.rollAndActivate(groupConfig.name, groupConfig.chance,
+        {hidden = groupConfig.hidden, prefix = "RandomSpawn"}))
 end
 
 --- Execute all registered spawns
@@ -83,13 +80,50 @@ function DMS.RandomSpawn.execute()
     }
 
     for _, groupConfig in ipairs(DMS.RandomSpawn.Groups) do
-        if trySpawn(groupConfig) then
-            results.spawned = results.spawned + 1
-            table.insert(results.spawnedGroups, groupConfig.name)
+        if not groupConfig.processed then
+            groupConfig.processed = true
+            if trySpawn(groupConfig) then
+                results.spawned = results.spawned + 1
+                table.insert(results.spawnedGroups, groupConfig.name)
+            end
         end
     end
 
+    if DMS.Settings and DMS.Settings.isDebug() then
+        env.info(string.format("[RandomSpawn] Executed: %d of %d groups spawned", results.spawned, results.total))
+    end
+
     return results
+end
+
+--- Start the random spawn system (used by mission-state/phase-manager.lua)
+-- Executes all not-yet-processed registrations once, optionally after a delay.
+-- @param delay number|nil Seconds before executing (default 0)
+-- @return table|nil Results when executed immediately
+function DMS.RandomSpawn.start(delay)
+    DMS.RandomSpawn.Active = true
+    if delay and delay > 0 and DMS.SpawnCore then
+        DMS.RandomSpawn.TimerId = DMS.SpawnCore.schedule(function()
+            DMS.RandomSpawn.TimerId = nil
+            if DMS.RandomSpawn.Active then
+                DMS.RandomSpawn.execute()
+            end
+        end, delay, "RandomSpawn.start")
+        return nil
+    end
+    return DMS.RandomSpawn.execute()
+end
+
+--- Stop the random spawn system (cancels a pending delayed start)
+function DMS.RandomSpawn.stop()
+    DMS.RandomSpawn.Active = false
+    if DMS.RandomSpawn.TimerId then
+        pcall(timer.removeFunction, DMS.RandomSpawn.TimerId)
+        DMS.RandomSpawn.TimerId = nil
+    end
+    if DMS.Settings and DMS.Settings.isDebug() then
+        env.info("[RandomSpawn] Stopped")
+    end
 end
 
 --- Clear all registered groups

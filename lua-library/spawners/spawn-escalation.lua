@@ -1,6 +1,6 @@
 -- Escalation Wave Spawning for DCS Missions
 -- Progressive difficulty with timed waves
--- Requires: utils/group-utils.lua, utils/messaging.lua
+-- Requires: spawners/spawn-core.lua
 -- Place in mission via DO SCRIPT FILE
 
 DMS = DMS or {}
@@ -26,8 +26,10 @@ DMS.Escalation.Config = {
 -- @param groups table Array of group names to spawn
 -- @param spawnChances table|nil Per-group spawn chances {group=chance}
 -- @param message string|nil Announcement message
-function DMS.Escalation.defineWave(waveNumber, groups, spawnChances, message)
+-- @param hidden boolean|nil Fog of war override for this wave (nil = settings default)
+function DMS.Escalation.defineWave(waveNumber, groups, spawnChances, message, hidden)
     DMS.Escalation.Waves[waveNumber] = {
+        hidden = hidden,
         number = waveNumber,
         groups = groups,
         spawnChances = spawnChances or {},
@@ -55,17 +57,20 @@ function DMS.Escalation.spawnWave(waveNumber)
 
     local spawned = 0
 
+    local Core = DMS.SpawnCore
+    if not Core then
+        env.error("[Escalation] spawners/spawn-core.lua is not loaded")
+        return 0
+    end
+
     for _, groupName in ipairs(wave.groups) do
         local chance = wave.spawnChances[groupName] or 100
-
-        if math.random(1, 100) <= chance then
-            local group = Group.getByName(groupName)
-            if group then
-                trigger.action.activateGroup(group)
-                spawned = spawned + 1
-            end
+        if Core.rollAndActivate(groupName, chance, {hidden = wave.hidden, prefix = "Escalation"}) then
+            spawned = spawned + 1
         end
     end
+
+    Core.log("Escalation", "Wave %d spawned %d of %d groups", waveNumber, spawned, #wave.groups)
 
     wave.spawned = true
     DMS.Escalation.CurrentWave = waveNumber
@@ -81,6 +86,10 @@ end
 
 --- Internal: Process next wave (internal, wrapped with error handler)
 local function processNextWaveInternal(_, time)
+    if not DMS.Escalation.Active then
+        DMS.Escalation.TimerId = nil
+        return nil
+    end
     local nextWave = DMS.Escalation.CurrentWave + 1
 
     -- Check if wave exists
@@ -111,12 +120,12 @@ end
 local function processNextWave(args, time)
     local success, result = pcall(processNextWaveInternal, args, time)
     if not success then
-        if DMS.Error then
-            DMS.Error.log("Escalation.processNextWave", result)
-        else
+        local logged = DMS.Error and DMS.Error.log and pcall(DMS.Error.log, "Escalation.processNextWave", result)
+        if not logged then
             env.error("[DMS LUA ERROR] Escalation.processNextWave: " .. tostring(result))
         end
-        -- Continue running despite error
+        -- Continue running despite error (unless stopped)
+        if not DMS.Escalation.Active then return nil end
         return time + (DMS.Escalation.Config.timeBetweenWaves or 300)
     end
     return result

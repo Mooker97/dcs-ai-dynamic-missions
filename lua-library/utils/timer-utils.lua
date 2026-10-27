@@ -3,11 +3,19 @@
 -- Place in mission via DO SCRIPT FILE or embed in mission
 
 DMS = DMS or {}
-DMS.Timer = {}
+DMS.Timer = DMS.Timer or {}  -- shared with mission-state/mission-timer.lua compat aliases
 
--- Store active timer IDs for management
-DMS.Timer._active = {}
-DMS.Timer._nextId = 1
+-- Store active timer IDs for management (preserved on reload)
+DMS.Timer._active = DMS.Timer._active or {}
+DMS.Timer._nextId = DMS.Timer._nextId or 1
+
+local function logTimerError(context, err)
+    if DMS.Error and DMS.Error.log then
+        DMS.Error.log(context, err)
+    else
+        env.error("[DMS LUA ERROR] " .. tostring(context) .. ": " .. tostring(err))
+    end
+end
 
 --- Schedule a one-time function call
 -- @param func function Function to call (receives args, time)
@@ -20,11 +28,14 @@ function DMS.Timer.once(func, delay, args)
 
     local function wrapper(passedArgs, time)
         DMS.Timer._active[timerId] = nil
-        func(passedArgs, time)
+        local ok, err = pcall(func, passedArgs, time)
+        if not ok then
+            logTimerError("Timer.once", err)
+        end
         return nil  -- Don't reschedule
     end
 
-    local scheduledId = timer.scheduleFunction(wrapper, args, timer.getTime() + delay)
+    local scheduledId = timer.scheduleFunction(wrapper, args, timer.getTime() + (tonumber(delay) or 0))
     DMS.Timer._active[timerId] = scheduledId
     return timerId
 end
@@ -39,10 +50,19 @@ end
 function DMS.Timer.recurring(func, interval, startDelay, args)
     local timerId = DMS.Timer._nextId
     DMS.Timer._nextId = DMS.Timer._nextId + 1
+    interval = tonumber(interval) or 1
+    if interval <= 0 then interval = 1 end
     startDelay = startDelay or interval
 
     local function wrapper(passedArgs, time)
-        local result = func(passedArgs, time)
+        if DMS.Timer._active[timerId] == nil then
+            return nil  -- Cancelled
+        end
+        local ok, result = pcall(func, passedArgs, time)
+        if not ok then
+            logTimerError("Timer.recurring", result)
+            return time + interval  -- Keep running despite error
+        end
         if result == false then
             DMS.Timer._active[timerId] = nil
             return nil  -- Stop
@@ -88,7 +108,7 @@ end
 function DMS.Timer.cancel(timerId)
     local scheduledId = DMS.Timer._active[timerId]
     if scheduledId then
-        timer.removeFunction(scheduledId)
+        pcall(timer.removeFunction, scheduledId)
         DMS.Timer._active[timerId] = nil
         return true
     end
@@ -97,8 +117,8 @@ end
 
 --- Cancel all active DMS timers
 function DMS.Timer.cancelAll()
-    for timerId, scheduledId in pairs(DMS.Timer._active) do
-        timer.removeFunction(scheduledId)
+    for _, scheduledId in pairs(DMS.Timer._active) do
+        pcall(timer.removeFunction, scheduledId)
     end
     DMS.Timer._active = {}
 end

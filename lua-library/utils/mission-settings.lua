@@ -4,7 +4,7 @@
 -- Place in mission via DO SCRIPT FILE (load early, before other DMS scripts)
 
 DMS = DMS or {}
-DMS.Settings = {}
+DMS.Settings = DMS.Settings or {}
 
 -- ============================================================
 -- DEFAULT SETTINGS
@@ -13,8 +13,8 @@ DMS.Settings = {}
 
 DMS.Settings.Defaults = {
     -- Coalitions
-    playerCoalition = coalition.side.BLUE,
-    enemyCoalition = coalition.side.RED,
+    playerCoalition = (coalition and coalition.side and coalition.side.BLUE) or 2,
+    enemyCoalition = (coalition and coalition.side and coalition.side.RED) or 1,
 
     -- Fog of War
     fogOfWar = false,                   -- Hide enemy units from F10 map until detected
@@ -41,8 +41,8 @@ DMS.Settings.Defaults = {
     showErrorAlerts = true,             -- Show on-screen alerts when Lua errors occur
 }
 
--- Active settings (initialized from defaults)
-DMS.Settings.Current = {}
+-- Active settings (initialized from defaults; preserved across reloads)
+local _existingCurrent = DMS.Settings.Current
 
 -- ============================================================
 -- INITIALIZATION
@@ -57,8 +57,17 @@ function DMS.Settings.init()
     end
 end
 
--- Initialize on load
-DMS.Settings.init()
+-- Initialize on load (keep any values already configured if this file is reloaded)
+if type(_existingCurrent) == "table" then
+    DMS.Settings.Current = _existingCurrent
+    for key, value in pairs(DMS.Settings.Defaults) do
+        if DMS.Settings.Current[key] == nil then
+            DMS.Settings.Current[key] = value
+        end
+    end
+else
+    DMS.Settings.init()
+end
 
 -- ============================================================
 -- CONFIGURATION API
@@ -69,7 +78,8 @@ DMS.Settings.init()
 -- @param overrides table Settings to override
 -- @usage DMS.Settings.configure({ fogOfWar = true, debug = true })
 function DMS.Settings.configure(overrides)
-    if not overrides then return end
+    if type(overrides) ~= "table" then return end
+    if type(DMS.Settings.Current) ~= "table" then DMS.Settings.init() end
 
     for key, value in pairs(overrides) do
         if DMS.Settings.Defaults[key] ~= nil then
@@ -97,16 +107,22 @@ end
 -- @param key string Setting name
 -- @return any Setting value (from Current, falls back to Default)
 function DMS.Settings.get(key)
-    if DMS.Settings.Current[key] ~= nil then
-        return DMS.Settings.Current[key]
+    local current = DMS.Settings.Current
+    if type(current) == "table" and current[key] ~= nil then
+        return current[key]
     end
-    return DMS.Settings.Defaults[key]
+    local defaults = DMS.Settings.Defaults
+    if type(defaults) == "table" then
+        return defaults[key]
+    end
+    return nil
 end
 
 --- Set a single setting
 -- @param key string Setting name
 -- @param value any Setting value
 function DMS.Settings.set(key, value)
+    if type(DMS.Settings.Current) ~= "table" then DMS.Settings.init() end
     DMS.Settings.Current[key] = value
 end
 
@@ -141,7 +157,7 @@ end
 -- @return table Copy of current settings
 function DMS.Settings.getAll()
     local copy = {}
-    for key, value in pairs(DMS.Settings.Current) do
+    for key, value in pairs(DMS.Settings.Current or {}) do
         copy[key] = value
     end
     return copy
@@ -150,7 +166,7 @@ end
 --- Print current settings (debug)
 function DMS.Settings.dump()
     env.info("=== DMS Settings ===")
-    for key, value in pairs(DMS.Settings.Current) do
+    for key, value in pairs(DMS.Settings.Current or {}) do
         local default = DMS.Settings.Defaults[key]
         local marker = (value ~= default) and " *" or ""
         env.info(string.format("  %s: %s%s", key, tostring(value), marker))
@@ -177,7 +193,8 @@ end
 --- Check if debug mode is enabled
 -- @return boolean
 function DMS.Settings.isDebug()
-    return DMS.Settings.get("debug") == true
+    local ok, v = pcall(DMS.Settings.get, "debug")
+    return ok and v == true
 end
 
 --[[

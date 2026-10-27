@@ -1,19 +1,18 @@
 -- Narrative Events System for DCS Missions
 -- Scripted story moments and cinematic events
--- Requires: utils/messaging.lua, utils/timer-utils.lua
+-- Optional: utils/error-handler.lua, utils/mission-settings.lua
 -- Place in mission via DO SCRIPT FILE
 
 DMS = DMS or {}
-DMS.Narrative = {}
+DMS.Narrative = DMS.Narrative or {}
 
 -- Story state
-DMS.Narrative.Chapters = {}
-DMS.Narrative.CurrentChapter = 0
-DMS.Narrative.Active = false
-DMS.Narrative.TimerId = nil
+DMS.Narrative.Chapters = DMS.Narrative.Chapters or {}
+DMS.Narrative.CurrentChapter = DMS.Narrative.CurrentChapter or 0
+DMS.Narrative.Active = DMS.Narrative.Active or false
 
 -- Configuration
-DMS.Narrative.Config = {
+DMS.Narrative.Config = DMS.Narrative.Config or {
     playerCoalition = coalition.side.BLUE,
     messageDisplayTime = 15,
     typingEffect = true,        -- Simulate radio typing effect
@@ -23,7 +22,7 @@ DMS.Narrative.Config = {
 }
 
 -- Voice/character definitions
-DMS.Narrative.Characters = {
+DMS.Narrative.Characters = DMS.Narrative.Characters or {
     AWACS = {prefix = "OVERLORD: ", color = nil},
     HQ = {prefix = "COMMAND: ", color = nil},
     WINGMAN = {prefix = "WINGMAN: ", color = nil},
@@ -32,9 +31,22 @@ DMS.Narrative.Characters = {
     ENEMY = {prefix = "[INTERCEPTED] ", color = nil},
 }
 
+local function isDebug()
+    return DMS.Settings and DMS.Settings.isDebug and DMS.Settings.isDebug()
+end
+
+local function logError(context, err)
+    if DMS.Error and DMS.Error.log then
+        DMS.Error.log(context, err)
+    else
+        env.error("[DMS LUA ERROR] " .. tostring(context) .. ": " .. tostring(err))
+    end
+end
+
 --- Configure narrative system
 -- @param settings table Configuration overrides
 function DMS.Narrative.configure(settings)
+    if type(settings) ~= "table" then return end
     for key, value in pairs(settings) do
         DMS.Narrative.Config[key] = value
     end
@@ -44,7 +56,7 @@ end
 -- @param id string Character ID
 -- @param prefix string Message prefix
 function DMS.Narrative.addCharacter(id, prefix)
-    DMS.Narrative.Characters[id] = {prefix = prefix, color = nil}
+    DMS.Narrative.Characters[id] = {prefix = prefix or "", color = nil}
 end
 
 --- Create a dialogue line
@@ -56,7 +68,7 @@ local function createDialogue(character, text, delay)
     local char = DMS.Narrative.Characters[character] or {prefix = ""}
     return {
         type = "dialogue",
-        text = char.prefix .. text,
+        text = (char.prefix or "") .. tostring(text or ""),
         delay = delay or 0,
     }
 end
@@ -83,7 +95,7 @@ function DMS.Narrative.registerChapter(chapterNum, events, options)
     options = options or {}
 
     DMS.Narrative.Chapters[chapterNum] = {
-        events = events,
+        events = type(events) == "table" and events or {},
         played = false,
         condition = options.condition,        -- Function that returns true to trigger
         title = options.title,
@@ -94,6 +106,8 @@ end
 --- Execute an event
 -- @param event table Event definition
 local function executeEvent(event)
+    if type(event) ~= "table" then return end
+    local params = event.params or {}
     if event.type == "dialogue" then
         trigger.action.outTextForCoalition(
             DMS.Narrative.Config.playerCoalition,
@@ -104,15 +118,18 @@ local function executeEvent(event)
 
     elseif event.type == "action" then
         if event.actionType == "spawn" then
-            for _, groupName in ipairs(event.params.groups or {}) do
+            for _, groupName in ipairs(params.groups or {}) do
                 local group = Group.getByName(groupName)
-                if group then
+                if group and group:isExist() then
                     trigger.action.activateGroup(group)
+                    if isDebug() then
+                        env.info(string.format("[Narrative] Activated group '%s'", tostring(groupName)))
+                    end
                 end
             end
 
         elseif event.actionType == "destroy" then
-            for _, groupName in ipairs(event.params.groups or {}) do
+            for _, groupName in ipairs(params.groups or {}) do
                 local group = Group.getByName(groupName)
                 if group and group:isExist() then
                     group:destroy()
@@ -120,24 +137,34 @@ local function executeEvent(event)
             end
 
         elseif event.actionType == "flag" then
-            trigger.action.setUserFlag(event.params.flag, event.params.value or 1)
+            if params.flag ~= nil then
+                trigger.action.setUserFlag(tostring(params.flag), params.value or 1)
+            end
 
         elseif event.actionType == "smoke" then
-            trigger.action.smoke(event.params.position, event.params.color or trigger.smokeColor.Red)
+            if params.position then
+                trigger.action.smoke(params.position, params.color or trigger.smokeColor.Red)
+            end
 
         elseif event.actionType == "flare" then
-            trigger.action.signalFlare(event.params.position, event.params.color or trigger.flareColor.Red, event.params.azimuth or 0)
+            if params.position then
+                trigger.action.signalFlare(params.position, params.color or trigger.flareColor.Red, params.azimuth or 0)
+            end
 
         elseif event.actionType == "explosion" then
-            trigger.action.explosion(event.params.position, event.params.power or 100)
+            if params.position then
+                trigger.action.explosion(params.position, params.power or 100)
+            end
 
         elseif event.actionType == "sound" then
             -- Note: Requires sound file in mission
-            trigger.action.outSound(event.params.file)
+            if params.file then
+                trigger.action.outSoundForCoalition(DMS.Narrative.Config.playerCoalition, params.file)
+            end
 
         elseif event.actionType == "custom" then
-            if type(event.params.func) == "function" then
-                event.params.func(event.params.args)
+            if type(params.func) == "function" then
+                params.func(params.args)
             end
         end
     end
@@ -154,11 +181,15 @@ function DMS.Narrative.playChapter(chapterNum)
     chapter.played = true
     DMS.Narrative.CurrentChapter = chapterNum
 
+    if isDebug() then
+        env.info(string.format("[Narrative] Playing chapter %s (%d events)", tostring(chapterNum), #chapter.events))
+    end
+
     -- Show chapter title if defined
     if chapter.title then
         trigger.action.outTextForCoalition(
             DMS.Narrative.Config.playerCoalition,
-            "=== " .. chapter.title .. " ===",
+            "=== " .. tostring(chapter.title) .. " ===",
             5,
             true
         )
@@ -168,16 +199,17 @@ function DMS.Narrative.playChapter(chapterNum)
     local totalDelay = chapter.title and 3 or 0
 
     for _, event in ipairs(chapter.events) do
-        local eventDelay = totalDelay + (event.delay or 0)
+        local eventDelay = totalDelay + (tonumber(type(event) == "table" and event.delay) or 0)
 
         timer.scheduleFunction(function()
-            executeEvent(event)
+            local ok, err = pcall(executeEvent, event)
+            if not ok then logError("Narrative.executeEvent(chapter " .. tostring(chapterNum) .. ")", err) end
             return nil
         end, nil, timer.getTime() + eventDelay)
 
         -- Add message display time for dialogues
-        if event.type == "dialogue" then
-            totalDelay = eventDelay + DMS.Narrative.Config.messageDisplayTime + 2
+        if type(event) == "table" and event.type == "dialogue" then
+            totalDelay = eventDelay + (tonumber(DMS.Narrative.Config.messageDisplayTime) or 15) + 2
         else
             totalDelay = eventDelay + 1
         end
@@ -186,7 +218,10 @@ function DMS.Narrative.playChapter(chapterNum)
     -- Call onComplete after all events
     if chapter.onComplete then
         timer.scheduleFunction(function()
-            chapter.onComplete()
+            if type(chapter.onComplete) == "function" then
+                local ok, err = pcall(chapter.onComplete)
+                if not ok then logError("Narrative.onComplete(chapter " .. tostring(chapterNum) .. ")", err) end
+            end
             return nil
         end, nil, timer.getTime() + totalDelay)
     end
@@ -197,13 +232,18 @@ end
 --- Check chapter conditions and auto-play
 local function checkChapterConditions(_, time)
     if not DMS.Narrative.Active or not DMS.Narrative.Config.autoAdvance then
+        DMS.Narrative.TimerId = nil
         return nil
     end
 
     for chapterNum, chapter in pairs(DMS.Narrative.Chapters) do
-        if not chapter.played and chapter.condition then
-            if chapter.condition() then
-                DMS.Narrative.playChapter(chapterNum)
+        if not chapter.played and type(chapter.condition) == "function" then
+            local ok, met = pcall(chapter.condition)
+            if not ok then
+                logError("Narrative.condition(chapter " .. tostring(chapterNum) .. ")", met)
+            elseif met then
+                local okP, err = pcall(DMS.Narrative.playChapter, chapterNum)
+                if not okP then logError("Narrative.playChapter(" .. tostring(chapterNum) .. ")", err) end
             end
         end
     end
@@ -226,13 +266,19 @@ function DMS.Narrative.start()
             timer.getTime() + 5
         )
     end
+
+    if isDebug() then
+        local count = 0
+        for _ in pairs(DMS.Narrative.Chapters) do count = count + 1 end
+        env.info(string.format("[Narrative] Started with %d chapters (autoAdvance: %s)", count, tostring(DMS.Narrative.Config.autoAdvance)))
+    end
 end
 
 --- Stop narrative system
 function DMS.Narrative.stop()
     DMS.Narrative.Active = false
     if DMS.Narrative.TimerId then
-        timer.removeFunction(DMS.Narrative.TimerId)
+        pcall(timer.removeFunction, DMS.Narrative.TimerId)
         DMS.Narrative.TimerId = nil
     end
 end

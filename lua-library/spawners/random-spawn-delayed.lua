@@ -1,5 +1,6 @@
 -- Random Spawn Delayed System for DCS Missions
 -- Percentage-based spawning with random time delays
+-- Requires: spawners/spawn-core.lua
 -- Place in mission via DO SCRIPT FILE
 
 DMS = DMS or {}
@@ -8,6 +9,7 @@ DMS.DelayedSpawn = {}
 -- Registered spawn groups
 DMS.DelayedSpawn.Groups = {}
 DMS.DelayedSpawn.Pending = {}
+DMS.DelayedSpawn.Active = false
 
 -- Configuration
 DMS.DelayedSpawn.Config = {
@@ -29,8 +31,10 @@ end
 -- @param spawnChance number|nil Percentage chance to spawn (1-100)
 -- @param minTime number|nil Minimum delay in seconds
 -- @param maxTime number|nil Maximum delay in seconds
-function DMS.DelayedSpawn.register(groupName, spawnChance, minTime, maxTime)
+-- @param hidden boolean|nil Fog of war override (nil = settings default)
+function DMS.DelayedSpawn.register(groupName, spawnChance, minTime, maxTime, hidden)
     table.insert(DMS.DelayedSpawn.Groups, {
+        hidden = hidden,
         name = groupName,
         chance = spawnChance or DMS.DelayedSpawn.Config.defaultChance,
         minTime = minTime or DMS.DelayedSpawn.Config.defaultMinTime,
@@ -62,53 +66,60 @@ function DMS.DelayedSpawn.registerPattern(prefix, count, spawnChance, minTime, m
     end
 end
 
---- Attempt spawn callback (for timer)
--- @param groupConfig table Group configuration
--- @return nil Always returns nil (no reschedule)
-local function trySpawn(groupConfig)
-    DMS.Error.safeCall(function()
-        local roll = math.random(1, 100)
-
-        if roll <= groupConfig.chance then
-            local group = Group.getByName(groupConfig.name)
-            if group then
-                trigger.action.activateGroup(group)
-                groupConfig.spawned = true
-            end
-        end
-    end, "DelayedSpawn.trySpawn(" .. groupConfig.name .. ")")
-
-    return nil  -- Don't reschedule
-end
-
---- Schedule all registered spawns
+--- Schedule all registered spawns (roll happens at spawn time)
 -- Call this at mission start
 -- @return number Number of spawns scheduled
 function DMS.DelayedSpawn.execute()
+    local Core = DMS.SpawnCore
+    if not Core then
+        env.error("[DelayedSpawn] spawners/spawn-core.lua is not loaded")
+        return 0
+    end
+
+    DMS.DelayedSpawn.Active = true
     local scheduled = 0
 
     for _, groupConfig in ipairs(DMS.DelayedSpawn.Groups) do
-        local delay = math.random(groupConfig.minTime, groupConfig.maxTime)
+        if not groupConfig.scheduled then
+            groupConfig.scheduled = true
+            local delay = Core.randomDelay(groupConfig.minTime, groupConfig.maxTime)
+            local entry = {name = groupConfig.name, scheduledTime = timer.getTime() + delay}
 
-        timer.scheduleFunction(
-            trySpawn,
-            groupConfig,
-            timer.getTime() + delay
-        )
+            entry.timerId = Core.activateDelayed(groupConfig.name, delay, groupConfig.chance,
+                {hidden = groupConfig.hidden, prefix = "DelayedSpawn"},
+                function(spawned)
+                    groupConfig.spawned = spawned
+                    entry.timerId = nil
+                end,
+                function() return DMS.DelayedSpawn.Active end)
 
-        table.insert(DMS.DelayedSpawn.Pending, {
-            name = groupConfig.name,
-            scheduledTime = timer.getTime() + delay,
-        })
+            table.insert(DMS.DelayedSpawn.Pending, entry)
+            scheduled = scheduled + 1
 
-        scheduled = scheduled + 1
+            if DMS.Settings and DMS.Settings.isDebug() then
+                env.info(string.format("[DelayedSpawn] '%s' scheduled in %.0fs (%d%% chance)",
+                    groupConfig.name, delay, groupConfig.chance))
+            end
+        end
     end
 
     return scheduled
 end
 
+--- Cancel all pending delayed spawns
+function DMS.DelayedSpawn.stop()
+    DMS.DelayedSpawn.Active = false
+    for _, entry in ipairs(DMS.DelayedSpawn.Pending) do
+        if entry.timerId then
+            pcall(timer.removeFunction, entry.timerId)
+            entry.timerId = nil
+        end
+    end
+end
+
 --- Clear all registered groups
 function DMS.DelayedSpawn.clear()
+    DMS.DelayedSpawn.stop()
     DMS.DelayedSpawn.Groups = {}
     DMS.DelayedSpawn.Pending = {}
 end

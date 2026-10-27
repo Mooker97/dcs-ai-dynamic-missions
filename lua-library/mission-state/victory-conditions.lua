@@ -4,17 +4,18 @@
 -- Place in mission via DO SCRIPT FILE
 
 DMS = DMS or {}
-DMS.Victory = {}
+DMS.Victory = DMS.Victory or {}
 
 -- Condition definitions
-DMS.Victory.WinConditions = {}
-DMS.Victory.LoseConditions = {}
-DMS.Victory.Active = false
-DMS.Victory.TimerId = nil
-DMS.Victory.Result = nil  -- nil = ongoing, "win", "lose"
+DMS.Victory.WinConditions = DMS.Victory.WinConditions or {}
+DMS.Victory.LoseConditions = DMS.Victory.LoseConditions or {}
+DMS.Victory.Active = DMS.Victory.Active or false
+-- DMS.Victory.TimerId: DCS timer id while running
+-- DMS.Victory.Result: nil = ongoing, "win", "lose"
+DMS.Victory._seenGroups = DMS.Victory._seenGroups or {}
 
 -- Configuration
-DMS.Victory.Config = {
+DMS.Victory.Config = DMS.Victory.Config or {
     playerCoalition = coalition.side.BLUE,
     checkInterval = 5,
     showProgress = true,
@@ -26,7 +27,37 @@ DMS.Victory.Config = {
 
 --- Configure victory system
 -- @param settings table Configuration overrides
+local function isDebug()
+    return DMS.Settings and DMS.Settings.isDebug and DMS.Settings.isDebug()
+end
+
+local function debugLog(fmt, ...)
+    if isDebug() then
+        env.info(string.format("[Victory] " .. fmt, ...))
+    end
+end
+
+local function logError(context, msg)
+    if DMS.Error and DMS.Error.log then
+        DMS.Error.log(context, msg)
+    else
+        env.error("[DMS LUA ERROR] " .. tostring(context) .. ": " .. tostring(msg))
+    end
+end
+
+--- Run a user callback under pcall; returns its result or nil on error
+local function safeInvoke(func, context, ...)
+    if type(func) ~= "function" then return nil end
+    local ok, result = pcall(func, ...)
+    if not ok then
+        logError(context, result)
+        return nil
+    end
+    return result
+end
+
 function DMS.Victory.configure(settings)
+    if type(settings) ~= "table" then return end
     for key, value in pairs(settings) do
         DMS.Victory.Config[key] = value
     end
@@ -70,23 +101,33 @@ end
 --- Check if group is destroyed
 -- @param groupName string Group name
 -- @return boolean True if destroyed or doesn't exist
-local function isGroupDestroyed(groupName)
+local function countAliveUnits(groupName)
     local group = Group.getByName(groupName)
     if not group or not group:isExist() then
-        return true
+        return nil  -- group does not exist (never spawned, or fully removed)
     end
-
-    local units = group:getUnits()
-    if not units then
-        return true
-    end
-
-    for _, unit in ipairs(units) do
-        if unit:isExist() and unit:getLife() >= 1 then
-            return false
+    local count = 0
+    for _, unit in ipairs(group:getUnits() or {}) do
+        if unit and unit:isExist() and unit:getLife() >= 1 then
+            count = count + 1
         end
     end
+    return count
+end
 
+--- A group counts as destroyed only after it has been seen alive at least
+-- once. This stops dynamically-spawned (not yet spawned) groups from
+-- completing "destroy" objectives instantly.
+local function isGroupDestroyed(groupName)
+    local alive = countAliveUnits(groupName)
+    if alive and alive > 0 then
+        DMS.Victory._seenGroups[groupName] = true
+        return false
+    end
+    if not DMS.Victory._seenGroups[groupName] then
+        debugLog("Group '%s' not seen alive yet - not counted as destroyed", tostring(groupName))
+        return false
+    end
     return true
 end
 
@@ -150,17 +191,7 @@ function DMS.Victory.Conditions.protect(groupNames, minSurvivors)
     return function()
         local survivors = 0
         for _, name in ipairs(groupNames) do
-            local group = Group.getByName(name)
-            if group and group:isExist() then
-                local units = group:getUnits()
-                if units then
-                    for _, unit in ipairs(units) do
-                        if unit:isExist() and unit:getLife() >= 1 then
-                            survivors = survivors + 1
-                        end
-                    end
-                end
-            end
+            survivors = survivors + (countAliveUnits(name) or 0)
         end
         return survivors < minSurvivors  -- True = failed to protect
     end
@@ -199,7 +230,7 @@ function DMS.Victory.Conditions.playerInZone(zoneName)
         if not players then return false end
 
         for _, player in ipairs(players) do
-            if player:isExist() then
+            if player and player:isExist() then
                 local pos = player:getPoint()
                 local dx = pos.x - zone.point.x
                 local dz = pos.z - zone.point.z
@@ -230,12 +261,10 @@ local function checkVictoryInternal(_, time)
 
     -- Check lose conditions first (priority)
     for id, cond in pairs(DMS.Victory.LoseConditions) do
-        if not cond.met and cond.check() then
+        if not cond.met and safeInvoke(cond.check, "Victory.loseCondition." .. tostring(id)) then
             cond.met = true
-
-            if cond.onMet then
-                cond.onMet()
-            end
+            debugLog("Lose condition met: %s (instant=%s)", tostring(cond.description), tostring(cond.instant))
+            safeInvoke(cond.onMet, "Victory.loseCondition.onMet." .. tostring(id))
 
             if cond.instant then
                 DMS.Victory.triggerDefeat("Condition failed: " .. cond.description)
@@ -246,15 +275,13 @@ local function checkVictoryInternal(_, time)
 
     -- Check win conditions
     local allRequiredMet = true
-    local anyOptionalMet = false
+    local requiredCount = 0
 
     for id, cond in pairs(DMS.Victory.WinConditions) do
-        if not cond.met and cond.check() then
+        if not cond.met and safeInvoke(cond.check, "Victory.winCondition." .. tostring(id)) then
             cond.met = true
-
-            if cond.onMet then
-                cond.onMet()
-            end
+            debugLog("Win condition met: %s", tostring(cond.description))
+            safeInvoke(cond.onMet, "Victory.winCondition.onMet." .. tostring(id))
 
             if DMS.Victory.Config.showProgress then
                 trigger.action.outTextForCoalition(
@@ -266,17 +293,16 @@ local function checkVictoryInternal(_, time)
             end
         end
 
-        if cond.required and not cond.met then
-            allRequiredMet = false
-        end
-
-        if not cond.required and cond.met then
-            anyOptionalMet = true
+        if cond.required then
+            requiredCount = requiredCount + 1
+            if not cond.met then
+                allRequiredMet = false
+            end
         end
     end
 
     -- Check for victory
-    if allRequiredMet then
+    if requiredCount > 0 and allRequiredMet then
         DMS.Victory.triggerVictory()
         return nil
     end
@@ -288,12 +314,12 @@ end
 local function checkVictory(args, time)
     local success, result = pcall(checkVictoryInternal, args, time)
     if not success then
-        if DMS.Error then
-            DMS.Error.log("Victory.checkVictory", result)
-        else
-            env.error("[DMS LUA ERROR] Victory.checkVictory: " .. tostring(result))
-        end
-        return time + (DMS.Victory.Config.checkInterval or 5)
+        logError("Victory.checkVictory", result)
+        if not DMS.Victory.Active or DMS.Victory.Result then return nil end
+        return time + (tonumber(DMS.Victory.Config.checkInterval) or 5)
+    end
+    if result == nil then
+        DMS.Victory.TimerId = nil
     end
     return result
 end
@@ -307,6 +333,7 @@ function DMS.Victory.triggerVictory(message)
 
     DMS.Victory.Result = "win"
     DMS.Victory.Active = false
+    debugLog("VICTORY")
 
     message = message or "=== MISSION SUCCESSFUL ==="
 
@@ -331,6 +358,7 @@ function DMS.Victory.triggerDefeat(message)
 
     DMS.Victory.Result = "lose"
     DMS.Victory.Active = false
+    debugLog("DEFEAT: %s", tostring(message))
 
     message = message or "=== MISSION FAILED ==="
 
@@ -358,15 +386,18 @@ function DMS.Victory.start()
     DMS.Victory.TimerId = timer.scheduleFunction(
         checkVictory,
         nil,
-        timer.getTime() + DMS.Victory.Config.checkInterval
+        timer.getTime() + (tonumber(DMS.Victory.Config.checkInterval) or 5)
     )
+    debugLog("Started (%d win, %d lose conditions)",
+        (function() local n = 0 for _ in pairs(DMS.Victory.WinConditions) do n = n + 1 end return n end)(),
+        (function() local n = 0 for _ in pairs(DMS.Victory.LoseConditions) do n = n + 1 end return n end)())
 end
 
 --- Stop victory tracking
 function DMS.Victory.stop()
     DMS.Victory.Active = false
     if DMS.Victory.TimerId then
-        timer.removeFunction(DMS.Victory.TimerId)
+        pcall(timer.removeFunction, DMS.Victory.TimerId)
         DMS.Victory.TimerId = nil
     end
 end
@@ -437,7 +468,7 @@ function DMS.Victory.showProgress()
     for _, cond in ipairs(progress.winConditions) do
         local status = cond.met and "[X]" or "[ ]"
         local optional = cond.required and "" or " (Optional)"
-        table.insert(lines, string.format("  %s %s%s", status, cond.description, optional))
+        table.insert(lines, string.format("  %s %s%s", status, tostring(cond.description), optional))
     end
 
     trigger.action.outTextForCoalition(

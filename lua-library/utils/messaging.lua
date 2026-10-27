@@ -3,7 +3,7 @@
 -- Place in mission via DO SCRIPT FILE or embed in mission
 
 DMS = DMS or {}
-DMS.Msg = {}
+DMS.Msg = DMS.Msg or {}
 
 -- Message display durations (seconds)
 DMS.Msg.Duration = {
@@ -29,7 +29,7 @@ DMS.Msg.Callsigns = {
 function DMS.Msg.toAll(text, duration, clearView)
     duration = duration or DMS.Msg.Duration.NORMAL
     if clearView == nil then clearView = true end
-    trigger.action.outText(text, duration, clearView)
+    trigger.action.outText(tostring(text), duration, clearView)
 end
 
 --- Send message to specific coalition
@@ -40,7 +40,7 @@ end
 function DMS.Msg.toCoalition(coalitionId, text, duration, clearView)
     duration = duration or DMS.Msg.Duration.NORMAL
     if clearView == nil then clearView = true end
-    trigger.action.outTextForCoalition(coalitionId, text, duration, clearView)
+    trigger.action.outTextForCoalition(coalitionId, tostring(text), duration, clearView)
 end
 
 --- Send message to blue coalition
@@ -63,7 +63,8 @@ end
 -- @param duration number|nil Display duration
 function DMS.Msg.toGroup(groupId, text, duration)
     duration = duration or DMS.Msg.Duration.NORMAL
-    trigger.action.outTextForGroup(groupId, text, duration)
+    if not groupId then return end
+    trigger.action.outTextForGroup(groupId, tostring(text), duration)
 end
 
 --- Send message to group by name
@@ -71,9 +72,12 @@ end
 -- @param text string Message text
 -- @param duration number|nil Display duration
 function DMS.Msg.toGroupByName(groupName, text, duration)
-    local group = Group.getByName(groupName)
-    if group then
-        DMS.Msg.toGroup(group:getID(), text, duration)
+    local ok, group = pcall(Group.getByName, groupName)
+    if ok and group then
+        local okE, exists = pcall(group.isExist, group)
+        if okE and exists then
+            DMS.Msg.toGroup(group:getID(), text, duration)
+        end
     end
 end
 
@@ -195,10 +199,15 @@ end
 -- @param duration number|nil Display duration
 function DMS.Msg.radioDelayed(callsign, message, delay, duration)
     timer.scheduleFunction(function()
-        local formatted = DMS.Msg.formatRadio(callsign, message)
-        DMS.Msg.toAll(formatted, duration or DMS.Msg.Duration.NORMAL)
+        local ok, err = pcall(function()
+            local formatted = DMS.Msg.formatRadio(callsign, message)
+            DMS.Msg.toAll(formatted, duration or DMS.Msg.Duration.NORMAL)
+        end)
+        if not ok then
+            env.error(string.format("[Msg] radioDelayed failed: %s", tostring(err)))
+        end
         return nil
-    end, nil, timer.getTime() + delay)
+    end, nil, timer.getTime() + (delay or 0))
 end
 
 --- Queue multiple radio messages with spacing
@@ -209,7 +218,7 @@ function DMS.Msg.queueRadio(messages, spacing, startDelay)
     spacing = spacing or 3
     startDelay = startDelay or 0
 
-    for i, msg in ipairs(messages) do
+    for i, msg in ipairs(messages or {}) do
         local delay = startDelay + (i - 1) * spacing
         DMS.Msg.radioDelayed(msg.callsign, msg.message, delay, msg.duration)
     end

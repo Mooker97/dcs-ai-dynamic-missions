@@ -28,6 +28,16 @@ DMS.AWACS.Config = {
     minAltitudeForCall = 100,    -- Minimum altitude to report (meters)
 }
 
+-- Per-group F10 menu state (groupId -> true)
+DMS.AWACS.GroupMenus = {}
+DMS.AWACS.MenuHandler = nil
+
+local function logDebug(fmt, ...)
+    if DMS.Settings and DMS.Settings.isDebug and DMS.Settings.isDebug() then
+        env.info(string.format("[AWACS] " .. fmt, ...))
+    end
+end
+
 -- Contact tracking structure
 -- {id, groupName, lastPos, lastAlt, firstSeen, lastSeen, reported}
 
@@ -189,21 +199,24 @@ end
 
 --- Scan for enemy aircraft
 -- @return table Array of detected contacts
-local function scanForContacts()
+local function scanForContacts(refPos)
     local contacts = {}
+    local maxRange = DMS.AWACS.Config.detectionRange
     local groups = coalition.getGroups(DMS.AWACS.Config.enemyCoalition, Group.Category.AIRPLANE)
 
     if groups then
         for _, group in ipairs(groups) do
-            if group:isExist() then
+            if group and group:isExist() then
                 local units = group:getUnits()
                 if units and #units > 0 then
                     local leader = units[1]
-                    if leader:isExist() then
+                    if leader and leader:isExist() then
                         local pos = leader:getPoint()
 
-                        -- Check altitude threshold
-                        if pos.y >= DMS.AWACS.Config.minAltitudeForCall then
+                        -- Check altitude threshold and detection range
+                        local inRange = (not refPos or not maxRange)
+                            or getDistance(refPos.x, refPos.z, pos.x, pos.z) <= maxRange
+                        if inRange and pos.y >= DMS.AWACS.Config.minAltitudeForCall then
                             -- Get velocity for track
                             local velocity = leader:getVelocity()
                             local heading = math.deg(math.atan2(velocity.z, velocity.x))
@@ -228,13 +241,15 @@ local function scanForContacts()
     local helis = coalition.getGroups(DMS.AWACS.Config.enemyCoalition, Group.Category.HELICOPTER)
     if helis then
         for _, group in ipairs(helis) do
-            if group:isExist() then
+            if group and group:isExist() then
                 local units = group:getUnits()
                 if units and #units > 0 then
                     local leader = units[1]
-                    if leader:isExist() then
+                    if leader and leader:isExist() then
                         local pos = leader:getPoint()
-                        if pos.y >= DMS.AWACS.Config.minAltitudeForCall then
+                        local inRange = (not refPos or not maxRange)
+                            or getDistance(refPos.x, refPos.z, pos.x, pos.z) <= maxRange
+                        if inRange and pos.y >= DMS.AWACS.Config.minAltitudeForCall then
                             table.insert(contacts, {
                                 groupName = group:getName(),
                                 pos = pos,
@@ -254,8 +269,8 @@ local function scanForContacts()
     return contacts
 end
 
---- Process radar sweep
-local function processRadarSweep(_, time)
+--- Process radar sweep (unguarded body; see processRadarSweep)
+local function doRadarSweep(time)
     if not DMS.AWACS.Active then
         return nil
     end
@@ -265,7 +280,7 @@ local function processRadarSweep(_, time)
         return time + DMS.AWACS.Config.checkInterval
     end
 
-    local currentContacts = scanForContacts()
+    local currentContacts = scanForContacts(playerPos)
     local messages = {}
 
     -- Check for new contacts
@@ -334,17 +349,33 @@ local function processRadarSweep(_, time)
     -- Display messages with spacing
     for i, msg in ipairs(messages) do
         timer.scheduleFunction(function()
-            trigger.action.outTextForCoalition(
-                DMS.AWACS.Config.trackingCoalition,
-                msg,
-                15,
-                true
-            )
+            local ok, err = pcall(trigger.action.outTextForCoalition,
+                DMS.AWACS.Config.trackingCoalition, msg, 15, true)
+            if not ok then
+                env.error(string.format("[AWACS] message error: %s", tostring(err)))
+            end
             return nil
-        end, nil, time + (i - 1) * 3)
+        end, nil, time + 0.1 + (i - 1) * 3)
+    end
+
+    if #messages > 0 then
+        logDebug("Sweep: %d contacts, %d calls", #currentContacts, #messages)
     end
 
     return time + DMS.AWACS.Config.checkInterval
+end
+
+--- Timer entry point: pcall-guarded so one bad sweep cannot stop the loop
+local function processRadarSweep(_, time)
+    local ok, result = pcall(doRadarSweep, time)
+    if not ok then
+        env.error(string.format("[AWACS] sweep error: %s", tostring(result)))
+        if DMS.Error and DMS.Error.log then
+            pcall(DMS.Error.log, "AWACS", tostring(result))
+        end
+        return DMS.AWACS.Active and (time + DMS.AWACS.Config.checkInterval) or nil
+    end
+    return result
 end
 
 --- Start AWACS system
@@ -359,6 +390,7 @@ function DMS.AWACS.start()
         nil,
         timer.getTime() + 5  -- Initial delay
     )
+    logDebug("Started (interval: %ds, range: %dm)", DMS.AWACS.Config.checkInterval, DMS.AWACS.Config.detectionRange)
 end
 
 --- Stop AWACS system
@@ -370,25 +402,50 @@ function DMS.AWACS.stop()
     end
 end
 
+--- Get position of the first alive unit in a group
+-- @param groupName string DCS group name
+-- @return table|nil Vec3, number|nil groupId
+local function getGroupPosition(groupName)
+    if not groupName then return nil end
+    local group = Group.getByName(groupName)
+    if not group or not group:isExist() then return nil end
+    local groupId = group:getID()
+    for _, unit in ipairs(group:getUnits() or {}) do
+        if unit and unit:isExist() then
+            return unit:getPoint(), groupId
+        end
+    end
+    return nil, groupId
+end
+
 --- Request picture (manual call)
-function DMS.AWACS.requestPicture()
-    local playerPos = getPlayerPosition()
+-- @param groupName string|nil Requesting group name (per-group menu). nil = coalition-wide, averaged player position
+function DMS.AWACS.requestPicture(groupName)
+    local groupId = nil
+    local function out(text, duration)
+        if groupId then
+            trigger.action.outTextForGroup(groupId, text, duration, true)
+        else
+            trigger.action.outTextForCoalition(DMS.AWACS.Config.trackingCoalition, text, duration, true)
+        end
+    end
+
+    local playerPos
+    if groupName then
+        playerPos, groupId = getGroupPosition(groupName)
+        if not groupId then return end  -- requesting group is gone
+    else
+        playerPos = getPlayerPosition()
+    end
     if not playerPos then
-        trigger.action.outTextForCoalition(
-            DMS.AWACS.Config.trackingCoalition,
-            DMS.AWACS.Config.callsign .. ": Picture clean.",
-            10, true
-        )
+        out(DMS.AWACS.Config.callsign .. ": Picture clean.", 10)
         return
     end
 
-    local contacts = scanForContacts()
+    local contacts = scanForContacts(playerPos)
+    logDebug("Picture requested (group %s): %d contacts", tostring(groupName), #contacts)
     if #contacts == 0 then
-        trigger.action.outTextForCoalition(
-            DMS.AWACS.Config.trackingCoalition,
-            DMS.AWACS.Config.callsign .. ": Picture clean.",
-            10, true
-        )
+        out(DMS.AWACS.Config.callsign .. ": Picture clean.", 10)
         return
     end
 
@@ -405,11 +462,57 @@ function DMS.AWACS.requestPicture()
         end
     end
 
-    trigger.action.outTextForCoalition(
-        DMS.AWACS.Config.trackingCoalition,
-        msg,
-        20, true
-    )
+    out(msg, 20)
+end
+
+--- Add the per-group AWACS menu for a player group (deduped)
+-- @param group table DCS Group
+local function addMenuForGroup(group)
+    if not group or not group:isExist() then return end
+    local groupId = group:getID()
+    if DMS.AWACS.GroupMenus[groupId] then return end
+    DMS.AWACS.GroupMenus[groupId] = true
+
+    local root = missionCommands.addSubMenuForGroup(groupId, DMS.AWACS.Config.callsign .. " (AWACS)")
+    missionCommands.addCommandForGroup(groupId, "Request Picture", root, function(gName)
+        local ok, err = pcall(DMS.AWACS.requestPicture, gName)
+        if not ok then
+            env.error(string.format("[AWACS] requestPicture error: %s", tostring(err)))
+        end
+    end, group:getName())
+    logDebug("Menu added for group '%s' (id %d)", group:getName(), groupId)
+end
+
+--- Register per-group F10 menus for player aircraft of the tracking coalition.
+-- Built on S_EVENT_BIRTH / S_EVENT_PLAYER_ENTER_UNIT so each callback knows the requesting group.
+function DMS.AWACS.setupMenus()
+    if DMS.AWACS.MenuHandler then return end
+
+    local function tryUnit(unit)
+        if not unit or not unit.getPlayerName then return end
+        local ok, playerName = pcall(unit.getPlayerName, unit)
+        if not ok or not playerName then return end
+        if unit:getCoalition() ~= DMS.AWACS.Config.trackingCoalition then return end
+        addMenuForGroup(unit:getGroup())
+    end
+
+    DMS.AWACS.MenuHandler = {}
+    function DMS.AWACS.MenuHandler:onEvent(event)
+        if not event or not event.initiator then return end
+        if event.id == world.event.S_EVENT_BIRTH or event.id == world.event.S_EVENT_PLAYER_ENTER_UNIT then
+            local ok, err = pcall(tryUnit, event.initiator)
+            if not ok then
+                env.error(string.format("[AWACS] menu event error: %s", tostring(err)))
+            end
+        end
+    end
+    world.addEventHandler(DMS.AWACS.MenuHandler)
+
+    -- Players already in the mission when setupMenus() is called
+    for _, unit in ipairs(coalition.getPlayers(DMS.AWACS.Config.trackingCoalition) or {}) do
+        pcall(tryUnit, unit)
+    end
+    logDebug("Per-group menus enabled")
 end
 
 --- Get contact count
@@ -440,13 +543,8 @@ DMS.AWACS.setBullseye(-50000, 40000)
 -- Start system
 DMS.AWACS.start()
 
--- Manual picture request (could be on F10 menu)
-missionCommands.addCommandForCoalition(
-    coalition.side.BLUE,
-    "Request Picture",
-    nil,
-    DMS.AWACS.requestPicture
-)
+-- Per-group F10 "Request Picture" menu (BRA from the requesting aircraft)
+DMS.AWACS.setupMenus()
 ]]
 
 -- Export

@@ -35,6 +35,7 @@ The v0.1 umbrella provides the foundation for Lua-based spawning systems. It gen
 
 **Release Date**: 2025-12-08
 **Status**: Production Ready
+**Testing Status**: ✅ Tested in DCS
 
 #### What v0.1.0 Does
 
@@ -109,37 +110,38 @@ DMS.SpawnPool = {
 ## v0.2 - Dynamic Spawning & Event Handling (Lua Library) 🔄
 
 **Phase**: Lua Library Enhancement
-**Overall Status**: v0.2.0 Complete / v0.2.1 In Progress / v0.2.2-v0.2.13 Planned
+**Overall Status**: v0.2.0-v0.2.5 Complete / v0.2.6 In Progress (bug fixes) / v0.2.7-v0.2.10 Complete / v0.2.11-v0.2.13 Planned
 
 ### v0.2 Overview
 
 The v0.2 umbrella encompasses a complete dynamic mission system extending from core spawning through advanced mission mechanics:
 
 **Core Systems (v0.2.0-v0.2.5)**:
-- **v0.2.0**: Dynamic group generation from templates into spawn zones
-- **v0.2.1**: Mission event monitoring and reactive spawning
-- **v0.2.2**: AI group behavior and tactical decision-making
-- **v0.2.3**: Mission settings, error handling, and diagnostics
-- **v0.2.4**: Flag events and player communication systems
-- **v0.2.5**: Fog of war and quality-of-life enhancements
+- **v0.2.0**: Dynamic group generation from templates into spawn zones ✅ COMPLETE
+- **v0.2.1**: Mission event monitoring and reactive spawning ✅ COMPLETE
+- **v0.2.2**: AI group behavior and tactical decision-making ✅ COMPLETE
+- **v0.2.3**: Mission settings, error handling, and diagnostics ✅ COMPLETE
+- **v0.2.4**: Flag events and player communication systems ✅ COMPLETE
+- **v0.2.5**: Fog of war and quality-of-life enhancements ✅ COMPLETE (with known bugs)
 
 **Stability & Expansions (v0.2.6-v0.2.13)**:
-- **v0.2.6**: Bug fixes and stability for core systems
-- **v0.2.7**: Waypoints and unit movement control
-- **v0.2.8**: Scoring and objective tracking systems
-- **v0.2.9**: Advanced triggers and scripting framework
-- **v0.2.10**: Randomization improvements and scenario control
-- **v0.2.11**: Mission Lua file generation simplification
-- **v0.2.12**: Bug fixes and refinement round 2
-- **v0.2.13**: Polish and nice-to-have improvements
+- **v0.2.6**: Bug fixes and stability for core systems 🔄 IN PROGRESS
+- **v0.2.7**: Waypoints and unit movement control ✅ COMPLETE
+- **v0.2.8**: Scoring and objective tracking systems ✅ COMPLETE
+- **v0.2.9**: Advanced triggers and scripting framework ✅ COMPLETE
+- **v0.2.10**: Randomization improvements and scenario control ✅ COMPLETE
+- **v0.2.11**: Mission Lua file generation simplification ⏳ PLANNED
+- **v0.2.12**: Bug fixes and refinement round 2 ⏳ PLANNED
+- **v0.2.13**: Polish and nice-to-have improvements ⏳ PLANNED
 
-Together, these create a comprehensive Lua library foundation enabling mission creators to build highly interactive, dynamic DCS missions with sophisticated behavior, scoring, and replayability.
+**Implementation Status**: Lua library is COMPLETE with 69 scripts across all categories. Mission generation pipeline exists but blocked on template .miz files and add_group() implementation.
 
 ---
 
 ### v0.2.0 - Dynamic Spawn Script Generation (COMPLETE) ✅
 
 **Status**: Production Ready
+**Testing Status**: ✅ Tested in DCS
 
 #### What v0.2.0 Does
 
@@ -169,140 +171,157 @@ Generates Lua scripts that dynamically create and spawn groups/units from templa
 
 ---
 
-### v0.2.1 - Basic Mission Event Handling (IN PROGRESS) 🔄
+### v0.2.1 - Basic Mission Event Handling (COMPLETE) ✅
 
-**Status**: Active Development
+**Status**: Production Ready
+**Testing Status**: ✅ Tested in DCS
 
 #### What v0.2.1 Does
 
 Extends v0.2.0 with event monitoring and reactive behavior. Tracks mission events (groups entering/exiting zones, group destruction, player engagement) and triggers spawned content in response to those events.
 
-#### Core Capabilities (In Progress)
+#### Core Capabilities
 
-- 🔄 **Group Zone Detection**: Triggers when groups enter/exit defined zones
-- 🔄 **Destruction Monitoring**: Detects when spawned groups are destroyed
-- 🔄 **Event-Driven Responses**: Execute actions based on mission events
-- 🔄 **State Tracking**: Maintain mission state between events
-- 🔄 **Reactive Spawning**: Spawn reinforcements or new threats based on player actions
+- ✅ **Event-Driven Responses**: Execute actions based on mission events (event-chain.lua)
+- ✅ **Conditional Triggers**: Complex if/then/else logic (conditional-triggers.lua)
+- ✅ **Reinforcement Waves**: Triggered reinforcement spawns (reinforcement-waves.lua)
+- ✅ **Alarm System**: Zone-based alert propagation (alarm-system.lua)
+- ✅ **Kill Chain Reaction**: Cascade effects on target destruction (kill-chain-reaction.lua)
+- ✅ **Narrative Events**: Scripted story moments (narrative-events.lua)
+- ✅ **Objective Tracker**: Mission objective management (objective-tracker.lua)
 
-#### Planned Features
+#### Implementation Details
 
-- [ ] Zone enter/exit event handlers
-- [ ] Group destruction detection
-- [ ] Engagement/combat event tracking
-- [ ] Event queue and processing system
-- [ ] State machine for mission progression
-- [ ] Event-triggered spawn sequences
+All event handling systems implemented in `lua-library/events/`:
+- 7 complete event system scripts
+- Integration with DCS event handlers
+- Event queue and processing
+- State tracking between events
 
 ---
 
-### v0.2.2 - AI Group Behavior (PLANNED)
+### v0.2.2 - AI Group Behavior (WA - NEEDS TESTING) ⚠️
 
-**Status**: Planned
+**Status**: Implementation Complete
+**Testing Status**: ⚠️ Needs Testing in DCS
 
 #### What v0.2.2 Does
 
 Extends v0.2.1 with intelligent behavior systems for spawned groups. Defines how AI-controlled groups behave, make tactical decisions, and respond to player actions. Builds mission realism and challenge through sophisticated group behaviors rather than just spawn mechanics.
 
-#### Core Capabilities (Planned)
+#### Core Capabilities
 
-- 🤖 **AI Decision Trees**: Intelligent behavior selection based on mission state
-- 🤖 **Tactical Responses**: Groups adapt to player actions (evade, attack, defend)
-- 🤖 **Formation Control**: Maintain formations and coordinate group movements
-- 🤖 **Threat Assessment**: Evaluate threats and prioritize targets
-- 🤖 **Behavior Profiles**: Different AI personalities (aggressive, defensive, evasive)
+- ✅ **Task Force Coordination**: Multi-group tactical coordination (task-force.lua)
+- ✅ **Flanking Maneuvers**: Automatic flanking behavior (flanking.lua)
+- ✅ **Fire Support**: Groups call for reinforcements when engaged (fire-support.lua)
+- ✅ **Awareness States**: UNAWARE→SUSPICIOUS→ALERT→HUNTING state machine (awareness-state.lua)
+- ✅ **Search Patterns**: Spiral/grid/random search when contact lost (search-pattern.lua)
+- ✅ **Threat Reaction**: AI responds to player flight profiles (threat-reaction.lua)
+- ✅ **Skill Scaling**: Dynamic difficulty adjustment (skill-scaling.lua, adaptive-difficulty.lua)
+- ✅ **Proximity Activation**: Activate groups on player approach (proximity-activation.lua)
+- ✅ **SAM Ambush**: SAMs stay dark until optimal engagement (sam-ambush.lua)
+- ✅ **Hunt Pack**: Coordinated enemy hunting behavior (hunt-pack.lua)
+- ✅ **Retreat/Scatter**: Damaged units flee tactically (retreat-scatter.lua)
 
-#### Planned Features
+#### Implementation Details
 
-- [ ] Behavior definition system (Lua tables)
-- [ ] Decision trees for AI choices
-- [ ] Patrol and engagement patterns
-- [ ] Formation flying for aircraft groups
-- [ ] Retreat/reinforcement logic
-- [ ] Behavior event triggers
+All AI behavior systems implemented in `lua-library/ai-behavior/`:
+- 12 complete AI behavior scripts
+- State machines and decision trees
+- Tactical coordination between groups
+- Behavior profiles (aggressive, defensive, evasive)
 
 ---
 
-### v0.2.3 - Mission Settings & Utilities (PLANNED)
+### v0.2.3 - Mission Settings & Utilities (COMPLETE) ✅
 
-**Status**: Planned
+**Status**: Production Ready
+**Testing Status**: ✅ Tested in DCS
 
 #### What v0.2.3 Does
 
 Provides mission-wide configuration, error handling, and diagnostic utilities. Centralizes settings management, error logging, debug systems, and provides tools for mission creators to configure and troubleshoot their missions.
 
-#### Core Capabilities (Planned)
+#### Core Capabilities
 
-- ⚙️ **Centralized Settings**: Mission-wide configuration system
-- ⚙️ **Error Handling**: Graceful error management and recovery
-- ⚙️ **Debug Logging**: Comprehensive debug output system
-- ⚙️ **Diagnostics**: Mission health checks and validation
-- ⚙️ **Performance Monitoring**: Track and report performance metrics
+- ✅ **Centralized Settings**: Mission-wide configuration system (mission-settings.lua)
+- ✅ **Error Handling**: Graceful error management and recovery (error-handler.lua)
+- ✅ **Debug Logging**: Comprehensive debug output with module prefixes
+- ✅ **Coordinate Utilities**: Coordinate conversions and calculations (coordinates.lua)
+- ✅ **Group Utilities**: Group/unit operations (group-utils.lua)
+- ✅ **Timer Utilities**: Timer scheduling helpers (timer-utils.lua)
+- ✅ **Messaging**: Message formatting (BRA, Bullseye, etc.) (messaging.lua)
 
-#### Planned Features
+#### Implementation Details
 
-- [ ] Settings configuration system
-- [ ] Error logging and reporting
-- [ ] Debug output modes (verbose, silent, production)
-- [ ] Mission validation checklist
-- [ ] Performance profiling tools
-- [ ] Crash recovery systems
+All utility systems implemented in `lua-library/utils/`:
+- 7 complete utility scripts
+- DMS.Settings.configure() API for mission configuration
+- Debug mode with modular logging ([ModuleName] prefixes)
+- Error catching and logging system
 
 ---
 
-### v0.2.4 - Flag Events & Player Communications (PLANNED)
+### v0.2.4 - Flag Events & Player Communications (WA - NEEDS TESTING) ⚠️
 
-**Status**: Planned
+**Status**: Implementation Complete
+**Testing Status**: ⚠️ Needs Testing in DCS
 
 #### What v0.2.4 Does
 
 Implements DCS flag-based event handling and player communication systems. Allows missions to trigger behaviors based on custom flags, communicate mission objectives and status to players, and provide in-mission feedback via messages, sounds, and screen notifications.
 
-#### Core Capabilities (Planned)
+#### Core Capabilities
 
-- 📡 **Flag Events**: Respond to custom DCS flag state changes
-- 📡 **Player Messaging**: Send structured messages to player
-- 📡 **Audio Cues**: Play sounds for important events
-- 📡 **Screen Notifications**: Display mission updates on HUD
-- 📡 **Briefing Updates**: Dynamic mission briefing changes
+- ✅ **Audio Player**: WAV/OGG audio playback system (audio-player.lua)
+- ✅ **Brevity Codes**: Military brevity (BRAA, 9-line, etc.) (brevity-codes.lua)
+- ✅ **Enemy Network**: Interceptable AI-to-AI communications (enemy-network.lua)
+- ✅ **AWACS/GCI**: Radar picture calls (BRA/Bullseye) (awacs-gci.lua)
+- ✅ **BDA Reporter**: Battle damage assessment reports (bda-reporter.lua)
+- ✅ **Intel Updates**: Dynamic intelligence reports (intel-updates.lua)
+- ✅ **JTAC Support**: Target marking and 9-line briefs (jtac-support.lua)
+- ✅ **Radio Intercepts**: Enemy communications intercepts (radio-intercepts.lua)
 
-#### Planned Features
+#### Implementation Details
 
-- [ ] Flag event listeners
-- [ ] Flag state management
-- [ ] Message queue system
-- [ ] Audio notification system
-- [ ] Screen markup and HUD updates
-- [ ] Dynamic briefing callbacks
+All communication systems implemented in `lua-library/comms/`:
+- 8 complete communication scripts
+- Audio file playback integration
+- Military brevity code generation
+- Dynamic message formatting
 
 ---
 
-### v0.2.5 - Fog of War & Quality of Life Features (PLANNED)
+### v0.2.5 - Fog of War & Quality of Life Features (WA - NEEDS TESTING) ⚠️
 
-**Status**: Planned
+**Status**: Implementation Complete (with known bugs)
+**Testing Status**: ⚠️ Needs Testing in DCS
 
 #### What v0.2.5 Does
 
 Implements advanced dynamic features that enhance mission immersion and realism. Adds fog of war systems for hidden enemy detection, together with quality-of-life improvements that make missions more engaging and responsive to player actions.
 
-#### Core Capabilities (Planned)
+#### Core Capabilities
 
-- 👁️ **Fog of War**: Hide enemy groups until discovered by proximity or combat
-- 👁️ **Discovery Mechanics**: Players reveal enemies through reconnaissance
-- 👁️ **Dynamic Difficulty**: Adjust threat levels based on player performance
-- 👁️ **Environmental Effects**: Weather, time-of-day impact on visibility
-- 👁️ **Mission Pacing**: Control reinforcement timing and enemy distribution
+- ✅ **Fog of War**: Hide enemy groups until discovered (fog-of-war.lua)
+- ✅ **Discovery Mechanics**: Proximity and combat-based revelation
+- ✅ **Dynamic Difficulty**: Adjust threat levels based on performance (adaptive-spawner.lua, skill-scaling.lua)
+- ✅ **Environmental Effects**: Weather and time-of-day impacts (weather-impact.lua, time-of-day-effects.lua)
+- ✅ **Mission Pacing**: Control reinforcement timing (reinforcement-waves.lua)
+- ✅ **Ambient Traffic**: Non-combat AI for immersion (ambient-traffic.lua)
+- ✅ **Decoy System**: Fake targets and deception (decoy-system.lua)
 
-#### Planned Features
+#### Implementation Details
 
-- [ ] FOW registration and state tracking
-- [ ] Proximity-based group revelation
-- [ ] Combat event revelation system
-- [ ] Difficulty scaling algorithms
-- [ ] Performance optimization for many hidden groups
-- [ ] Environmental visibility factors
-- [ ] Dynamic reinforcement timing
-- [ ] Threat distribution algorithms
+All quality-of-life systems implemented:
+- FOW registration and state tracking (fog-of-war.lua in utils/)
+- Proximity-based group revelation (3-second checks)
+- Combat event revelation system (immediate)
+- 4 environment enhancement scripts
+
+#### Known Issues
+
+See v0.2.6 bug list below for active bugs in FOW system.
 
 #### Dependencies
 
@@ -312,9 +331,9 @@ Implements advanced dynamic features that enhance mission immersion and realism.
 
 ---
 
-### v0.2.6 - Bug Fixes & Stability (PLANNED)
+### v0.2.6 - Bug Fixes & Stability (IN PROGRESS) 🔄
 
-**Status**: Planned (post v0.2.5)
+**Status**: Active Development
 
 #### What v0.2.6 Does
 
@@ -327,117 +346,149 @@ Stabilization and bug fix release for v0.2 core systems. Addresses issues discov
 - 🐛 **Stability**: Edge case handling and robustness improvements
 - 🐛 **Polish**: Code cleanup and refinement in existing modules
 
-#### Bug List
-- Units can spawn on top of buildings
-- Fog opf war not reliable
+#### Known Bugs (from KNOWN-ISSUES.md)
+
+**Critical Bugs**:
+1. ✅ **Fog of War Not Working** - FIXED (2026-01-03)
+   - Fixed FOW registration in dynamic spawn system
+   - Groups now properly hidden/revealed
+2. ⚠️ **Fog of War Reliability Issues** - PARTIAL FIX
+   - Code fix applied but system not fully reliable
+   - Need investigation of DCS API for proper F10 map hiding
+3. ❌ **Units Spawning on Buildings** - DEFERRED (terrain integration needed)
+   - calculateSpawnPosition() needs terrain collision detection
+   - Workaround: Manually adjust zone positions in mission editor
+4. ❌ **Convoy AI: Doesn't Slow/Stop to Engage** - NOT FIXED
+   - Convoy maintains speed through combat
+   - Need to implement convoy defensive behavior
+5. ❌ **Enemy AI: No Active Convoy Seeking** - NOT FIXED
+   - Enemies stationary unless direct LOS
+   - Need to implement pursuit/hunting behavior
+
+**Configuration Issues**:
+- 🔧 **False Positive Convoy Destruction** - Mission Editor fix needed
+  - Script expects group named "Convoy-Main"
+  - Not a code bug - configuration issue
 
 ---
 
-### v0.2.7 - Waypoints & Unit Movement (PLANNED)
+### v0.2.7 - Waypoints & Unit Movement (WA - NEEDS TESTING) ⚠️
 
-**Status**: Planned
+**Status**: Implementation Complete
+**Testing Status**: ⚠️ Needs Testing in DCS
 
 #### What v0.2.7 Does
 
 Enables dynamic waypoint creation and movement of spawned units. Mission creators can define routes, patrol patterns, and move spawned groups around the mission area, giving spawned units realistic movement behavior and operational patterns.
 
-#### Core Capabilities (Planned)
+#### Core Capabilities
 
-- 🗺️ **Waypoint Generation**: Create waypoints for spawned groups
-- 🗺️ **Patrol Patterns**: Define patrol routes and movement patterns
-- 🗺️ **Route Planning**: Calculate efficient routes between objectives
-- 🗺️ **Dynamic Movement**: Change unit routes based on mission events
-- 🗺️ **Formation Movement**: Coordinate multi-group movements
+- ✅ **Waypoint Operations**: List, add, remove, modify waypoints (miz-modification/waypoints/)
+- ✅ **Spawn Formations**: Formation patterns for spawned groups (spawn-formations.lua)
+- ✅ **Zone-Based Spawning**: Spawn groups in defined patrol zones (spawn-zones.lua)
+- ✅ **Route Planning**: Waypoint system in miz-modification library
+- ✅ **Formation Control**: spawn-formations.lua provides tactical formations
 
-#### Planned Features
+#### Implementation Details
 
-- [ ] Waypoint definition system
-- [ ] Route generation from zone to zone
-- [ ] Patrol pattern templates
-- [ ] Speed and altitude control
-- [ ] Route modification on events
-- [ ] Formation flying patterns
+Waypoint system implemented in two places:
+1. **miz-modification/waypoints/** - Mission file waypoint manipulation
+   - list.py - List all waypoints for groups
+   - add.py - Add waypoints to existing groups
+   - remove.py - Remove waypoints
+   - modify.py - Modify waypoint properties
+2. **lua-library/spawners/spawn-formations.lua** - Runtime formation control
+3. **lua-library/spawners/spawn-zones.lua** - Zone-based activation and patrol patterns
 
 ---
 
-### v0.2.8 - Scoring & Objectives (PLANNED)
+### v0.2.8 - Scoring & Objectives (WA - NEEDS TESTING) ⚠️
 
-**Status**: Planned
+**Status**: Implementation Complete
+**Testing Status**: ⚠️ Needs Testing in DCS
 
 #### What v0.2.8 Does
 
 Advanced objective tracking and scoring system. Defines mission objectives with completion conditions, tracks player progress, and calculates scores based on performance. Mission creators can define complex objective structures with multiple branches and scoring modifiers.
 
-#### Core Capabilities (Planned)
+#### Core Capabilities
 
-- 🎯 **Objective Tracking**: Define and monitor mission objectives
-- 🎯 **Completion Conditions**: Complex success/failure conditions
-- 🎯 **Scoring System**: Calculate scores based on actions and outcomes
-- 🎯 **Objective Events**: Trigger behaviors when objectives complete
-- 🎯 **Performance Metrics**: Track and report mission performance
+- ✅ **Objective Tracking**: Define and monitor mission objectives (objective-tracker.lua)
+- ✅ **Victory Conditions**: Complex success/failure conditions (victory-conditions.lua)
+- ✅ **Scoring System**: Calculate scores based on actions (score-tracker.lua)
+- ✅ **Statistics Collection**: Track mission performance (stats-collector.lua)
+- ✅ **Phase Management**: Mission phase state machine (phase-manager.lua)
+- ✅ **Mission Timers**: Countdown/stopwatch timers (mission-timer.lua)
+- ✅ **Persistence**: Save/load mission state (persistence-lite.lua)
 
-#### Planned Features
+#### Implementation Details
 
-- [ ] Objective definition system (nested objectives)
-- [ ] Condition evaluation engine
-- [ ] Score calculation and bonuses
-- [ ] Objective state tracking
-- [ ] Event triggers on objective changes
-- [ ] Performance reporting and AAR integration
+All scoring and objective systems implemented in `lua-library/mission-state/`:
+- 6 complete mission state scripts
+- Objective definition and tracking
+- Scoring with bonuses and modifiers
+- Win/loss condition evaluation
+- Performance metrics and statistics
 
 ---
 
-### v0.2.9 - Triggers & Scripting Framework (PLANNED)
+### v0.2.9 - Triggers & Scripting Framework (WA - NEEDS TESTING) ⚠️
 
-**Status**: Planned
+**Status**: Implementation Complete
+**Testing Status**: ⚠️ Needs Testing in DCS
 
 #### What v0.2.9 Does
 
 Expands trigger capabilities and provides a comprehensive scripting framework for mission creators. Advanced trigger system with complex condition evaluation and more flexible Lua scripting hooks, enabling sophisticated mission logic.
 
-#### Core Capabilities (Planned)
+#### Core Capabilities
 
-- ⚙️ **Advanced Triggers**: Complex conditional triggers with AND/OR logic
-- ⚙️ **Trigger Actions**: Execute multiple actions on trigger conditions
-- ⚙️ **Scripting Hooks**: Injection points for custom Lua scripts
-- ⚙️ **Condition Builders**: Time-based, state-based, proximity-based conditions
-- ⚙️ **Event Integration**: Connect triggers to all mission events
+- ✅ **Conditional Triggers**: Complex if/then/else logic (conditional-triggers.lua)
+- ✅ **Event Chain**: Linked cause-and-effect sequences (event-chain.lua)
+- ✅ **Kill Chain Reaction**: Cascade effects on target destruction (kill-chain-reaction.lua)
+- ✅ **Narrative Events**: Scripted story moments (narrative-events.lua)
+- ✅ **Alarm System**: Zone-based alert propagation (alarm-system.lua)
+- ✅ **Trigger Actions**: Execute multiple actions on conditions (in conditional-triggers.lua)
 
-#### Planned Features
+#### Implementation Details
 
-- [ ] Trigger condition system (AND/OR/NOT logic)
-- [ ] Action queue system
-- [ ] Custom event definitions
-- [ ] Scripting hook system
-- [ ] Condition validators
-- [ ] Trigger debugging tools
+Advanced trigger systems implemented in `lua-library/events/` and supporting modules:
+- Trigger condition system with complex logic
+- Event chaining and cascading effects
+- Custom event definitions
+- Integration with all mission events
+- miz-modification/triggers/ for mission file trigger manipulation
 
 ---
 
-### v0.2.10 - Randomization Improvements (PLANNED)
+### v0.2.10 - Randomization Improvements (WA - NEEDS TESTING) ⚠️
 
-**Status**: Planned
+**Status**: Implementation Complete
+**Testing Status**: ⚠️ Needs Testing in DCS
 
 #### What v0.2.10 Does
 
 Enhanced randomization system giving mission creators fine-grained control over randomization behavior. Allows creators to define scenario variations, control randomness parameters, and create diverse mission experiences while maintaining predictability when desired.
 
-#### Core Capabilities (Planned)
+#### Core Capabilities
 
-- 🎲 **Scenario Variations**: Define multiple mission scenario types
-- 🎲 **Randomization Control**: Specify which elements randomize and how much
-- 🎲 **Seeded Randomization**: Repeatable scenarios with seed values
-- 🎲 **Distribution Control**: Control probability distributions of spawns
-- 🎲 **Dynamic Difficulty**: Adjust randomization based on difficulty level
+- ✅ **Random Spawning**: Multiple spawn systems with % chance control
+  - random-spawn.lua - Basic % chance at mission start
+  - random-spawn-delayed.lua - Time-delayed random spawns
+  - random-spawn-pool.lua - Pick N random from pool
+  - random-spawn-hvt.lua - Rare HVT spawns with tracking
+- ✅ **Adaptive Spawner**: Dynamic spawn density based on performance (adaptive-spawner.lua)
+- ✅ **Spawn Escalation**: Progressive wave system (spawn-escalation.lua)
+- ✅ **Dynamic Difficulty**: Adjust spawns based on difficulty level (skill-scaling.lua, adaptive-difficulty.lua)
+- ✅ **Template-Based**: Template spawner for flexible group composition (template-spawner.lua, unit-templates.lua)
 
-#### Planned Features
+#### Implementation Details
 
-- [ ] Scenario definition system
-- [ ] Randomization parameter configuration
-- [ ] Seed-based reproducibility
-- [ ] Probability distribution controls
-- [ ] Weighted selection for spawns
-- [ ] Difficulty-based randomization scaling
+All randomization systems implemented in `lua-library/spawners/`:
+- 11 complete spawner scripts with randomization
+- Weighted selection and probability distributions
+- Difficulty-based spawn density scaling
+- Template system for spawn variations
 
 ---
 
@@ -503,55 +554,64 @@ Final polish release for v0.2 library. Includes approximately 5 quality-of-life 
 
 ---
 
-## v0.3 - ElevenLabs Audio Integration (PARTIAL) 🎙️
+## v0.3 - ElevenLabs Audio Integration (COMPLETE) 🎙️
 
-**Status**: Partial Implementation (integration pending)
+**Status**: Production Ready (not yet integrated with mission generation pipeline)
 **Phase**: Audio & Immersion
 
 ### v0.3 Overview
 
-ElevenLabs integration for generating high-quality audio from text prompts and playing them within DCS missions. A significant portion of the implementation is complete but not yet integrated into the existing mission systems. Once integrated, mission creators can add dynamic audio narration, briefings, and in-mission communications via text prompts.
+ElevenLabs integration for generating high-quality audio from text prompts and playing them within DCS missions. Implementation is COMPLETE with full API integration, voice management, and audio playback systems. Ready for integration into mission generation pipeline when needed.
 
 ---
 
-### v0.3.0 - ElevenLabs Audio Generation (PARTIAL) 🎙️
+### v0.3.0 - ElevenLabs Audio Generation (WA - NEEDS TESTING) ⚠️
 
-**Status**: Implementation In Progress
+**Status**: Implementation Complete
+**Testing Status**: ⚠️ Needs Testing in DCS
 
 #### What v0.3.0 Does
 
 Generates audio files from text prompts using ElevenLabs API and integrates them into DCS missions via Lua scripts. Mission creators can define text strings that get converted to natural-sounding audio, which can then be triggered at mission events or specific times.
 
-#### Core Capabilities (Partial)
+#### Core Capabilities
 
-- 🎙️ **Text-to-Speech Generation**: Convert text prompts to audio via ElevenLabs API
-- 🎙️ **Voice Selection**: Choose from multiple ElevenLabs voices
-- 🎙️ **Audio File Management**: Store and organize generated audio files
-- 🎙️ **Lua Activation**: Trigger audio playback from mission Lua scripts
-- 🎙️ **Event-Driven Audio**: Play audio on mission events (zone entry, group destroyed, etc.)
+- ✅ **Text-to-Speech Generation**: Convert text prompts to audio via ElevenLabs API
+- ✅ **Voice Selection**: Choose from multiple ElevenLabs voices
+- ✅ **Custom Voice Creation**: API-based custom voice creation
+- ✅ **Audio File Management**: Store and organize generated audio files
+- ✅ **Voice Catalog**: 47 voice lines with multiple character voices
+- ✅ **Configuration System**: Voice and audio configuration management
+- ✅ **Lua Audio Player**: audio-player.lua for WAV/OGG playback in missions
 
-#### Current Implementation Status
+#### Implementation Status
 
-- ✅ ElevenLabs API integration (done, needs integration)
-- ✅ Audio file generation and caching (done, needs integration)
-- ✅ Voice management system (done, needs integration)
-- ⏳ Lua mission integration (pending)
-- ⏳ Event-triggered audio playback (pending)
-- ⏳ Audio queue system (pending)
+- ✅ ElevenLabs SDK integration (complete)
+- ✅ Audio file generation and caching (complete)
+- ✅ Voice management system (complete)
+- ✅ Lua audio playback system (audio-player.lua)
+- ✅ Test suite and sample output (complete)
+- ⏳ Mission generation pipeline integration (pending - when mission gen is unblocked)
 
-#### Planned Features
+#### Files and Structure
 
-- [ ] Integrate audio generation into mission creation pipeline
-- [ ] Lua audio trigger system
-- [ ] Audio queue and scheduling
-- [ ] Multiple voice support
-- [ ] Audio caching and reuse
-- [ ] Performance optimization for large audio sets
+**Location**: `elevenlabs-integration/`
+- `scripts/` - Python SDK integration scripts
+  - create_voices_api.py
+  - generate_voice_lines.py
+  - generate_with_custom_voices.py
+  - list_my_voices.py
+  - test_setup.py
+- `docs/` - Configuration and setup guides
+- Voice catalog with 47 pre-generated lines
+
+**Lua Integration**: `lua-library/comms/audio-player.lua`
 
 #### Integration Points
 
-- v0.2.1 (Event Handling) - Trigger audio on mission events
-- v0.2.4 (Flag Events & Comms) - Audio for player communications
+- v0.2.1 (Event Handling) - Trigger audio on mission events ✅
+- v0.2.4 (Player Communications) - Audio for player comms ✅
+- Mission generation pipeline - Generate and inject audio files (pending pipeline unblock)
 
 ---
 
@@ -709,7 +769,29 @@ v0.6 (AI Mission Design) ← Uses v0.3, v0.4, v0.5
 
 ## Current Development Focus
 
-**Active Work**: v0.2.0 complete, v0.2.1 in progress
-**Next Priority**: Complete v0.2.1 event handling
-**Blocking Issues**: None
+**Completed**:
+- ✅ v0.1.0 - Random Spawn Script Generation
+- ✅ v0.2.0-v0.2.5 - Core dynamic mission systems (spawn, events, AI, settings, comms, FOW)
+- ✅ v0.2.7-v0.2.10 - Advanced systems (waypoints, scoring, triggers, randomization)
+- ✅ v0.3.0 - ElevenLabs Audio Integration
+- ✅ Lua Library - 69 complete scripts across all categories
+- ✅ miz-modification Library - 95% complete (groups, units, waypoints, coordinates)
+
+**Active Work**:
+- 🔄 v0.2.6 - Bug Fixes & Stability
+  - FOW reliability issues
+  - Units spawning on buildings (deferred)
+  - Convoy AI behavior
+  - Enemy AI seeking behavior
+
+**Next Priority**:
+1. Complete v0.2.6 bug fixes
+2. v0.2.11 - Mission Lua File Generation (simplify init script generation)
+3. Mission generation pipeline (blocked on template .miz files and add_group())
+
+**Blocking Issues**:
+- Mission generation pipeline blocked on:
+  - Template .miz files (need clean base missions per theater)
+  - add_group() implementation in miz-modification (core blocker)
+  - Estimated 6-10 hours to unblock
 

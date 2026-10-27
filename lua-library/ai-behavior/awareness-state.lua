@@ -93,16 +93,16 @@ function DMS.Awareness.applyState(groupName)
 
     elseif state == DMS.Awareness.STATES.ALERT then
         controller:setOption(AI.Option.Ground.id.ALARM_STATE, AI.Option.Ground.val.ALARM_STATE.RED)
-        controller:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.WEAPON_FREE)
+        controller:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.OPEN_FIRE)
 
     elseif state == DMS.Awareness.STATES.HUNTING then
         controller:setOption(AI.Option.Ground.id.ALARM_STATE, AI.Option.Ground.val.ALARM_STATE.RED)
-        controller:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.WEAPON_FREE)
+        controller:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.OPEN_FIRE)
         -- Search pattern handled separately
 
     elseif state == DMS.Awareness.STATES.ENGAGED then
         controller:setOption(AI.Option.Ground.id.ALARM_STATE, AI.Option.Ground.val.ALARM_STATE.RED)
-        controller:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.WEAPON_FREE)
+        controller:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.OPEN_FIRE)
     end
 end
 
@@ -135,6 +135,10 @@ function DMS.Awareness.setState(groupName, newState, contactPos)
         if DMS.SearchPattern then
             DMS.SearchPattern.start(groupName, contactPos)
         end
+    end
+
+    if DMS.Settings and DMS.Settings.isDebug() then
+        env.info(string.format("[Awareness] '%s' state changed %s -> %s", groupName, tostring(oldState), tostring(newState)))
     end
 
     if DMS.Awareness.Config.announceStateChanges then
@@ -205,22 +209,16 @@ local function getPlayerPositions()
     return positions
 end
 
---- Process awareness state decay and detection
-local function processAwareness(_, time)
-    if not DMS.Awareness.Active then return nil end
-
-    local currentTime = timer.getTime()
-    local playerPositions = getPlayerPositions()
-
-    for groupName, awareness in pairs(DMS.Awareness.Groups) do
+--- Process a single tracked group (detection + decay)
+local function processGroup(groupName, awareness, currentTime, playerPositions)
         local group = Group.getByName(groupName)
         if not group or not group:isExist() then
-            goto continue
+            return
         end
 
         local units = group:getUnits()
         if not units or #units == 0 then
-            goto continue
+            return
         end
 
         local groupPos = units[1]:getPoint()
@@ -285,8 +283,21 @@ local function processAwareness(_, time)
                 end
             end
         end
+end
 
-        ::continue::
+--- Process awareness state decay and detection
+local function processAwareness(_, time)
+    if not DMS.Awareness.Active then return nil end
+
+    local ok, err = pcall(function()
+        local currentTime = timer.getTime()
+        local playerPositions = getPlayerPositions()
+        for groupName, awareness in pairs(DMS.Awareness.Groups) do
+            processGroup(groupName, awareness, currentTime, playerPositions)
+        end
+    end)
+    if not ok then
+        env.error(string.format("[Awareness] processAwareness error: %s", tostring(err)))
     end
 
     return time + DMS.Awareness.Config.checkInterval
@@ -338,6 +349,12 @@ function DMS.Awareness.start()
         nil,
         timer.getTime() + DMS.Awareness.Config.checkInterval
     )
+
+    if DMS.Settings and DMS.Settings.isDebug() then
+        local count = 0
+        for _ in pairs(DMS.Awareness.Groups) do count = count + 1 end
+        env.info(string.format("[Awareness] Started monitoring %d groups (interval: %ds)", count, DMS.Awareness.Config.checkInterval))
+    end
 end
 
 --- Stop awareness system

@@ -28,6 +28,7 @@ end
 --- Set bullseye reference point
 -- @param pos table Position {x, y, z} or {x, z}
 function DMS.Brevity.setBullseye(pos)
+    if type(pos) ~= "table" or not pos.x then return end
     DMS.Brevity.Bullseye = {
         x = pos.x,
         z = pos.z or pos.y,  -- Handle both formats
@@ -42,8 +43,8 @@ local function calculateBearing(fromPos, toPos)
     local dx = toPos.x - fromPos.x
     local dz = toPos.z - fromPos.z
 
+    -- DCS: +x = north, +z = east, so atan2(dz, dx) is already a true compass bearing
     local bearing = math.deg(math.atan2(dz, dx))
-    bearing = 90 - bearing  -- Convert from math angle to compass
 
     if bearing < 0 then bearing = bearing + 360 end
     if bearing >= 360 then bearing = bearing - 360 end
@@ -175,6 +176,7 @@ end
 -- @param data table 9-line data
 -- @return string Formatted 9-line
 function DMS.Brevity.format9Line(data)
+    data = data or {}
     local lines = {}
 
     -- Line 1: IP/BP
@@ -227,6 +229,7 @@ end
 -- @param data table SITREP data
 -- @return string Formatted SITREP
 function DMS.Brevity.formatSITREP(data)
+    data = data or {}
     local lines = {}
 
     table.insert(lines, "===== SITREP =====")
@@ -350,6 +353,7 @@ function DMS.Brevity.getContactCall(unitType)
         ["Hawk"] = "HAWK",
     }
 
+    if not unitType then return "UNKNOWN" end
     return airContacts[unitType] or groundContacts[unitType] or "UNKNOWN"
 end
 
@@ -394,9 +398,12 @@ function DMS.Brevity.getWeaponCall(weaponType)
         ["FLARE"] = "FLARES",
     }
 
-    -- Check for partial matches
+    if type(weaponType) ~= "string" then return "WEAPON" end
+
+    -- Check for partial matches (plain find: keys contain '-' which is a Lua pattern char)
+    local upperType = weaponType:upper()
     for key, call in pairs(weaponCalls) do
-        if string.find(weaponType:upper(), key:upper()) then
+        if string.find(upperType, key:upper(), 1, true) then
             return call
         end
     end
@@ -411,7 +418,8 @@ end
 -- @return string Threat warning
 function DMS.Brevity.formatThreatWarning(threatType, bearing, range)
     local threatCall = DMS.Brevity.getContactCall(threatType)
-    local clock = math.floor(((bearing + 15) % 360) / 30) + 1
+    bearing = tonumber(bearing) or 0
+    local clock = math.floor(((bearing + 15) % 360) / 30)  -- 0..11
     if clock == 0 then clock = 12 end
 
     local warning = string.format("THREAT! %s, %d O'CLOCK", threatCall, clock)
@@ -436,7 +444,7 @@ end
 -- @param threat string|nil Threat description
 -- @return string Defensive call
 function DMS.Brevity.formatDefensive(action, direction, threat)
-    local call = string.format("%s %s!", action:upper(), direction:upper())
+    local call = string.format("%s %s!", tostring(action or "BREAK"):upper(), tostring(direction or ""):upper())
     if threat then
         call = call .. " " .. threat
     end

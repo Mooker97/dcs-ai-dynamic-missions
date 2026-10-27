@@ -1,6 +1,8 @@
 -- Threat Reaction System for DCS Missions
--- AI reacts intelligently to player flight profile and tactics
+-- AI reacts to player flight profile and tactics
 -- Place in mission via DO SCRIPT FILE
+-- Optional: flanking.lua, retreat-scatter.lua, sam-ambush.lua, reinforcements,
+--           utils/mission-settings.lua (debug logging), utils/error-handler.lua
 
 DMS = DMS or {}
 DMS.ThreatReaction = {}
@@ -19,7 +21,7 @@ DMS.ThreatReaction.Config = {
     lowAltitudeThreshold = 100,     -- Below this = low level flight (meters AGL)
     highAltitudeThreshold = 3000,   -- Above this = high altitude
     fastSpeedThreshold = 150,       -- Above this = fast (m/s)
-    slowSpeedThreshold = 30,        -- Below this = slow/hovering
+    slowSpeedThreshold = 30,        -- Below this = slow
     hoveringSpeedThreshold = 5,     -- Below this = hovering
     stationaryTime = 10,            -- Seconds stationary = loitering
     playerCoalition = coalition.side.BLUE,
@@ -38,8 +40,37 @@ DMS.ThreatReaction.PROFILES = {
     LOITERING = "LOITERING",
 }
 
+-- ============================================================
+-- INTERNAL HELPERS
+-- ============================================================
+
+local function logDebug(fmt, ...)
+    if DMS.Settings and DMS.Settings.isDebug and DMS.Settings.isDebug() then
+        env.info(string.format("[ThreatReaction] " .. fmt, ...))
+    end
+end
+
+local function logError(context, err)
+    local msg = tostring(err)
+    if DMS.Error and DMS.Error.log then
+        if pcall(DMS.Error.log, "ThreatReaction." .. context, msg) then return end
+    end
+    env.error(string.format("[DMS LUA ERROR] ThreatReaction.%s: %s", context, msg))
+end
+
+local function groupIsAlive(group)
+    if not group or not group:isExist() then return false end
+    for _, u in ipairs(group:getUnits() or {}) do
+        if u and u:isExist() then return true end
+    end
+    return false
+end
+
+-- ============================================================
+-- PUBLIC API
+-- ============================================================
+
 --- Configure threat reaction system
--- @param settings table Configuration overrides
 function DMS.ThreatReaction.configure(settings)
     for key, value in pairs(settings) do
         DMS.ThreatReaction.Config[key] = value
@@ -49,8 +80,8 @@ end
 --- Add a reaction rule
 -- @param ruleId string Unique rule ID
 -- @param profile string Player profile to react to
--- @param action function Action to execute
--- @param options table|nil Rule options
+-- @param action function(playerUnit, profile) Action to execute
+-- @param options table|nil {cooldown, zone (trigger zone name), minTime}
 function DMS.ThreatReaction.addRule(ruleId, profile, action, options)
     options = options or {}
 
@@ -59,9 +90,9 @@ function DMS.ThreatReaction.addRule(ruleId, profile, action, options)
         profile = profile,
         action = action,
         cooldown = options.cooldown or 30,
-        lastTriggered = 0,
+        lastTriggered = -math.huge,
         enabled = true,
-        zone = options.zone,  -- Optional: only trigger in specific zone
+        zone = options.zone,  -- Optional: only trigger while player is inside this trigger zone
         minTime = options.minTime or 3,  -- Minimum time in profile to trigger
     }
 end
@@ -70,7 +101,6 @@ end
 function DMS.ThreatReaction.addStandardRules()
     -- React to low-level flight with AAA
     DMS.ThreatReaction.addRule("low_aaa", DMS.ThreatReaction.PROFILES.LOW_FAST, function(playerUnit, profile)
-        -- Activate nearby AAA groups
         DMS.ThreatReaction.activateGroupsByType("AAA")
         if DMS.ThreatReaction.Config.announceReactions then
             trigger.action.outText("[ThreatReaction] AAA activated - low altitude contact", 5)
@@ -79,9 +109,8 @@ function DMS.ThreatReaction.addStandardRules()
 
     -- React to high altitude with SAMs
     DMS.ThreatReaction.addRule("high_sam", DMS.ThreatReaction.PROFILES.HIGH_SLOW, function(playerUnit, profile)
-        -- SAMs go hot
         DMS.ThreatReaction.activateGroupsByType("SAM")
-        if DMS.SAMAmbush then
+        if DMS.SAMAmbush and DMS.SAMAmbush.Sites and DMS.SAMAmbush.forceHot then
             for groupName, _ in pairs(DMS.SAMAmbush.Sites) do
                 DMS.SAMAmbush.forceHot(groupName)
             end
@@ -94,10 +123,8 @@ function DMS.ThreatReaction.addStandardRules()
     -- React to hovering with flankers
     DMS.ThreatReaction.addRule("hover_flank", DMS.ThreatReaction.PROFILES.HOVERING, function(playerUnit, profile)
         local playerPos = playerUnit:getPoint()
-        -- Send flanking units
-        if DMS.Flanking then
-            local flankers = DMS.ThreatReaction.getGroupsByRole("flanker")
-            for _, groupName in ipairs(flankers) do
+        if DMS.Flanking and DMS.Flanking.executeFlank then
+            for _, groupName in ipairs(DMS.ThreatReaction.getGroupsByRole("flanker")) do
                 DMS.Flanking.executeFlank(groupName, playerPos)
             end
         end
@@ -108,7 +135,7 @@ function DMS.ThreatReaction.addStandardRules()
 
     -- React to loitering with reinforcements
     DMS.ThreatReaction.addRule("loiter_reinforce", DMS.ThreatReaction.PROFILES.LOITERING, function(playerUnit, profile)
-        if DMS.Reinforcements then
+        if DMS.Reinforcements and DMS.Reinforcements.triggerNextWave then
             DMS.Reinforcements.triggerNextWave()
         end
         if DMS.ThreatReaction.Config.announceReactions then
@@ -116,11 +143,12 @@ function DMS.ThreatReaction.addStandardRules()
         end
     end, {cooldown = 120, minTime = 30})
 
-    -- React to diving attack with scatter
+    -- React to diving attack with scatter (requires retreat-scatter.lua with scatterNear)
     DMS.ThreatReaction.addRule("dive_scatter", DMS.ThreatReaction.PROFILES.DIVING, function(playerUnit, profile)
-        if DMS.Retreat then
-            local playerPos = playerUnit:getPoint()
-            DMS.Retreat.scatterNear(playerPos, 2000)
+        if DMS.Retreat and DMS.Retreat.scatterNear then
+            DMS.Retreat.scatterNear(playerUnit:getPoint(), 2000)
+        else
+            logDebug("dive_scatter: DMS.Retreat.scatterNear not available - skipped")
         end
         if DMS.ThreatReaction.Config.announceReactions then
             trigger.action.outText("[ThreatReaction] Units scattering - incoming attack", 5)
@@ -128,18 +156,33 @@ function DMS.ThreatReaction.addStandardRules()
     end, {cooldown = 30, minTime = 2})
 end
 
---- Activate groups by type
+--- Activate groups by type: groups assigned to the matching role (case-insensitive,
+-- e.g. "AAA" -> RoleAssignments.aaa) go alarm RED / ROE OPEN_FIRE.
+-- Missions may override this function for custom behaviour.
 -- @param unitType string Type to activate ("AAA", "SAM", etc.)
 function DMS.ThreatReaction.activateGroupsByType(unitType)
-    -- This would integrate with spawn pool or group tracking
-    -- For now, placeholder that missions can override
+    local groups = DMS.ThreatReaction.getGroupsByRole(string.lower(unitType))
+    if #groups == 0 then
+        groups = DMS.ThreatReaction.getGroupsByRole(unitType)
+    end
+    local count = 0
+    for _, groupName in ipairs(groups) do
+        local group = Group.getByName(groupName)
+        if groupIsAlive(group) then
+            local controller = group:getController()
+            if controller then
+                controller:setOption(AI.Option.Ground.id.ALARM_STATE, AI.Option.Ground.val.ALARM_STATE.RED)
+                controller:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.OPEN_FIRE)
+                count = count + 1
+            end
+        end
+    end
+    logDebug("Activated %d %s group(s) (RED / OPEN_FIRE)", count, tostring(unitType))
 end
 
 --- Get groups by role
--- @param role string Role to filter
 -- @return table Array of group names
 function DMS.ThreatReaction.getGroupsByRole(role)
-    -- Missions can populate this with their group assignments
     return DMS.ThreatReaction.RoleAssignments and DMS.ThreatReaction.RoleAssignments[role] or {}
 end
 
@@ -149,112 +192,81 @@ function DMS.ThreatReaction.assignRoles(assignments)
     DMS.ThreatReaction.RoleAssignments = assignments
 end
 
---- Get terrain height at position
--- @param pos table Position
--- @return number Terrain height
-local function getTerrainHeight(pos)
-    return land.getHeight({x = pos.x, y = pos.z})
-end
-
 --- Analyze player flight profile
--- @param unit table Player unit
 -- @return string Profile state
 local function analyzeProfile(unit)
     local pos = unit:getPoint()
     local vel = unit:getVelocity()
 
-    -- Calculate AGL altitude
-    local terrainHeight = getTerrainHeight(pos)
-    local agl = pos.y - terrainHeight
-
-    -- Calculate speed
+    local agl = pos.y - land.getHeight({x = pos.x, y = pos.z})
     local speed = math.sqrt(vel.x * vel.x + vel.y * vel.y + vel.z * vel.z)
-
-    -- Calculate vertical rate
     local verticalRate = vel.y
 
     local config = DMS.ThreatReaction.Config
 
-    -- Check for diving/climbing
     if verticalRate < -10 then
         return DMS.ThreatReaction.PROFILES.DIVING
     elseif verticalRate > 10 then
         return DMS.ThreatReaction.PROFILES.CLIMBING
     end
 
-    -- Check for hovering
     if speed < config.hoveringSpeedThreshold then
         return DMS.ThreatReaction.PROFILES.HOVERING
     end
 
-    -- Determine altitude category
     local isLow = agl < config.lowAltitudeThreshold
     local isHigh = agl > config.highAltitudeThreshold
-
-    -- Determine speed category
     local isFast = speed > config.fastSpeedThreshold
     local isSlow = speed < config.slowSpeedThreshold
 
-    -- Determine combined profile
     if isLow then
-        if isFast then
-            return DMS.ThreatReaction.PROFILES.LOW_FAST
-        else
-            return DMS.ThreatReaction.PROFILES.LOW_SLOW
-        end
+        return isFast and DMS.ThreatReaction.PROFILES.LOW_FAST or DMS.ThreatReaction.PROFILES.LOW_SLOW
     elseif isHigh then
-        if isFast then
-            return DMS.ThreatReaction.PROFILES.HIGH_FAST
-        else
-            return DMS.ThreatReaction.PROFILES.HIGH_SLOW
-        end
+        return isFast and DMS.ThreatReaction.PROFILES.HIGH_FAST or DMS.ThreatReaction.PROFILES.HIGH_SLOW
     else
         -- Mid altitude
-        if isSlow then
-            return DMS.ThreatReaction.PROFILES.LOW_SLOW
-        else
-            return DMS.ThreatReaction.PROFILES.HIGH_FAST
-        end
+        return isSlow and DMS.ThreatReaction.PROFILES.LOW_SLOW or DMS.ThreatReaction.PROFILES.HIGH_FAST
     end
 end
 
---- Process threat reactions
-local function processReactions(_, time)
-    if not DMS.ThreatReaction.Active then return nil end
+--- True if pos is inside the named trigger zone (or no zone given)
+local function inRuleZone(rule, pos)
+    if not rule.zone then return true end
+    local zone = trigger.misc.getZone(rule.zone)
+    if not zone then return false end
+    local dx = pos.x - zone.point.x
+    local dz = pos.z - zone.point.z
+    return (dx * dx + dz * dz) <= zone.radius * zone.radius
+end
 
+--- Process threat reactions (internal)
+local function processReactionsInternal()
     local currentTime = timer.getTime()
     local players = coalition.getPlayers(DMS.ThreatReaction.Config.playerCoalition)
-
-    if not players then
-        return time + DMS.ThreatReaction.Config.checkInterval
-    end
+    if not players then return end
 
     for _, playerUnit in ipairs(players) do
         if playerUnit and playerUnit:isExist() then
             local unitName = playerUnit:getName()
+            local currentPos = playerUnit:getPoint()
 
-            -- Get or create player profile tracking
             local profile = DMS.ThreatReaction.PlayerProfiles[unitName]
             if not profile then
                 profile = {
                     currentState = nil,
                     stateStartTime = currentTime,
-                    lastPosition = playerUnit:getPoint(),
+                    lastPosition = currentPos,
                     stationaryTime = 0,
                 }
                 DMS.ThreatReaction.PlayerProfiles[unitName] = profile
             end
 
-            -- Analyze current profile
             local newState = analyzeProfile(playerUnit)
 
-            -- Check for loitering (stationary for extended time)
-            local currentPos = playerUnit:getPoint()
+            -- Loitering = little horizontal movement for an extended time
             local dx = currentPos.x - profile.lastPosition.x
             local dz = currentPos.z - profile.lastPosition.z
-            local movement = math.sqrt(dx * dx + dz * dz)
-
-            if movement < 50 then  -- Less than 50m movement
+            if math.sqrt(dx * dx + dz * dz) < 50 then
                 profile.stationaryTime = profile.stationaryTime + DMS.ThreatReaction.Config.checkInterval
                 if profile.stationaryTime > DMS.ThreatReaction.Config.stationaryTime then
                     newState = DMS.ThreatReaction.PROFILES.LOITERING
@@ -264,32 +276,39 @@ local function processReactions(_, time)
             end
             profile.lastPosition = currentPos
 
-            -- Track state duration
             if newState ~= profile.currentState then
+                logDebug("'%s' profile changed to %s", unitName, newState)
                 profile.currentState = newState
                 profile.stateStartTime = currentTime
             end
 
             local timeInState = currentTime - profile.stateStartTime
 
-            -- Check rules
             for ruleId, rule in pairs(DMS.ThreatReaction.Rules) do
-                if rule.enabled and rule.profile == newState then
-                    -- Check cooldown
-                    if currentTime - rule.lastTriggered > rule.cooldown then
-                        -- Check minimum time in state
-                        if timeInState >= rule.minTime then
-                            -- Execute action
-                            rule.action(playerUnit, profile)
-                            rule.lastTriggered = currentTime
-                        end
+                if rule.enabled and rule.profile == newState
+                    and currentTime - rule.lastTriggered > rule.cooldown
+                    and timeInState >= rule.minTime
+                    and inRuleZone(rule, currentPos) then
+                    rule.lastTriggered = currentTime
+                    local ok, err = pcall(rule.action, playerUnit, profile)
+                    if ok then
+                        logDebug("Rule '%s' triggered by '%s' (%s for %.0fs)", ruleId, unitName, newState, timeInState)
+                    else
+                        logError("rule:" .. tostring(ruleId), err)
                     end
                 end
             end
         end
     end
+end
 
-    return time + DMS.ThreatReaction.Config.checkInterval
+local function processReactions(_, time)
+    if not DMS.ThreatReaction.Active then return nil end
+    local ok, err = pcall(processReactionsInternal)
+    if not ok then
+        logError("processReactions", err)
+    end
+    return time + (DMS.ThreatReaction.Config.checkInterval or 5)
 end
 
 --- Start threat reaction system
@@ -302,20 +321,23 @@ function DMS.ThreatReaction.start()
         nil,
         timer.getTime() + DMS.ThreatReaction.Config.checkInterval
     )
+
+    local count = 0
+    for _ in pairs(DMS.ThreatReaction.Rules) do count = count + 1 end
+    logDebug("Started with %d rules (interval: %ds)", count, DMS.ThreatReaction.Config.checkInterval)
 end
 
 --- Stop threat reaction system
 function DMS.ThreatReaction.stop()
     DMS.ThreatReaction.Active = false
     if DMS.ThreatReaction.TimerId then
-        timer.removeFunction(DMS.ThreatReaction.TimerId)
+        pcall(timer.removeFunction, DMS.ThreatReaction.TimerId)
         DMS.ThreatReaction.TimerId = nil
     end
+    logDebug("Stopped")
 end
 
 --- Enable/disable a rule
--- @param ruleId string Rule ID
--- @param enabled boolean Enable state
 function DMS.ThreatReaction.setRuleEnabled(ruleId, enabled)
     if DMS.ThreatReaction.Rules[ruleId] then
         DMS.ThreatReaction.Rules[ruleId].enabled = enabled
@@ -323,8 +345,6 @@ function DMS.ThreatReaction.setRuleEnabled(ruleId, enabled)
 end
 
 --- Get player profile
--- @param unitName string Player unit name
--- @return table|nil Profile info
 function DMS.ThreatReaction.getPlayerProfile(unitName)
     return DMS.ThreatReaction.PlayerProfiles[unitName]
 end
@@ -332,44 +352,32 @@ end
 --[[
 USAGE EXAMPLE:
 
--- Configure
-DMS.ThreatReaction.configure({
-    lowAltitudeThreshold = 150,
-    announceReactions = true,
-})
+DMS.ThreatReaction.configure({lowAltitudeThreshold = 150, announceReactions = true})
 
--- Add standard reaction rules
 DMS.ThreatReaction.addStandardRules()
 
--- Add custom rule
+-- Custom rule
 DMS.ThreatReaction.addRule("custom_dive", DMS.ThreatReaction.PROFILES.DIVING, function(playerUnit, profile)
-    -- Custom reaction when player is diving
     trigger.action.outText("INCOMING!", 3)
-
-    -- Activate specific defenses
     local group = Group.getByName("Point-Defense-1")
-    if group then
+    if group and group:isExist() then
         local controller = group:getController()
-        controller:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.WEAPON_FREE)
+        -- Ground ROE values: OPEN_FIRE, RETURN_FIRE, WEAPON_HOLD (no WEAPON_FREE for ground)
+        controller:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.OPEN_FIRE)
     end
-end, {cooldown = 15, minTime = 1})
+end, {cooldown = 15, minTime = 1, zone = "Defense Zone"})
 
--- Assign groups to roles for reactions
+-- Role names are matched case-insensitively by activateGroupsByType ("AAA" -> aaa)
 DMS.ThreatReaction.assignRoles({
     flanker = {"Infantry-1", "Infantry-2"},
     aaa = {"ZU23-1", "ZU23-2"},
     sam = {"SA-6-1", "SA-8-1"},
 })
 
--- Start system
 DMS.ThreatReaction.start()
 
--- Player flight profiles and reactions:
--- LOW_FAST → Activate AAA (hard to track, use volume fire)
--- HIGH_SLOW → SAMs go hot (easy target at altitude)
--- HOVERING → Send flanking units (stationary = vulnerable)
--- DIVING → Units scatter (incoming attack)
--- LOITERING → Call reinforcements (player hunting area)
+-- LOW_FAST -> AAA hot | HIGH_SLOW -> SAMs hot | HOVERING -> flankers
+-- DIVING -> scatter (needs DMS.Retreat.scatterNear) | LOITERING -> reinforcements
 ]]
 
 -- Export

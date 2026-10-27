@@ -116,41 +116,120 @@ local function getScatterPosition(currentX, currentZ)
     return newX, newZ
 end
 
+local function debugLog(fmt, ...)
+    if DMS.Settings and DMS.Settings.isDebug() then
+        env.info(string.format("[Retreat] " .. fmt, ...))
+    end
+end
+
 --- Command group to retreat
+-- Builds a real two-point ground route: current position -> destination.
 -- @param groupName string Group name
--- @param destX number Destination X
--- @param destZ number Destination Z
+-- @param destX number Destination X (DCS map x)
+-- @param destZ number Destination Z (DCS vec3.z, route y)
 local function commandRetreat(groupName, destX, destZ)
     local group = Group.getByName(groupName)
     if not group or not group:isExist() then
-        return
+        return false
     end
 
-    local controller = group:getController()
-    if controller then
-        -- Set to hold fire and retreat
-        controller:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.WEAPON_HOLD)
-        controller:setOption(AI.Option.Ground.id.ALARM_STATE, AI.Option.Ground.val.ALARM_STATE.GREEN)
+    local units = group:getUnits()
+    if not units or #units == 0 then
+        return false
+    end
+    local startPos = units[1]:getPoint()
 
-        -- Create waypoint task to retreat position
-        local retreatTask = {
-            id = 'Mission',
-            params = {
-                route = {
-                    points = {
-                        [1] = {
-                            type = "Turning Point",
-                            action = "Off Road",
-                            x = destX,
-                            y = destZ,  -- Note: DCS uses y for z in some contexts
-                            speed = DMS.Retreat.Config.retreatSpeed,
-                        }
-                    }
+    local controller = group:getController()
+    if not controller then
+        return false
+    end
+
+    -- Hold fire and retreat
+    controller:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.WEAPON_HOLD)
+    controller:setOption(AI.Option.Ground.id.ALARM_STATE, AI.Option.Ground.val.ALARM_STATE.GREEN)
+
+    local speed = DMS.Retreat.Config.retreatSpeed
+    local retreatTask = {
+        id = 'Mission',
+        params = {
+            route = {
+                points = {
+                    [1] = {
+                        type = "Turning Point",
+                        action = "Off Road",
+                        x = startPos.x,
+                        y = startPos.z,
+                        speed = speed,
+                        ETA = 0,
+                        ETA_locked = false,
+                        speed_locked = true,
+                    },
+                    [2] = {
+                        type = "Turning Point",
+                        action = "Off Road",
+                        x = destX,
+                        y = destZ,
+                        speed = speed,
+                        ETA = 0,
+                        ETA_locked = false,
+                        speed_locked = true,
+                    },
                 }
             }
         }
+    }
 
-        controller:setTask(retreatTask)
+    controller:setTask(retreatTask)
+    debugLog("Group '%s' retreating to (%.0f, %.0f)", groupName, destX, destZ)
+    return true
+end
+
+--- Check one registered group and trigger retreat if needed
+local function checkGroup(groupName, config)
+    if config.destroyed or config.retreating then
+        return
+    end
+
+    local health = getGroupHealth(groupName, config.initialSize)
+
+    if health <= 0 then
+        config.destroyed = true
+        debugLog("Group '%s' destroyed", groupName)
+        return
+    end
+
+    if health <= config.threshold then
+        -- Trigger retreat!
+        config.retreating = true
+
+        local destX, destZ
+
+        if config.destination == "scatter" then
+            local group = Group.getByName(groupName)
+            if group and group:isExist() then
+                local units = group:getUnits()
+                if units and #units > 0 then
+                    local pos = units[1]:getPoint()
+                    destX, destZ = getScatterPosition(pos.x, pos.z)
+                end
+            end
+        else
+            local dest = DMS.Retreat.Destinations[config.destination]
+            if dest then
+                destX, destZ = dest.x, dest.z
+            else
+                debugLog("Group '%s' has unknown destination '%s'", groupName, tostring(config.destination))
+            end
+        end
+
+        if destX and destZ then
+            debugLog("Group '%s' health %.0f%% <= %d%%, retreating", groupName, health, config.threshold)
+            commandRetreat(groupName, destX, destZ)
+
+            if DMS.Retreat.Config.announceRetreats then
+                trigger.action.outText("Enemy forces are retreating!", 5, true)
+            end
+        end
     end
 end
 
@@ -160,52 +239,13 @@ local function processRetreatCheck(_, time)
         return nil
     end
 
-    for groupName, config in pairs(DMS.Retreat.Groups) do
-        if config.destroyed or config.retreating then
-            goto continue
+    local ok, err = pcall(function()
+        for groupName, config in pairs(DMS.Retreat.Groups) do
+            checkGroup(groupName, config)
         end
-
-        local health = getGroupHealth(groupName, config.initialSize)
-
-        if health <= 0 then
-            config.destroyed = true
-            goto continue
-        end
-
-        if health <= config.threshold then
-            -- Trigger retreat!
-            config.retreating = true
-
-            local destX, destZ
-
-            if config.destination == "scatter" then
-                -- Get current position and scatter from it
-                local group = Group.getByName(groupName)
-                if group and group:isExist() then
-                    local units = group:getUnits()
-                    if units and #units > 0 then
-                        local pos = units[1]:getPoint()
-                        destX, destZ = getScatterPosition(pos.x, pos.z)
-                    end
-                end
-            else
-                -- Use named destination
-                local dest = DMS.Retreat.Destinations[config.destination]
-                if dest then
-                    destX, destZ = dest.x, dest.z
-                end
-            end
-
-            if destX and destZ then
-                commandRetreat(groupName, destX, destZ)
-
-                if DMS.Retreat.Config.announceRetreats then
-                    trigger.action.outText("Enemy forces are retreating!", 5, true)
-                end
-            end
-        end
-
-        ::continue::
+    end)
+    if not ok then
+        env.error(string.format("[Retreat] processRetreatCheck error: %s", tostring(err)))
     end
 
     return time + DMS.Retreat.Config.checkInterval
@@ -223,6 +263,7 @@ function DMS.Retreat.start()
         nil,
         timer.getTime() + DMS.Retreat.Config.checkInterval
     )
+    debugLog("Started monitoring (interval: %ds)", DMS.Retreat.Config.checkInterval)
 end
 
 --- Stop retreat monitoring
@@ -251,6 +292,58 @@ function DMS.Retreat.forceRetreat(groupName)
             end
         end
     end
+end
+
+--- Scatter all ground groups near a point
+-- Each group within radius is routed (two-point route) away from the point.
+-- @param point table Position {x, z} (vec3) or {x, y} (vec2 map coords)
+-- @param radius number|nil Search radius in meters (default: defaultScatterRadius)
+-- @param coalitionId number|nil Coalition to scatter (default: coalition.side.RED, the enemy side)
+-- @return number Number of groups scattered
+function DMS.Retreat.scatterNear(point, radius, coalitionId)
+    if not point or not point.x then return 0 end
+    radius = radius or DMS.Retreat.Config.defaultScatterRadius
+    local px = point.x
+    local pz = point.z or point.y or 0
+    local scattered = 0
+
+    local sides = {coalitionId or coalition.side.RED}
+
+    for _, side in ipairs(sides) do
+        local groups = coalition.getGroups(side, Group.Category.GROUND) or {}
+        for _, group in ipairs(groups) do
+            if group and group:isExist() then
+                local units = group:getUnits()
+                if units and #units > 0 then
+                    local pos = units[1]:getPoint()
+                    local dx = pos.x - px
+                    local dz = pos.z - pz
+                    local dist = math.sqrt(dx * dx + dz * dz)
+                    if dist <= radius then
+                        -- Flee away from the point (random direction if on top of it)
+                        local angle
+                        if dist < 1 then
+                            angle = math.random() * 2 * math.pi
+                        else
+                            angle = math.atan2(dz, dx) + (math.random() - 0.5) * (math.pi / 2)
+                        end
+                        local fleeDist = DMS.Retreat.Config.defaultScatterRadius * (0.5 + math.random() * 0.5)
+                        local destX = pos.x + fleeDist * math.cos(angle)
+                        local destZ = pos.z + fleeDist * math.sin(angle)
+                        local name = group:getName()
+                        if commandRetreat(name, destX, destZ) then
+                            scattered = scattered + 1
+                            local cfg = DMS.Retreat.Groups[name]
+                            if cfg then cfg.retreating = true end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    debugLog("scatterNear (%.0f, %.0f) r=%.0f scattered %d groups", px, pz, radius, scattered)
+    return scattered
 end
 
 --- Get retreat statistics

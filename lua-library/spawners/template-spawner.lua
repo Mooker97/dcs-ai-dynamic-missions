@@ -1,6 +1,6 @@
 -- Template-Based Spawning for DCS Missions
 -- Spawn predefined unit compositions by template name
--- Requires: utils/group-utils.lua
+-- Requires: spawners/spawn-core.lua (utils/group-utils.lua optional for isAlive/getHealth)
 -- Place in mission via DO SCRIPT FILE
 
 DMS = DMS or {}
@@ -40,13 +40,16 @@ function DMS.Templates.spawn(templateName, spawnChance, hidden)
 
     spawnChance = spawnChance or template.defaultChance
 
+    local Core = DMS.SpawnCore
+    if not Core then
+        env.error("[Templates] spawners/spawn-core.lua is not loaded")
+        return false, 0
+    end
+
     -- Roll for spawn
-    local roll = math.random(1, 100)
-    if roll > spawnChance then
-        if DMS.Settings and DMS.Settings.isDebug() then
-            env.info(string.format("[Templates] '%s' skipped (rolled %d, needed <= %d)",
-                templateName, roll, spawnChance))
-        end
+    local ok, roll = Core.roll(spawnChance)
+    if not ok then
+        Core.log("Templates", "'%s' skipped (rolled %d, needed <= %d)", templateName, roll, spawnChance)
         return false, 0
     end
 
@@ -54,20 +57,14 @@ function DMS.Templates.spawn(templateName, spawnChance, hidden)
     if hidden == nil then
         hidden = template.defaultHidden
     end
-    if hidden == nil and DMS.Settings then
-        hidden = DMS.Settings.getSpawnHidden()
-    end
+    hidden = Core.resolveHidden(hidden)
 
     local spawned = 0
     for _, groupName in ipairs(template.groups) do
-        local group = Group.getByName(groupName)
-        if group then
-            -- Use fog of war system if available and hidden is needed
-            if hidden and DMS.FogOfWar then
-                DMS.FogOfWar.activateGroup(groupName, true)
-            else
-                trigger.action.activateGroup(group)
-            end
+        local okCall, activated = Core.safeCall(Core.activate,
+            "Templates.activate(" .. tostring(groupName) .. ")",
+            groupName, {hidden = hidden, prefix = "Templates"})
+        if okCall and activated then
             spawned = spawned + 1
         end
     end
@@ -87,8 +84,13 @@ end
 -- @param delay number Delay in seconds
 -- @param spawnChance number|nil Override spawn chance
 -- @param hidden boolean|nil Override hidden state
+-- @return number|nil timer id (cancel with timer.removeFunction)
 function DMS.Templates.spawnDelayed(templateName, delay, spawnChance, hidden)
-    DMS.Error.safeSchedule(function()
+    if not DMS.SpawnCore then
+        env.error("[Templates] spawners/spawn-core.lua is not loaded")
+        return nil
+    end
+    return DMS.SpawnCore.schedule(function()
         DMS.Templates.spawn(templateName, spawnChance, hidden)
     end, delay, "Templates.spawn(" .. templateName .. ")")
 end
@@ -177,7 +179,15 @@ function DMS.Templates.isAlive(templateName)
     end
 
     for _, groupName in ipairs(template.groups) do
-        if DMS.Groups and not DMS.Groups.isAlive(groupName) then
+        local alive
+        if DMS.SpawnCore then
+            alive = DMS.SpawnCore.isGroupAlive(groupName)
+        elseif DMS.Groups then
+            alive = DMS.Groups.isAlive(groupName)
+        else
+            alive = true
+        end
+        if not alive then
             return false
         end
     end

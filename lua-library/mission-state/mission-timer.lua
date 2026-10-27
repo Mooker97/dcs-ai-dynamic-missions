@@ -2,18 +2,41 @@
 -- Track mission time, countdowns, and time-based events
 -- Requires: utils/messaging.lua
 -- Place in mission via DO SCRIPT FILE
+--
+-- Namespace: DMS.MissionTimer (was DMS.Timer, which collided with utils/timer-utils.lua).
+-- For backward compatibility, functions are also aliased onto DMS.Timer where the
+-- name is not already used by timer-utils (timer-utils' createStopwatch wins there;
+-- use DMS.MissionTimer.createStopwatch(id, options) for the named variant).
 
 DMS = DMS or {}
-DMS.Timer = {}
+DMS.MissionTimer = DMS.MissionTimer or {}
 
--- Timer state
-DMS.Timer.Timers = {}
-DMS.Timer.Active = false
-DMS.Timer.UpdateTimerId = nil
-DMS.Timer.MissionStartTime = 0
+-- Timer state (preserved on reload)
+DMS.MissionTimer.Timers = DMS.MissionTimer.Timers or {}
+DMS.MissionTimer.Active = DMS.MissionTimer.Active or false
+DMS.MissionTimer.MissionStartTime = DMS.MissionTimer.MissionStartTime or 0
+
+local function isDebug()
+    return DMS.Settings and DMS.Settings.isDebug and DMS.Settings.isDebug()
+end
+
+local function logErr(context, err)
+    if DMS.Error and DMS.Error.log then
+        DMS.Error.log(context, err)
+    else
+        env.error("[DMS LUA ERROR] " .. tostring(context) .. ": " .. tostring(err))
+    end
+end
+
+--- Call a user callback safely
+local function safeCallback(fn, context, ...)
+    if type(fn) ~= "function" then return end
+    local ok, err = pcall(fn, ...)
+    if not ok then logErr(context, err) end
+end
 
 -- Configuration
-DMS.Timer.Config = {
+DMS.MissionTimer.Config = DMS.MissionTimer.Config or {
     playerCoalition = coalition.side.BLUE,
     updateInterval = 1,          -- Check timers every second
     showWarnings = true,         -- Show countdown warnings
@@ -23,9 +46,10 @@ DMS.Timer.Config = {
 
 --- Configure timer system
 -- @param settings table Configuration overrides
-function DMS.Timer.configure(settings)
+function DMS.MissionTimer.configure(settings)
+    if type(settings) ~= "table" then return end
     for key, value in pairs(settings) do
-        DMS.Timer.Config[key] = value
+        DMS.MissionTimer.Config[key] = value
     end
 end
 
@@ -33,6 +57,7 @@ end
 -- @param seconds number Time in seconds
 -- @return string Formatted time
 local function formatTime(seconds)
+    seconds = tonumber(seconds) or 0
     if seconds < 0 then seconds = 0 end
 
     local hours = math.floor(seconds / 3600)
@@ -50,12 +75,17 @@ end
 -- @param id string Unique timer ID
 -- @param duration number Duration in seconds
 -- @param options table|nil Timer options
-function DMS.Timer.createCountdown(id, duration, options)
+function DMS.MissionTimer.createCountdown(id, duration, options)
     options = options or {}
+    duration = tonumber(duration) or 0
 
     local startTime = timer.getTime()
 
-    DMS.Timer.Timers[id] = {
+    if isDebug() then
+        env.info(string.format("[MissionTimer] Created countdown '%s' (%ds)", tostring(id), duration))
+    end
+
+    DMS.MissionTimer.Timers[id] = {
         id = id,
         type = "countdown",
         duration = duration,
@@ -73,16 +103,16 @@ function DMS.Timer.createCountdown(id, duration, options)
         setFlagOnComplete = options.setFlagOnComplete,
     }
 
-    return DMS.Timer.Timers[id]
+    return DMS.MissionTimer.Timers[id]
 end
 
 --- Create a stopwatch (count up)
 -- @param id string Unique timer ID
 -- @param options table|nil Timer options
-function DMS.Timer.createStopwatch(id, options)
+function DMS.MissionTimer.createStopwatch(id, options)
     options = options or {}
 
-    DMS.Timer.Timers[id] = {
+    DMS.MissionTimer.Timers[id] = {
         id = id,
         type = "stopwatch",
         startTime = timer.getTime(),
@@ -93,14 +123,14 @@ function DMS.Timer.createStopwatch(id, options)
         showOnHUD = options.showOnHUD or false,
     }
 
-    return DMS.Timer.Timers[id]
+    return DMS.MissionTimer.Timers[id]
 end
 
 --- Get remaining time for countdown
 -- @param id string Timer ID
 -- @return number|nil Remaining seconds or nil
-function DMS.Timer.getRemaining(id)
-    local t = DMS.Timer.Timers[id]
+function DMS.MissionTimer.getRemaining(id)
+    local t = DMS.MissionTimer.Timers[id]
     if not t or t.type ~= "countdown" then
         return nil
     end
@@ -115,8 +145,8 @@ end
 --- Get elapsed time for stopwatch
 -- @param id string Timer ID
 -- @return number|nil Elapsed seconds or nil
-function DMS.Timer.getElapsed(id)
-    local t = DMS.Timer.Timers[id]
+function DMS.MissionTimer.getElapsed(id)
+    local t = DMS.MissionTimer.Timers[id]
     if not t then
         return nil
     end
@@ -127,7 +157,7 @@ function DMS.Timer.getElapsed(id)
         end
         return timer.getTime() - t.startTime + (t.elapsedAtPause or 0)
     elseif t.type == "countdown" then
-        return t.duration - DMS.Timer.getRemaining(id)
+        return t.duration - (DMS.MissionTimer.getRemaining(id) or 0)
     end
 
     return nil
@@ -135,8 +165,8 @@ end
 
 --- Pause a timer
 -- @param id string Timer ID
-function DMS.Timer.pause(id)
-    local t = DMS.Timer.Timers[id]
+function DMS.MissionTimer.pause(id)
+    local t = DMS.MissionTimer.Timers[id]
     if not t or t.paused then
         return
     end
@@ -153,8 +183,8 @@ end
 
 --- Resume a paused timer
 -- @param id string Timer ID
-function DMS.Timer.resume(id)
-    local t = DMS.Timer.Timers[id]
+function DMS.MissionTimer.resume(id)
+    local t = DMS.MissionTimer.Timers[id]
     if not t or not t.paused then
         return
     end
@@ -162,7 +192,7 @@ function DMS.Timer.resume(id)
     t.paused = false
 
     if t.type == "countdown" then
-        t.endTime = timer.getTime() + t.remainingAtPause
+        t.endTime = timer.getTime() + (t.remainingAtPause or 0)
     elseif t.type == "stopwatch" then
         t.startTime = timer.getTime()
     end
@@ -170,8 +200,8 @@ end
 
 --- Reset a timer
 -- @param id string Timer ID
-function DMS.Timer.reset(id)
-    local t = DMS.Timer.Timers[id]
+function DMS.MissionTimer.reset(id)
+    local t = DMS.MissionTimer.Timers[id]
     if not t then
         return
     end
@@ -193,21 +223,21 @@ end
 
 --- Remove a timer
 -- @param id string Timer ID
-function DMS.Timer.remove(id)
-    DMS.Timer.Timers[id] = nil
+function DMS.MissionTimer.remove(id)
+    DMS.MissionTimer.Timers[id] = nil
 end
 
 --- Add time to countdown
 -- @param id string Timer ID
 -- @param seconds number Seconds to add (can be negative)
-function DMS.Timer.addTime(id, seconds)
-    local t = DMS.Timer.Timers[id]
+function DMS.MissionTimer.addTime(id, seconds)
+    local t = DMS.MissionTimer.Timers[id]
     if not t or t.type ~= "countdown" then
         return
     end
 
     if t.paused then
-        t.remainingAtPause = t.remainingAtPause + seconds
+        t.remainingAtPause = (t.remainingAtPause or 0) + seconds
     else
         t.endTime = t.endTime + seconds
     end
@@ -215,31 +245,30 @@ end
 
 --- Process timer updates (internal)
 local function updateTimersInternal(_, time)
-    if not DMS.Timer.Active then
+    if not DMS.MissionTimer.Active then
         return nil
     end
 
-    for id, t in pairs(DMS.Timer.Timers) do
+    for id, t in pairs(DMS.MissionTimer.Timers) do
         if not t.paused and t.type == "countdown" and not t.completed then
             local remaining = t.endTime - time
 
             -- Check for warnings
-            if DMS.Timer.Config.showWarnings then
-                for _, warnTime in ipairs(DMS.Timer.Config.warningTimes) do
-                    if remaining <= warnTime and remaining > warnTime - 1 and not t.warningsGiven[warnTime] then
+            if DMS.MissionTimer.Config.showWarnings then
+                for _, warnTime in ipairs(DMS.MissionTimer.Config.warningTimes or {}) do
+                    -- Only thresholds below the original duration; robust to update intervals > 1s
+                    if t.duration > warnTime and remaining <= warnTime and remaining > 0 and not t.warningsGiven[warnTime] then
                         t.warningsGiven[warnTime] = true
 
                         local msg = string.format("%s: %s remaining!", t.label, formatTime(warnTime))
                         trigger.action.outTextForCoalition(
-                            DMS.Timer.Config.playerCoalition,
+                            DMS.MissionTimer.Config.playerCoalition,
                             msg,
-                            DMS.Timer.Config.displayDuration,
+                            DMS.MissionTimer.Config.displayDuration,
                             true
                         )
 
-                        if t.onWarning then
-                            t.onWarning(warnTime)
-                        end
+                        safeCallback(t.onWarning, "MissionTimer.onWarning(" .. tostring(id) .. ")", warnTime)
                     end
                 end
             end
@@ -250,9 +279,9 @@ local function updateTimersInternal(_, time)
 
                 local msg = string.format("%s: TIME!", t.label)
                 trigger.action.outTextForCoalition(
-                    DMS.Timer.Config.playerCoalition,
+                    DMS.MissionTimer.Config.playerCoalition,
                     msg,
-                    DMS.Timer.Config.displayDuration,
+                    DMS.MissionTimer.Config.displayDuration,
                     true
                 )
 
@@ -260,115 +289,123 @@ local function updateTimersInternal(_, time)
                     trigger.action.setUserFlag(t.setFlagOnComplete, 1)
                 end
 
-                if t.onComplete then
-                    t.onComplete()
+                if isDebug() then
+                    env.info(string.format("[MissionTimer] Countdown '%s' completed", tostring(id)))
                 end
+
+                safeCallback(t.onComplete, "MissionTimer.onComplete(" .. tostring(id) .. ")")
             end
         end
     end
 
-    return time + DMS.Timer.Config.updateInterval
+    return time + (DMS.MissionTimer.Config.updateInterval or 1)
 end
 
 --- Process timer updates with error handling
 local function updateTimers(args, time)
     local success, result = pcall(updateTimersInternal, args, time)
     if not success then
-        if DMS.Error then
-            DMS.Error.log("Timer.updateTimers", result)
-        else
-            env.error("[DMS LUA ERROR] Timer.updateTimers: " .. tostring(result))
-        end
-        return time + (DMS.Timer.Config.updateInterval or 1)
+        logErr("MissionTimer.updateTimers", result)
+        if not DMS.MissionTimer.Active then return nil end
+        return time + (DMS.MissionTimer.Config.updateInterval or 1)
     end
     return result
 end
 
 --- Start timer system
-function DMS.Timer.start()
-    if DMS.Timer.Active then
+function DMS.MissionTimer.start()
+    if DMS.MissionTimer.Active then
         return
     end
 
-    DMS.Timer.Active = true
-    DMS.Timer.MissionStartTime = timer.getTime()
+    DMS.MissionTimer.Active = true
+    DMS.MissionTimer.MissionStartTime = timer.getTime()
 
-    DMS.Timer.UpdateTimerId = timer.scheduleFunction(
+    DMS.MissionTimer.UpdateTimerId = timer.scheduleFunction(
         updateTimers,
         nil,
-        timer.getTime() + DMS.Timer.Config.updateInterval
+        timer.getTime() + (DMS.MissionTimer.Config.updateInterval or 1)
     )
+
+    if isDebug() then
+        env.info(string.format("[MissionTimer] Started (interval: %ss)", tostring(DMS.MissionTimer.Config.updateInterval)))
+    end
 end
 
 --- Stop timer system
-function DMS.Timer.stop()
-    DMS.Timer.Active = false
-    if DMS.Timer.UpdateTimerId then
-        timer.removeFunction(DMS.Timer.UpdateTimerId)
-        DMS.Timer.UpdateTimerId = nil
+function DMS.MissionTimer.stop()
+    DMS.MissionTimer.Active = false
+    if DMS.MissionTimer.UpdateTimerId then
+        pcall(timer.removeFunction, DMS.MissionTimer.UpdateTimerId)
+        DMS.MissionTimer.UpdateTimerId = nil
+    end
+    if isDebug() then
+        env.info("[MissionTimer] Stopped")
     end
 end
 
 --- Get mission elapsed time
 -- @return number Seconds since mission start
-function DMS.Timer.getMissionTime()
-    return timer.getTime() - DMS.Timer.MissionStartTime
+function DMS.MissionTimer.getMissionTime()
+    return timer.getTime() - DMS.MissionTimer.MissionStartTime
 end
 
 --- Display timer status
 -- @param id string Timer ID
-function DMS.Timer.showTimer(id)
-    local t = DMS.Timer.Timers[id]
+function DMS.MissionTimer.showTimer(id)
+    local t = DMS.MissionTimer.Timers[id]
     if not t then
         return
     end
 
     local msg
     if t.type == "countdown" then
-        local remaining = DMS.Timer.getRemaining(id)
+        local remaining = DMS.MissionTimer.getRemaining(id)
         msg = string.format("%s: %s remaining", t.label, formatTime(remaining))
         if t.paused then msg = msg .. " (PAUSED)" end
     else
-        local elapsed = DMS.Timer.getElapsed(id)
+        local elapsed = DMS.MissionTimer.getElapsed(id)
         msg = string.format("%s: %s elapsed", t.label, formatTime(elapsed))
         if t.paused then msg = msg .. " (PAUSED)" end
     end
 
     trigger.action.outTextForCoalition(
-        DMS.Timer.Config.playerCoalition,
+        DMS.MissionTimer.Config.playerCoalition,
         msg,
-        DMS.Timer.Config.displayDuration,
+        DMS.MissionTimer.Config.displayDuration,
         true
     )
 end
 
 --- Display all active timers
-function DMS.Timer.showAllTimers()
+function DMS.MissionTimer.showAllTimers()
     local lines = {"=== MISSION TIMERS ===", ""}
 
     -- Mission time
-    table.insert(lines, string.format("Mission Time: %s", formatTime(DMS.Timer.getMissionTime())))
+    table.insert(lines, string.format("Mission Time: %s", formatTime(DMS.MissionTimer.getMissionTime())))
     table.insert(lines, "")
 
-    for id, t in pairs(DMS.Timer.Timers) do
+    local count = 0
+    for id, t in pairs(DMS.MissionTimer.Timers) do
+        count = count + 1
         local status
         if t.type == "countdown" then
-            local remaining = DMS.Timer.getRemaining(id)
+            local remaining = DMS.MissionTimer.getRemaining(id)
             status = string.format("%s: %s remaining", t.label, formatTime(remaining))
         else
-            local elapsed = DMS.Timer.getElapsed(id)
+            local elapsed = DMS.MissionTimer.getElapsed(id)
             status = string.format("%s: %s elapsed", t.label, formatTime(elapsed))
         end
         if t.paused then status = status .. " (PAUSED)" end
         table.insert(lines, status)
     end
 
-    if #DMS.Timer.Timers == 0 then
+    if count == 0 then
         table.insert(lines, "No active timers.")
     end
 
     trigger.action.outTextForCoalition(
-        DMS.Timer.Config.playerCoalition,
+        DMS.MissionTimer.Config.playerCoalition,
         table.concat(lines, "\n"),
         15,
         true
@@ -379,16 +416,16 @@ end
 USAGE EXAMPLE:
 
 -- Configure
-DMS.Timer.configure({
+DMS.MissionTimer.configure({
     showWarnings = true,
     warningTimes = {300, 120, 60, 30, 10}  -- 5min, 2min, 1min, 30s, 10s
 })
 
 -- Start system
-DMS.Timer.start()
+DMS.MissionTimer.start()
 
 -- Create mission deadline
-DMS.Timer.createCountdown("mission_time", 1800, {  -- 30 minutes
+DMS.MissionTimer.createCountdown("mission_time", 1800, {  -- 30 minutes
     label = "Mission Time Limit",
     showOnHUD = true,
     setFlagOnComplete = "mission_timeout",
@@ -403,7 +440,7 @@ DMS.Timer.createCountdown("mission_time", 1800, {  -- 30 minutes
 })
 
 -- Create objective timer
-DMS.Timer.createCountdown("evac_timer", 300, {  -- 5 minutes
+DMS.MissionTimer.createCountdown("evac_timer", 300, {  -- 5 minutes
     label = "Evacuation Window",
     onComplete = function()
         trigger.action.outText("Evacuation window closed!", 10)
@@ -412,20 +449,28 @@ DMS.Timer.createCountdown("evac_timer", 300, {  -- 5 minutes
 })
 
 -- Create mission stopwatch
-DMS.Timer.createStopwatch("completion_time", {
+DMS.MissionTimer.createStopwatch("completion_time", {
     label = "Mission Duration"
 })
 
 -- Add F10 menu commands
 missionCommands.addCommandForCoalition(coalition.side.BLUE, "Show Timers", nil,
-    function() DMS.Timer.showAllTimers() end)
+    function() DMS.MissionTimer.showAllTimers() end)
 
 -- Timer control from triggers
--- DMS.Timer.pause("evac_timer")
--- DMS.Timer.resume("evac_timer")
--- DMS.Timer.addTime("mission_time", 300)  -- Add 5 minutes
--- DMS.Timer.reset("evac_timer")
+-- DMS.MissionTimer.pause("evac_timer")
+-- DMS.MissionTimer.resume("evac_timer")
+-- DMS.MissionTimer.addTime("mission_time", 300)  -- Add 5 minutes
+-- DMS.MissionTimer.reset("evac_timer")
 ]]
+
+-- Backward-compatible aliases on DMS.Timer (never overwrite timer-utils functions)
+DMS.Timer = DMS.Timer or {}
+for name, fn in pairs(DMS.MissionTimer) do
+    if type(fn) == "function" and DMS.Timer[name] == nil then
+        DMS.Timer[name] = fn
+    end
+end
 
 -- Export
 _G.DMS = DMS

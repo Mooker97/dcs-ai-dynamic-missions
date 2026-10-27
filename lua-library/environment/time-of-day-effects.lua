@@ -4,7 +4,7 @@
 -- Place in mission via DO SCRIPT FILE
 
 DMS = DMS or {}
-DMS.TimeEffects = {}
+DMS.TimeEffects = DMS.TimeEffects or {}
 
 -- Time periods
 DMS.TimeEffects.Period = {
@@ -16,14 +16,12 @@ DMS.TimeEffects.Period = {
     EVENING = "evening",   -- 19:00 - 24:00
 }
 
-DMS.TimeEffects.CurrentPeriod = nil
-DMS.TimeEffects.Active = false
-DMS.TimeEffects.TimerId = nil
-DMS.TimeEffects.PeriodHandlers = {}
+DMS.TimeEffects.Active = DMS.TimeEffects.Active or false
+DMS.TimeEffects.PeriodHandlers = DMS.TimeEffects.PeriodHandlers or {}
 
 -- Configuration
-DMS.TimeEffects.Config = {
-    playerCoalition = coalition.side.BLUE,
+DMS.TimeEffects.Config = DMS.TimeEffects.Config or {
+    playerCoalition = (coalition and coalition.side and coalition.side.BLUE) or 2,
     checkInterval = 60,           -- Check time every minute
     announceTransitions = true,
     enableVisibilityEffects = true,
@@ -42,7 +40,20 @@ local periodRanges = {
 
 --- Configure time effects
 -- @param settings table Configuration overrides
+local function isDebug()
+    return DMS.Settings and DMS.Settings.isDebug and DMS.Settings.isDebug()
+end
+
+local function logError(context, msg)
+    if DMS.Error and DMS.Error.log then
+        DMS.Error.log(context, msg)
+    else
+        env.error("[DMS LUA ERROR] " .. tostring(context) .. ": " .. tostring(msg))
+    end
+end
+
 function DMS.TimeEffects.configure(settings)
+    if type(settings) ~= "table" then return end
     for key, value in pairs(settings) do
         DMS.TimeEffects.Config[key] = value
     end
@@ -82,6 +93,7 @@ end
 -- @param period string Period name
 -- @param handler function Handler function
 function DMS.TimeEffects.onPeriod(period, handler)
+    if type(handler) ~= "function" then return end
     if not DMS.TimeEffects.PeriodHandlers[period] then
         DMS.TimeEffects.PeriodHandlers[period] = {}
     end
@@ -91,6 +103,7 @@ end
 --- Register handler for any period change
 -- @param handler function Handler(oldPeriod, newPeriod)
 function DMS.TimeEffects.onPeriodChange(handler)
+    if type(handler) ~= "function" then return end
     if not DMS.TimeEffects.PeriodHandlers["_change"] then
         DMS.TimeEffects.PeriodHandlers["_change"] = {}
     end
@@ -104,14 +117,20 @@ local function triggerHandlers(period, oldPeriod)
     -- Period-specific handlers
     if DMS.TimeEffects.PeriodHandlers[period] then
         for _, handler in ipairs(DMS.TimeEffects.PeriodHandlers[period]) do
-            handler()
+            local ok, err = pcall(handler)
+            if not ok then
+                logError("TimeEffects.onPeriod(" .. tostring(period) .. ")", err)
+            end
         end
     end
 
     -- Change handlers
     if oldPeriod and DMS.TimeEffects.PeriodHandlers["_change"] then
         for _, handler in ipairs(DMS.TimeEffects.PeriodHandlers["_change"]) do
-            handler(oldPeriod, period)
+            local ok, err = pcall(handler, oldPeriod, period)
+            if not ok then
+                logError("TimeEffects.onPeriodChange", err)
+            end
         end
     end
 end
@@ -166,6 +185,10 @@ local function checkTimeInternal(_, time)
         local oldPeriod = DMS.TimeEffects.CurrentPeriod
         DMS.TimeEffects.CurrentPeriod = currentPeriod
 
+        if isDebug() then
+            env.info(string.format("[TimeEffects] Period changed %s -> %s", tostring(oldPeriod), currentPeriod))
+        end
+
         -- Announce transition
         if DMS.TimeEffects.Config.announceTransitions and oldPeriod then
             local tod = getTimeOfDay()
@@ -190,19 +213,15 @@ local function checkTimeInternal(_, time)
         triggerHandlers(currentPeriod, oldPeriod)
     end
 
-    return time + DMS.TimeEffects.Config.checkInterval
+    return time + (tonumber(DMS.TimeEffects.Config.checkInterval) or 60)
 end
 
 --- Check time with error handling
 local function checkTime(args, time)
     local success, result = pcall(checkTimeInternal, args, time)
     if not success then
-        if DMS.Error then
-            DMS.Error.log("TimeEffects.checkTime", result)
-        else
-            env.error("[DMS LUA ERROR] TimeEffects.checkTime: " .. tostring(result))
-        end
-        return time + (DMS.TimeEffects.Config.checkInterval or 60)
+        logError("TimeEffects.checkTime", result)
+        return time + (tonumber(DMS.TimeEffects.Config.checkInterval) or 60)
     end
     return result
 end
@@ -216,22 +235,32 @@ function DMS.TimeEffects.start()
     DMS.TimeEffects.Active = true
 
     -- Initialize current period
-    DMS.TimeEffects.CurrentPeriod = getCurrentPeriod()
-    applyVisibilityEffects(DMS.TimeEffects.CurrentPeriod)
-    triggerHandlers(DMS.TimeEffects.CurrentPeriod, nil)
+    local ok, err = pcall(function()
+        DMS.TimeEffects.CurrentPeriod = getCurrentPeriod()
+        applyVisibilityEffects(DMS.TimeEffects.CurrentPeriod)
+        triggerHandlers(DMS.TimeEffects.CurrentPeriod, nil)
+    end)
+    if not ok then
+        logError("TimeEffects.start", err)
+    end
 
     DMS.TimeEffects.TimerId = timer.scheduleFunction(
         checkTime,
         nil,
-        timer.getTime() + DMS.TimeEffects.Config.checkInterval
+        timer.getTime() + (tonumber(DMS.TimeEffects.Config.checkInterval) or 60)
     )
+
+    if isDebug() then
+        env.info(string.format("[TimeEffects] Started (period: %s, interval: %ds)",
+            tostring(DMS.TimeEffects.CurrentPeriod), tonumber(DMS.TimeEffects.Config.checkInterval) or 60))
+    end
 end
 
 --- Stop time effects system
 function DMS.TimeEffects.stop()
     DMS.TimeEffects.Active = false
     if DMS.TimeEffects.TimerId then
-        timer.removeFunction(DMS.TimeEffects.TimerId)
+        pcall(timer.removeFunction, DMS.TimeEffects.TimerId)
         DMS.TimeEffects.TimerId = nil
     end
 end

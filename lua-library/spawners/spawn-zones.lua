@@ -1,6 +1,8 @@
 -- Zone-Based Random Spawning for DCS Missions
--- Activates LATE ACTIVATION groups with spawn chance per zone
--- Requires: utils/coordinates.lua, utils/group-utils.lua
+-- Activates LATE ACTIVATION groups with spawn chance per zone, at a random
+-- valid (dry land, no buildings) position inside the zone. Relocation works by
+-- respawning the group from its Mission Editor definition (same name).
+-- Requires: spawners/spawn-core.lua
 -- Place in mission via DO SCRIPT FILE
 
 DMS = DMS or {}
@@ -64,12 +66,14 @@ end
 -- @param zoneName string Zone name
 -- @param spawnChance number Spawn probability (0-100)
 -- @param hidden boolean|nil Override hidden state (nil = use settings)
-function DMS.SpawnZones.configure(groupName, zoneName, spawnChance, hidden)
+-- @param relocate boolean|nil false = keep ME position (default: random point in zone)
+function DMS.SpawnZones.configure(groupName, zoneName, spawnChance, hidden, relocate)
     table.insert(DMS.SpawnZones.Config, {
         groupName = groupName,
         zone = zoneName,
         spawnChance = spawnChance or 100,
         hidden = hidden,  -- nil = use settings default
+        relocate = relocate,
         spawned = false
     })
 end
@@ -93,50 +97,49 @@ function DMS.SpawnZones.spawnGroup(config)
         return false
     end
 
+    local Core = DMS.SpawnCore
+    if not Core then
+        env.error("[SpawnZones] spawners/spawn-core.lua is not loaded")
+        return false
+    end
+
     -- Roll for spawn chance
-    local roll = math.random(1, 100)
-    if roll > config.spawnChance then
+    local ok, roll = Core.roll(config.spawnChance)
+    if not ok then
         config.spawned = true  -- Mark as processed
-        if DMS.Settings and DMS.Settings.isDebug() then
-            env.info(string.format("[SpawnZones] '%s' skipped (rolled %d, needed <= %d)",
-                config.groupName, roll, config.spawnChance))
-        end
+        Core.log("SpawnZones", "'%s' skipped (rolled %d, needed <= %d)", config.groupName, roll, config.spawnChance)
         return false
     end
 
     -- Verify zone exists
     local zone = DMS.SpawnZones.Zones[config.zone]
     if not zone then
+        Core.log("SpawnZones", "Zone '%s' not registered for '%s'", tostring(config.zone), config.groupName)
         return false
     end
 
-    -- Determine hidden state: config override > settings default
-    local hidden = config.hidden
-    if hidden == nil and DMS.Settings then
-        hidden = DMS.Settings.getSpawnHidden()
-    end
-
-    -- Activate the group (spawns at original ME position)
-    -- Note: DCS doesn't allow repositioning LATE ACTIVATION groups
-    -- Use coalition.addGroup() for true position randomization
-    local group = Group.getByName(config.groupName)
-    if group then
-        -- Use fog of war system if available and hidden is needed
-        if hidden and DMS.FogOfWar then
-            DMS.FogOfWar.activateGroup(config.groupName, true)
+    -- Pick a random valid ground point inside the zone
+    local opts = {hidden = config.hidden, prefix = "SpawnZones"}
+    if config.relocate ~= false then
+        local x, y = Core.findValidPoint(function() return Core.randomPointInZone(zone) end)
+        if x then
+            opts.x, opts.y = x, y
         else
-            trigger.action.activateGroup(group)
+            Core.log("SpawnZones", "No valid ground point in zone '%s' - spawning '%s' at ME position",
+                config.zone, config.groupName)
         end
-        config.spawned = true
-
-        if DMS.Settings and DMS.Settings.isDebug() then
-            env.info(string.format("[SpawnZones] Activated: %s in zone '%s' (hidden: %s)",
-                config.groupName, config.zone, tostring(hidden or false)))
-        end
-        return true
     end
 
-    return false
+    local okCall, activated = Core.safeCall(Core.activate,
+        "SpawnZones.activate(" .. config.groupName .. ")", config.groupName, opts)
+    config.spawned = true
+    config.activated = okCall and activated or false
+
+    if config.activated then
+        Core.log("SpawnZones", "Activated: %s in zone '%s' at (%.0f, %.0f) (rolled %d <= %d)",
+            config.groupName, config.zone, opts.x or 0, opts.y or 0, roll, config.spawnChance)
+    end
+    return config.activated
 end
 
 --- Spawn all configured groups based on their spawn chances
@@ -172,9 +175,13 @@ end
 function DMS.SpawnZones.spawnAllDelayed(minDelay, maxDelay)
     for _, config in ipairs(DMS.SpawnZones.Config) do
         local delay = minDelay + math.random() * (maxDelay - minDelay)
-        DMS.Error.safeSchedule(function()
-            DMS.SpawnZones.spawnGroup(config)
-        end, delay, "SpawnZones.spawnGroup(" .. config.groupName .. ")")
+        if DMS.SpawnCore then
+            DMS.SpawnCore.schedule(function()
+                DMS.SpawnZones.spawnGroup(config)
+            end, delay, "SpawnZones.spawnGroup(" .. config.groupName .. ")")
+        else
+            env.error("[SpawnZones] spawners/spawn-core.lua is not loaded")
+        end
     end
 end
 
@@ -184,8 +191,8 @@ function DMS.SpawnZones.getStats()
     local spawned, skipped = 0, 0
     for _, config in ipairs(DMS.SpawnZones.Config) do
         if config.spawned then
-            -- Check if group actually exists (was activated vs skipped)
-            if DMS.Groups and DMS.Groups.isAlive(config.groupName) then
+            -- Activated vs skipped
+            if config.activated then
                 spawned = spawned + 1
             else
                 skipped = skipped + 1
@@ -203,6 +210,7 @@ end
 function DMS.SpawnZones.reset()
     for _, config in ipairs(DMS.SpawnZones.Config) do
         config.spawned = false
+        config.activated = false
     end
 end
 

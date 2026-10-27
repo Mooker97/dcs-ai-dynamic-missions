@@ -4,12 +4,11 @@
 -- Place in mission via DO SCRIPT FILE
 
 DMS = DMS or {}
-DMS.Decoys = {}
+DMS.Decoys = DMS.Decoys or {}
 
--- Decoy definitions
-DMS.Decoys.Sites = {}
-DMS.Decoys.Active = false
-DMS.Decoys.TimerId = nil
+-- Decoy definitions (preserved on reload)
+DMS.Decoys.Sites = DMS.Decoys.Sites or {}
+DMS.Decoys.Active = DMS.Decoys.Active or false
 
 -- Decoy types
 DMS.Decoys.Types = {
@@ -21,9 +20,9 @@ DMS.Decoys.Types = {
 }
 
 -- Configuration
-DMS.Decoys.Config = {
-    playerCoalition = coalition.side.BLUE,
-    enemyCoalition = coalition.side.RED,
+DMS.Decoys.Config = DMS.Decoys.Config or {
+    playerCoalition = (coalition and coalition.side and coalition.side.BLUE) or 2,
+    enemyCoalition = (coalition and coalition.side and coalition.side.RED) or 1,
     detectionRadius = 5000,        -- Radius to detect player attacks
     revealOnAttack = true,         -- Reveal decoy when attacked
     revealMessage = true,
@@ -33,7 +32,46 @@ DMS.Decoys.Config = {
 
 --- Configure decoy system
 -- @param settings table Configuration overrides
+local function isDebug()
+    return DMS.Settings and DMS.Settings.isDebug and DMS.Settings.isDebug()
+end
+
+local function logError(context, msg)
+    if DMS.Error and DMS.Error.log then
+        DMS.Error.log(context, msg)
+    else
+        env.error("[DMS LUA ERROR] " .. tostring(context) .. ": " .. tostring(msg))
+    end
+end
+
+-- Safe exists check for any DCS object handle
+local function exists(obj)
+    if obj == nil or type(obj) ~= "table" or type(obj.isExist) ~= "function" then
+        return false
+    end
+    local ok, e = pcall(obj.isExist, obj)
+    return ok and e and true or false
+end
+
+-- Safe position of an event object (unit, static, scenery, weapon); nil otherwise
+local function getObjectPoint(obj)
+    if obj == nil or type(obj) ~= "table" or type(obj.getPoint) ~= "function" then
+        return nil
+    end
+    -- Scenery objects may not support isExist reliably; only gate on it when present
+    if Object and Object.Category and type(obj.getCategory) == "function" then
+        local okC, cat = pcall(obj.getCategory, obj)
+        if not okC or cat == nil then return nil end
+    end
+    local ok, p = pcall(obj.getPoint, obj)
+    if ok and type(p) == "table" and p.x and p.z then
+        return p
+    end
+    return nil
+end
+
 function DMS.Decoys.configure(settings)
+    if type(settings) ~= "table" then return end
     for key, value in pairs(settings) do
         DMS.Decoys.Config[key] = value
     end
@@ -45,6 +83,10 @@ end
 -- @param options table Decoy options
 function DMS.Decoys.register(id, position, options)
     options = options or {}
+    if not id or type(position) ~= "table" or not position.x or not position.z then
+        env.warning("[Decoys] register: id and position {x, z} required")
+        return nil
+    end
 
     DMS.Decoys.Sites[id] = {
         id = id,
@@ -53,7 +95,7 @@ function DMS.Decoys.register(id, position, options)
         disguisedAs = options.disguisedAs or "Unknown Target",
         revealed = false,
         attacked = false,
-        smokeColor = options.smokeColor or trigger.smokeColor.White,
+        smokeColor = options.smokeColor or (trigger.smokeColor and trigger.smokeColor.White) or 2,
         active = true,
         groupName = options.groupName,  -- Associated late-activation group
         realTargetId = options.realTargetId, -- ID of real target this protects
@@ -62,10 +104,15 @@ function DMS.Decoys.register(id, position, options)
 
     -- Activate associated group if exists
     if options.groupName then
-        local group = Group.getByName(options.groupName)
-        if group then
-            trigger.action.activateGroup(group)
+        local okG, group = pcall(Group.getByName, options.groupName)
+        if okG and exists(group) then
+            pcall(trigger.action.activateGroup, group)
         end
+    end
+
+    if isDebug() then
+        env.info(string.format("[Decoys] Registered '%s' (%s, disguised as %s)",
+            tostring(id), tostring(DMS.Decoys.Sites[id].type), tostring(DMS.Decoys.Sites[id].disguisedAs)))
     end
 
     return DMS.Decoys.Sites[id]
@@ -76,11 +123,12 @@ end
 -- @param zoneName string Zone name
 -- @param options table Decoy options
 function DMS.Decoys.registerFromZone(id, zoneName, options)
-    local zone = trigger.misc.getZone(zoneName)
-    if zone then
+    local okZ, zone = pcall(trigger.misc.getZone, zoneName)
+    if okZ and zone and zone.point then
         local position = {x = zone.point.x, y = 0, z = zone.point.z}
         return DMS.Decoys.register(id, position, options)
     end
+    env.warning(string.format("[Decoys] registerFromZone: zone '%s' not found", tostring(zoneName)))
     return nil
 end
 
@@ -104,6 +152,10 @@ function DMS.Decoys.reveal(id, reason)
     end
 
     decoy.revealed = true
+
+    if isDebug() then
+        env.info(string.format("[Decoys] '%s' revealed (%s)", tostring(id), tostring(reason or "manual")))
+    end
 
     if DMS.Decoys.Config.revealMessage then
         local msg = string.format("INTEL UPDATE: Target at grid X:%.0f Z:%.0f identified as DECOY (%s)",
@@ -145,13 +197,17 @@ DMS.Decoys._EventHandlerInternal = {
         end
 
         -- Check for weapons hitting near decoys
+        if not event then return end
         if event.id == world.event.S_EVENT_HIT or
            event.id == world.event.S_EVENT_DEAD then
 
+            -- HIT: the struck object is event.target; DEAD: the dead object is event.initiator.
+            -- Either may be nil, already destroyed, or a non-unit (static/scenery).
             local position = nil
-
-            if event.target then
-                position = event.target:getPoint()
+            if event.id == world.event.S_EVENT_HIT then
+                position = getObjectPoint(event.target)
+            else
+                position = getObjectPoint(event.initiator)
             end
 
             if position then
@@ -175,8 +231,17 @@ local function refreshSmoke()
 
     for _, decoy in pairs(DMS.Decoys.Sites) do
         if decoy.active and decoy.type == DMS.Decoys.Types.SMOKE then
-            if currentTime - decoy.lastSmokeTime >= DMS.Decoys.Config.smokeInterval then
-                trigger.action.smoke(decoy.position, decoy.smokeColor)
+            if currentTime - (decoy.lastSmokeTime or 0) >= (DMS.Decoys.Config.smokeInterval or 120) then
+                local pos = decoy.position
+                local y = pos.y or 0
+                if land and land.getHeight then
+                    local okH, h = pcall(land.getHeight, { x = pos.x, y = pos.z })
+                    if okH and type(h) == "number" then y = h end
+                end
+                local ok, err = pcall(trigger.action.smoke, { x = pos.x, y = y, z = pos.z }, decoy.smokeColor)
+                if not ok then
+                    logError("Decoys.refreshSmoke(" .. tostring(decoy.id) .. ")", err)
+                end
                 decoy.lastSmokeTime = currentTime
             end
         end
@@ -199,11 +264,7 @@ end
 local function processDecoys(args, time)
     local success, result = pcall(processDecoysInternal, args, time)
     if not success then
-        if DMS.Error then
-            DMS.Error.log("Decoys.processDecoys", result)
-        else
-            env.error("[DMS LUA ERROR] Decoys.processDecoys: " .. tostring(result))
-        end
+        logError("Decoys.processDecoys", result)
         return time + 30
     end
     return result
@@ -217,11 +278,25 @@ function DMS.Decoys.start()
 
     DMS.Decoys.Active = true
 
-    -- Wrap event handler with error protection
-    DMS.Decoys.EventHandler = DMS.Error.safeHandler(
-        DMS.Decoys._EventHandlerInternal,
-        "Decoys.EventHandler"
-    )
+    -- Wrap event handler with error protection (fallback if error-handler not loaded)
+    if DMS.Decoys.EventHandler then
+        pcall(world.removeEventHandler, DMS.Decoys.EventHandler)
+    end
+    if DMS.Error and DMS.Error.safeHandler then
+        DMS.Decoys.EventHandler = DMS.Error.safeHandler(
+            DMS.Decoys._EventHandlerInternal,
+            "Decoys.EventHandler"
+        )
+    else
+        DMS.Decoys.EventHandler = {
+            onEvent = function(self, event)
+                local ok, err = pcall(DMS.Decoys._EventHandlerInternal.onEvent, DMS.Decoys._EventHandlerInternal, event)
+                if not ok then
+                    logError("Decoys.EventHandler", err)
+                end
+            end
+        }
+    end
     world.addEventHandler(DMS.Decoys.EventHandler)
 
     -- Start processing
@@ -232,15 +307,29 @@ function DMS.Decoys.start()
     )
 
     -- Initial smoke for smoke decoys
-    refreshSmoke()
+    local ok, err = pcall(refreshSmoke)
+    if not ok then
+        logError("Decoys.start", err)
+    end
+
+    if isDebug() then
+        local n = 0
+        for _ in pairs(DMS.Decoys.Sites) do n = n + 1 end
+        env.info(string.format("[Decoys] Started with %d sites (detection radius: %dm)",
+            n, DMS.Decoys.Config.detectionRadius or 0))
+    end
 end
 
 --- Stop decoy system
 function DMS.Decoys.stop()
     DMS.Decoys.Active = false
     if DMS.Decoys.TimerId then
-        timer.removeFunction(DMS.Decoys.TimerId)
+        pcall(timer.removeFunction, DMS.Decoys.TimerId)
         DMS.Decoys.TimerId = nil
+    end
+    if DMS.Decoys.EventHandler then
+        pcall(world.removeEventHandler, DMS.Decoys.EventHandler)
+        DMS.Decoys.EventHandler = nil
     end
 end
 
@@ -253,9 +342,9 @@ function DMS.Decoys.deactivate(id)
 
         -- Destroy associated group
         if decoy.groupName then
-            local group = Group.getByName(decoy.groupName)
-            if group and group:isExist() then
-                group:destroy()
+            local okG, group = pcall(Group.getByName, decoy.groupName)
+            if okG and exists(group) then
+                pcall(group.destroy, group)
             end
         end
     end
@@ -317,7 +406,7 @@ end
 function DMS.Decoys.createSAMDecoy(id, position, samType)
     return DMS.Decoys.register(id, position, {
         type = DMS.Decoys.Types.RADAR,
-        disguisedAs = samType .. " SAM Site",
+        disguisedAs = tostring(samType or "Unknown") .. " SAM Site",
     })
 end
 

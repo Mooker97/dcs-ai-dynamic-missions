@@ -388,8 +388,12 @@ local function executeActions(actions)
             trigger.action.setUserFlag(action.flag, action.value)
 
         elseif actionType == "spawn" then
-            if action.pool and DMS.SpawnPool then
-                DMS.SpawnPool.forceSpawn(action.pool)
+            if action.pool then
+                if DMS.SpawnPool and DMS.SpawnPool.forceSpawn then
+                    DMS.SpawnPool.forceSpawn(action.pool)
+                else
+                    env.error(string.format("[ConditionalTrigger] spawn action: DMS.SpawnPool.forceSpawn unavailable (pool '%s')", tostring(action.pool)))
+                end
             elseif action.group then
                 local group = Group.getByName(action.group)
                 if group then
@@ -493,43 +497,62 @@ function DMS.ConditionalTrigger.reset(triggerId)
     end
 end
 
+local function debugLog(fmt, ...)
+    if DMS.Settings and DMS.Settings.isDebug() then
+        env.info(string.format("[ConditionalTrigger] " .. fmt, ...))
+    end
+end
+
+--- Evaluate a single trigger and run its actions
+local function processTrigger(trig, currentTime)
+    if not trig.enabled then return end
+    if trig.once and trig.fired then return end
+
+    -- Check cooldown
+    if trig.cooldown > 0 and (currentTime - trig.lastFired) < trig.cooldown then
+        return
+    end
+
+    local result = evaluateCondition(trig.conditions)
+
+    if result then
+        executeActions(trig.actions)
+        trig.fired = true
+        trig.lastFired = currentTime
+        debugLog("Trigger '%s' fired", tostring(trig.id))
+
+        if DMS.ConditionalTrigger.Config.announceEvaluations then
+            trigger.action.outText(string.format("[ConditionalTrigger] %s fired", trig.id), 5)
+        end
+    elseif trig.elseActions then
+        executeActions(trig.elseActions)
+    end
+end
+
 --- Process triggers
 local function processTriggers(_, time)
     if not DMS.ConditionalTrigger.Active then return nil end
 
-    local currentTime = timer.getTime()
+    local ok, err = pcall(function()
+        local currentTime = timer.getTime()
 
-    -- Sort by priority
-    local sortedTriggers = {}
-    for _, trig in pairs(DMS.ConditionalTrigger.Triggers) do
-        table.insert(sortedTriggers, trig)
-    end
-    table.sort(sortedTriggers, function(a, b) return a.priority > b.priority end)
-
-    for _, trig in ipairs(sortedTriggers) do
-        if not trig.enabled then goto continue end
-        if trig.once and trig.fired then goto continue end
-
-        -- Check cooldown
-        if trig.cooldown > 0 and (currentTime - trig.lastFired) < trig.cooldown then
-            goto continue
+        -- Sort by priority
+        local sortedTriggers = {}
+        for _, trig in pairs(DMS.ConditionalTrigger.Triggers) do
+            table.insert(sortedTriggers, trig)
         end
+        table.sort(sortedTriggers, function(a, b) return a.priority > b.priority end)
 
-        local result = evaluateCondition(trig.conditions)
-
-        if result then
-            executeActions(trig.actions)
-            trig.fired = true
-            trig.lastFired = currentTime
-
-            if DMS.ConditionalTrigger.Config.announceEvaluations then
-                trigger.action.outText(string.format("[ConditionalTrigger] %s fired", trig.id), 5)
+        for _, trig in ipairs(sortedTriggers) do
+            -- Isolate failures so one bad trigger doesn't block the rest
+            local tok, terr = pcall(processTrigger, trig, currentTime)
+            if not tok then
+                env.error(string.format("[ConditionalTrigger] Trigger '%s' error: %s", tostring(trig.id), tostring(terr)))
             end
-        elseif trig.elseActions then
-            executeActions(trig.elseActions)
         end
-
-        ::continue::
+    end)
+    if not ok then
+        env.error(string.format("[ConditionalTrigger] processTriggers error: %s", tostring(err)))
     end
 
     return time + DMS.ConditionalTrigger.Config.checkInterval
@@ -545,6 +568,10 @@ function DMS.ConditionalTrigger.start()
         nil,
         timer.getTime() + DMS.ConditionalTrigger.Config.checkInterval
     )
+
+    local count = 0
+    for _ in pairs(DMS.ConditionalTrigger.Triggers) do count = count + 1 end
+    debugLog("Started with %d triggers (interval: %ds)", count, DMS.ConditionalTrigger.Config.checkInterval)
 end
 
 --- Stop conditional trigger system

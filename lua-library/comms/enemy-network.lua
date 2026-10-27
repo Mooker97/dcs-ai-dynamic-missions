@@ -115,6 +115,19 @@ DMS.EnemyNetwork.Config = {
     interceptPrefix = "INTERCEPT",
 }
 
+local function logDebug(fmt, ...)
+    if DMS.Settings and DMS.Settings.isDebug and DMS.Settings.isDebug() then
+        env.info(string.format("[EnemyNetwork] " .. fmt, ...))
+    end
+end
+
+--- string.format that never throws (templates may have fewer/more %s than args)
+local function safeFormat(template, ...)
+    local ok, result = pcall(string.format, template, ...)
+    if ok then return result end
+    return (template:gsub("%%s", "?"))
+end
+
 --- Configure enemy network
 -- @param settings table Configuration overrides
 function DMS.EnemyNetwork.configure(settings)
@@ -207,18 +220,21 @@ end
 -- @param language string Language code
 -- @param messageType string Message type
 -- @return string Message template
-local function getTemplate(language, messageType)
+local function getTemplate(language, messageType, index)
     local templates = DMS.EnemyNetwork.Templates[language]
     if not templates then
         templates = DMS.EnemyNetwork.Templates.english
     end
 
     local typeTemplates = templates[messageType]
-    if not typeTemplates then
-        return "Unknown transmission."
+    if not typeTemplates or #typeTemplates == 0 then
+        return "Unknown transmission.", 1
     end
 
-    return typeTemplates[math.random(#typeTemplates)]
+    if not index or not typeTemplates[index] then
+        index = math.random(#typeTemplates)
+    end
+    return typeTemplates[index], index
 end
 
 --- Format bearing
@@ -228,8 +244,8 @@ end
 local function formatBearing(fromPos, toPos)
     local dx = toPos.x - fromPos.x
     local dz = toPos.z - fromPos.z
+    -- DCS: +x = north, +z = east, so atan2(dz, dx) is already a compass bearing
     local bearing = math.deg(math.atan2(dz, dx))
-    bearing = 90 - bearing
     if bearing < 0 then bearing = bearing + 360 end
     return string.format("%03d", math.floor(bearing))
 end
@@ -265,18 +281,20 @@ function DMS.EnemyNetwork.broadcast(nodeId, messageType, data)
     local nodePos = getNodePosition(nodeId)
     if not nodePos then return end
 
-    -- Get template
-    local template = getTemplate(node.language, messageType)
+    -- Get template (remember index so the translation matches the original line)
+    local template, templateIndex = getTemplate(node.language, messageType)
+
+    local function fill(tpl)
+        if messageType == "CONTACT" and data.targetPos and data.targetPos.x and data.targetPos.z then
+            return safeFormat(tpl, formatBearing(nodePos, data.targetPos), formatDistance(nodePos, data.targetPos))
+        elseif messageType == "STATUS" or messageType == "REINFORCEMENT" then
+            return safeFormat(tpl, node.callsign)
+        end
+        return safeFormat(tpl)
+    end
 
     -- Format message based on type
-    local message = template
-    if messageType == "CONTACT" and data.targetPos then
-        local bearing = formatBearing(nodePos, data.targetPos)
-        local distance = formatDistance(nodePos, data.targetPos)
-        message = string.format(template, bearing, distance)
-    elseif messageType == "STATUS" or messageType == "REINFORCEMENT" then
-        message = string.format(template, node.callsign)
-    end
+    local message = fill(template)
 
     -- Check if can be intercepted
     if canIntercept(nodePos, node.range) then
@@ -301,14 +319,8 @@ function DMS.EnemyNetwork.broadcast(nodeId, messageType, data)
 
         -- Get translation if decrypted
         if decrypted and node.language ~= "english" then
-            local englishTemplate = getTemplate("english", messageType)
-            if messageType == "CONTACT" and data.targetPos then
-                local bearing = formatBearing(nodePos, data.targetPos)
-                local distance = formatDistance(nodePos, data.targetPos)
-                intercepted.translation = string.format(englishTemplate, bearing, distance)
-            else
-                intercepted.translation = string.format(englishTemplate, node.callsign)
-            end
+            local englishTemplate = getTemplate("english", messageType, templateIndex)
+            intercepted.translation = fill(englishTemplate)
         end
 
         -- Store intercepted message
@@ -323,11 +335,12 @@ function DMS.EnemyNetwork.broadcast(nodeId, messageType, data)
         if DMS.EnemyNetwork.Config.showOriginal then
             if node.encrypted and not decrypted then
                 -- Show garbled message
-                local garbled = message:gsub("%a", function(c)
+                -- Garble whole words (byte-wise replacement would corrupt UTF-8 Cyrillic)
+                local garbled = message:gsub("%S+", function(word)
                     if math.random() < 0.3 then
                         return DMS.EnemyNetwork.Config.staticNoise
                     end
-                    return c
+                    return word
                 end)
                 displayMsg = displayMsg .. garbled
             else
@@ -347,10 +360,17 @@ function DMS.EnemyNetwork.broadcast(nodeId, messageType, data)
             DMS.EnemyNetwork.Config.messageDisplayTime
         )
 
+        logDebug("Intercepted %s from '%s' (decrypted: %s)", messageType, node.callsign, tostring(decrypted))
+
         -- Fire callback
         if DMS.EnemyNetwork.OnIntercept then
-            DMS.EnemyNetwork.OnIntercept(intercepted)
+            local ok, err = pcall(DMS.EnemyNetwork.OnIntercept, intercepted)
+            if not ok then
+                env.error(string.format("[EnemyNetwork] OnIntercept callback error: %s", tostring(err)))
+            end
         end
+    else
+        logDebug("%s from '%s' not intercepted (no player within %dm)", messageType, node.callsign, node.range)
     end
 end
 
@@ -386,6 +406,7 @@ end
 -- @param duration number Duration in seconds
 function DMS.EnemyNetwork.disruptNetwork(centerPos, radius, duration)
     local affectedNodes = {}
+    if type(centerPos) ~= "table" or not centerPos.x or not centerPos.z then return 0 end
 
     for nodeId, node in pairs(DMS.EnemyNetwork.Nodes) do
         local nodePos = getNodePosition(nodeId)
@@ -402,15 +423,23 @@ function DMS.EnemyNetwork.disruptNetwork(centerPos, radius, duration)
 
     -- Restore after duration
     timer.scheduleFunction(function()
-        for _, nodeId in ipairs(affectedNodes) do
-            local node = DMS.EnemyNetwork.Nodes[nodeId]
-            if node then
-                node.active = true
+        local ok, err = pcall(function()
+            for _, nodeId in ipairs(affectedNodes) do
+                local node = DMS.EnemyNetwork.Nodes[nodeId]
+                if node then
+                    -- getNodePosition() re-flags dead groups inactive on next broadcast
+                    node.active = true
+                end
             end
+            logDebug("Network disruption ended, %d nodes restored", #affectedNodes)
+        end)
+        if not ok then
+            env.error(string.format("[EnemyNetwork] disrupt restore error: %s", tostring(err)))
         end
         return nil
-    end, nil, timer.getTime() + duration)
+    end, nil, timer.getTime() + (tonumber(duration) or 60))
 
+    logDebug("Disrupted %d nodes (radius %dm, %ds)", #affectedNodes, radius or 0, duration or 0)
     return #affectedNodes
 end
 
@@ -439,16 +468,21 @@ end
 
 --- Hook into Awareness system for automatic broadcasts
 function DMS.EnemyNetwork.hookAwareness()
-    if not DMS.Awareness then return end
+    if not DMS.Awareness or type(DMS.Awareness.setState) ~= "function" or not DMS.Awareness.STATES then return end
+    if DMS.EnemyNetwork._awarenessHooked then return end  -- avoid double-wrapping on restart
+    DMS.EnemyNetwork._awarenessHooked = true
 
     -- Store original setState
     local originalSetState = DMS.Awareness.setState
 
     DMS.Awareness.setState = function(groupName, newState, contactPos)
         -- Call original
-        originalSetState(groupName, newState, contactPos)
+        local result = originalSetState(groupName, newState, contactPos)
 
-        -- Find node for this group
+        if not DMS.EnemyNetwork.Active then return result end
+
+        -- Find node for this group (never let a broadcast error break Awareness)
+        local ok, err = pcall(function()
         for nodeId, node in pairs(DMS.EnemyNetwork.Nodes) do
             if node.groupName == groupName then
                 if newState == DMS.Awareness.STATES.ALERT then
@@ -461,7 +495,13 @@ function DMS.EnemyNetwork.hookAwareness()
                 break
             end
         end
+        end)
+        if not ok then
+            env.error(string.format("[EnemyNetwork] awareness hook error: %s", tostring(err)))
+        end
+        return result
     end
+    logDebug("Hooked DMS.Awareness.setState")
 end
 
 --- Start enemy network system
@@ -471,6 +511,7 @@ function DMS.EnemyNetwork.start()
 
     -- Hook awareness if available
     DMS.EnemyNetwork.hookAwareness()
+    logDebug("Started")
 end
 
 --- Stop enemy network system

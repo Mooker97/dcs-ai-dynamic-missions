@@ -4,12 +4,11 @@
 -- Place in mission via DO SCRIPT FILE
 
 DMS = DMS or {}
-DMS.Alarm = {}
+DMS.Alarm = DMS.Alarm or {}
 
 -- Alarm zones and states
-DMS.Alarm.Zones = {}
-DMS.Alarm.Active = false
-DMS.Alarm.TimerId = nil
+DMS.Alarm.Zones = DMS.Alarm.Zones or {}
+DMS.Alarm.Active = DMS.Alarm.Active or false
 
 -- Alert levels
 DMS.Alarm.Level = {
@@ -20,10 +19,10 @@ DMS.Alarm.Level = {
 }
 
 -- Current global alert level
-DMS.Alarm.CurrentLevel = DMS.Alarm.Level.GREEN
+DMS.Alarm.CurrentLevel = DMS.Alarm.CurrentLevel or DMS.Alarm.Level.GREEN
 
 -- Configuration
-DMS.Alarm.Config = {
+DMS.Alarm.Config = DMS.Alarm.Config or {
     playerCoalition = coalition.side.BLUE,
     enemyCoalition = coalition.side.RED,
     checkInterval = 10,           -- Seconds between detection checks
@@ -41,9 +40,46 @@ local levelNames = {
     [4] = "RED (Combat)",
 }
 
+local function isDebug()
+    return DMS.Settings and DMS.Settings.isDebug and DMS.Settings.isDebug()
+end
+
+local function logError(context, err)
+    if DMS.Error and DMS.Error.log then
+        DMS.Error.log(context, err)
+    else
+        env.error("[DMS LUA ERROR] " .. tostring(context) .. ": " .. tostring(err))
+    end
+end
+
+--- Safely call obj:method(...) returning nil on error
+local function safeMethod(obj, method, ...)
+    if obj == nil or type(obj) ~= "table" or type(obj[method]) ~= "function" then
+        return nil
+    end
+    local ok, res = pcall(obj[method], obj, ...)
+    if ok then return res end
+    return nil
+end
+
+--- Get positions of all alive player units
+local function getPlayerPositions()
+    local positions = {}
+    local ok, players = pcall(coalition.getPlayers, DMS.Alarm.Config.playerCoalition)
+    if not ok or type(players) ~= "table" then return positions end
+    for _, player in ipairs(players) do
+        if safeMethod(player, "isExist") then
+            local pos = safeMethod(player, "getPoint")
+            if pos then table.insert(positions, pos) end
+        end
+    end
+    return positions
+end
+
 --- Configure alarm system
 -- @param settings table Configuration overrides
 function DMS.Alarm.configure(settings)
+    if type(settings) ~= "table" then return end
     for key, value in pairs(settings) do
         DMS.Alarm.Config[key] = value
     end
@@ -65,6 +101,11 @@ function DMS.Alarm.registerZone(zoneName, options)
         hasRadar = options.hasRadar or false,           -- Extended detection range
         detectionRange = options.detectionRange or DMS.Alarm.Config.detectionRange,
     }
+
+    if isDebug() then
+        env.info(string.format("[Alarm] Registered zone '%s' (%d adjacent, %d response groups)",
+            tostring(zoneName), #DMS.Alarm.Zones[zoneName].adjacentZones, #DMS.Alarm.Zones[zoneName].responseGroups))
+    end
 end
 
 --- Get zone center position
@@ -72,7 +113,7 @@ end
 -- @return table|nil Vec3 position or nil
 local function getZonePosition(zoneName)
     local zone = trigger.misc.getZone(zoneName)
-    if zone then
+    if zone and zone.point then
         return {x = zone.point.x, y = 0, z = zone.point.z}
     end
     return nil
@@ -83,7 +124,7 @@ end
 -- @return number Radius in meters
 local function getZoneRadius(zoneName)
     local zone = trigger.misc.getZone(zoneName)
-    if zone then
+    if zone and zone.radius then
         return zone.radius
     end
     return 1000  -- Default
@@ -113,23 +154,24 @@ local function checkDetection(zoneData)
         detectionRange = detectionRange * 3  -- Radar triples detection range
     end
 
+    local playerPositions = getPlayerPositions()
+    if #playerPositions == 0 then
+        return false
+    end
+
     -- Check detection units first
     if #zoneData.detectionUnits > 0 then
         local hasAliveDetector = false
         for _, unitName in ipairs(zoneData.detectionUnits) do
             local unit = Unit.getByName(unitName)
-            if unit and unit:isExist() and unit:getLife() >= 1 then
+            local life = unit and safeMethod(unit, "getLife")
+            if unit and safeMethod(unit, "isExist") and (life == nil or life >= 1) then
                 hasAliveDetector = true
-                -- Check from unit's position
-                local unitPos = unit:getPoint()
-                local players = coalition.getPlayers(DMS.Alarm.Config.playerCoalition)
-                if players then
-                    for _, player in ipairs(players) do
-                        if player:isExist() then
-                            local playerPos = player:getPoint()
-                            if getDistance(unitPos, playerPos) < detectionRange then
-                                return true
-                            end
+                local unitPos = safeMethod(unit, "getPoint")
+                if unitPos then
+                    for _, playerPos in ipairs(playerPositions) do
+                        if getDistance(unitPos, playerPos) < detectionRange then
+                            return true
                         end
                     end
                 end
@@ -143,15 +185,9 @@ local function checkDetection(zoneData)
 
     -- Default zone-based detection
     local zoneRadius = getZoneRadius(zoneData.name)
-    local players = coalition.getPlayers(DMS.Alarm.Config.playerCoalition)
-    if players then
-        for _, player in ipairs(players) do
-            if player:isExist() then
-                local playerPos = player:getPoint()
-                if getDistance(zonePos, playerPos) < zoneRadius + detectionRange then
-                    return true
-                end
-            end
+    for _, playerPos in ipairs(playerPositions) do
+        if getDistance(zonePos, playerPos) < zoneRadius + detectionRange then
+            return true
         end
     end
 
@@ -164,13 +200,19 @@ end
 -- @param propagate boolean|nil Propagate to adjacent zones
 function DMS.Alarm.setZoneAlert(zoneName, level, propagate)
     local zone = DMS.Alarm.Zones[zoneName]
-    if not zone then
+    if not zone or type(level) ~= "number" then
         return
     end
+    if level < DMS.Alarm.Level.GREEN then level = DMS.Alarm.Level.GREEN end
+    if level > DMS.Alarm.Level.RED then level = DMS.Alarm.Level.RED end
 
     local oldLevel = zone.alertLevel
     zone.alertLevel = level
     zone.lastAlertTime = timer.getTime()
+
+    if oldLevel ~= level and isDebug() then
+        env.info(string.format("[Alarm] Zone '%s' state changed to %s", tostring(zoneName), levelNames[level] or "UNKNOWN"))
+    end
 
     -- Announce level change
     if DMS.Alarm.Config.showAlertMessages and oldLevel ~= level then
@@ -188,8 +230,11 @@ function DMS.Alarm.setZoneAlert(zoneName, level, propagate)
     if level >= DMS.Alarm.Level.ORANGE then
         for _, groupName in ipairs(zone.responseGroups) do
             local group = Group.getByName(groupName)
-            if group then
+            if group and safeMethod(group, "isExist") then
                 trigger.action.activateGroup(group)
+                if isDebug() then
+                    env.info(string.format("[Alarm] Activated response group '%s' for zone '%s'", tostring(groupName), tostring(zoneName)))
+                end
             end
         end
     end
@@ -199,10 +244,12 @@ function DMS.Alarm.setZoneAlert(zoneName, level, propagate)
         for _, adjZoneName in ipairs(zone.adjacentZones) do
             local adjZone = DMS.Alarm.Zones[adjZoneName]
             if adjZone and adjZone.alertLevel < level - 1 then
+                local newLevel = level - 1
                 timer.scheduleFunction(function()
-                    DMS.Alarm.setZoneAlert(adjZoneName, level - 1, false)
+                    local ok, err = pcall(DMS.Alarm.setZoneAlert, adjZoneName, newLevel, false)
+                    if not ok then logError("Alarm.propagate(" .. tostring(adjZoneName) .. ")", err) end
                     return nil
-                end, nil, timer.getTime() + DMS.Alarm.Config.alertSpreadDelay)
+                end, nil, timer.getTime() + (tonumber(DMS.Alarm.Config.alertSpreadDelay) or 5))
             end
         end
     end
@@ -227,7 +274,7 @@ function DMS.Alarm.updateGlobalLevel()
         if DMS.Alarm.Config.showAlertMessages then
             trigger.action.outTextForCoalition(
                 DMS.Alarm.Config.playerCoalition,
-                string.format("GLOBAL ALERT LEVEL: %s", levelNames[maxLevel]),
+                string.format("GLOBAL ALERT LEVEL: %s", levelNames[maxLevel] or "UNKNOWN"),
                 15,
                 true
             )
@@ -236,14 +283,7 @@ function DMS.Alarm.updateGlobalLevel()
 end
 
 --- Process alarm checks
-local function processAlarms(_, time)
-    if not DMS.Alarm.Active then
-        return nil
-    end
-
-    local currentTime = timer.getTime()
-
-    for zoneName, zone in pairs(DMS.Alarm.Zones) do
+local function processZone(zoneName, zone, currentTime)
         -- Check for detection
         if checkDetection(zone) then
             -- Raise to RED on direct detection
@@ -260,9 +300,23 @@ local function processAlarms(_, time)
                 DMS.Alarm.setZoneAlert(zoneName, zone.alertLevel - 1, false)
             end
         end
+end
+
+local function processAlarms(_, time)
+    if not DMS.Alarm.Active then
+        DMS.Alarm.TimerId = nil
+        return nil
     end
 
-    return time + DMS.Alarm.Config.checkInterval
+    local currentTime = timer.getTime()
+    for zoneName, zone in pairs(DMS.Alarm.Zones) do
+        local ok, err = pcall(processZone, zoneName, zone, currentTime)
+        if not ok then
+            logError("Alarm.processZone(" .. tostring(zoneName) .. ")", err)
+        end
+    end
+
+    return time + (tonumber(DMS.Alarm.Config.checkInterval) or 10)
 end
 
 --- Start alarm system
@@ -275,16 +329,25 @@ function DMS.Alarm.start()
     DMS.Alarm.TimerId = timer.scheduleFunction(
         processAlarms,
         nil,
-        timer.getTime() + DMS.Alarm.Config.checkInterval
+        timer.getTime() + (tonumber(DMS.Alarm.Config.checkInterval) or 10)
     )
+
+    if isDebug() then
+        local count = 0
+        for _ in pairs(DMS.Alarm.Zones) do count = count + 1 end
+        env.info(string.format("[Alarm] Started monitoring %d zones (interval: %ss)", count, tostring(DMS.Alarm.Config.checkInterval)))
+    end
 end
 
 --- Stop alarm system
 function DMS.Alarm.stop()
     DMS.Alarm.Active = false
     if DMS.Alarm.TimerId then
-        timer.removeFunction(DMS.Alarm.TimerId)
+        pcall(timer.removeFunction, DMS.Alarm.TimerId)
         DMS.Alarm.TimerId = nil
+    end
+    if isDebug() then
+        env.info("[Alarm] Stopped")
     end
 end
 

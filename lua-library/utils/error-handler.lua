@@ -4,15 +4,16 @@
 -- Place in mission via DO SCRIPT FILE (load after mission-settings.lua)
 
 DMS = DMS or {}
-DMS.Error = {}
+DMS.Error = DMS.Error or {}
 
 -- Error log prefix - easy to grep in dcs.log
 local ERROR_PREFIX = "[DMS LUA ERROR]"
 local ERROR_SEPARATOR = "============================================================"
 
--- Error counter for tracking
-DMS.Error.count = 0
-DMS.Error.history = {}
+-- Error counter for tracking (preserved across reloads)
+DMS.Error.count = DMS.Error.count or 0
+DMS.Error.history = DMS.Error.history or {}
+DMS.Error.Errors = DMS.Error.history  -- legacy alias
 
 -- ============================================================
 -- CORE ERROR LOGGING
@@ -23,9 +24,13 @@ DMS.Error.history = {}
 -- @param errorMsg string The error message
 -- @param showAlert boolean|nil Override for on-screen alert (nil = use setting)
 local function logError(context, errorMsg, showAlert)
-    DMS.Error.count = DMS.Error.count + 1
+    DMS.Error.count = (DMS.Error.count or 0) + 1
 
-    local timestamp = timer.getTime()
+    local timestamp = 0
+    if timer and timer.getTime then
+        local okT, t = pcall(timer.getTime)
+        if okT and type(t) == "number" then timestamp = t end
+    end
     local formattedError = string.format(
         "\n%s\n%s\n  Context: %s\n  Error: %s\n  Time: %.1f\n  Count: %d\n%s",
         ERROR_SEPARATOR,
@@ -38,14 +43,18 @@ local function logError(context, errorMsg, showAlert)
     )
 
     -- Always log to dcs.log
-    env.error(formattedError)
+    if env and env.error then
+        pcall(env.error, formattedError)
+    end
 
     -- Store in history (keep last 20)
+    if type(DMS.Error.history) ~= "table" then DMS.Error.history = {} end
     table.insert(DMS.Error.history, {
         context = context,
         error = errorMsg,
         time = timestamp,
     })
+    DMS.Error.history = DMS.Error.history or {}
     if #DMS.Error.history > 20 then
         table.remove(DMS.Error.history, 1)
     end
@@ -55,7 +64,8 @@ local function logError(context, errorMsg, showAlert)
     if shouldAlert == nil then
         -- Check setting, default to true if settings not loaded
         if DMS.Settings and DMS.Settings.get then
-            shouldAlert = DMS.Settings.get("showErrorAlerts")
+            local okS, v = pcall(DMS.Settings.get, "showErrorAlerts")
+            if okS and v ~= nil then shouldAlert = v else shouldAlert = true end
         else
             shouldAlert = true
         end
@@ -66,7 +76,9 @@ local function logError(context, errorMsg, showAlert)
             "[DMS ERROR] %s\nCheck dcs.log for details",
             context or "Script error"
         )
-        trigger.action.outText(alertMsg, 15)
+        if trigger and trigger.action and trigger.action.outText then
+            pcall(trigger.action.outText, alertMsg, 15)
+        end
     end
 end
 
@@ -121,6 +133,12 @@ end
 -- @return function Wrapped function that catches errors
 -- @usage local safeFunc = DMS.Error.wrap(riskyFunction, "MyModule.riskyThing")
 function DMS.Error.wrap(func, context)
+    if type(func) ~= "function" then
+        return function()
+            logError(context, "wrap received non-function: " .. type(func))
+            return nil
+        end
+    end
     return function(...)
         local args = {...}
         local success, result = pcall(function()
@@ -145,7 +163,11 @@ end
 -- @param context string Description for error messages
 -- @usage DMS.Error.safeSchedule(myUpdate, 5, "MyModule.update")
 function DMS.Error.safeSchedule(func, delay, context)
-    timer.scheduleFunction(function(_, time)
+    if type(func) ~= "function" then
+        logError(context, "safeSchedule received non-function: " .. type(func))
+        return nil
+    end
+    return timer.scheduleFunction(function(_, time)
         local success, result = pcall(func)
         if not success then
             logError(context, result)
@@ -163,6 +185,12 @@ end
 -- @usage local stop = DMS.Error.safeRepeat(myCheck, 10, "MyModule.check")
 function DMS.Error.safeRepeat(func, interval, context, initialDelay)
     local running = true
+    interval = tonumber(interval) or 1
+    if interval <= 0 then interval = 1 end
+    if type(func) ~= "function" then
+        logError(context, "safeRepeat received non-function: " .. type(func))
+        return function() end
+    end
 
     local function tick(_, time)
         if not running then
@@ -199,8 +227,16 @@ end
 -- @return table Protected event handler
 -- @usage world.addEventHandler(DMS.Error.safeHandler(myHandler, "MyModule"))
 function DMS.Error.safeHandler(handler, name)
+    name = name or "EventHandler"
+    if type(handler) == "function" then
+        local fn = handler
+        handler = { onEvent = function(_, event) return fn(event) end }
+    end
     return {
         onEvent = function(self, event)
+            if type(handler) ~= "table" or type(handler.onEvent) ~= "function" then
+                return
+            end
             local success, result = pcall(handler.onEvent, handler, event)
             if not success then
                 local eventName = "unknown"
@@ -233,6 +269,7 @@ end
 function DMS.Error.clear()
     DMS.Error.count = 0
     DMS.Error.history = {}
+    DMS.Error.Errors = DMS.Error.history
 end
 
 --- Manually log an error (for custom error handling)
@@ -246,7 +283,16 @@ end
 --- Check if any errors have occurred
 -- @return boolean
 function DMS.Error.hasErrors()
-    return DMS.Error.count > 0
+    return (DMS.Error.count or 0) > 0
+end
+
+--- Log a warning (non-fatal) to dcs.log
+-- @param context string Where the warning occurred
+-- @param msg string Warning message
+function DMS.Error.warn(context, msg)
+    if env and env.warning then
+        pcall(env.warning, string.format("[DMS WARNING] %s: %s", tostring(context or "Unknown"), tostring(msg)))
+    end
 end
 
 --[[

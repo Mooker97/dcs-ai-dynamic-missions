@@ -81,7 +81,11 @@ end
 -- @return table Array of player Vec3 positions
 local function getPlayerPositions()
     local positions = {}
-    local coalitions = {coalition.side.BLUE, coalition.side.RED}
+    -- Track Config.defaultCoalition; set it to nil to track players of both sides
+    local coalitions = {DMS.Proximity.Config.defaultCoalition}
+    if not DMS.Proximity.Config.defaultCoalition then
+        coalitions = {coalition.side.BLUE, coalition.side.RED}
+    end
 
     for _, side in ipairs(coalitions) do
         local players = coalition.getPlayers(side)
@@ -108,49 +112,77 @@ local function getDistanceToPlayer(centerX, centerZ, playerPos)
     return math.sqrt(dx * dx + dz * dz)
 end
 
---- Process proximity checks (internal, wrapped with error handler)
-local function processProximityCheckInternal(_, time)
-    if not DMS.Proximity.Active then
-        return nil
+local function logError(context, err)
+    local msg = tostring(err)
+    if DMS.Error and DMS.Error.log then
+        if pcall(DMS.Error.log, "Proximity." .. context, msg) then return end
     end
+    env.error(string.format("[DMS LUA ERROR] Proximity.%s: %s", context, msg))
+end
 
+--- Position of a (possibly late-activated, not yet existing) group's first unit
+-- Uses pcall because units of an inactive group may not answer getPoint().
+local function getGroupAnchor(groupName)
+    local group = Group.getByName(groupName)
+    if not group then return nil end
+    local ok, units = pcall(group.getUnits, group)
+    if not ok or not units then return nil end
+    for _, u in ipairs(units) do
+        if u then
+            local okP, pos = pcall(u.getPoint, u)
+            if okP and pos then return pos end
+        end
+    end
+    return nil
+end
+
+--- Activate a group safely
+-- @return boolean True if activation was issued
+local function activateGroupSafe(groupName)
+    local group = Group.getByName(groupName)
+    if not group then return false end
+    local ok, err = pcall(trigger.action.activateGroup, group)
+    if not ok then
+        logError("activateGroup:" .. groupName, err)
+        return false
+    end
+    return true
+end
+
+--- Process proximity checks (internal, wrapped with error handler)
+-- NOTE: activation is purely distance-based (late-activated groups have no sensors);
+-- it does not represent enemy detection of the player.
+local function processProximityCheckInternal()
     local playerPositions = getPlayerPositions()
     if #playerPositions == 0 then
-        return time + DMS.Proximity.Config.checkInterval
+        return
     end
 
     for groupName, config in pairs(DMS.Proximity.Groups) do
-        if not config.activated then
+        if not config.activated and not config.removed then
             local checkX = config.centerX
             local checkZ = config.centerZ
 
             -- If no position set, try to get from group
             if not checkX or not checkZ then
-                local group = Group.getByName(groupName)
-                if group then
-                    local units = group:getUnits()
-                    if units and #units > 0 then
-                        local pos = units[1]:getPoint()
-                        checkX = pos.x
-                        checkZ = pos.z
-                    end
+                local pos = getGroupAnchor(groupName)
+                if pos then
+                    checkX = pos.x
+                    checkZ = pos.z
                 end
             end
 
             if checkX and checkZ then
-                -- Check against all players
                 for _, playerPos in ipairs(playerPositions) do
                     local dist = getDistanceToPlayer(checkX, checkZ, playerPos)
 
                     if dist <= config.radius then
-                        -- Player in range, try to activate
                         config.checked = true
+                        config.anchorX, config.anchorZ = checkX, checkZ
 
                         local roll = math.random(1, 100)
                         if roll <= config.spawnChance then
-                            local group = Group.getByName(groupName)
-                            if group then
-                                trigger.action.activateGroup(group)
+                            if activateGroupSafe(groupName) then
                                 config.activated = true
 
                                 if DMS.Settings and DMS.Settings.isDebug() then
@@ -159,15 +191,15 @@ local function processProximityCheckInternal(_, time)
                                 end
 
                                 if DMS.Proximity.Config.announceActivations then
-                                    trigger.action.outText(
-                                        "Contact! Enemy detected nearby.",
-                                        5, true
-                                    )
+                                    trigger.action.outText("Contact! Enemy detected nearby.", 5, true)
                                 end
+                            else
+                                config.removed = true  -- group missing; stop retrying
                             end
                         else
-                            -- Failed spawn roll, mark as processed
+                            -- Failed spawn roll, mark as processed (never activated)
                             config.activated = true
+                            config.skipped = true
                             if DMS.Settings and DMS.Settings.isDebug() then
                                 env.info(string.format("[Proximity] Skipped '%s' (rolled %d > %d)",
                                     groupName, roll, config.spawnChance))
@@ -179,16 +211,17 @@ local function processProximityCheckInternal(_, time)
             end
         end
 
-        -- Optional: Deactivate when player leaves (if enabled)
-        if config.activated and DMS.Proximity.Config.deactivateOnDistance then
-            local shouldDeactivate = true
-            local checkX = config.centerX
-            local checkZ = config.centerZ
+        -- Optional: Deactivate (remove) when all players leave. DCS deactivateGroup
+        -- destroys the group, so it cannot be re-activated afterwards.
+        if config.activated and not config.skipped and not config.removed
+            and DMS.Proximity.Config.deactivateOnDistance then
+            local checkX = config.centerX or config.anchorX
+            local checkZ = config.centerZ or config.anchorZ
 
             if checkX and checkZ then
+                local shouldDeactivate = true
                 for _, playerPos in ipairs(playerPositions) do
-                    local dist = getDistanceToPlayer(checkX, checkZ, playerPos)
-                    if dist <= DMS.Proximity.Config.deactivateRadius then
+                    if getDistanceToPlayer(checkX, checkZ, playerPos) <= DMS.Proximity.Config.deactivateRadius then
                         shouldDeactivate = false
                         break
                     end
@@ -197,30 +230,29 @@ local function processProximityCheckInternal(_, time)
                 if shouldDeactivate then
                     local group = Group.getByName(groupName)
                     if group and group:isExist() then
-                        trigger.action.deactivateGroup(group)
-                        config.activated = false
+                        pcall(trigger.action.deactivateGroup, group)
+                        if DMS.Settings and DMS.Settings.isDebug() then
+                            env.info(string.format("[Proximity] Deactivated '%s' (all players beyond %dm)",
+                                groupName, DMS.Proximity.Config.deactivateRadius))
+                        end
                     end
+                    config.removed = true
                 end
             end
         end
     end
-
-    return time + DMS.Proximity.Config.checkInterval
 end
 
---- Process proximity checks with error handling
-local function processProximityCheck(args, time)
-    local success, result = pcall(processProximityCheckInternal, args, time)
-    if not success then
-        if DMS.Error then
-            DMS.Error.log("Proximity.processProximityCheck", result)
-        else
-            env.error("[DMS LUA ERROR] Proximity.processProximityCheck: " .. tostring(result))
-        end
-        -- Continue running despite error
-        return time + (DMS.Proximity.Config.checkInterval or 5)
+--- Process proximity checks with error handling (always reschedules while active)
+local function processProximityCheck(_, time)
+    if not DMS.Proximity.Active then
+        return nil
     end
-    return result
+    local success, err = pcall(processProximityCheckInternal)
+    if not success then
+        logError("processProximityCheck", err)
+    end
+    return time + (DMS.Proximity.Config.checkInterval or 5)
 end
 
 --- Start proximity monitoring
@@ -248,8 +280,11 @@ end
 function DMS.Proximity.stop()
     DMS.Proximity.Active = false
     if DMS.Proximity.TimerId then
-        timer.removeFunction(DMS.Proximity.TimerId)
+        pcall(timer.removeFunction, DMS.Proximity.TimerId)
         DMS.Proximity.TimerId = nil
+    end
+    if DMS.Settings and DMS.Settings.isDebug() then
+        env.info("[Proximity] Stopped")
     end
 end
 
@@ -282,10 +317,11 @@ end
 function DMS.Proximity.forceActivate(groupName)
     local config = DMS.Proximity.Groups[groupName]
     if config and not config.activated then
-        local group = Group.getByName(groupName)
-        if group then
-            trigger.action.activateGroup(group)
+        if activateGroupSafe(groupName) then
             config.activated = true
+            if DMS.Settings and DMS.Settings.isDebug() then
+                env.info(string.format("[Proximity] Force-activated '%s'", groupName))
+            end
         end
     end
 end
@@ -297,6 +333,8 @@ function DMS.Proximity.reset(groupName)
     if config then
         config.activated = false
         config.checked = false
+        config.skipped = nil
+        config.removed = nil
     end
 end
 

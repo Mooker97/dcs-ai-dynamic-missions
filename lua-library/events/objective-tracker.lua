@@ -4,12 +4,11 @@
 -- Place in mission via DO SCRIPT FILE
 
 DMS = DMS or {}
-DMS.Objectives = {}
+DMS.Objectives = DMS.Objectives or {}
 
 -- Objective definitions
-DMS.Objectives.List = {}
-DMS.Objectives.Active = false
-DMS.Objectives.TimerId = nil
+DMS.Objectives.List = DMS.Objectives.List or {}
+DMS.Objectives.Active = DMS.Objectives.Active or false
 
 -- Objective status
 DMS.Objectives.Status = {
@@ -21,7 +20,7 @@ DMS.Objectives.Status = {
 }
 
 -- Configuration
-DMS.Objectives.Config = {
+DMS.Objectives.Config = DMS.Objectives.Config or {
     playerCoalition = coalition.side.BLUE,
     checkInterval = 10,
     showNotifications = true,
@@ -39,17 +38,34 @@ local statusText = {
     [5] = "[  ]",      -- OPTIONAL
 }
 
-local statusColors = {
-    [1] = "",
-    [2] = "",
-    [3] = "(Complete) ",
-    [4] = "(Failed) ",
-    [5] = "(Optional) ",
-}
+local function isDebug()
+    return DMS.Settings and DMS.Settings.isDebug and DMS.Settings.isDebug()
+end
+
+local function logError(context, err)
+    if DMS.Error and DMS.Error.log then
+        DMS.Error.log(context, err)
+    else
+        env.error("[DMS LUA ERROR] " .. tostring(context) .. ": " .. tostring(err))
+    end
+end
+
+--- Run a user callback/condition safely
+-- @return boolean ok, any result
+local function safeRun(func, context)
+    if type(func) ~= "function" then return false, nil end
+    local ok, result = pcall(func)
+    if not ok then
+        logError(context, result)
+        return false, nil
+    end
+    return true, result
+end
 
 --- Configure objective tracker
 -- @param settings table Configuration overrides
 function DMS.Objectives.configure(settings)
+    if type(settings) ~= "table" then return end
     for key, value in pairs(settings) do
         DMS.Objectives.Config[key] = value
     end
@@ -61,6 +77,11 @@ end
 -- @param options table|nil Objective options
 function DMS.Objectives.register(id, description, options)
     options = options or {}
+    if id == nil then
+        logError("Objectives.register", "objective id is nil")
+        return
+    end
+    description = description or tostring(id)
 
     DMS.Objectives.List[id] = {
         id = id,
@@ -82,9 +103,9 @@ function DMS.Objectives.register(id, description, options)
         DMS.Objectives.List[id].status = DMS.Objectives.Status.OPTIONAL
     end
 
-    if DMS.Settings and DMS.Settings.isDebug() then
+    if isDebug() then
         env.info(string.format("[Objectives] Registered: '%s' - %s (optional: %s, hidden: %s)",
-            id, description, tostring(options.isOptional or false), tostring(options.isHidden or false)))
+            tostring(id), description, tostring(options.isOptional or false), tostring(options.isHidden or false)))
     end
 end
 
@@ -99,8 +120,8 @@ function DMS.Objectives.activate(id)
         obj.status = DMS.Objectives.Status.ACTIVE
         obj.isHidden = false
 
-        if DMS.Settings and DMS.Settings.isDebug() then
-            env.info(string.format("[Objectives] Activated: '%s' - %s", id, obj.description))
+        if isDebug() then
+            env.info(string.format("[Objectives] Activated: '%s' - %s", tostring(id), obj.description))
         end
 
         if DMS.Objectives.Config.showNotifications then
@@ -123,6 +144,10 @@ function DMS.Objectives.complete(id)
     if obj.status ~= DMS.Objectives.Status.COMPLETED then
         obj.status = DMS.Objectives.Status.COMPLETED
 
+        if isDebug() then
+            env.info(string.format("[Objectives] Completed: '%s' - %s", tostring(id), obj.description))
+        end
+
         if DMS.Objectives.Config.showNotifications then
             local msg = obj.completionMessage or ("OBJECTIVE COMPLETE: " .. obj.description)
             trigger.action.outTextForCoalition(
@@ -134,7 +159,7 @@ function DMS.Objectives.complete(id)
         end
 
         if obj.onComplete then
-            obj.onComplete()
+            safeRun(obj.onComplete, "Objectives.onComplete(" .. tostring(id) .. ")")
         end
     end
 end
@@ -149,6 +174,10 @@ function DMS.Objectives.fail(id)
        obj.status ~= DMS.Objectives.Status.COMPLETED then
         obj.status = DMS.Objectives.Status.FAILED
 
+        if isDebug() then
+            env.info(string.format("[Objectives] Failed: '%s' - %s", tostring(id), obj.description))
+        end
+
         if DMS.Objectives.Config.showNotifications then
             local msg = obj.failMessage or ("OBJECTIVE FAILED: " .. obj.description)
             trigger.action.outTextForCoalition(
@@ -160,7 +189,7 @@ function DMS.Objectives.fail(id)
         end
 
         if obj.onFail then
-            obj.onFail()
+            safeRun(obj.onFail, "Objectives.onFail(" .. tostring(id) .. ")")
         end
     end
 end
@@ -189,7 +218,9 @@ function DMS.Objectives.getFormattedList(includeCompleted)
     end
 
     table.sort(objectives, function(a, b)
-        return a.priority < b.priority
+        local pa, pb = tonumber(a.priority) or 999, tonumber(b.priority) or 999
+        if pa == pb then return tostring(a.id) < tostring(b.id) end
+        return pa < pb
     end)
 
     -- Format each objective
@@ -209,11 +240,45 @@ function DMS.Objectives.getFormattedList(includeCompleted)
                 suffix = " - FAILED"
             end
 
-            table.insert(lines, prefix .. " " .. obj.description .. suffix)
+            table.insert(lines, prefix .. " " .. tostring(obj.description) .. suffix)
         end
     end
 
     return table.concat(lines, "\n")
+end
+
+--- Get a status report string (used by player-support/command-menu.lua)
+-- Includes a progress summary plus all visible objectives with status.
+-- @return string Status report
+function DMS.Objectives.getStatusReport()
+    local total, completed, failed, active, optional = 0, 0, 0, 0, 0
+    for _, obj in pairs(DMS.Objectives.List) do
+        if not obj.isHidden then
+            if obj.isOptional then
+                optional = optional + 1
+            else
+                total = total + 1
+            end
+            if obj.status == DMS.Objectives.Status.COMPLETED then
+                if not obj.isOptional then completed = completed + 1 end
+            elseif obj.status == DMS.Objectives.Status.FAILED then
+                if not obj.isOptional then failed = failed + 1 end
+            elseif obj.status == DMS.Objectives.Status.ACTIVE then
+                active = active + 1
+            end
+        end
+    end
+
+    if total == 0 and optional == 0 then
+        return "=== MISSION OBJECTIVES ===\n\nNo objectives assigned."
+    end
+
+    local summary = string.format("Progress: %d/%d complete, %d active, %d failed", completed, total, active, failed)
+    if optional > 0 then
+        summary = summary .. string.format(" (+%d optional)", optional)
+    end
+
+    return DMS.Objectives.getFormattedList(true) .. "\n\n" .. summary
 end
 
 --- Display objective list to players
@@ -238,7 +303,8 @@ local function checkConditionsInternal(_, time)
         if obj.condition and
            (obj.status == DMS.Objectives.Status.ACTIVE or
             obj.status == DMS.Objectives.Status.OPTIONAL) then
-            if obj.condition() then
+            local ok, met = safeRun(obj.condition, "Objectives.condition(" .. tostring(obj.id) .. ")")
+            if ok and met then
                 DMS.Objectives.complete(obj.id)
             end
         end
@@ -247,26 +313,25 @@ local function checkConditionsInternal(_, time)
         if obj.failCondition and
            obj.status ~= DMS.Objectives.Status.COMPLETED and
            obj.status ~= DMS.Objectives.Status.FAILED then
-            if obj.failCondition() then
+            local ok, failed = safeRun(obj.failCondition, "Objectives.failCondition(" .. tostring(obj.id) .. ")")
+            if ok and failed then
                 DMS.Objectives.fail(obj.id)
             end
         end
     end
 
-    return time + DMS.Objectives.Config.checkInterval
+    return time + (tonumber(DMS.Objectives.Config.checkInterval) or 10)
 end
 
 --- Check objective conditions with error handling
 local function checkConditions(args, time)
     local success, result = pcall(checkConditionsInternal, args, time)
     if not success then
-        if DMS.Error then
-            DMS.Error.log("Objectives.checkConditions", result)
-        else
-            env.error("[DMS LUA ERROR] Objectives.checkConditions: " .. tostring(result))
-        end
-        return time + (DMS.Objectives.Config.checkInterval or 10)
+        logError("Objectives.checkConditions", result)
+        if not DMS.Objectives.Active then return nil end
+        return time + (tonumber(DMS.Objectives.Config.checkInterval) or 10)
     end
+    if result == nil then DMS.Objectives.CheckTimerId = nil end
     return result
 end
 
@@ -281,37 +346,39 @@ local function refreshHUDInternal(_, time)
     local lowestPriority = 999
 
     for _, obj in pairs(DMS.Objectives.List) do
+        local prio = tonumber(obj.priority) or 999
         if obj.status == DMS.Objectives.Status.ACTIVE and
            not obj.isHidden and
-           obj.priority < lowestPriority then
+           prio < lowestPriority then
             activeObj = obj
-            lowestPriority = obj.priority
+            lowestPriority = prio
         end
     end
+
+    local refresh = tonumber(DMS.Objectives.Config.hudRefreshInterval) or 60
+    if refresh < 10 then refresh = 10 end
 
     if activeObj then
         trigger.action.outTextForCoalition(
             DMS.Objectives.Config.playerCoalition,
-            "OBJECTIVE: " .. activeObj.description,
-            DMS.Objectives.Config.hudRefreshInterval - 5,
+            "OBJECTIVE: " .. tostring(activeObj.description),
+            refresh - 5,
             false  -- Don't clear other messages
         )
     end
 
-    return time + DMS.Objectives.Config.hudRefreshInterval
+    return time + refresh
 end
 
 --- HUD refresh with error handling
 local function refreshHUD(args, time)
     local success, result = pcall(refreshHUDInternal, args, time)
     if not success then
-        if DMS.Error then
-            DMS.Error.log("Objectives.refreshHUD", result)
-        else
-            env.error("[DMS LUA ERROR] Objectives.refreshHUD: " .. tostring(result))
-        end
-        return time + (DMS.Objectives.Config.hudRefreshInterval or 60)
+        logError("Objectives.refreshHUD", result)
+        if not DMS.Objectives.Active then return nil end
+        return time + (tonumber(DMS.Objectives.Config.hudRefreshInterval) or 60)
     end
+    if result == nil then DMS.Objectives.TimerId = nil end
     return result
 end
 
@@ -324,10 +391,10 @@ function DMS.Objectives.start()
     DMS.Objectives.Active = true
 
     -- Start condition checker
-    timer.scheduleFunction(
+    DMS.Objectives.CheckTimerId = timer.scheduleFunction(
         checkConditions,
         nil,
-        timer.getTime() + DMS.Objectives.Config.checkInterval
+        timer.getTime() + (tonumber(DMS.Objectives.Config.checkInterval) or 10)
     )
 
     -- Start HUD refresh if enabled
@@ -338,14 +405,28 @@ function DMS.Objectives.start()
             timer.getTime() + 5
         )
     end
+
+    if isDebug() then
+        local count = 0
+        for _ in pairs(DMS.Objectives.List) do count = count + 1 end
+        env.info(string.format("[Objectives] Started tracking %d objectives (interval: %ss)",
+            count, tostring(DMS.Objectives.Config.checkInterval)))
+    end
 end
 
 --- Stop objective tracker
 function DMS.Objectives.stop()
     DMS.Objectives.Active = false
     if DMS.Objectives.TimerId then
-        timer.removeFunction(DMS.Objectives.TimerId)
+        pcall(timer.removeFunction, DMS.Objectives.TimerId)
         DMS.Objectives.TimerId = nil
+    end
+    if DMS.Objectives.CheckTimerId then
+        pcall(timer.removeFunction, DMS.Objectives.CheckTimerId)
+        DMS.Objectives.CheckTimerId = nil
+    end
+    if isDebug() then
+        env.info("[Objectives] Stopped")
     end
 end
 

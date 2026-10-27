@@ -186,10 +186,48 @@ local function checkDespawn(playerPositions)
     end
 end
 
+local function debugLog(fmt, ...)
+    if DMS.Settings and DMS.Settings.isDebug() then
+        env.info(string.format("[Ambient] " .. fmt, ...))
+    end
+end
+
+--- Check whether a route is currently allowed to spawn
+-- @param route table Route definition
+-- @param time number Current mission time
+-- @return boolean
+local function canRouteSpawn(route, time)
+    -- Check max active for this route
+    if route.activeCount >= route.maxActive then
+        return false
+    end
+
+    -- Check cooldown
+    if time - route.lastSpawn < route.cooldown then
+        return false
+    end
+
+    -- Check time restriction
+    if not checkTimeRestriction(route.timeRestriction) then
+        return false
+    end
+
+    -- Check custom conditions
+    if route.conditions and not route.conditions() then
+        return false
+    end
+
+    return true
+end
+
 --- Process traffic spawning (internal)
 local function processTrafficInternal(_, time)
-    if not DMS.Ambient.Active or not DMS.Ambient.Config.enabled then
+    if not DMS.Ambient.Active then
         return nil
+    end
+    if not DMS.Ambient.Config.enabled then
+        -- Keep the timer alive so setEnabled(true) resumes traffic
+        return time + DMS.Ambient.Config.checkInterval
     end
 
     local playerPositions = getPlayerPositions()
@@ -206,38 +244,25 @@ local function processTrafficInternal(_, time)
     -- Check for new spawns
     if activeCount < DMS.Ambient.Config.maxActiveTraffic then
         for _, route in pairs(DMS.Ambient.Traffic) do
-            -- Check max active for this route
-            if route.activeCount >= route.maxActive then
-                goto continue
-            end
+            if canRouteSpawn(route, time) then
+                -- Roll for spawn
+                local roll = math.random(100)
+                if roll <= route.spawnChance then
+                    if spawnTraffic(route) then
+                        activeCount = activeCount + 1
+                        debugLog("Spawned '%s' on route '%s' (rolled %d <= %d)",
+                            tostring(route.groupName), tostring(route.id), roll, route.spawnChance)
 
-            -- Check cooldown
-            if time - route.lastSpawn < route.cooldown then
-                goto continue
-            end
-
-            -- Check time restriction
-            if not checkTimeRestriction(route.timeRestriction) then
-                goto continue
-            end
-
-            -- Check custom conditions
-            if route.conditions and not route.conditions() then
-                goto continue
-            end
-
-            -- Roll for spawn
-            if math.random(100) <= route.spawnChance then
-                if spawnTraffic(route) then
-                    activeCount = activeCount + 1
-
-                    if activeCount >= DMS.Ambient.Config.maxActiveTraffic then
-                        break
+                        if activeCount >= DMS.Ambient.Config.maxActiveTraffic then
+                            break
+                        end
+                    else
+                        debugLog("Route '%s': group '%s' not found", tostring(route.id), tostring(route.groupName))
                     end
+                else
+                    debugLog("Skipped route '%s' (rolled %d > %d)", tostring(route.id), roll, route.spawnChance)
                 end
             end
-
-            ::continue::
         end
     end
 
@@ -248,11 +273,11 @@ end
 local function processTraffic(args, time)
     local success, result = pcall(processTrafficInternal, args, time)
     if not success then
-        if DMS.Error then
-            DMS.Error.log("Ambient.processTraffic", result)
-        else
-            env.error("[DMS LUA ERROR] Ambient.processTraffic: " .. tostring(result))
+        if DMS.Error and DMS.Error.log then
+            pcall(DMS.Error.log, "Ambient.processTraffic", result)
         end
+        env.error("[Ambient] processTraffic error: " .. tostring(result))
+        if not DMS.Ambient.Active then return nil end
         return time + (DMS.Ambient.Config.checkInterval or 60)
     end
     return result
@@ -271,6 +296,11 @@ function DMS.Ambient.start()
         nil,
         timer.getTime() + DMS.Ambient.Config.checkInterval
     )
+
+    local count = 0
+    for _ in pairs(DMS.Ambient.Traffic) do count = count + 1 end
+    debugLog("Started with %d routes (interval: %ds, max active: %d)",
+        count, DMS.Ambient.Config.checkInterval, DMS.Ambient.Config.maxActiveTraffic)
 end
 
 --- Stop ambient traffic

@@ -8,7 +8,34 @@ DMS.Intel = {}
 
 -- Queued intel reports
 DMS.Intel.Queue = {}
+DMS.Intel.History = {}   -- Sent reports (most recent last), used by broadcastUpdate
 DMS.Intel.Active = false
+
+local function debugLog(fmt, ...)
+    if DMS.Settings and DMS.Settings.isDebug and DMS.Settings.isDebug() then
+        env.info(string.format("[Intel] " .. fmt, ...))
+    end
+end
+
+local function logError(context, err)
+    env.error(string.format("[Intel] %s: %s", context, tostring(err)))
+    if DMS.Error and DMS.Error.log then
+        pcall(DMS.Error.log, "Intel", context, err)
+    end
+end
+
+local function recordHistory(report)
+    table.insert(DMS.Intel.History, {
+        content = report.content,
+        source = report.source,
+        priority = report.priority,
+        time = timer.getTime(),
+    })
+    local maxHistory = DMS.Intel.Config.maxHistory or 20
+    while #DMS.Intel.History > maxHistory do
+        table.remove(DMS.Intel.History, 1)
+    end
+end
 
 -- Configuration
 DMS.Intel.Config = {
@@ -18,6 +45,8 @@ DMS.Intel.Config = {
     playerCoalition = coalition.side.BLUE,
     minTimeBetweenReports = 30,  -- Minimum seconds between reports
     lastReportTime = 0,
+    maxHistory = 20,             -- Reports kept for broadcastUpdate
+    updateReportCount = 3,       -- Reports included in a requested update
 }
 
 -- Priority levels
@@ -82,7 +111,7 @@ end
 function DMS.Intel.processQueue()
     local currentTime = timer.getTime()
 
-    for i, report in ipairs(DMS.Intel.Queue) do
+    for _, report in ipairs(DMS.Intel.Queue) do
         if not report.sent and report.scheduledTime <= currentTime then
             -- Check minimum time between reports
             if currentTime - DMS.Intel.Config.lastReportTime >= DMS.Intel.Config.minTimeBetweenReports then
@@ -96,7 +125,9 @@ function DMS.Intel.processQueue()
                 )
 
                 report.sent = true
+                recordHistory(report)
                 DMS.Intel.Config.lastReportTime = currentTime
+                debugLog("Sent report [%s/%s]", tostring(report.priority), tostring(report.source))
             end
         end
     end
@@ -124,9 +155,11 @@ function DMS.Intel.start()
         if not DMS.Intel.Active then
             return nil
         end
-        DMS.Intel.processQueue()
+        local ok, err = pcall(DMS.Intel.processQueue)
+        if not ok then logError("processQueue", err) end
         return time + 5  -- Check every 5 seconds
     end, nil, timer.getTime() + 1)
+    debugLog("Started (min %ds between reports)", DMS.Intel.Config.minTimeBetweenReports)
 end
 
 --- Stop intel system
@@ -152,6 +185,46 @@ function DMS.Intel.immediate(content, source, priority)
     )
 
     DMS.Intel.Config.lastReportTime = timer.getTime()
+    recordHistory({content = content, source = source, priority = priority})
+end
+
+--- Broadcast a situation update built from the most recent intel reports.
+-- Called by the F10 "Request Intel Update" command (player-support/command-menu.lua).
+-- @param side number|nil Coalition to send to (default Config.playerCoalition)
+-- @param groupId number|nil If given, send only to this group
+function DMS.Intel.broadcastUpdate(side, groupId)
+    side = side or DMS.Intel.Config.playerCoalition
+    local count = DMS.Intel.Config.updateReportCount or 3
+    local now = timer.getTime()
+
+    local lines = {}
+    for i = #DMS.Intel.History, math.max(1, #DMS.Intel.History - count + 1), -1 do
+        local r = DMS.Intel.History[i]
+        local ago = math.floor((now - r.time) / 60)
+        table.insert(lines, string.format("[%s/%s, %d min ago] %s", r.priority, r.source, ago, r.content))
+    end
+
+    local pending = 0
+    for _, r in ipairs(DMS.Intel.Queue) do
+        if not r.sent then pending = pending + 1 end
+    end
+
+    local msg
+    if #lines == 0 then
+        msg = "INTEL SITREP:\nNo active contacts at this time."
+    else
+        msg = "INTEL SITREP:\n" .. table.concat(lines, "\n")
+    end
+    if pending > 0 then
+        msg = msg .. string.format("\n(%d further report(s) being processed)", pending)
+    end
+
+    if groupId then
+        trigger.action.outTextForGroup(groupId, msg, DMS.Intel.Config.displayDuration)
+    else
+        trigger.action.outTextForCoalition(side, msg, DMS.Intel.Config.displayDuration)
+    end
+    debugLog("Broadcast update (%d reports, %d pending)", #lines, pending)
 end
 
 -- Pre-defined intel report templates
@@ -179,7 +252,11 @@ function DMS.Intel.fromTemplate(templateName, ...)
         return
     end
 
-    local content = string.format(template.content, ...)
+    local ok, content = pcall(string.format, template.content, ...)
+    if not ok then
+        logError("fromTemplate " .. tostring(templateName), content)
+        return
+    end
     DMS.Intel.report(content, template.source, template.priority)
 end
 
@@ -192,14 +269,22 @@ function DMS.Intel.onSpawn(groupName, intelContent, delay)
     delay = delay or 5
 
     -- Check periodically if group has spawned
-    local checkerId = nil
-    checkerId = timer.scheduleFunction(function(_, time)
-        local group = Group.getByName(groupName)
-        if group and group:isExist() then
-            -- Group spawned, send intel
+    timer.scheduleFunction(function(_, time)
+        local ok, result = pcall(function()
+            local group = Group.getByName(groupName)
+            if not group or not group:isExist() then return false end
+            -- Late-activated groups exist before activation: require an active unit
+            local unit = group:getUnit(1)
+            if not unit or not unit:isExist() or not unit:isActive() then return false end
             DMS.Intel.report(intelContent, "HUMINT", "PRIORITY", delay)
-            return nil  -- Stop checking
+            debugLog("Group '%s' spawned, intel queued", groupName)
+            return true
+        end)
+        if not ok then
+            logError("onSpawn " .. tostring(groupName), result)
+            return nil
         end
+        if result then return nil end  -- Stop checking
         return time + 5  -- Keep checking
     end, nil, timer.getTime() + 5)
 end

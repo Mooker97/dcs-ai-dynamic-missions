@@ -1,6 +1,7 @@
 -- Random HVT Spawn System for DCS Missions
 -- Rare timed spawns with flag triggers for special targets
 -- Supports flags on spawn AND on kill
+-- Requires: spawners/spawn-core.lua
 -- Place in mission via DO SCRIPT FILE
 
 DMS = DMS or {}
@@ -118,6 +119,7 @@ function DMS.HVTSpawn.register(hvtId, groupName, options)
         flagOnKill = options.flagOnKill or nil,          -- Flag to set on kill
         flagOnKillValue = options.flagOnKillValue or 1,  -- Value to set flag to on kill
         killAnnouncement = options.killAnnouncement,      -- Custom kill announcement
+        hidden = options.hidden,                          -- Fog of war override
         -- State tracking
         scheduled = false,
         spawned = false,
@@ -132,11 +134,22 @@ end
 --- Start the HVT system (registers event handler)
 -- Call this after registering all HVTs
 function DMS.HVTSpawn.start()
-    -- Wrap event handler with error protection
-    DMS.HVTSpawn.EventHandler = DMS.Error.safeHandler(
-        DMS.HVTSpawn._EventHandlerInternal,
-        "HVTSpawn.EventHandler"
-    )
+    if DMS.HVTSpawn.EventHandler then return end
+    -- Wrap event handler with error protection (DMS.Error optional)
+    if DMS.Error and DMS.Error.safeHandler then
+        DMS.HVTSpawn.EventHandler = DMS.Error.safeHandler(
+            DMS.HVTSpawn._EventHandlerInternal,
+            "HVTSpawn.EventHandler"
+        )
+    else
+        DMS.HVTSpawn.EventHandler = {
+            onEvent = function(_, event)
+                local ok, err = pcall(DMS.HVTSpawn._EventHandlerInternal.onEvent,
+                    DMS.HVTSpawn._EventHandlerInternal, event)
+                if not ok then env.error("[HVTSpawn] EventHandler: " .. tostring(err)) end
+            end
+        }
+    end
     world.addEventHandler(DMS.HVTSpawn.EventHandler)
 end
 
@@ -151,24 +164,32 @@ function DMS.HVTSpawn.schedule(hvtId)
 
     hvt.scheduled = true
 
+    local Core = DMS.SpawnCore
+    if not Core then
+        env.error("[HVTSpawn] spawners/spawn-core.lua is not loaded")
+        return {scheduled = false, willSpawn = false}
+    end
+
     -- Roll for spawn at registration time (not at spawn time)
-    local roll = math.random(1, 100)
-    hvt.willSpawn = roll <= hvt.chance
+    local willSpawn, roll = Core.roll(hvt.chance)
+    hvt.willSpawn = willSpawn
 
     if not hvt.willSpawn then
+        Core.log("HVTSpawn", "'%s' will not spawn (rolled %d > %d)", hvtId, roll, hvt.chance)
         return {scheduled = true, willSpawn = false}
     end
 
     -- Calculate spawn time
     local spawnTime = math.random(hvt.minTime, hvt.maxTime)
+    Core.log("HVTSpawn", "'%s' will spawn in %ds (rolled %d <= %d)", hvtId, spawnTime, roll, hvt.chance)
 
-    -- Schedule the spawn with error handling
-    DMS.Error.safeSchedule(function()
-        local group = Group.getByName(hvt.groupName)
-        if group then
-            trigger.action.activateGroup(group)
+    -- Chance already rolled -> activate with 100% after the delay
+    hvt.timerId = Core.activateDelayed(hvt.groupName, spawnTime, 100,
+        {hidden = hvt.hidden, prefix = "HVTSpawn"},
+        function(spawned)
+            hvt.timerId = nil
+            if not spawned then return end
             hvt.spawned = true
-
             table.insert(DMS.HVTSpawn.SpawnedTargets, hvtId)
 
             -- Set spawn flag if configured
@@ -180,16 +201,9 @@ function DMS.HVTSpawn.schedule(hvtId)
             if DMS.HVTSpawn.Config.announceSpawns or hvt.announcement then
                 local msg = hvt.announcement or
                     string.format("INTEL: High Value Target detected - %s", hvtId)
-
-                trigger.action.outTextForCoalition(
-                    DMS.HVTSpawn.Config.playerCoalition,
-                    msg,
-                    15,
-                    true
-                )
+                trigger.action.outTextForCoalition(DMS.HVTSpawn.Config.playerCoalition, msg, 15, true)
             end
-        end
-    end, spawnTime, "HVTSpawn.spawn(" .. hvtId .. ")")
+        end)
 
     return {
         scheduled = true,
@@ -272,6 +286,10 @@ end
 function DMS.HVTSpawn.reset(hvtId)
     local hvt = DMS.HVTSpawn.Targets[hvtId]
     if hvt then
+        if hvt.timerId then
+            pcall(timer.removeFunction, hvt.timerId)
+            hvt.timerId = nil
+        end
         hvt.scheduled = false
         hvt.willSpawn = false
         hvt.spawned = false

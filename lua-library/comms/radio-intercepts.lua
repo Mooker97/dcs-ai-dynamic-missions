@@ -83,6 +83,26 @@ DMS.Intercepts.Messages = {
     },
 }
 
+local function isDebug()
+    return DMS.Settings and DMS.Settings.isDebug and DMS.Settings.isDebug()
+end
+
+local function logDebug(fmt, ...)
+    if isDebug() then
+        env.info(string.format("[Intercepts] " .. fmt, ...))
+    end
+end
+
+--- Run a timer callback inside pcall so a script error cannot kill the scheduler
+local function safeCall(name, fn, ...)
+    local ok, result = pcall(fn, ...)
+    if not ok then
+        env.error(string.format("[Intercepts] %s error: %s", name, tostring(result)))
+        return nil
+    end
+    return result
+end
+
 --- Configure intercepts system
 -- @param settings table Configuration overrides
 function DMS.Intercepts.configure(settings)
@@ -103,7 +123,7 @@ local function addStatic(message)
     local staticEffects = {"...", "[static]", "[garbled]", "...[break]..."}
 
     -- Randomly insert static
-    if math.random(100) < 30 then
+    if #message > 6 and math.random(100) < 30 then
         local pos = math.random(#message - 5)
         local static = staticEffects[math.random(#staticEffects)]
         message = message:sub(1, pos) .. static .. message:sub(pos + 1)
@@ -132,7 +152,9 @@ function DMS.Intercepts.send(message, category)
     end
 
     -- Check intercept chance
-    if math.random(100) > DMS.Intercepts.Config.interceptChance then
+    local roll = math.random(100)
+    if roll > DMS.Intercepts.Config.interceptChance then
+        logDebug("Skipped intercept (rolled %d > %d)", roll, DMS.Intercepts.Config.interceptChance)
         return
     end
 
@@ -152,6 +174,7 @@ function DMS.Intercepts.send(message, category)
     )
 
     DMS.Intercepts.Config.lastInterceptTime = timer.getTime()
+    logDebug("Sent intercept: %s", tostring(message))
 end
 
 --- Queue an intercept for later
@@ -160,9 +183,9 @@ end
 -- @param delay number Delay in seconds
 function DMS.Intercepts.queue(message, category, delay)
     timer.scheduleFunction(function()
-        DMS.Intercepts.send(message, category)
+        safeCall("queue", DMS.Intercepts.send, message, category)
         return nil
-    end, nil, timer.getTime() + delay)
+    end, nil, timer.getTime() + (tonumber(delay) or 0) + 0.01)
 end
 
 --- Send random intercept from any category
@@ -180,18 +203,19 @@ function DMS.Intercepts.startAmbient()
 
     DMS.Intercepts.Active = true
 
-    local function scheduleNext()
-        local interval = DMS.Intercepts.Config.minInterval +
-            math.random() * (DMS.Intercepts.Config.maxInterval - DMS.Intercepts.Config.minInterval)
-
-        DMS.Intercepts.TimerId = timer.scheduleFunction(function(_, time)
-            DMS.Intercepts.sendRandom()
-            scheduleNext()
-            return nil
-        end, nil, timer.getTime() + interval)
+    local function nextInterval()
+        local minI = DMS.Intercepts.Config.minInterval
+        local maxI = math.max(minI, DMS.Intercepts.Config.maxInterval)
+        return minI + math.random() * (maxI - minI)
     end
 
-    scheduleNext()
+    -- Reschedule by returning the next time (keeps a single, stable timer id)
+    DMS.Intercepts.TimerId = timer.scheduleFunction(function(_, time)
+        if not DMS.Intercepts.TimerId then return nil end
+        safeCall("ambient", DMS.Intercepts.sendRandom)
+        return time + nextInterval()
+    end, nil, timer.getTime() + nextInterval())
+    logDebug("Ambient intercepts started (%d-%ds)", DMS.Intercepts.Config.minInterval, DMS.Intercepts.Config.maxInterval)
 end
 
 --- Stop ambient intercepts
@@ -227,12 +251,24 @@ end
 -- @param message string Message to send
 -- @param category string|nil Or category for random
 function DMS.Intercepts.onSpawn(groupName, message, category)
-    timer.scheduleFunction(function(_, time)
+    local function isSpawned()
         local group = Group.getByName(groupName)
-        if group and group:isExist() then
+        if not group or not group:isExist() then return false end
+        local unit = group:getUnit(1)
+        -- Late-activated groups exist but are inactive until activated
+        return unit ~= nil and unit:isExist() and unit:isActive()
+    end
+
+    timer.scheduleFunction(function(_, time)
+        local ok, spawned = pcall(isSpawned)
+        if ok and spawned then
             -- Small delay after spawn
             DMS.Intercepts.queue(message, category, 5 + math.random() * 10)
+            logDebug("Group '%s' spawned, intercept queued", tostring(groupName))
             return nil
+        end
+        if not ok then
+            env.error(string.format("[Intercepts] onSpawn error: %s", tostring(spawned)))
         end
         return time + 5
     end, nil, timer.getTime() + 5)

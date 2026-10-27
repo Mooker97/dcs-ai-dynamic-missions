@@ -175,8 +175,12 @@ local function executeAction(step, chainState)
                 )
 
             elseif actionType == "spawn" then
-                if actionDef.pool and DMS.SpawnPool then
-                    DMS.SpawnPool.forceSpawn(actionDef.pool)
+                if actionDef.pool then
+                    if DMS.SpawnPool and DMS.SpawnPool.forceSpawn then
+                        DMS.SpawnPool.forceSpawn(actionDef.pool)
+                    else
+                        env.error(string.format("[EventChain] spawn action: DMS.SpawnPool.forceSpawn unavailable (pool '%s')", tostring(actionDef.pool)))
+                    end
                 elseif actionDef.group then
                     local group = Group.getByName(actionDef.group)
                     if group then
@@ -233,67 +237,86 @@ local function executeAction(step, chainState)
     end
 end
 
+local function debugLog(fmt, ...)
+    if DMS.Settings and DMS.Settings.isDebug() then
+        env.info(string.format("[EventChain] " .. fmt, ...))
+    end
+end
+
+--- Process a single active chain
+local function processChain(chainId, chainState)
+    if chainState.paused or chainState.completed or chainState.cancelled then
+        return
+    end
+
+    local chain = DMS.EventChain.Chains[chainId]
+    if not chain then return end
+
+    local currentStep = chain.steps[chainState.currentStep]
+    if not currentStep then
+        -- Chain complete
+        chainState.completed = true
+        debugLog("Chain '%s' completed", tostring(chainId))
+        if chain.onComplete then
+            chain.onComplete(chainState)
+        end
+        if DMS.EventChain.Config.announceChains then
+            trigger.action.outText(string.format("[EventChain] %s completed", chainId), 5)
+        end
+        return
+    end
+
+    -- Check trigger
+    if checkTrigger(currentStep.trigger, chainState) then
+        -- Execute action
+        executeAction(currentStep, chainState)
+        debugLog("Chain '%s' step %d executed", tostring(chainId), chainState.currentStep)
+
+        if DMS.EventChain.Config.announceChains then
+            trigger.action.outText(string.format(
+                "[EventChain] %s step %d executed",
+                chainId, chainState.currentStep
+            ), 5)
+        end
+
+        -- Check for branch
+        if currentStep.branch then
+            local branchCondition = currentStep.branch.condition
+            -- Note: "goto" is a keyword in Lua 5.2+, so index it as a string
+            local gotoStep = currentStep.branch["goto"] or currentStep.branch.gotoStep
+            if branchCondition and checkTrigger(branchCondition, chainState) then
+                -- Take branch
+                if gotoStep then
+                    chainState.currentStep = gotoStep
+                    debugLog("Chain '%s' branched to step %s", tostring(chainId), tostring(gotoStep))
+                elseif currentStep.branch.chain then
+                    DMS.EventChain.start(currentStep.branch.chain)
+                    chainState.completed = true
+                    debugLog("Chain '%s' branched to chain '%s'", tostring(chainId), tostring(currentStep.branch.chain))
+                end
+            else
+                chainState.currentStep = chainState.currentStep + 1
+            end
+        else
+            -- Move to next step
+            chainState.currentStep = chainState.currentStep + 1
+        end
+
+        chainState.stepStartTime = timer.getTime()
+        chainState.randomChecked = false
+    end
+end
+
 --- Process active chains (internal)
 local function processChainsInternal(_, time)
     if not DMS.EventChain.Active then return nil end
 
     for chainId, chainState in pairs(DMS.EventChain.ActiveChains) do
-        if chainState.paused or chainState.completed or chainState.cancelled then
-            goto continue
+        -- Isolate failures so one bad chain doesn't block the others
+        local ok, err = pcall(processChain, chainId, chainState)
+        if not ok then
+            env.error(string.format("[EventChain] Chain '%s' error: %s", tostring(chainId), tostring(err)))
         end
-
-        local chain = DMS.EventChain.Chains[chainId]
-        if not chain then goto continue end
-
-        local currentStep = chain.steps[chainState.currentStep]
-        if not currentStep then
-            -- Chain complete
-            chainState.completed = true
-            if chain.onComplete then
-                chain.onComplete(chainState)
-            end
-            if DMS.EventChain.Config.announceChains then
-                trigger.action.outText(string.format("[EventChain] %s completed", chainId), 5)
-            end
-            goto continue
-        end
-
-        -- Check trigger
-        if checkTrigger(currentStep.trigger, chainState) then
-            -- Execute action
-            executeAction(currentStep, chainState)
-
-            if DMS.EventChain.Config.announceChains then
-                trigger.action.outText(string.format(
-                    "[EventChain] %s step %d executed",
-                    chainId, chainState.currentStep
-                ), 5)
-            end
-
-            -- Check for branch
-            if currentStep.branch then
-                local branchCondition = currentStep.branch.condition
-                if branchCondition and checkTrigger(branchCondition, chainState) then
-                    -- Take branch
-                    if currentStep.branch.goto then
-                        chainState.currentStep = currentStep.branch.goto
-                    elseif currentStep.branch.chain then
-                        DMS.EventChain.start(currentStep.branch.chain)
-                        chainState.completed = true
-                    end
-                else
-                    chainState.currentStep = chainState.currentStep + 1
-                end
-            else
-                -- Move to next step
-                chainState.currentStep = chainState.currentStep + 1
-            end
-
-            chainState.stepStartTime = timer.getTime()
-            chainState.randomChecked = false
-        end
-
-        ::continue::
     end
 
     return time + DMS.EventChain.Config.checkInterval
@@ -303,11 +326,11 @@ end
 local function processChains(args, time)
     local success, result = pcall(processChainsInternal, args, time)
     if not success then
-        if DMS.Error then
-            DMS.Error.log("EventChain.processChains", result)
-        else
-            env.error("[DMS LUA ERROR] EventChain.processChains: " .. tostring(result))
+        if DMS.Error and DMS.Error.log then
+            pcall(DMS.Error.log, "EventChain.processChains", result)
         end
+        env.error("[EventChain] processChains error: " .. tostring(result))
+        if not DMS.EventChain.Active then return nil end
         return time + (DMS.EventChain.Config.checkInterval or 1)
     end
     return result
@@ -338,6 +361,8 @@ function DMS.EventChain.start(chainId, options)
         data = options.data or {},  -- Custom data storage
     }
 
+    debugLog("Chain '%s' started at step %d", tostring(chainId), options.startStep or 1)
+
     if DMS.EventChain.Config.announceChains then
         trigger.action.outText(string.format("[EventChain] %s started", chainId), 5)
     end
@@ -345,7 +370,7 @@ function DMS.EventChain.start(chainId, options)
     -- Start processing if not already active
     if not DMS.EventChain.Active then
         DMS.EventChain.Active = true
-        timer.scheduleFunction(
+        DMS.EventChain.TimerId = timer.scheduleFunction(
             processChains,
             nil,
             timer.getTime() + DMS.EventChain.Config.checkInterval
@@ -444,6 +469,10 @@ function DMS.EventChain.stopAll()
         DMS.EventChain.cancel(chainId)
     end
     DMS.EventChain.Active = false
+    if DMS.EventChain.TimerId then
+        timer.removeFunction(DMS.EventChain.TimerId)
+        DMS.EventChain.TimerId = nil
+    end
 end
 
 --[[

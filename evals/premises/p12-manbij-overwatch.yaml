@@ -1,0 +1,27 @@
+# Eval premise p12-manbij-overwatch. Schema: evals/run.py Premise. Give `prompt` to the story-writer skill verbatim,
+# then score: uv run python evals/run.py --score campaigns/<slug> --premise p12-manbij-overwatch
+id: p12-manbij-overwatch
+title: Overwatch Manbij
+genre: adapted
+prompt: 2016, northern Syria. An A-10 flight provides overwatch for a partner force advancing on Manbij;
+  the hard part is telling friends from enemies in a crowded battlespace with several armed factions.
+expect:
+  theater: Syria
+  era: [2015, 2017]
+  mode: adapted
+  player_coalition: blue
+  airframes: [A-10C_2]
+  airframe_role: attack
+  missions: [4, 6]
+  mission_types: [CAS]
+  story_elements:
+  - id: manbij
+    description: Manbij
+    any_of: [manbij]
+  - id: partner_force
+    description: A partner ground force
+    any_of: [partner]
+  - id: deconfliction
+    description: Telling friend from foe
+    any_of: [friendly fire, deconflict, fratricide, positive id]
+notes: Adapted A-10 CAS with fratricide risk.

@@ -1,0 +1,28 @@
+# Eval premise p15-coral-line. Schema: evals/run.py Premise. Give `prompt` to the story-writer skill verbatim,
+# then score: uv run python evals/run.py --score campaigns/<slug> --premise p15-coral-line
+id: p15-coral-line
+title: The Coral Line
+genre: fictional
+prompt: 2030. A fictional Pacific confederation and an expansionist neighbour contest the Mariana Islands.
+  A Hornet squadron on Guam flies CAP and maritime strike as island garrisons are cut off one by one;
+  the squadron's commander has a brother on one of them.
+expect:
+  theater: MarianaIslands
+  era: [2028, 2032]
+  mode: fictional
+  player_coalition: blue
+  airframes: [FA-18C_hornet]
+  airframe_role: multirole
+  missions: [4, 7]
+  mission_types: [CAP, STRIKE]
+  story_elements:
+  - id: garrisons
+    description: Cut-off island garrisons
+    any_of: [garrison]
+  - id: brother
+    description: The commander's brother
+    any_of: [brother]
+  - id: guam
+    description: Guam as home base
+    any_of: [guam, andersen]
+notes: Fictional near-future, island geography.

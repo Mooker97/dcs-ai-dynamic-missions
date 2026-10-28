@@ -1,0 +1,28 @@
+# Eval premise p05-canal-crossing. Schema: evals/run.py Premise. Give `prompt` to the story-writer skill verbatim,
+# then score: uv run python evals/run.py --score campaigns/<slug> --premise p05-canal-crossing
+id: p05-canal-crossing
+title: Across the Canal
+genre: historical
+prompt: October 1973, the Suez Canal. During the Yom Kippur War an F-4E crew flies strikes against the
+  Egyptian bridgeheads and the SAM belt along the canal, then supports the counter-crossing near the Great
+  Bitter Lake. Cite the documented course of the war.
+expect:
+  theater: Sinai
+  era: [1973, 1973]
+  mode: historical
+  player_coalition: blue
+  airframes: [F-4E-45MC]
+  airframe_role: multirole
+  missions: [4, 6]
+  mission_types: [STRIKE, SEAD]
+  story_elements:
+  - id: sam_belt
+    description: The canal SAM umbrella
+    any_of: [sam belt, sam umbrella, sa-6, sa-2, sam site, sams]
+  - id: bridgeheads
+    description: Egyptian bridgeheads across the canal
+    any_of: [bridgehead, bridge]
+  - id: bitter_lake
+    description: The Great Bitter Lake crossing
+    any_of: [bitter lake]
+notes: Historical, Cold War SEAD/strike, dense IADS.

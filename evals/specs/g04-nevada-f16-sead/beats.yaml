@@ -1,0 +1,66 @@
+# Golden g04 beats.
+mission_id: g04-nevada-f16-sead
+beats:
+  - id: mission_start
+    guaranteed: true
+    when: {event: player.spawned, players_only: true}
+    priority: 90
+    delay_sec: 10
+    speaker: range_ops
+    lines: [range_start_v1, range_start_v2]
+    text: "Venom, Range Control. The range is hot. Package is twenty minutes behind you."
+    mark: {type: circle, at: "zone:sam_belt", text: "SAM BELT"}
+    effects: {set_flag: started}
+  - id: push
+    guaranteed: true
+    when: {event: zone.entered, zone: push_point, players_only: true}
+    priority: 75
+    speaker: darkstar
+    lines: [darkstar_push_v1, darkstar_push_v2]
+    text: "Venom, Darkstar. Picture clean. Push. SAM belt bearing north."
+    effects: {set_flag: pushed}
+  - id: popup_warning
+    when: {event: beat.fired, beat: push}
+    priority: 70
+    delay_sec: 60
+    speaker: darkstar
+    lines: [darkstar_popup_v1, darkstar_popup_v2]
+    text: "Venom, Darkstar. Mobile emitter moving in the ring. Expect a pop-up."
+  - id: lane_open
+    guaranteed: true
+    when: {event: group.dead, group_prefix: sam_main}
+    priority: 85
+    speaker: range_ops
+    lines: [range_lane_v1, range_lane_v2]
+    text: "Venom, Range Control. Battery is dead. The lane is open."
+    effects:
+      set_flag: lane_open
+      outcome: {lane_open: true}
+  - id: shorad_down
+    when: {event: group.dead, group_prefix: shorad}
+    priority: 60
+    speaker: darkstar
+    lines: [darkstar_shorad_v1, darkstar_shorad_v2]
+    text: "Venom, Darkstar. Short-range emitter off the air."
+    effects:
+      set_flag: shorad_down
+      outcome: {shorad_down: true}
+  - id: rtb_call
+    when: {event: beat.fired, beat: lane_open}
+    priority: 70
+    delay_sec: 20
+    speaker: range_ops
+    lines: [range_rtb_v1, range_rtb_v2]
+    text: "Venom, Range Control. Package is through. Knock it off and RTB."
+  - id: landed
+    guaranteed: true
+    when: {event: unit.landed, players_only: true}
+    requires: {flags: [lane_open]}
+    priority: 95
+    speaker: range_ops
+    lines: [range_landed_v1, range_landed_v2]
+    text: "Venom, Range Control. On the ground. Debrief at fourteen hundred."
+    effects:
+      set_flag: landed
+      outcome: {landed: true}
+      end_mission: success

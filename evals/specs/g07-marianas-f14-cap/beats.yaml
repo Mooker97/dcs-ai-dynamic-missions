@@ -1,0 +1,61 @@
+mission_id: g07-marianas-f14-cap
+beats:
+  - id: mission_start
+    guaranteed: true
+    when: {event: player.spawned, players_only: true}
+    priority: 90
+    delay_sec: 8
+    speaker: gci_guam
+    lines: [gci_start_v1, gci_start_v2]
+    text: "Bullet, Overlord. Proceed North Station, angels two-five."
+    mark: {type: circle, at: "zone:cap_station", text: "NORTH STATION"}
+    effects: {set_flag: started}
+  - id: on_station
+    guaranteed: true
+    when: {event: zone.entered, zone: cap_station, players_only: true}
+    priority: 80
+    speaker: wingman
+    lines: [wing_station_v1, wing_station_v2]
+    text: "Bullet One-Two, on station, left orbit."
+    effects: {set_flag: on_station}
+  - id: gci_picture
+    when: {event: beat.fired, beat: on_station}
+    priority: 75
+    delay_sec: 30
+    speaker: gci_guam
+    lines: [gci_picture_v1, gci_picture_v2]
+    text: "Bullet, Overlord. Picture, single group, bullseye zero-one-zero, sixty, hot."
+  - id: station_timer
+    guaranteed: true
+    when: {event: timer, after_sec: 1500}
+    requires: {flags: [on_station]}
+    priority: 70
+    speaker: gci_guam
+    lines: [gci_relief_v1, gci_relief_v2]
+    text: "Bullet, Overlord. Relief on station. You're released, RTB."
+    effects: {set_flag: station_held, outcome: {station_held: true}}
+  - id: raid_dead
+    when: {event: group.dead, group_prefix: raiders}
+    priority: 85
+    speaker: wingman
+    lines: [wing_splash_v1, wing_splash_v2]
+    text: "Splash one! Bullet One-Two, scope's clean."
+    effects: {set_flag: raid_defeated, outcome: {raid_defeated: true}}
+  - id: rtb_inbound
+    when: {event: zone.entered, zone: andersen_approach, players_only: true}
+    requires: {flags: [station_held]}
+    priority: 60
+    effects: {set_flag: rtb_inbound}
+  - id: home_landed
+    when: {event: unit.landed, players_only: true}
+    requires: {flags: [rtb_inbound]}
+    priority: 90
+    effects: {set_flag: landed_home, outcome: {landed: true}}
+  - id: mission_end
+    when: {event: beat.fired, beat: home_landed}
+    priority: 90
+    delay_sec: 5
+    speaker: gci_guam
+    lines: [gci_end_v1, gci_end_v2]
+    text: "Bullet, Overlord. Good watch. Overlord out."
+    effects: {end_mission: success}

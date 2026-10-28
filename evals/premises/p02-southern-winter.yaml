@@ -1,0 +1,28 @@
+# Eval premise p02-southern-winter. Schema: evals/run.py Premise. Give `prompt` to the story-writer skill verbatim,
+# then score: uv run python evals/run.py --score campaigns/<slug> --premise p02-southern-winter
+id: p02-southern-winter
+title: Southern Winter
+genre: historical
+prompt: May 1982, the Falkland Islands. A Harrier pilot flies ground attack and armed recon in support
+  of the landings around San Carlos and the advance on Goose Green, in bad weather and against Argentine
+  air defences. Ground the story in documented events and cite them.
+expect:
+  theater: Falklands
+  era: [1982, 1982]
+  mode: historical
+  player_coalition: blue
+  airframes: [AV8BNA]
+  airframe_role: attack
+  missions: [3, 6]
+  mission_types: [CAS]
+  story_elements:
+  - id: san_carlos
+    description: The San Carlos landings
+    any_of: [san carlos]
+  - id: goose_green
+    description: The Goose Green battle
+    any_of: [goose green]
+  - id: weather
+    description: South Atlantic weather as an antagonist
+    any_of: [weather, sleet, low cloud, gale]
+notes: Historical, rare theater, stand-in airframe (AV-8B for the Sea Harrier/GR3).

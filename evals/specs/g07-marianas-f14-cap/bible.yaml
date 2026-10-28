@@ -1,0 +1,64 @@
+# Golden eval bible (fictional). A cold war that turned briefly warm in the Pacific; invented.
+schema_version: 1
+title: "Picket Line"
+mode: fictional
+setting:
+  era: 1988
+  theater: MarianaIslands
+  region: "Guam, Rota and the open sea between them."
+  premise_summary: >-
+    In an invented 1988 crisis, long-range raids probe the Marianas. A detached F-14 squadron
+    at Andersen holds a combat air patrol north of Guam while the fleet repositions.
+tone:
+  style: professional-terse
+  themes: [vigilance, distance]
+player_role: "Bullet 1-1: F-14B section, detached to Andersen AFB (fictional squadron)."
+factions:
+  - id: us_navy
+    name: "Detachment Andersen"
+    description: "A fictional F-14 squadron flying from land while its carrier is in refit."
+    doctrine: "Hold the line, identify, then engage."
+    dcs:
+      country: USA
+      coalition: blue
+      units: [F-14B, E-3A]
+  - id: raid_force
+    name: "Northern Raid Group"
+    description: "Invented long-range fighter regiment probing the islands."
+    doctrine: "Fast probes, never committed, test the response."
+    dcs:
+      country: Russia
+      coalition: red
+      units: [MiG-29A, Su-27]
+      tech_veneer: "Late-80s Soviet fighters stand in for an invented air arm."
+characters:
+  - id: gci_guam
+    name: "Lt. Sam Okafor"
+    callsign: "Overlord"
+    role: GCI controller
+    faction: us_navy
+    description: "Unflappable radar controller; reads bearings like a metronome."
+    voice:
+      design_prompt: "Male, thirties, General American, flat and precise, UHF radio, controller cadence."
+      accent: General American
+      age: 33
+      gender: male
+      cadence: brisk
+      brevity: terse
+      radio_fx: uhf_clean
+  - id: wingman
+    name: "Lt. JG Ava Lund"
+    callsign: "Bullet 1-2"
+    role: wingman
+    faction: us_navy
+    description: "Eager, sharp eyes, talks a little fast."
+    voice:
+      design_prompt: "Female, mid-twenties, General American, energetic, UHF radio, oxygen mask."
+      accent: General American
+      age: 26
+      gender: female
+      cadence: rapid
+      brevity: terse
+      radio_fx: uhf_clean
+canon_rules:
+  - "The crisis is invented; no real event is implied."

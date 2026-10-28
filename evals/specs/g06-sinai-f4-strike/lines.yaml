@@ -1,0 +1,15 @@
+mission_id: g06-sinai-f4-strike
+model: eleven_v3
+lines:
+  - {id: ops_start_v1, speaker: ops_ramon, beat: mission_start, text: "Anvil, Ops. Target is the depot on the coast road. Push when ready."}
+  - {id: ops_start_v2, speaker: ops_ramon, beat: mission_start, text: "Anvil, Anvil Ops. Depot on the coast road is your target. Cleared to push."}
+  - {id: wso_ip_v1, speaker: wizzo, beat: at_ip, text: "IP. Heading three-three-zero. Ninety seconds."}
+  - {id: wso_ip_v2, speaker: wizzo, beat: at_ip, text: "That's the IP. Come left to three-three-zero. Ninety to target."}
+  - {id: wso_spike_v1, speaker: wizzo, beat: rwr_spike, text: "Spike, twelve o'clock! Something's up near the target."}
+  - {id: wso_spike_v2, speaker: wizzo, beat: rwr_spike, text: "Search radar, nose! They're awake down there."}
+  - {id: wso_hit_v1, speaker: wizzo, beat: depot_dead, text: "Good hits! Depot's burning."}
+  - {id: wso_hit_v2, speaker: wizzo, beat: depot_dead, text: "Shack! Secondaries everywhere. Off south."}
+  - {id: ops_egress_v1, speaker: ops_ramon, beat: egress_call, text: "Anvil, Ops. Copy hits. Come home."}
+  - {id: ops_egress_v2, speaker: ops_ramon, beat: egress_call, text: "Anvil, Ops. Good copy on the depot. RTB."}
+  - {id: ops_end_v1, speaker: ops_ramon, beat: mission_end, text: "Anvil, Ops. Nice work. Debrief in thirty."}
+  - {id: ops_end_v2, speaker: ops_ramon, beat: mission_end, text: "Anvil, Ops. Welcome back. Debrief in thirty."}

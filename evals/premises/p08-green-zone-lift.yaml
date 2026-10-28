@@ -1,0 +1,28 @@
+# Eval premise p08-green-zone-lift. Schema: evals/run.py Premise. Give `prompt` to the story-writer skill verbatim,
+# then score: uv run python evals/run.py --score campaigns/<slug> --premise p08-green-zone-lift
+id: p08-green-zone-lift
+title: Green Zone Lift
+genre: adapted
+prompt: 2010, Helmand province. A Chinook crew keeps a chain of patrol bases supplied through the green
+  zone, where every landing site is a known pattern the enemy watches. A missing sling load and a stubborn
+  base commander drive the story.
+expect:
+  theater: Afghanistan
+  era: [2009, 2011]
+  mode: adapted
+  player_coalition: blue
+  airframes: [CH-47Fbl1]
+  airframe_role: transport_helo
+  missions: [3, 6]
+  mission_types: [TRANSPORT]
+  story_elements:
+  - id: patrol_bases
+    description: Patrol bases to resupply
+    any_of: [patrol base, outpost, fob]
+  - id: pattern
+    description: Predictable landing patterns
+    any_of: [pattern]
+  - id: sling
+    description: The missing sling load
+    any_of: [sling]
+notes: Adapted heavy-lift logistics; few shooting objectives.

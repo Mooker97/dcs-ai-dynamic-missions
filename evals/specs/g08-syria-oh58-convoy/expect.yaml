@@ -1,0 +1,11 @@
+# Golden expectations checked by evals/run.py --golden
+theater: Syria
+mission_type: CONVOY_ESCORT
+player_aircraft: [OH58D]
+max_warnings: 0        # cap on validate warnings (set to the observed count)
+min_groups: 3          # plan.groups lower bound (set to observed)
+runtime:               # exact counts in plan.runtime (set to observed)
+  beats: 7
+  pools: 1
+  encounters: 1
+  voice: 14

@@ -1,0 +1,57 @@
+﻿# Golden eval bible (fictional). A large-force exercise; the aggressors are invented.
+schema_version: 1
+title: "Golden: Iron Range"
+mode: fictional
+setting:
+  era: 2022
+  theater: Nevada
+  region: "Nellis AFB and the ranges around Tonopah."
+  premise_summary: >-
+    During a fictional large-force exercise, a Viper pair must open a lane through an
+    aggressor air-defence belt near Tonopah so the strike package behind them can get through.
+tone:
+  style: professional-terse
+  themes: [training as war, professionalism]
+player_role: "Venom 1-1: F-16C pair, fictional 77th Weapons Flight, Nellis AFB."
+factions:
+  - id: wf77
+    name: "77th Weapons Flight"
+    description: "Fictional exercise blue force."
+    dcs: {country: USA, coalition: blue, units: [F-16C_50]}
+  - id: gray_talon
+    name: "Gray Talon Aggressors"
+    description: "Fictional aggressor unit that plays the enemy integrated air defence."
+    dcs:
+      country: Combined Joint Task Forces Red
+      coalition: red
+      units: [Osa 9A33 ln, Strela-1 9P31, Kub 2P25 ln, Kub 1S91 str, ZSU-23-4 Shilka]
+      tech_veneer: "Exercise threat emitters stand in as real Soviet-pattern SAMs."
+characters:
+  - id: range_ops
+    name: "Maj. Kate Brennan"
+    callsign: "Range Control"
+    role: exercise director
+    faction: wf77
+    voice:
+      design_prompt: "Female, 40s, General American, dry exercise director on UHF."
+      accent: General American
+      age: 41
+      gender: female
+      cadence: measured
+      brevity: terse
+      radio_fx: uhf_clean
+  - id: darkstar
+    name: "Capt. Ray Okafor"
+    callsign: "Darkstar"
+    role: AWACS controller
+    faction: wf77
+    voice:
+      design_prompt: "Male, 30s, General American, steady AWACS controller."
+      accent: General American
+      age: 35
+      gender: male
+      cadence: brisk
+      brevity: terse
+      radio_fx: uhf_clean
+canon_rules:
+  - "Golden eval fixture; keep stable."

@@ -1,0 +1,92 @@
+﻿# Golden g04: Nevada 2022 F-16C SEAD in a fictional aggressor exercise. Fixed seed.
+schema_version: 1
+id: g04-nevada-f16-sead
+title: "Iron Range"
+campaign: evals
+content_mode: fictional
+theater: Nevada
+era: 2022
+date: 2022-02-08
+start_time: "09:00"
+weather_preset: clear
+mission_type: SEAD
+duration_min: 60
+blue_countries: [USA]
+red_countries: [Combined Joint Task Forces Red]
+cast: [range_ops, darkstar]
+areas:
+  - id: home
+    description: "Nellis AFB, home base."
+    where: {kind: near_airbase, airbase: Nellis, radius_nm: 1}
+  - id: push_point
+    description: "Push point south of the ranges."
+    where: {kind: near_named_place, place: Beatty, radius_nm: 4, bearing_deg: 90, distance_nm: 15}
+    terrain: open
+  - id: sam_belt
+    description: "Aggressor medium SAM site south-east of Tonopah."
+    where: {kind: near_airbase, airbase: Tonopah, radius_nm: 1.5, bearing_deg: 150, distance_nm: 12}
+    terrain: open
+  - id: shorad_ring
+    description: "Short-range defence covering the belt."
+    where: {kind: near_airbase, airbase: Tonopah, radius_nm: 2, bearing_deg: 150, distance_nm: 9}
+    terrain: open
+player_flights:
+  - callsign: Venom
+    aircraft: F-16C_50
+    count: 2
+    coalition: blue
+    country: USA
+    start_area: home
+    start_type: runway
+    loadout: auto
+    tasking: "Push north, find and suppress the aggressor SAM belt before the strike package arrives."
+objectives:
+  - id: kill_sam
+    kind: destroy
+    description: "Destroy the medium SAM battery."
+    area: sam_belt
+    target: sam_main
+    success_flag: lane_open
+  - id: kill_shorad
+    kind: destroy
+    description: "Destroy the short-range SAM covering the belt."
+    primary: false
+    area: shorad_ring
+    target: shorad
+    success_flag: shorad_down
+  - id: rtb
+    kind: land
+    description: "Recover at Nellis."
+    area: home
+    success_flag: landed
+threats:
+  - id: sam_main
+    role: sam_medium
+    area: sam_belt
+    strength: medium
+    faction: gray_talon
+    skill: Good
+    hidden_on_map: false
+  - id: shorad
+    role: sam_short
+    area: shorad_ring
+    strength: light
+    faction: gray_talon
+    skill: Good
+dynamic:
+  pools:
+    - id: mobile_shorad
+      roles: [sam_short]
+      areas: [shorad_ring]
+      pick: [1, 1]
+      faction: gray_talon
+  encounters:
+    - id: popup_shorad
+      kind: ambush_sam
+      pool: mobile_shorad
+      trigger: {type: proximity, area: sam_belt, radius_nm: 12}
+      chance: 60
+      telegraph_beat: popup_warning
+  director: {enabled: true, intensity: intense, adaptive: true}
+  fog_of_war: {enabled: true, reveal_radius_km: 10, mark_refresh_sec: 15}
+seed: 2022

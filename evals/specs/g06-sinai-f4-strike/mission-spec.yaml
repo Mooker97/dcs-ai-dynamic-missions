@@ -1,0 +1,83 @@
+# Golden g06: F-4E strike on a coastal fuel depot (STRIKE, late cold war).
+schema_version: 1
+id: g06-sinai-f4-strike
+title: "Fuel Stop"
+campaign: evals
+content_mode: fictional
+theater: Sinai
+era: 1974
+date: 1974-09-03
+start_time: "06:30"
+weather_preset: clear
+mission_type: STRIKE
+duration_min: 40
+blue_countries: [USA]
+red_countries: [Combined Joint Task Forces Red]
+cast: [ops_ramon, wizzo]
+areas:
+  - id: ramon
+    description: "Home base."
+    where: {kind: near_airbase, airbase: Ramon Airbase, radius_nm: 1}
+  - id: ramon_approach
+    description: "Return circle."
+    where: {kind: near_airbase, airbase: Ramon Airbase, radius_nm: 8}
+  - id: ip_south
+    description: "Initial point in the dunes south of the road."
+    where: {kind: near_named_place, place: El Arish, radius_nm: 3, bearing_deg: 150, distance_nm: 15}
+    terrain: open
+  - id: depot
+    description: "Fuel depot on the coast road."
+    where: {kind: near_named_place, place: El Arish, radius_nm: 1, bearing_deg: 100, distance_nm: 5}
+    terrain: road
+player_flights:
+  - callsign: Anvil
+    aircraft: F-4E-45MC
+    count: 2
+    country: USA
+    start_area: ramon
+    start_type: parking_hot
+    loadout: "strike: Mk-82 bombs"
+    tasking: "Ingress low via the IP, destroy the depot, egress south."
+objectives:
+  - id: destroy_depot
+    kind: destroy
+    description: "Destroy the fuel depot."
+    area: depot
+    target: depot_hvt
+    success_flag: depot_destroyed
+  - id: rtb
+    kind: land
+    description: "Recover to Ramon."
+    area: ramon
+    success_flag: landed_home
+threats:
+  - id: depot_hvt
+    role: hvt
+    area: depot
+    strength: light
+    faction: coastal_front
+    skill: Average
+    hidden_on_map: false
+  - id: depot_aaa
+    role: aaa
+    area: depot
+    strength: medium
+    faction: coastal_front
+    skill: Good
+dynamic:
+  pools:
+    - id: road_sams
+      roles: [sam_short, aaa]
+      areas: [depot]
+      pick: [1, 1]
+      faction: coastal_front
+  encounters:
+    - id: popup_sam
+      kind: ambush_sam
+      pool: road_sams
+      trigger: {type: proximity, area: depot, radius_nm: 8}
+      chance: 50
+      telegraph_beat: rwr_spike
+  director: {enabled: true, intensity: moderate, adaptive: true}
+  fog_of_war: {enabled: true, reveal_radius_km: 5, mark_refresh_sec: 15}
+seed: 60674

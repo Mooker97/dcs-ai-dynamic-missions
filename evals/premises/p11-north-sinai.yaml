@@ -1,0 +1,27 @@
+# Eval premise p11-north-sinai. Schema: evals/run.py Premise. Give `prompt` to the story-writer skill verbatim,
+# then score: uv run python evals/run.py --score campaigns/<slug> --premise p11-north-sinai
+id: p11-north-sinai
+title: North Sinai Nights
+genre: adapted
+prompt: 2015, northern Sinai. An Egyptian F-16 flight supports ground forces against insurgent networks
+  around El Arish, with a liaison officer who doubts the intelligence they are given.
+expect:
+  theater: Sinai
+  era: [2014, 2017]
+  mode: adapted
+  player_coalition: blue
+  airframes: [F-16C_50]
+  airframe_role: multirole
+  missions: [3, 5]
+  mission_types: [CAS, STRIKE]
+  story_elements:
+  - id: el_arish
+    description: El Arish area
+    any_of: [el arish]
+  - id: bad_intel
+    description: Doubtful intelligence
+    any_of: [doubt, unreliable, questionable, bad intel]
+  - id: liaison
+    description: The liaison officer
+    any_of: [liaison]
+notes: Adapted, non-US blue coalition.

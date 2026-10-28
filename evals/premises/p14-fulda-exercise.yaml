@@ -1,0 +1,27 @@
+# Eval premise p14-fulda-exercise. Schema: evals/run.py Premise. Give `prompt` to the story-writer skill verbatim,
+# then score: uv run python evals/run.py --score campaigns/<slug> --premise p14-fulda-exercise
+id: p14-fulda-exercise
+title: Exercise Iron Lattice
+genre: adapted
+prompt: 1987, West Germany. During a large NATO field exercise an A-10 squadron rehearses the defence
+  of the Fulda Gap; a real-world incident on the inner-German border turns the exercise into a tense alert.
+expect:
+  theater: GermanyCW
+  era: [1985, 1989]
+  mode: adapted
+  player_coalition: blue
+  airframes: [A-10C_2]
+  airframe_role: attack
+  missions: [3, 5]
+  mission_types: [CAS, RECON]
+  story_elements:
+  - id: exercise
+    description: A NATO field exercise
+    any_of: [exercise]
+  - id: border
+    description: The inner-German border incident
+    any_of: [border]
+  - id: alert
+    description: Exercise turns into a real alert
+    any_of: [alert]
+notes: Adapted, Cold War Germany map, exercise-to-crisis arc.

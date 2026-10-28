@@ -1,0 +1,17 @@
+mission_id: g08-syria-oh58-convoy
+model: eleven_v3
+lines:
+  - {id: ops_start_v1, speaker: ops_hatay, beat: mission_start, text: "Scout, Orchard Ops. Wagon is rolling. Get out ahead of them."}
+  - {id: ops_start_v2, speaker: ops_hatay, beat: mission_start, text: "Scout, Ops. Wagon's leaving the wire now. Lead them north."}
+  - {id: wagon_checkin_v1, speaker: convoy_lead, beat: wagon_checkin, text: "Scout, Wagon Six. Four vehicles, northbound. Your road."}
+  - {id: wagon_checkin_v2, speaker: convoy_lead, beat: wagon_checkin, text: "Scout, Wagon Six, rolling. Four victors. We'll follow your lead."}
+  - {id: wagon_glint_v1, speaker: convoy_lead, beat: glint_call, text: "Scout, Wagon. Glint in the trees, left side. Eyes on it?"}
+  - {id: wagon_glint_v2, speaker: convoy_lead, beat: glint_call, text: "Scout, Wagon. Something moving in the orchard. Check it before we roll in."}
+  - {id: wagon_clear_v1, speaker: convoy_lead, beat: team_dead, text: "Scout, Wagon. Good kills. Pushing through."}
+  - {id: wagon_clear_v2, speaker: convoy_lead, beat: team_dead, text: "Scout, Wagon. Threat's down. Rolling again."}
+  - {id: ops_lost_v1, speaker: ops_hatay, beat: convoy_lost, text: "Scout, Ops. We've lost Wagon. Come home."}
+  - {id: ops_lost_v2, speaker: ops_hatay, beat: convoy_lost, text: "Scout, Ops. Wagon is gone. RTB."}
+  - {id: wagon_gate_v1, speaker: convoy_lead, beat: gate_reached, text: "Scout, Wagon Six. At the gate. Thanks for the cover."}
+  - {id: wagon_gate_v2, speaker: convoy_lead, beat: gate_reached, text: "Scout, Wagon Six. We're inside. Owe you one."}
+  - {id: ops_end_v1, speaker: ops_hatay, beat: mission_end, text: "Scout, Ops. Wagon's in. You're released. RTB."}
+  - {id: ops_end_v2, speaker: ops_hatay, beat: mission_end, text: "Scout, Ops. Good escort. Come on home."}

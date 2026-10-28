@@ -1,0 +1,98 @@
+# Golden g01: Syria 2016 A-10C CAS. Fixed seed; must validate, plan, build and check deterministically.
+schema_version: 1
+id: g01-syria-a10-cas
+title: "Saraqib Line"
+campaign: evals
+content_mode: fictional
+theater: Syria
+era: 2016
+date: 2016-05-02
+start_time: "07:30"
+weather_preset: scattered
+mission_type: CAS
+duration_min: 50
+blue_countries: [USA]
+red_countries: [Insurgents]
+cast: [ops_hale, jtac_reed]
+areas:
+  - id: home
+    description: "Abu al-Duhur, home base."
+    where: {kind: near_airbase, airbase: Abu al-Duhur, radius_nm: 1}
+  - id: outpost
+    description: "Friendly outpost west of Saraqib."
+    where: {kind: near_named_place, place: Saraqib, radius_nm: 0.5, bearing_deg: 270, distance_nm: 2}
+    terrain: open
+  - id: engagement
+    description: "Fields north of Saraqib where the technicals mass."
+    where: {kind: near_named_place, place: Saraqib, radius_nm: 1.5, bearing_deg: 0, distance_nm: 3}
+    terrain: open
+  - id: gun_line
+    description: "Militia gun positions east of town."
+    where: {kind: near_named_place, place: Saraqib, radius_nm: 0.8, bearing_deg: 90, distance_nm: 2}
+    terrain: open
+player_flights:
+  - callsign: Hawg
+    aircraft: A-10C_2
+    count: 2
+    coalition: blue
+    country: USA
+    start_area: home
+    start_type: parking_cold
+    loadout: auto
+    tasking: "Check in with Lantern Two-One and break the attack on the outpost."
+objectives:
+  - id: break_attack
+    kind: destroy
+    description: "Destroy the technicals attacking the outpost."
+    area: engagement
+    target: technicals_north
+    success_flag: attack_broken
+  - id: silence_guns
+    kind: destroy
+    description: "Destroy the militia AAA east of Saraqib."
+    primary: false
+    area: gun_line
+    target: aaa_east
+    success_flag: guns_silenced
+  - id: rtb
+    kind: land
+    description: "Recover at Abu al-Duhur."
+    area: home
+    success_flag: landed
+threats:
+  - id: technicals_north
+    role: technicals
+    area: engagement
+    strength: medium
+    faction: red_militia
+    skill: Average
+  - id: aaa_east
+    role: aaa
+    area: gun_line
+    strength: light
+    faction: red_militia
+    skill: Average
+    hidden_on_map: false
+support:
+  - id: jtac
+    role: jtac
+    callsign: "Lantern Two-One"
+    area: outpost
+    speaker: jtac_reed
+dynamic:
+  pools:
+    - id: manpads_teams
+      roles: [manpads]
+      areas: [engagement]
+      pick: [1, 2]
+      faction: red_militia
+  encounters:
+    - id: manpads_ambush
+      kind: ambush_sam
+      pool: manpads_teams
+      trigger: {type: proximity, area: engagement, radius_nm: 4}
+      chance: 60
+      telegraph_beat: manpads_warning
+  director: {enabled: true, intensity: moderate, adaptive: true}
+  fog_of_war: {enabled: true, reveal_radius_km: 5, mark_refresh_sec: 15}
+seed: 1601

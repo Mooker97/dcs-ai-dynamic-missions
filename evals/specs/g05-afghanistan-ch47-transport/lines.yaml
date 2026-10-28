@@ -1,0 +1,17 @@
+mission_id: g05-afghanistan-ch47-transport
+model: eleven_v3
+lines:
+  - {id: ops_start_v1, speaker: ops_bagram, beat: mission_start, text: "Hauler, Longhaul Ops. Load is on. Eyrie is expecting you."}
+  - {id: ops_start_v2, speaker: ops_bagram, beat: mission_start, text: "Hauler, Ops. Pallets secured. Eyrie's waiting, don't linger."}
+  - {id: eyrie_warn_v1, speaker: outpost_lead, beat: eyrie_warning, text: "Hauler, Eyrie. Movement in the village. Make it quick on the pad."}
+  - {id: eyrie_warn_v2, speaker: outpost_lead, beat: eyrie_warning, text: "Hauler, Eyrie. Got eyes on pickups below us. Short time on deck."}
+  - {id: eyrie_finals_v1, speaker: outpost_lead, beat: on_finals, text: "Hauler, Eyrie. Pad is clear, wind light from the west."}
+  - {id: eyrie_finals_v2, speaker: outpost_lead, beat: on_finals, text: "Hauler, Eyrie. You're in sight. Pad clear, land at will."}
+  - {id: eyrie_thanks_v1, speaker: outpost_lead, beat: cargo_down, text: "Hauler, Eyrie. Pallets off. Go, go."}
+  - {id: eyrie_thanks_v2, speaker: outpost_lead, beat: cargo_down, text: "Hauler, Eyrie. Load's clear. Thanks. Get out of here."}
+  - {id: eyrie_contact_v1, speaker: outpost_lead, beat: ambush_spawned, text: "Hauler, Eyrie. Taking fire from the village. Lift now."}
+  - {id: eyrie_contact_v2, speaker: outpost_lead, beat: ambush_spawned, text: "Hauler, Eyrie. Contact west, small arms. Pull pitch."}
+  - {id: ops_rtb_v1, speaker: ops_bagram, beat: rtb_call, text: "Hauler, Ops. Copy delivery. Cleared straight in."}
+  - {id: ops_rtb_v2, speaker: ops_bagram, beat: rtb_call, text: "Hauler, Longhaul Ops. Delivery logged. Straight in, pad three."}
+  - {id: ops_end_v1, speaker: ops_bagram, beat: mission_end, text: "Hauler, Ops. Good run. Shut down."}
+  - {id: ops_end_v2, speaker: ops_bagram, beat: mission_end, text: "Hauler, Ops. That's the day. Shut it down."}

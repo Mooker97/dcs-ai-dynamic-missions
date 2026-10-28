@@ -1,0 +1,18 @@
+# Golden g04 voice lines.
+mission_id: g04-nevada-f16-sead
+model: eleven_v3
+lines:
+  - {id: range_start_v1, speaker: range_ops, beat: mission_start, text: "Venom, Range Control. The range is hot. Package is twenty minutes behind you."}
+  - {id: range_start_v2, speaker: range_ops, beat: mission_start, text: "Venom, Range Control. Range is active. Clear the lane for the package."}
+  - {id: darkstar_push_v1, speaker: darkstar, beat: push, text: "Venom, Darkstar. Picture clean. Push. SAM belt bearing north."}
+  - {id: darkstar_push_v2, speaker: darkstar, beat: push, text: "Venom, Darkstar. No air threats. Cleared to push."}
+  - {id: darkstar_popup_v1, speaker: darkstar, beat: popup_warning, text: "Venom, Darkstar. Mobile emitter moving in the ring. Expect a pop-up."}
+  - {id: darkstar_popup_v2, speaker: darkstar, beat: popup_warning, text: "Venom, Darkstar. New emitter, short range, near the belt. Heads up."}
+  - {id: range_lane_v1, speaker: range_ops, beat: lane_open, text: "Venom, Range Control. Battery is dead. The lane is open."}
+  - {id: range_lane_v2, speaker: range_ops, beat: lane_open, text: "Venom, Range Control. Good kill on the battery. Package can push."}
+  - {id: darkstar_shorad_v1, speaker: darkstar, beat: shorad_down, text: "Venom, Darkstar. Short-range emitter off the air."}
+  - {id: darkstar_shorad_v2, speaker: darkstar, beat: shorad_down, text: "Venom, Darkstar. Ring emitter is down."}
+  - {id: range_rtb_v1, speaker: range_ops, beat: rtb_call, text: "Venom, Range Control. Package is through. Knock it off and RTB."}
+  - {id: range_rtb_v2, speaker: range_ops, beat: rtb_call, text: "Venom, Range Control. Good work. Return to Nellis."}
+  - {id: range_landed_v1, speaker: range_ops, beat: landed, text: "Venom, Range Control. On the ground. Debrief at fourteen hundred."}
+  - {id: range_landed_v2, speaker: range_ops, beat: landed, text: "Venom, Range Control. Wheels down. Nice work today."}

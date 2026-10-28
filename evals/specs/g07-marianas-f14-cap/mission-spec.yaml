@@ -1,0 +1,81 @@
+# Golden g07: F-14B CAP north of Guam (CAP, late cold war, no gazetteer: airbase + latlon areas).
+schema_version: 1
+id: g07-marianas-f14-cap
+title: "North Station"
+campaign: evals
+content_mode: fictional
+theater: MarianaIslands
+era: 1988
+date: 1988-11-20
+start_time: "07:00"
+weather_preset: scattered
+mission_type: CAP
+duration_min: 60
+blue_countries: [USA]
+red_countries: [Russia]
+cast: [gci_guam, wingman]
+areas:
+  - id: andersen
+    description: "Home base."
+    where: {kind: near_airbase, airbase: Andersen AFB, radius_nm: 1}
+  - id: andersen_approach
+    description: "Return circle."
+    where: {kind: near_airbase, airbase: Andersen AFB, radius_nm: 10}
+  - id: cap_station
+    description: "CAP orbit between Guam and Rota."
+    where: {kind: latlon, lat: 14.0, lon: 145.1, radius_nm: 15}
+    terrain: water
+  - id: threat_axis
+    description: "Open sea north of Rota where raids come from."
+    where: {kind: latlon, lat: 14.9, lon: 145.3, radius_nm: 20}
+    terrain: any                   # air threats only; 'water' would flag them as ground units
+player_flights:
+  - callsign: Bullet
+    aircraft: F-14B
+    count: 2
+    country: USA
+    start_area: andersen
+    start_type: runway
+    loadout: auto
+    tasking: "Hold CAP north of Guam; intercept anything inbound."
+objectives:
+  - id: hold_station
+    kind: survive
+    description: "Hold the CAP station for twenty minutes."
+    area: cap_station
+    success_flag: station_held
+  - id: splash_raid
+    kind: destroy
+    description: "Destroy the probing raid."
+    target: raiders
+    primary: false
+    success_flag: raid_defeated
+  - id: rtb
+    kind: land
+    description: "Recover to Andersen."
+    area: andersen
+    success_flag: landed_home
+threats:
+  - id: probe_cap
+    role: fighters
+    area: threat_axis
+    strength: light
+    faction: raid_force
+    skill: Good
+dynamic:
+  pools:
+    - id: raiders
+      roles: [fighters]
+      areas: [threat_axis]
+      pick: [1, 2]
+      faction: raid_force
+  encounters:
+    - id: raid
+      kind: cap
+      pool: raiders
+      trigger: {type: beat, beat: on_station}
+      chance: 100
+      telegraph_beat: gci_picture
+  director: {enabled: true, intensity: moderate, adaptive: true}
+  fog_of_war: {enabled: false}
+seed: 70188

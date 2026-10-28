@@ -1,0 +1,28 @@
+# Eval premise p25-flight-school. Schema: evals/run.py Premise. Give `prompt` to the story-writer skill verbatim,
+# then score: uv run python evals/run.py --score campaigns/<slug> --premise p25-flight-school
+id: p25-flight-school
+title: Wings of Krasnodar
+genre: fictional
+prompt: 1979. At a fictional flight school near Krasnodar, a cadet flying the L-39 is pulled into real
+  operations when a defecting instructor steals an aircraft. Coming-of-age story with low-threat missions
+  that turn serious.
+expect:
+  theater: Caucasus
+  era: [1977, 1981]
+  mode: fictional
+  player_coalition: red
+  airframes: [L-39ZA]
+  airframe_role: trainer
+  missions: [3, 5]
+  mission_types: [RECON]
+  story_elements:
+  - id: cadet
+    description: A cadet protagonist
+    any_of: [cadet]
+  - id: defector
+    description: A defecting instructor
+    any_of: [defect]
+  - id: krasnodar
+    description: Krasnodar flight school
+    any_of: [krasnodar]
+notes: Fictional, low-intensity trainer campaign.

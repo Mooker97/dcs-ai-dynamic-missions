@@ -1,0 +1,28 @@
+# Eval premise p16-mojave-runners. Schema: evals/run.py Premise. Give `prompt` to the story-writer skill verbatim,
+# then score: uv run python evals/run.py --score campaigns/<slug> --premise p16-mojave-runners
+id: p16-mojave-runners
+title: Mojave Runners
+genre: fictional
+prompt: 2026, southern Nevada. A Kiowa scout team supports a federal task force hunting a smuggling network
+  that uses armed drones and desert airstrips. Small stakes, personal grudges, and a pilot who used to
+  fly for the other side.
+expect:
+  theater: Nevada
+  era: [2024, 2028]
+  mode: fictional
+  player_coalition: blue
+  airframes: [OH58D]
+  airframe_role: scout_helo
+  missions: [3, 5]
+  mission_types: [RECON]
+  story_elements:
+  - id: smugglers
+    description: A smuggling network
+    any_of: [smuggl]
+  - id: drones
+    description: Armed drones
+    any_of: [drone]
+  - id: turncoat
+    description: A pilot with a past on the other side
+    any_of: [used to fly, turncoat, defector, switched sides, former cartel, ex-cartel]
+notes: Fictional law-enforcement flavour, scout helicopter.

@@ -1,0 +1,11 @@
+# Golden expectations checked by evals/run.py --golden
+theater: PersianGulf
+mission_type: STRIKE
+player_aircraft: [FA-18C_hornet]
+max_warnings: 0        # cap on validate warnings (set to the observed count)
+min_groups: 6          # plan.groups lower bound (set to observed)
+runtime:               # exact counts in plan.runtime (set to observed)
+  beats: 7
+  pools: 1
+  encounters: 1
+  voice: 14

@@ -1,0 +1,28 @@
+# Eval premise p22-southern-lights. Schema: evals/run.py Premise. Give `prompt` to the story-writer skill verbatim,
+# then score: uv run python evals/run.py --score campaigns/<slug> --premise p22-southern-lights
+id: p22-southern-lights
+title: Southern Lights
+genre: fictional
+prompt: 2030. Seabed mineral claims around the Falklands spark a short fictional air war. A Mirage 2000
+  squadron of a fictional South American federation flies fighter sweeps and escorts against a better-equipped
+  foreign task force.
+expect:
+  theater: Falklands
+  era: [2029, 2030]
+  mode: fictional
+  player_coalition: blue
+  airframes: [M-2000C]
+  airframe_role: fighter
+  missions: [3, 6]
+  mission_types: [CAP, ESCORT]
+  story_elements:
+  - id: minerals
+    description: Seabed mineral claims
+    any_of: [mineral, seabed]
+  - id: underdog
+    description: Outmatched air force
+    any_of: [outnumbered, outmatched, underdog, better-equipped, better equipped]
+  - id: sweep
+    description: Fighter sweeps
+    any_of: [sweep]
+notes: Fictional future, underdog air-to-air.

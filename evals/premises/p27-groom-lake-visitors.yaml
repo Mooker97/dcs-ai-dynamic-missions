@@ -1,0 +1,28 @@
+# Eval premise p27-groom-lake-visitors. Schema: evals/run.py Premise. Give `prompt` to the story-writer skill verbatim,
+# then score: uv run python evals/run.py --score campaigns/<slug> --premise p27-groom-lake-visitors
+id: p27-groom-lake-visitors
+title: Visitors
+genre: fantasy
+prompt: Nevada, an alternate 1990s. Objects that are not aircraft start landing in the ranges north of
+  Groom Lake, and an F-15C alert flight is the first to engage them. The visitors are played by enemy
+  fighters and ground units; the government lies to everyone, including the pilots.
+expect:
+  theater: Nevada
+  era: [1990, 1999]
+  mode: fictional
+  player_coalition: blue
+  airframes: [F-15C]
+  airframe_role: fighter
+  missions: [3, 5]
+  mission_types: [CAP]
+  story_elements:
+  - id: visitors
+    description: Non-human visitors
+    any_of: [visitor, alien, non-human]
+  - id: cover_up
+    description: Government cover-up
+    any_of: [cover-up, cover up, classified, lied, lies to, disinformation]
+  - id: groom_lake
+    description: Groom Lake
+    any_of: [groom lake, area 51]
+notes: Fantasy/sci-fi alert intercepts.

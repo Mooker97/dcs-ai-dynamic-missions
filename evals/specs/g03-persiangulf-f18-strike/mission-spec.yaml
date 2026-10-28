@@ -1,0 +1,90 @@
+# Golden g03: Persian Gulf 2019 F/A-18C coastal STRIKE. Fixed seed.
+schema_version: 1
+id: g03-persiangulf-f18-strike
+title: "Salt Wind"
+campaign: evals
+content_mode: fictional
+theater: PersianGulf
+era: 2019
+date: 2019-11-14
+start_time: "04:50"
+weather_preset: clear
+mission_type: STRIKE
+duration_min: 60
+blue_countries: [USA]
+red_countries: [Iran]
+cast: [ops_navarro, awacs_kim]
+areas:
+  - id: home
+    description: "Al Minhad AFB, home base."
+    where: {kind: near_airbase, airbase: Al Minhad AFB, radius_nm: 1}
+  - id: launch_site
+    description: "Coastal missile launch site east of Bandar Abbas."
+    where: {kind: near_named_place, place: Bandar Abbas, radius_nm: 0.8, bearing_deg: 80, distance_nm: 8}
+    terrain: open
+  - id: site_defence
+    description: "Point defence around the launch site."
+    where: {kind: near_named_place, place: Bandar Abbas, radius_nm: 1.2, bearing_deg: 80, distance_nm: 7}
+    terrain: open
+  - id: ingress
+    description: "Ingress corridor over the strait, south of Qeshm."
+    where: {kind: near_named_place, place: Qeshm, radius_nm: 6, bearing_deg: 180, distance_nm: 10}
+    terrain: water
+player_flights:
+  - callsign: Ranger
+    aircraft: FA-18C_hornet
+    count: 2
+    coalition: blue
+    country: USA
+    start_area: home
+    start_type: parking_hot
+    loadout: auto
+    tasking: "Ingress over the strait and destroy the coastal launchers east of Bandar Abbas."
+objectives:
+  - id: destroy_launchers
+    kind: destroy
+    description: "Destroy the coastal missile launchers."
+    area: launch_site
+    target: launchers
+    success_flag: launchers_destroyed
+  - id: rtb
+    kind: land
+    description: "Recover at Al Minhad."
+    area: home
+    success_flag: landed
+threats:
+  - id: launchers
+    role: hvt
+    area: launch_site
+    strength: medium
+    faction: coastal_command
+    skill: Average
+  - id: point_aaa
+    role: aaa
+    area: site_defence
+    strength: medium
+    faction: coastal_command
+    skill: Good
+  - id: point_sam
+    role: sam_short
+    area: site_defence
+    strength: light
+    faction: coastal_command
+    skill: Good
+dynamic:
+  pools:
+    - id: popup_shorad
+      roles: [sam_short]
+      areas: [site_defence]
+      pick: [1, 1]
+      faction: coastal_command
+  encounters:
+    - id: popup_sam
+      kind: ambush_sam
+      pool: popup_shorad
+      trigger: {type: proximity, area: launch_site, radius_nm: 8}
+      chance: 50
+      telegraph_beat: sam_warning
+  director: {enabled: true, intensity: moderate, adaptive: true}
+  fog_of_war: {enabled: true, reveal_radius_km: 8, mark_refresh_sec: 15}
+seed: 2019

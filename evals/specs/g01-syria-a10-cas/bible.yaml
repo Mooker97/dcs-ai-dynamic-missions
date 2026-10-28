@@ -1,0 +1,53 @@
+# Golden eval bible (fictional). Minimal but schema-valid.
+schema_version: 1
+title: "Golden: Saraqib Line"
+mode: fictional
+setting:
+  era: 2016
+  theater: Syria
+  region: "Abu al-Duhur airfield and the farmland around Saraqib."
+  premise_summary: >-
+    A fictional coalition task force holds Abu al-Duhur. Insurgent technicals press a friendly
+    outpost near Saraqib, and a single A-10 flight is the only air on call.
+tone:
+  style: professional-terse
+  themes: [close air support, trust]
+player_role: "Hawg 1-1: A-10C pair, fictional Task Force Lantern, home base Abu al-Duhur."
+factions:
+  - id: tf_lantern
+    name: "Task Force Lantern"
+    description: "Fictional coalition task force."
+    dcs: {country: USA, coalition: blue, units: [A-10C_2, Hummer]}
+  - id: red_militia
+    name: "Saraqib Front"
+    description: "Fictional insurgent militia with technicals and light air defence."
+    dcs: {country: Insurgents, coalition: red, units: [ZU-23 Emplacement, SA-18 Igla manpad]}
+characters:
+  - id: jtac_reed
+    name: "SSgt Ana Reed"
+    callsign: "Lantern Two-One"
+    role: JTAC
+    faction: tf_lantern
+    voice:
+      design_prompt: "Female, early 30s, General American, calm and clipped over a tactical radio."
+      accent: General American
+      age: 32
+      gender: female
+      cadence: brisk
+      brevity: terse
+      radio_fx: vhf_noisy
+  - id: ops_hale
+    name: "Maj. Tom Hale"
+    callsign: "Lantern Ops"
+    role: operations officer
+    faction: tf_lantern
+    voice:
+      design_prompt: "Male, late 40s, General American, measured operations officer on UHF."
+      accent: General American
+      age: 48
+      gender: male
+      cadence: measured
+      brevity: terse
+      radio_fx: uhf_clean
+canon_rules:
+  - "Golden eval fixture; keep stable."

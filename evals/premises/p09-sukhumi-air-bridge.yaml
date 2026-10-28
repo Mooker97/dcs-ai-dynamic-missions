@@ -1,0 +1,27 @@
+# Eval premise p09-sukhumi-air-bridge. Schema: evals/run.py Premise. Give `prompt` to the story-writer skill verbatim,
+# then score: uv run python evals/run.py --score campaigns/<slug> --premise p09-sukhumi-air-bridge
+id: p09-sukhumi-air-bridge
+title: Air Bridge to Sukhumi
+genre: adapted
+prompt: 1993, Abkhazia. A Mi-8 crew flies an air bridge into a besieged airfield, carrying refugees out
+  and ammunition in, under fire from both sides and with fuel always short. Invented crew, real geography.
+expect:
+  theater: Caucasus
+  era: [1992, 1993]
+  mode: adapted
+  player_coalition: red
+  airframes: [Mi-8MT]
+  airframe_role: utility_helo
+  missions: [3, 5]
+  mission_types: [TRANSPORT]
+  story_elements:
+  - id: siege
+    description: A besieged town or airfield
+    any_of: [siege, besieged]
+  - id: refugees
+    description: Refugee evacuation
+    any_of: [refugee]
+  - id: fuel
+    description: Fuel shortage
+    any_of: [fuel shortage, short of fuel, low fuel, bingo, fuel is short, fuel short]
+notes: Adapted, red-side utility helicopter, moral ambiguity.

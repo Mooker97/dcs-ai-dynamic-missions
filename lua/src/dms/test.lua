@@ -10,10 +10,17 @@
 --   playerProxy = "<AI group name>",   -- treated as the player by every player-dependent module
 --   minutes = 40,                      -- model minutes; pending checks fail and DONE is logged at the end
 --   checks = { {kind = "booted"}, {kind = "beats_in_order", beats = {...}, deadlineSec = 600}, ... },
+--   loiter = { zone, x, y, radiusM, altM, altType, speedMps, startBeat, untilBeat, returnSec }, -- optional
 -- }
 -- Check kinds: booted | spawns {min} | beats_in_order {beats} | beat {id} | comms {min} |
---   encounter {id} | convoy_halt | outcome {result} | ambient_cycle {site}. Optional per check:
---   name, deadlineSec.
+--   encounter {id, optional, group} | convoy_halt | outcome {requireResult} | ambient_cycle {site}.
+--   Optional per check: name, deadlineSec.
+-- encounter optional=true never FAILs and never holds the run open: PASS if spawned, else INFO
+--   "optional encounter X not spawned" (naming spawned siblings of the same exclusive `group`).
+-- outcome passes on any end outcome (detail reports the result) unless requireResult (or legacy
+--   result) names one.
+-- Loiter: once startBeat fired (or the proxy is within radiusM of x/y) the proxy gets a pushed
+--   Orbit task until untilBeat fires or minutes*60 - 15 - returnSec, then popTask resumes its route.
 --
 -- Player proxy: on mission.start the proxy's units are registered as players (DMS.Bus._players)
 -- and a synthetic "player.spawned" is emitted for each, so Narrative/Intel/Director/Comms and
@@ -106,20 +113,29 @@ end
 -- ok, detail, fatal: ok -> PASS(detail); fatal -> FAIL(detail) now; else retry until the deadline
 -- (FAIL with the last detail, or "timeout"). fn errors count as not-yet.
 -- opts.negate: PASS if fn never became truthy before the deadline.
+-- opts.optional: never FAIL and never hold the run open (not counted in _pending): a miss is
+-- logged as INFO (opts.missDetail(detail) when given) once the deadline or the run end arrives.
 function T.expect(name, fn, deadlineSec, opts)
   opts = opts or {}
   local interval = opts.interval or 2
   local deadline = now() + (deadlineSec or 60)
   local resolved = false
-  T._pending = T._pending + 1
+  local optional = opts.optional == true
+  if not optional then
+    T._pending = T._pending + 1
+  end
   local function resolve(ok, detail)
     if resolved then
       return
     end
     resolved = true
-    T._pending = T._pending - 1
+    if not optional then
+      T._pending = T._pending - 1
+    end
     if ok then
       T.pass(name, detail)
+    elseif optional then
+      T.info(name, opts.missDetail and opts.missDetail(detail) or ("optional: " .. tostring(detail)))
     else
       T.fail(name, detail)
     end
@@ -525,7 +541,39 @@ CHECKS.comms = function(c, deadline)
   end, deadline)
 end
 
+-- optional=true: never FAIL (INFO "optional encounter X not spawned"); `group` names a mutually
+-- exclusive set (encounters of sibling chance beats), whose spawned members the INFO lists.
 CHECKS.encounter = function(c, deadline)
+  local opts = nil
+  if c.optional then
+    if c.group then
+      T._groups = T._groups or {}
+      local g = T._groups[c.group] or {}
+      T._groups[c.group] = g
+      g[#g + 1] = c.id
+    end
+    opts = {
+      optional = true,
+      missDetail = function()
+        local msg = "optional encounter " .. tostring(c.id) .. " not spawned"
+        if c.group then
+          local got = {}
+          for _, id in ipairs((T._groups or {})[c.group] or {}) do
+            if id ~= c.id and T._obs.encounters[id] then
+              got[#got + 1] = id
+            end
+          end
+          msg = msg
+            .. " (group "
+            .. tostring(c.group)
+            .. ": "
+            .. (#got > 0 and (table.concat(got, ",") .. " spawned") or "none spawned")
+            .. ")"
+        end
+        return msg
+      end,
+    }
+  end
   T.expect(c.name, function()
     local n = T._obs.encounters[c.id]
     if n then
@@ -533,7 +581,7 @@ CHECKS.encounter = function(c, deadline)
     end
     local st = DMS.Encounters and DMS.Encounters.get and DMS.Encounters.get(c.id)
     return false, string.format("%s not spawned (fired=%s)", c.id, tostring(st and st.fired))
-  end, deadline)
+  end, deadline, opts)
 end
 
 -- Resolved last (at the deadline or once every other check resolved): every hit convoy halted.
@@ -556,15 +604,28 @@ CHECKS.convoy_halt = function(c, deadline)
   end
 end
 
+-- Any `kind=end` outcome passes and reports its result; requireResult (or legacy result) demands one.
 CHECKS.outcome = function(c, deadline)
+  local want = c.requireResult or c.result
   T.expect(c.name, function()
+    local seen = {}
     for _, o in ipairs(T._obs.outcomes) do
-      if o.kind == "end" and (c.result == nil or o.result == c.result) then
-        return true, "end result=" .. tostring(o.result)
+      if o.kind == "end" then
+        if want == nil or o.result == want then
+          return true, "end result=" .. tostring(o.result)
+        end
+        seen[#seen + 1] = tostring(o.result)
       end
     end
+    if #seen > 0 then
+      return false, string.format("end result=%s, required %s", table.concat(seen, ","), tostring(want)), true
+    end
     return false,
-      string.format("%d outcome line(s), no end%s", #T._obs.outcomes, c.result and (" with result=" .. c.result) or "")
+      string.format(
+        "%d outcome line(s), no end%s",
+        #T._obs.outcomes,
+        want and (" (required result=" .. want .. ")") or ""
+      )
   end, deadline)
 end
 
@@ -632,6 +693,141 @@ local function summary()
 end
 T.summary = summary
 
+-- ---------------------------------------------------------------- proxy loiter
+
+local function proxyPoint()
+  local g = proxyGroup()
+  if not g then
+    return nil
+  end
+  local okU, units = pcall(g.getUnits, g)
+  local u = okU and type(units) == "table" and units[1] or nil
+  if not u then
+    return nil
+  end
+  local okP, p = pcall(u.getPoint, u)
+  if okP and p then
+    return p
+  end
+  return nil
+end
+
+local function proxyController()
+  local g = proxyGroup()
+  if not g then
+    return nil
+  end
+  local okC, c = pcall(g.getController, g)
+  if okC then
+    return c
+  end
+  return nil
+end
+
+local function orbitTask(L)
+  local alt = tonumber(L.altM) or 4500
+  if L.altType == "RADIO" then
+    local okH, h = pcall(land.getHeight, { x = L.x, y = L.y })
+    if okH and type(h) == "number" then
+      alt = alt + h
+    end
+  end
+  local pattern = (AI and AI.Task and AI.Task.OrbitPattern and AI.Task.OrbitPattern.CIRCLE) or "Circle"
+  return {
+    id = "Orbit",
+    params = {
+      pattern = pattern,
+      point = { x = L.x, y = L.y },
+      altitude = alt,
+      speed = tonumber(L.speedMps) or 150,
+    },
+  }
+end
+
+-- Hold the proxy over the objective until the RTB beat (L.untilBeat) fires or the return-flight
+-- budget runs out (endAt - L.returnSec), then pop the Orbit so the route home resumes.
+-- T._loiter.state: wait -> orbit -> done (or wait -> done when skipped).
+function T.startLoiter(L, endAt)
+  if type(L) ~= "table" or not L.untilBeat or not L.x or not L.y then
+    return false
+  end
+  local untilT = (endAt or math.huge) - (tonumber(L.returnSec) or 0)
+  local zone = tostring(L.zone or "loiter")
+  local S = { state = "wait" }
+  T._loiter = S
+  local function finish(status, reason)
+    S.state = "done"
+    S.reason = reason
+    T.info("loiter", string.format("%s %s (%s) t=%.0f", status, zone, reason, now()))
+    DMS.Log.info(P, "proxy loiter %s over %s: %s", status, zone, reason)
+  end
+  local function startReason(O)
+    if L.startBeat and O.beatIndex[L.startBeat] then
+      return L.startBeat .. " fired"
+    end
+    local p = proxyPoint()
+    if p then
+      local dx, dz = p.x - L.x, p.z - L.y
+      if math.sqrt(dx * dx + dz * dz) <= (tonumber(L.radiusM) or 3000) then
+        return "proxy within " .. tostring(L.radiusM) .. " m"
+      end
+    end
+    return nil
+  end
+  DMS.Clock.every(5, function()
+    if S.state == "done" or T._done then
+      return false
+    end
+    local O = T._obs
+    local rtb = O.beatIndex[L.untilBeat] ~= nil
+    if S.state == "wait" then
+      if rtb then
+        finish("skip", L.untilBeat .. " fired before the loiter zone")
+        return false
+      end
+      if now() >= untilT then
+        finish("skip", "no time left before the return flight")
+        return false
+      end
+      local why = startReason(O)
+      if not why then
+        return true
+      end
+      local c = proxyController()
+      local ok, err = false, "no controller"
+      if c then
+        ok, err = pcall(c.pushTask, c, orbitTask(L))
+      end
+      if not ok then
+        finish("skip", "orbit task failed: " .. tostring(err))
+        return false
+      end
+      S.state = "orbit"
+      S.startedAt = now()
+      T.info("loiter", string.format("start %s (%s) until %s t=%.0f", zone, why, L.untilBeat, now()))
+      DMS.Log.info(P, "proxy loiter start over %s (%s), until %s or t=%.0f", zone, why, L.untilBeat, untilT)
+      return true
+    end
+    -- orbiting
+    local reason = nil
+    if rtb then
+      reason = L.untilBeat .. " fired"
+    elseif now() >= untilT then
+      reason = "timeout, return flight budget"
+    end
+    if not reason then
+      return true
+    end
+    local c = proxyController()
+    if c then
+      pcall(c.popTask, c)
+    end
+    finish("stop", reason)
+    return false
+  end, { firstDelay = 5 })
+  return true
+end
+
 -- ---------------------------------------------------------------- lifecycle
 
 function T.start()
@@ -670,6 +866,10 @@ function T.start()
       end
     end
     DMS.Clock.after(1, arm)
+  end
+
+  if type(c.loiter) == "table" and c.playerProxy then
+    T.startLoiter(c.loiter, endAt)
   end
 
   T.runChecks(c.checks, deadline)
@@ -711,6 +911,7 @@ end
 function T._reset()
   T._pending, T._total, T._passed, T._done = 0, 0, 0, false
   T._autoArmed, T.manualDone, T._started, T._finals, T._open = nil, nil, nil, {}, {}
+  T._groups, T._loiter = {}, nil
   T._obs = freshObs()
 end
 

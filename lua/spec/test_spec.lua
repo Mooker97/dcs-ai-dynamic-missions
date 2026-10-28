@@ -218,3 +218,176 @@ describe("DMS.Test checks", function()
     assert.are.equal("FAIL", t.status)
   end)
 end)
+
+describe("DMS.Test optional encounters", function()
+  it("never fails optional encounters, names spawned group siblings, and does not hold the run", function()
+    proxy(0, 0)
+    DMS_CONFIG = config({
+      { kind = "booted", name = "runtime_booted" },
+      { kind = "encounter", name = "encounter_near_box", id = "near_box", optional = true, group = "route_set" },
+      { kind = "encounter", name = "encounter_far_box", id = "far_box", optional = true, group = "route_set" },
+      { kind = "encounter", name = "encounter_lonely", id = "lonely", optional = true },
+      { kind = "encounter", name = "encounter_required", id = "near_box" },
+    })
+    DMS_CONFIG.encounters[2] = {
+      id = "far_box",
+      kind = "pool",
+      pool = "trucks",
+      gated = false,
+      trigger = { type = "manual" },
+    }
+    DMS_CONFIG.encounters[3] = {
+      id = "lonely",
+      kind = "pool",
+      pool = "trucks",
+      gated = false,
+      trigger = { type = "manual" },
+    }
+    DMS.boot()
+    MOCK.advance(15)
+    MOCK.moveUnit("Proxy Dusty 1-1", 20000, 0)
+    MOCK.advance(10)
+    -- every required check resolved; the optional ones do not hold the run open
+    MOCK.advance(10)
+    assert.is_true((MOCK.logContains("%[DMS%.TEST%] DONE 3/3")))
+    assert.are.equal("PASS", byName("encounter_near_box").status)
+    assert.are.equal("PASS", byName("encounter_required").status)
+    assert.is_nil(byName("encounter_far_box"))
+    local far, lonely
+    for _, t in ipairs(tests("INFO")) do
+      if t.name == "encounter_far_box" then
+        far = t
+      elseif t.name == "encounter_lonely" then
+        lonely = t
+      end
+    end
+    assert.is_truthy(far)
+    assert.is_truthy(string.find(far.detail, "optional encounter far_box not spawned", 1, true))
+    assert.is_truthy(string.find(far.detail, "group route_set: near_box spawned", 1, true))
+    assert.is_truthy(lonely)
+    assert.are.equal("optional encounter lonely not spawned", lonely.detail)
+    assert.are.equal(0, #tests("FAIL"))
+  end)
+end)
+
+describe("DMS.Test outcome", function()
+  local function failingHome()
+    local c = config({ { kind = "outcome", name = "outcome_end" } })
+    c.beats[3].effects = { endMission = "failure" }
+    return c
+  end
+
+  it("passes on any mission end and reports the result", function()
+    proxy(0, 0)
+    DMS_CONFIG = failingHome()
+    DMS.boot()
+    MOCK.advance(15)
+    MOCK.fireEvent({ id = world.event.S_EVENT_LAND, initiator = Unit.getByName("Proxy Dusty 1-1") })
+    MOCK.advance(20)
+    local t = byName("outcome_end")
+    assert.are.equal("PASS", t.status)
+    assert.are.equal("end result=failure", t.detail)
+  end)
+
+  it("fails when requireResult names a different result", function()
+    proxy(0, 0)
+    DMS_CONFIG = failingHome()
+    DMS_CONFIG.test.checks[1].requireResult = "success"
+    DMS.boot()
+    MOCK.advance(15)
+    MOCK.fireEvent({ id = world.event.S_EVENT_LAND, initiator = Unit.getByName("Proxy Dusty 1-1") })
+    MOCK.advance(20)
+    local t = byName("outcome_end")
+    assert.are.equal("FAIL", t.status)
+    assert.is_truthy(string.find(t.detail, "required success", 1, true))
+  end)
+end)
+
+describe("DMS.Test proxy loiter", function()
+  local function loiterConfig(returnSec)
+    -- the pending beat check keeps the run open (DONE ends the loiter too)
+    local c = config({ { kind = "booted", name = "runtime_booted" }, { kind = "beat", name = "home", id = "home" } })
+    c.beats[#c.beats + 1] = {
+      id = "rtb_call",
+      when = { event = "flag", flag = "convoy_resolved" },
+      text = "rtb",
+      speaker = "ops",
+    }
+    c.test.loiter = {
+      zone = "gate",
+      x = 10000,
+      y = 0,
+      radiusM = 1000,
+      altM = 120,
+      altType = "RADIO",
+      speedMps = 41.7,
+      startBeat = "at_gate",
+      untilBeat = "rtb_call",
+      returnSec = returnSec or 120,
+    }
+    return c
+  end
+
+  local function info(prefix)
+    for _, t in ipairs(tests("INFO")) do
+      if t.name == "loiter" and string.sub(t.detail, 1, #prefix) == prefix then
+        return t
+      end
+    end
+    return nil
+  end
+
+  it("orbits at the loiter zone until the RTB beat fires, then resumes the route", function()
+    proxy(0, 0)
+    DMS_CONFIG = loiterConfig()
+    DMS.boot()
+    MOCK.advance(15)
+    assert.are.equal("wait", DMS.Test._loiter.state)
+    assert.are.equal(0, #MOCK.callsTo("Controller.pushTask", "Proxy Dusty 1"))
+    MOCK.moveUnit("Proxy Dusty 1-1", 10000, 0)
+    MOCK.advance(15)
+    assert.are.equal("orbit", DMS.Test._loiter.state)
+    local pushed = MOCK.callsTo("Controller.pushTask", "Proxy Dusty 1")
+    assert.are.equal(1, #pushed)
+    local task = pushed[1].args[1]
+    assert.are.equal("Orbit", task.id)
+    assert.are.equal("Circle", task.params.pattern)
+    assert.are.equal(10000, task.params.point.x)
+    assert.is_true(task.params.altitude >= 120) -- RADIO: AGL over the centre
+    assert.is_truthy(info("start gate ("))
+    MOCK.advance(60)
+    assert.are.equal("orbit", DMS.Test._loiter.state)
+    DMS.Narrative.setFlag("convoy_resolved")
+    MOCK.advance(15)
+    assert.are.equal("done", DMS.Test._loiter.state)
+    assert.are.equal(1, #MOCK.callsTo("Controller.popTask", "Proxy Dusty 1"))
+    assert.is_truthy(info("stop gate (rtb_call fired)"))
+    assert.is_true((MOCK.logContains("proxy loiter stop over gate")))
+  end)
+
+  it("stops at the return-flight budget when the RTB beat never fires", function()
+    proxy(0, 0)
+    DMS_CONFIG = loiterConfig(300) -- minutes = 10: endAt 585 s, loiter until 285 s
+    DMS.boot()
+    MOCK.advance(15)
+    MOCK.moveUnit("Proxy Dusty 1-1", 10000, 0)
+    MOCK.advance(15)
+    assert.are.equal("orbit", DMS.Test._loiter.state)
+    MOCK.advance(300)
+    assert.are.equal("done", DMS.Test._loiter.state)
+    assert.are.equal(1, #MOCK.callsTo("Controller.popTask", "Proxy Dusty 1"))
+    assert.is_truthy(info("stop gate (timeout"))
+  end)
+
+  it("skips the loiter when the RTB beat fired before the zone", function()
+    proxy(0, 0)
+    DMS_CONFIG = loiterConfig()
+    DMS.boot()
+    MOCK.advance(5)
+    DMS.Narrative.setFlag("convoy_resolved")
+    MOCK.advance(15)
+    assert.are.equal("done", DMS.Test._loiter.state)
+    assert.are.equal(0, #MOCK.callsTo("Controller.pushTask", "Proxy Dusty 1"))
+    assert.is_truthy(info("skip gate (rtb_call fired before the loiter zone)"))
+  end)
+end)

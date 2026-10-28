@@ -404,6 +404,17 @@ class AmbientSpec(DMSModel):
     )
 
 
+class MissionTestHints(DMSModel):
+    """Hints for headless test builds (`dms build --test`); never affect normal play."""
+
+    __test__ = False
+
+    require_result: Literal["success", "failure"] | None = Field(
+        default=None,
+        description="outcome_end must see this result (unset = any mission end passes).",
+    )
+
+
 class MissionSpec(DMSModel):
     """Declarative mission spec (mission-spec.yaml). Areas by reference, forces by role."""
 
@@ -447,6 +458,9 @@ class MissionSpec(DMSModel):
     )
     seed: int | None = Field(
         default=None, description="Planner seed; null picks one and records it."
+    )
+    test: MissionTestHints | None = Field(
+        default=None, description="Headless test-build hints (dms build --test)."
     )
     notes: str | None = Field(default=None, description="Designer notes; not compiled.")
 

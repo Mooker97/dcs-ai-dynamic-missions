@@ -513,6 +513,31 @@
       "title": "LatLonArea",
       "type": "object"
     },
+    "MissionTestHints": {
+      "additionalProperties": false,
+      "description": "Hints for headless test builds (`dms build --test`); never affect normal play.",
+      "properties": {
+        "require_result": {
+          "anyOf": [
+            {
+              "enum": [
+                "success",
+                "failure"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "outcome_end must see this result (unset = any mission end passes).",
+          "title": "Require Result"
+        }
+      },
+      "title": "MissionTestHints",
+      "type": "object"
+    },
     "NearAirbase": {
       "additionalProperties": false,
       "description": "An area around (or offset from) a DCS airbase.",
@@ -1533,6 +1558,18 @@
       "default": null,
       "description": "Planner seed; null picks one and records it.",
       "title": "Seed"
+    },
+    "test": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MissionTestHints"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Headless test-build hints (dms build --test)."
     },
     "notes": {
       "anyOf": [

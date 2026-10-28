@@ -10,6 +10,13 @@ tagged **(flown)** once it has been verified in DCS. Everything else is "impleme
 ## [Unreleased]: v0.3 skeleton
 
 ### Added
+- Test builds (`dms build --test`): encounter checks are required only when the trigger is
+  unconditional for the AI proxy (time/director, proximity on its route, guaranteed beat,
+  chance 100); the rest are `optional` (INFO, never FAIL; mutually exclusive sibling-beat sets
+  share a `group`). `outcome_end` passes on any mission end unless mission-spec
+  `test: {require_result}` asks for one. The proxy orbits over the objective
+  (`DMS_CONFIG.test.loiter`) until the spine's non-positional RTB beat fires (or the return-flight
+  budget runs out); test minutes include that loiter. Implemented, not flown.
 - Player flights: start `variant`s (one `<id>-<variant>.miz` per variant, `<id>.miz` = first;
   `dms build --variant`, MCP `build(variant=)`), `slot: player|client` (SP Player lead + AI
   wingmen by default), `air_start` placement short of the IP, radio callsign applied in the

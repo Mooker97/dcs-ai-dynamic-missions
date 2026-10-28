@@ -504,15 +504,53 @@ class TestCheck(DMSModel):
     )
     id: Ident | None = Field(default=None, description="beat / encounter: the id to watch.")
     result: Literal["success", "failure"] | None = Field(
-        default=None, description="outcome: expected end result (unset = any end)."
+        default=None, description="outcome: legacy alias of require_result."
+    )
+    require_result: Literal["success", "failure"] | None = Field(
+        default=None, description="outcome: required end result (unset = any end passes)."
+    )
+    optional: bool | None = Field(
+        default=None,
+        description="encounter: never FAIL (PASS if spawned, else INFO) and never hold the run open.",
+    )
+    group: str | None = Field(
+        default=None,
+        description="encounter: mutually exclusive set (sibling chance beats); reported together.",
     )
     site: Ident | None = Field(
         default=None, description="ambient_cycle: site id to watch (unset = any site)."
     )
 
 
+class TestLoiter(DMSModel):
+    """DMS_CONFIG.test.loiter: hold the proxy over the objective until the RTB beat fires."""
+
+    __test__ = False
+
+    zone: Ident = Field(description="Loiter zone id (for logs).")
+    x: float = Field(description="Orbit centre x (DCS map meters).")
+    y: float = Field(description="Orbit centre y (DCS map meters).")
+    radius_m: float = Field(
+        gt=0, description="Proxy distance from the centre that also starts the orbit."
+    )
+    alt_m: float = Field(description="Orbit altitude in meters (alt_type).")
+    alt_type: Literal["BARO", "RADIO"] = Field(
+        default="BARO", description="BARO = MSL, RADIO = above ground at the centre."
+    )
+    speed_mps: float = Field(gt=0, description="Orbit speed in m/s.")
+    start_beat: Ident | None = Field(
+        default=None, description="Beat whose firing starts the orbit (the loiter zone's beat)."
+    )
+    until_beat: Ident = Field(description="Beat whose firing ends the loiter (the RTB beat).")
+    return_sec: float = Field(
+        ge=0, description="Loiter ends by minutes*60 - return_sec even without the beat."
+    )
+
+
 class TestSettings(DMSModel):
     """DMS_CONFIG.test: headless test mode, set only by `dms build --test` (dms_test.lua)."""
+
+    __test__ = False  # not a pytest class
 
     enabled: bool = Field(default=True, description="false keeps test mode inert.")
     player_proxy: str | None = Field(
@@ -524,6 +562,9 @@ class TestSettings(DMSModel):
         description="Model minutes; pending checks fail and DONE is logged then.",
     )
     checks: list[TestCheck] = Field(default_factory=list, description="Assertions to run.")
+    loiter: TestLoiter | None = Field(
+        default=None, description="Hold the proxy at the objective until the RTB beat."
+    )
 
 
 class RuntimeConfig(DMSModel):

@@ -136,10 +136,25 @@ DMS.Ambient.counts(siteId?) -> groups, units      -- live ambient groups/units (
 DMS.Test.pass(name, detail) fail skip info   check(name, cond, detail) -> bool   done() autoDone(graceSec)
 DMS.Test.expect(name, fn(atEnd) -> ok, detail, fatal, deadlineSec, {interval=2, negate})
 DMS.Test.config() isEnabled() proxyName() isProxyRun() runChecks(checks, deadlineSec)
---   DMS_CONFIG.test = {enabled, playerProxy=<AI group treated as the player>, minutes, checks={...}}
+--   DMS_CONFIG.test = {enabled, playerProxy=<AI group treated as the player>, minutes, checks={...},
+--                      loiter={zone, x, y, radiusM, altM, altType, speedMps, startBeat?, untilBeat, returnSec}?}
 --   check kinds: booted | spawns{min} | beats_in_order{beats} | beat{id} | comms{min} |
---                encounter{id} | convoy_halt | outcome{result} | ambient_cycle{site?};
---                optional name, deadlineSec
+--                encounter{id, optional?, group?} | convoy_halt | outcome{requireResult?} |
+--                ambient_cycle{site?}; optional name, deadlineSec
+--   encounter optional=true: never FAILs and never holds the run open; PASS if it spawned, else
+--     INFO "optional encounter X not spawned" (plus "group G: Y spawned" when a sibling of the same
+--     mutually exclusive `group` spawned). testmode makes a check required only when its trigger is
+--     unconditional for the proxy (time / director, proximity on the proxy route, or a guaranteed
+--     beat; spec chance 100); everything else is optional.
+--   outcome: PASS on any `kind=end` outcome, detail reports its result; `requireResult`
+--     (success|failure) also demands that result (legacy `result` is the same). testmode sets it
+--     only from mission-spec `test.require_result`.
+--   loiter: once `startBeat` (the loiter zone's spine beat) fired or the proxy is within radiusM
+--     of (x, y) (circle zone radius, else a small floor) it gets a pushed Orbit task (circle,
+--     altM BARO or RADIO = AGL, speedMps) until beat `untilBeat` fired or model time
+--     minutes*60 - returnSec, then popTask resumes the route home. Logs INFO loiter start/stop
+--     (and skip when untilBeat fired before the zone). Set by testmode when the spine beat before
+--     the first landing beat is not position-driven (e.g. an RTB call on a flag/timer).
 --   ambient_cycle: PASS once a site (any, or `site`) emitted ambient.activated and later
 --   ambient.deactivated (proxy left the area); detail lists activations/deactivations per site.
 ```
@@ -280,6 +295,8 @@ DMS_CONFIG = {
 - `test` is only present in `dms build --test` builds (headless DCS runs): `dms_test.lua`, loaded
   between `dms_config.lua` and `dms.lua`, sets `DMS_CONFIG.test` and `debug = true`; read by
   `lua/src/dms/test.lua`. Python model: `RuntimeConfig.test` (`TestSettings`, `TestCheck`).
+  Mission spec: optional `test: {require_result: success|failure}` (headless test hints; default
+  unset = any mission end passes `outcome_end`, since an AI proxy cannot attack).
 - Spec-level `convoy` encounters (`mission-spec.yaml` `dynamic.encounters`, which only name a
   pool) compile to `spawnZone` = the pool's first area and `destination` = the pool's last area
   (pool with 2+ areas), else the proximity trigger area when it differs, else the nearest

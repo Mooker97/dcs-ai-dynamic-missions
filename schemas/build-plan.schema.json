@@ -3859,8 +3859,51 @@
             }
           ],
           "default": null,
-          "description": "outcome: expected end result (unset = any end).",
+          "description": "outcome: legacy alias of require_result.",
           "title": "Result"
+        },
+        "require_result": {
+          "anyOf": [
+            {
+              "enum": [
+                "success",
+                "failure"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "outcome: required end result (unset = any end passes).",
+          "title": "Require Result"
+        },
+        "optional": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "encounter: never FAIL (PASS if spawned, else INFO) and never hold the run open.",
+          "title": "Optional"
+        },
+        "group": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "encounter: mutually exclusive set (sibling chance beats); reported together.",
+          "title": "Group"
         },
         "site": {
           "anyOf": [
@@ -3883,6 +3926,97 @@
         "kind"
       ],
       "title": "TestCheck",
+      "type": "object"
+    },
+    "TestLoiter": {
+      "additionalProperties": false,
+      "description": "DMS_CONFIG.test.loiter: hold the proxy over the objective until the RTB beat fires.",
+      "properties": {
+        "zone": {
+          "description": "Loiter zone id (for logs).",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Zone",
+          "type": "string"
+        },
+        "x": {
+          "description": "Orbit centre x (DCS map meters).",
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "description": "Orbit centre y (DCS map meters).",
+          "title": "Y",
+          "type": "number"
+        },
+        "radius_m": {
+          "description": "Proxy distance from the centre that also starts the orbit.",
+          "exclusiveMinimum": 0,
+          "title": "Radius M",
+          "type": "number"
+        },
+        "alt_m": {
+          "description": "Orbit altitude in meters (alt_type).",
+          "title": "Alt M",
+          "type": "number"
+        },
+        "alt_type": {
+          "default": "BARO",
+          "description": "BARO = MSL, RADIO = above ground at the centre.",
+          "enum": [
+            "BARO",
+            "RADIO"
+          ],
+          "title": "Alt Type",
+          "type": "string"
+        },
+        "speed_mps": {
+          "description": "Orbit speed in m/s.",
+          "exclusiveMinimum": 0,
+          "title": "Speed Mps",
+          "type": "number"
+        },
+        "start_beat": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Beat whose firing starts the orbit (the loiter zone's beat).",
+          "title": "Start Beat"
+        },
+        "until_beat": {
+          "description": "Beat whose firing ends the loiter (the RTB beat).",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Until Beat",
+          "type": "string"
+        },
+        "return_sec": {
+          "description": "Loiter ends by minutes*60 - return_sec even without the beat.",
+          "minimum": 0,
+          "title": "Return Sec",
+          "type": "number"
+        }
+      },
+      "required": [
+        "zone",
+        "x",
+        "y",
+        "radius_m",
+        "alt_m",
+        "speed_mps",
+        "until_beat",
+        "return_sec"
+      ],
+      "title": "TestLoiter",
       "type": "object"
     },
     "TestSettings": {
@@ -3929,6 +4063,18 @@
           },
           "title": "Checks",
           "type": "array"
+        },
+        "loiter": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TestLoiter"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hold the proxy at the objective until the RTB beat."
         }
       },
       "title": "TestSettings",

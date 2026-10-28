@@ -113,7 +113,11 @@ def test_test_lua_compiles_and_sets_config(m01: Any) -> None:
         "tower_welcome",
         "on_deck",
     ]
-    assert t.checks[len(t.checks)].result == "success"
+    # any mission end passes unless the spec asks for a result (mission-spec test.require_result);
+    # no loiter: the spine's tower_welcome zone beat precedes on_deck
+    assert t.checks[len(t.checks)].requireResult is None
+    assert t.checks[len(t.checks)].result is None
+    assert t.loiter is None
     assert t.checks[2].deadlineSec == 40 * 60 - 30
     assert lua.eval("DMS_CONFIG.debug") is True
 

@@ -139,7 +139,25 @@ switch (_mode) do {
 				_gun suppressFor _secs;
 				_gun doSuppressiveFire _tgt;
 			};
-			sleep (_secs + 4);
+			// doSuppressiveFire often does nothing for a vehicle gunner (0 rounds in the first headless
+			// run). If nothing has gone out after a few seconds, fire short aimed bursts ourselves.
+			sleep 6;
+			if (!DMS_over && {alive _gun} && {DMS_ifvShots == _shots0}) then {
+				private _wpn = (_veh weaponsTurret [0]) param [0, ""];
+				private _aim = createVehicle ["Land_HelipadEmpty_F", ASLToAGL _tgt, [], 0, "CAN_COLLIDE"];
+				_veh doWatch (ASLToAGL _tgt);
+				sleep 3;
+				private _tEnd = time + (_secs - 6);
+				while {!DMS_over && {alive _gun} && {time < _tEnd}} do {
+					for "_b" from 1 to 4 do { _veh fireAtTarget [_aim, _wpn]; sleep 0.25; };
+					sleep 2;
+				};
+				deleteVehicle _aim;
+				[format ["Bradley: forced bursts with %1 (%2 rounds)", _wpn, DMS_ifvShots - _shots0]] call DMS_fnc_log;
+			} else {
+				sleep (_secs - 6);
+			};
+			sleep 4;
 			DMS_ifvBusy = false;
 			if (DMS_over) exitWith {};
 			private _n = DMS_ifvShots - _shots0;

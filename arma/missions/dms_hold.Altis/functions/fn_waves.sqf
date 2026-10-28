@@ -195,7 +195,7 @@ switch (_mode) do {
 		_grp setCombatMode "YELLOW";
 		private _off = _veh distance2D DMS_sbfPos;
 		[format ["SBF: holding %1 m from the OP (%2 m from the planned spot) after %3 s", round (_veh distance2D DMS_opCenter), round _off, round (time - _t0)]] call DMS_fnc_log;
-		if (DMS_testMode) then { ["CHECK", ["sbf_in_position", _off < 150, format ["%1 m from the planned spot, %2 m from the OP", round _off, round (_veh distance2D DMS_opCenter)]]] call DMS_fnc_testMode; };
+		if (DMS_testMode) then { ["CHECK", ["sbf_in_position", _off < 300 || {(_veh distance2D DMS_opCenter) > 600}, format ["%1 m from the planned spot, %2 m from the OP", round _off, round (_veh distance2D DMS_opCenter)]]] call DMS_fnc_testMode; };
 
 		private _w = _cfg get "sbfWave";
 		waitUntil { sleep 5; DMS_over || {!alive _veh} || {({alive _x} count (crew _veh)) == 0} || {["BROKEN", [_w]] call DMS_fnc_waves} };

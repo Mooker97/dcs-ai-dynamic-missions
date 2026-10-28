@@ -369,6 +369,18 @@ writes JSON Schema files to `schemas/` at the repo root for skills and editors.
   - `dms new-campaign <slug>`: copy `campaigns/_template` to `campaigns/<slug>`.
   - `dms debrief <campaign_dir> --mission mNN [--log PATH] [--dry-run] [--force] [--seed N] [--json]`:
     latest session's `[DMS.OUTCOME]` lines -> `state/outcomes/<mNN>.yaml`, qualities, next mission.
+- **Briefing and kneeboard in the miz:** `dms_gen.builder.build_from_plan(plan, out, base_dir=<mission dir>)`
+  (used by `dms build` and the MCP `build`) folds the mission folder's Markdown into the build.
+  `plan.json` on disk is unchanged. Both files are optional; without them the plan's `PlanBriefing` is used.
+  - `briefing.md` maps to the DCS briefing fields. The first `#` heading becomes `sortie`. Everything before the
+    first `## 2. …`/`## Mission` heading becomes `descriptionText`, and the rest becomes `descriptionBlueTask`.
+    A heading containing `Red` (e.g. `## Red task`) becomes `descriptionRedTask` until the next heading at the
+    same or a higher level. Markdown is stripped to plain text, with paragraphs unwrapped so that DCS wraps them.
+    Empty fields fall back to `PlanBriefing`.
+  - `kneeboard.md` renders to 768x1024 PNG pages at `KNEEBOARD/IMAGES/<mission_id>-kneeboard-NN.png`
+    (all aircraft). It supports headings, paragraph lines (line breaks kept), bullets, pipe tables and `**bold**`,
+    and paginates when needed. It uses Pillow's default font and no bundled font files. The bytes are
+    deterministic for a given Pillow build. Glyphs that font lacks become ASCII (`—`→`-`, `→`→`->`).
 
 ## MCP server (`packages/dms-mcp`, v0.8)
 

@@ -3,7 +3,11 @@ name = "dms-gen"
 version = "0.3.0.dev0"
 description = "DMS generator: spec -> plan -> .miz"
 requires-python = ">=3.11"
-dependencies = ["dms-core", "pydcs==1.0.0"]
+dependencies = [
+    "dms-core",
+    "pillow>=11.0",
+    "pydcs==1.0.0",
+]
 
 [build-system]
 requires = ["hatchling"]

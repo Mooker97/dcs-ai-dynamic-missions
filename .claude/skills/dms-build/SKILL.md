@@ -21,7 +21,7 @@ stage, repairing, and explaining what each stage produced.
 | validate | `uv run dms validate mission-spec.yaml` | errors with suggested fixes, or OK |
 | plan | `uv run dms plan mission-spec.yaml -o plan.json` | `plan.json`: exact positions, unit types, payload CLSIDs, frequencies, group names, triggers, seed, `DMS_CONFIG` |
 | voice | `uv run dms voice lines.yaml --dry-run`, then `uv run dms voice lines.yaml` | cost estimate, then `voice/*.ogg` (radio FX applied, cached) |
-| build | `uv run dms build plan.json -o out/mNN.miz` | the `.miz`: pydcs mission + `dms.lua` bundle + `dms_config.lua` + audio + kneeboard |
+| build | `uv run dms build plan.json -o out/mNN.miz` | the `.miz`: pydcs mission + `dms.lua` bundle + `dms_config.lua` + audio + briefing text from `briefing.md` + kneeboard pages rendered from `kneeboard.md` |
 | check | `uv run dms check out/mNN.miz` | structural report: IDs, slots, resources, config schema, `luac -p` |
 
 Run all commands from the repo root with full paths, e.g.
@@ -44,7 +44,19 @@ build-plan, runtime-config, ...) from the pydantic models in `packages/dms-core/
 4. **Voice.** Run the dry-run and report the cost. Render only after the user approves new cost.
    For voice/tag work, use the voice-director skill. No API key: skip and note that beats will
    show subtitles only.
-5. **Build** to `missions/mNN-<slug>/out/mNN.miz`.
+5. **Build** to `missions/mNN-<slug>/out/mNN.miz`. The build reads the mission folder's
+   Markdown directly, so edit `briefing.md` and `kneeboard.md` (not `plan.json`) and then rebuild:
+   - `briefing.md` becomes the DCS briefing. The first `#` heading is the sortie name.
+     Everything before `## 2. Mission` is the situation (description). Paragraph 2 onward is the
+     blue task, and a `## Red task` section becomes the red task. Markdown is stripped to plain
+     text. If the file is missing, the build uses the planner's minimal briefing (title and
+     objectives).
+   - `kneeboard.md` is rendered to 768x1024 PNG pages, embedded as
+     `KNEEBOARD/IMAGES/<mission_id>-kneeboard-01.png` (then `-02` and so on when it overflows), for
+     every aircraft. Headings, bullets, `**bold**` and pipe tables render. Keep it to 25 lines or
+     fewer so it fits on one page. The page font has no `—` or `→`, so these print as `-` and `->`.
+   - The rendered pages exist only inside the `.miz`, so don't commit PNGs. To preview a page, run
+     `uv run python -c "from dms_gen.builder import write_kneeboard_pages as w; print(w('<dir>/kneeboard.md', '<scratch dir>'))"`.
 6. **Check.** Every finding is either fixed (back to the stage that owns it: spec → validate/plan,
    lines → voice, generator bug → report) or explicitly accepted by the user.
 7. **Explain how to fly it** (below), then point at the debriefer skill for after the flight.
@@ -55,7 +67,9 @@ build-plan, runtime-config, ...) from the pydantic models in `packages/dms-core/
    `Saved Games\DCS.openbeta\Missions\`).
 2. DCS → Mission → open it, or open it in the Mission Editor to inspect first. Don't re-save it from
    the ME unless needed, because the ME can strip unreferenced sound files.
-3. Take the player slot (e.g. Dusty 1-1). The F10 map is Fog of War by design: enemies appear as
+3. Read the briefing screen (it comes from `briefing.md`). Then take the player slot (e.g. Dusty 1-1).
+   In the cockpit, the kneeboard (RShift+K, then `[`/`]` to page) shows the rendered `kneeboard.md`
+   after the airframe's own pages. The F10 map is Fog of War by design: enemies appear as
    marks only when detected.
 4. Fly. After the flight, debrief **before** relaunching DCS (it overwrites dcs.log).
 
@@ -84,4 +98,5 @@ build-plan, runtime-config, ...) from the pydantic models in `packages/dms-core/
 - [ ] plan.json summarised; frequencies copied into briefing/kneeboard
 - [ ] voice dry-run shown; render approved or skipped with reason
 - [ ] out/mNN.miz built; check clean or findings accepted
+- [ ] briefing screen and kneeboard page(s) match briefing.md / kneeboard.md (not flown = not verified)
 - [ ] Fly instructions and dcs.log pointers given; debriefer suggested

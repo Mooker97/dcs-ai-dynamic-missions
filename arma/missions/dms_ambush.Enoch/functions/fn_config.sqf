@@ -66,7 +66,8 @@ createHashMapFromArray [
 		["spotDistance", 0.7], ["spotTime", 0.6], ["courage", 0.6], ["reloadSpeed", 0.5], ["commanding", 0.5]
 	]],
 	["detectKnowsAbout", 1.5], // a convoy group knowing this much about a squad member = ambush compromised
-	["escapeFailCount", 2], // this many vehicles past the kill line = mission failed
+	["escapeFailCount", 1], // this many supply trucks past the kill line = mission failed (escorts don't count)
+	["escortHaltSec", [20, 45]], // escorts halt this long on contact to return fire, then drive through
 	["ineffectiveMaxAlive", 2], // convoy is combat ineffective with no working vehicle and at most this many men left
 	["fledDistance", 900], // convoy men further than this from the kill zone no longer count
 	["stuckWarn", 120],

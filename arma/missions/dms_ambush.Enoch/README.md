@@ -38,8 +38,9 @@ looking for you.
    has a working gun still counts.
 6. **Win condition, part 2.** Break contact and get to the RP. The mission is won when the player
    reaches it (with no player, any squad member).
-7. **Fail** if the player is killed, the squad is wiped out, or 2 convoy vehicles get past the kill
-   line. A single escaped vehicle drives off and is removed. That is acceptable.
+7. **Fail** if the player is killed, the squad is wiped out, or a supply truck (Ural) gets past the
+   kill line. On contact the escorts (Tigr, BTR) halt for 20–45 s to return fire, then drive through
+   the kill zone as convoy drill says; an escort that escapes is logged but doesn't fail the mission.
 
 **Mortars** work as in The Hill: an 81 mm section through the comm menu (0-8). It has 2 fire missions
 of 4 rounds and 2 spotting rounds. Expect about 85 s from request to splash. Requests within 150 m of

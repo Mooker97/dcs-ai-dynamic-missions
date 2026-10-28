@@ -142,6 +142,19 @@ switch (_mode) do {
 			_x params ["_veh", "_role", "_cargo"];
 			if (alive _veh) then { _veh forceFollowRoad false; };
 			if (!isNull _cargo) then { ["DISMOUNT", [_veh, _cargo]] spawn DMS_fnc_convoy; };
+			// Escorts halt briefly to return fire before driving through the kill zone. This is the
+			// player's window for AT (first headless run: both escorts were through in ~40 s).
+			if (isNull _cargo && {alive _veh}) then {
+				[_veh] spawn {
+					params ["_veh"];
+					private _hold = ["RANGE", DMS_cfg get "escortHaltSec"] call DMS_fnc_rng;
+					_veh forceSpeed 0;
+					[format ["Escort %1 halts to return fire for %2 s", typeOf _veh, round _hold]] call DMS_fnc_log;
+					private _t = time;
+					waitUntil { sleep 1; DMS_over || {!alive _veh} || {time - _t > _hold} };
+					if (alive _veh) then { _veh forceSpeed -1; };
+				};
+			};
 		} forEach DMS_convoy;
 	};
 
@@ -213,12 +226,14 @@ switch (_mode) do {
 			};
 			// escapes past the kill line
 			{
-				_x params ["_veh"];
+				_x params ["_veh", "_role"];
 				if (alive _veh && {!(_veh getVariable ["DMS_escaped", false])} && {canMove _veh} && {alive (driver _veh)}
 					&& {(_beyond findIf {(_x distance2D _veh) < 40}) > -1}) then {
 					_veh setVariable ["DMS_escaped", true];
-					_escaped = _escaped + 1;
-					[format ["Convoy vehicle %1 escaped past the kill line (%2 of %3 allowed)", typeOf _veh, _escaped, (DMS_cfg get "escapeFailCount") - 1]] call DMS_fnc_log;
+					// Only the supply trucks count against the mission; an escort driving through the
+					// kill zone is normal convoy drill and is just logged.
+					if (_role == "TRUCK") then { _escaped = _escaped + 1; };
+					[format ["Convoy vehicle %1 (%2) escaped past the kill line (%3 truck(s) out, %4 allowed)", typeOf _veh, _role, _escaped, (DMS_cfg get "escapeFailCount") - 1]] call DMS_fnc_log;
 					[_veh, _exitPt] spawn {
 						params ["_veh", "_exitPt"];
 						private _t = time;
@@ -230,7 +245,7 @@ switch (_mode) do {
 				};
 			} forEach DMS_convoy;
 			if (_escaped >= (DMS_cfg get "escapeFailCount")) exitWith {
-				["DMS_FailEscape", false, format ["%1 convoy vehicles escaped past the kill line", _escaped]] call DMS_fnc_end;
+				["DMS_FailEscape", false, format ["%1 supply truck(s) escaped past the kill line", _escaped]] call DMS_fnc_end;
 			};
 			// combat ineffective: no working vehicle and almost nobody left near the kill zone
 			if (DMS_contact || {(DMS_convoy findIf {!alive (_x select 0)}) > -1}) then {

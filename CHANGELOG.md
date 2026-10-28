@@ -24,6 +24,27 @@ tagged **(flown)** once it has been verified in DCS. Everything else is "impleme
   quality deltas and `<mNN>_<key>` flags to `state/qualities.yaml` and picks the next mission from
   arc branches. The debriefer skill calls it first. Implemented, not flown (synthetic logs only).
 
+- **First real DCS run (headless, 2026-10-28):** m01 test build on DCS 2.9.30 via
+  `tools/dcs_harness` (single-player, `--norender`, x16). The bundle booted with no script or DMS
+  errors; 9 of 10 spine beats fired in order, 3 encounters spawned on land and 9 comms lines
+  played. The run timed out before the final landing beat (test budget too short, now fixed).
+  This is a headless smoke test, not a cockpit check.
+- `dms-mcp`: FastMCP stdio server with 6 tools (validate, plan, build, check, schema,
+  campaign_status). Implemented, not flown.
+- `evals/`: 30 premises plus 8 golden mission specs; `evals/run.py --golden | --score`.
+- `dms build` embeds `briefing.md` (sortie, description, tasks) and `kneeboard.md` (768x1024 PNG
+  pages) in the miz. Implemented, not viewed in DCS.
+- `dms check` validates the embedded DMS_CONFIG against `RuntimeConfig`, checks guaranteed-beat
+  reachability, and accepts template/group encounter sources.
+- Lua: a real `cap` encounter (race-track/circle orbit, engage in zone, RTB, director-gated
+  replacements); 200-seed director, ground and CAP specs. Implemented, not flown.
+- Voice: Text-to-Dialogue for multi-speaker lines, per-line `radio_fx`, the lines.yaml `model` and
+  bible voice ids.
+- `dms plan` feeds `state/qualities.yaml` into `DMS_CONFIG.qualities`.
+- Spec convoys compile with `spawnZone` and `destination`.
+- Harness: DCS crash detection (out of memory) and parser unit tests; CI runs the Arma and harness
+  tests, the bundle step no longer needs lupa, and StyLua is advisory.
+
 ### Changed
 - **Restructure (da799f7):**
   - The repo is now a uv workspace with `packages/dms-{core,gen,voice,cli}`, `lua/`, `data/`,

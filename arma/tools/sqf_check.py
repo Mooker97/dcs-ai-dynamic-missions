@@ -528,7 +528,7 @@ def check_mission(mission_dir: Path) -> Report:
     menu = set(desc.get("CfgCommunicationMenu", {}))
     debrief = set(desc.get("CfgDebriefing", {}))
     all_sqf = "\n".join(texts.values())
-    for item in set(re.findall(r'"(DMS_(?:Arty\w+|Extract))"', all_sqf)):
+    for item in set(re.findall(r'"(DMS_(?:Arty\w+|AirSupport|Extract))"', all_sqf)):
         if item not in menu:
             rep.errors.append(f"comm-menu item {item} not in CfgCommunicationMenu")
     for end in set(re.findall(r'"(DMS_(?:Win|Fail\w*|TestEnd))"', all_sqf)):

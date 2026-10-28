@@ -24,6 +24,400 @@
       "title": "Adapt",
       "type": "object"
     },
+    "Ambient": {
+      "additionalProperties": false,
+      "description": "DMS_CONFIG.ambient: friendly base traffic around the player's airbases.",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "description": "false keeps DMS.Ambient inert.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "check_sec": {
+          "default": 5,
+          "description": "Activation/maintenance interval.",
+          "exclusiveMinimum": 0,
+          "title": "Check Sec",
+          "type": "number"
+        },
+        "grace_sec": {
+          "default": 30,
+          "description": "Seconds with no player in range before deactivating.",
+          "minimum": 0,
+          "title": "Grace Sec",
+          "type": "number"
+        },
+        "stagger_sec": {
+          "default": 3,
+          "description": "Delay between layer spawns.",
+          "minimum": 0,
+          "title": "Stagger Sec",
+          "type": "number"
+        },
+        "departure_delay_sec": {
+          "default": 600,
+          "description": "Departures/arrivals wait for the first player takeoff or this many seconds.",
+          "minimum": 0,
+          "title": "Departure Delay Sec",
+          "type": "number"
+        },
+        "max_groups": {
+          "default": 12,
+          "description": "Global ambient group cap.",
+          "minimum": 0,
+          "title": "Max Groups",
+          "type": "integer"
+        },
+        "max_units": {
+          "default": 24,
+          "description": "Global ambient unit cap (statics count as units).",
+          "minimum": 0,
+          "title": "Max Units",
+          "type": "integer"
+        },
+        "sites": {
+          "description": "Ambient sites.",
+          "items": {
+            "$ref": "#/$defs/AmbientSite"
+          },
+          "title": "Sites",
+          "type": "array"
+        }
+      },
+      "title": "Ambient",
+      "type": "object"
+    },
+    "AmbientAvoid": {
+      "additionalProperties": false,
+      "description": "A circle where ambient traffic never spawns or parks (player parking spots etc.).",
+      "properties": {
+        "x": {
+          "description": "Center DCS x (north), meters.",
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "description": "Center DCS y (east), meters.",
+          "title": "Y",
+          "type": "number"
+        },
+        "radius_m": {
+          "default": 60,
+          "description": "Radius in meters.",
+          "exclusiveMinimum": 0,
+          "title": "Radius M",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y"
+      ],
+      "title": "AmbientAvoid",
+      "type": "object"
+    },
+    "AmbientLayer": {
+      "additionalProperties": false,
+      "description": "One kind of ambient traffic at a site (departures, arrivals, ground, helo or statics).",
+      "properties": {
+        "count": {
+          "default": 1,
+          "description": "Groups (statics: objects) this layer keeps alive.",
+          "minimum": 0,
+          "title": "Count",
+          "type": "integer"
+        },
+        "types": {
+          "description": "DCS unit type names to pick from (unit catalog ids).",
+          "items": {
+            "type": "string"
+          },
+          "title": "Types",
+          "type": "array"
+        },
+        "templates": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "DMS template ids to pick from instead of / besides types.",
+          "title": "Templates"
+        },
+        "category": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Air layers: 'airplane' | 'helicopter'; statics: DCS static category (e.g. 'Unarmed').",
+          "title": "Category"
+        },
+        "interval_sec": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "departures/arrivals: replacement delay, number or [min, max].",
+          "title": "Interval Sec"
+        },
+        "distance_m": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "departures: fly-out distance; arrivals: spawn distance.",
+          "title": "Distance M"
+        },
+        "alt_m": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Flight altitude in meters.",
+          "title": "Alt M"
+        },
+        "speed": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Speed in m/s.",
+          "title": "Speed"
+        },
+        "radius_m": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "ground/helo/statics: area radius around the site point.",
+          "title": "Radius M"
+        }
+      },
+      "title": "AmbientLayer",
+      "type": "object"
+    },
+    "AmbientLayers": {
+      "additionalProperties": false,
+      "description": "The traffic layers of one ambient site (every layer optional).",
+      "properties": {
+        "departures": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AmbientLayer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Aircraft parked, then taking off and flying out."
+        },
+        "arrivals": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AmbientLayer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Aircraft spawned airborne that land at the site."
+        },
+        "ground": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AmbientLayer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Service vehicles looping around the apron."
+        },
+        "helo": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AmbientLayer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Helicopters orbiting the site."
+        },
+        "statics": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AmbientLayer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Static objects placed while the site is active."
+        }
+      },
+      "title": "AmbientLayers",
+      "type": "object"
+    },
+    "AmbientSite": {
+      "additionalProperties": false,
+      "description": "One airbase (or point) with ambient friendly traffic.",
+      "properties": {
+        "id": {
+          "description": "Site id, e.g. 'hatay'.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "airbase": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "DCS airbase name (unset = point only, no parking/landing).",
+          "title": "Airbase"
+        },
+        "point": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/XY"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Site centre (default: airbase position)."
+        },
+        "coalition": {
+          "default": 2,
+          "description": "1 = red, 2 = blue.",
+          "enum": [
+            1,
+            2
+          ],
+          "title": "Coalition",
+          "type": "integer"
+        },
+        "country": {
+          "description": "DCS country key for spawned traffic, e.g. 'USA'.",
+          "title": "Country",
+          "type": "string"
+        },
+        "active_radius_m": {
+          "default": 8000,
+          "description": "A player within this radius activates the site.",
+          "exclusiveMinimum": 0,
+          "title": "Active Radius M",
+          "type": "number"
+        },
+        "despawn_radius_m": {
+          "default": 12000,
+          "description": "Site deactivates once no player is within this radius for grace_sec.",
+          "exclusiveMinimum": 0,
+          "title": "Despawn Radius M",
+          "type": "number"
+        },
+        "max_groups": {
+          "default": 8,
+          "description": "Max live ambient groups at this site.",
+          "minimum": 0,
+          "title": "Max Groups",
+          "type": "integer"
+        },
+        "max_units": {
+          "default": 16,
+          "description": "Max live ambient units at this site (statics count).",
+          "minimum": 0,
+          "title": "Max Units",
+          "type": "integer"
+        },
+        "avoid": {
+          "description": "Circles where nothing spawns or parks.",
+          "items": {
+            "$ref": "#/$defs/AmbientAvoid"
+          },
+          "title": "Avoid",
+          "type": "array"
+        },
+        "layers": {
+          "$ref": "#/$defs/AmbientLayers",
+          "description": "Traffic layers."
+        }
+      },
+      "required": [
+        "id",
+        "country"
+      ],
+      "title": "AmbientSite",
+      "type": "object"
+    },
     "Beat": {
       "additionalProperties": false,
       "description": "One storylet beat. Keep radio text short; 3-5 voice-line variants per beat.",
@@ -2293,7 +2687,8 @@
             "comms",
             "encounter",
             "convoy_halt",
-            "outcome"
+            "outcome",
+            "ambient_cycle"
           ],
           "title": "Kind",
           "type": "string"
@@ -2390,6 +2785,22 @@
           "default": null,
           "description": "outcome: expected end result (unset = any end).",
           "title": "Result"
+        },
+        "site": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "ambient_cycle: site id to watch (unset = any site).",
+          "title": "Site"
         }
       },
       "required": [
@@ -2687,6 +3098,18 @@
       ],
       "default": null,
       "description": "Beat engine pacing (unset = runtime defaults)."
+    },
+    "ambient": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Ambient"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Friendly base traffic around player airbases (unset = off)."
     },
     "test": {
       "anyOf": [

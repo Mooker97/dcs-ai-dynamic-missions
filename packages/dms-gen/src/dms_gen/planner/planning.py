@@ -63,6 +63,7 @@ from pydantic import ValidationError
 
 from ..builder.mission import aircraft_type
 from . import forces
+from .ambient import plan_ambient
 from .context import (
     NM,
     PlanError,
@@ -922,6 +923,7 @@ def plan_mission(
     voice = build_voice_map(lines, manifest)
     runtime = p.runtime(rt_zones, beat_list, voice, debug)
     runtime.speakers = build_speakers(spec, bible, lines)
+    runtime.ambient = plan_ambient(spec.ambient, p.groups, theater=spec.theater, era=p.era, seed=s)
     if qualities:
         runtime.qualities = {str(k): float(v) for k, v in qualities.items()}
 

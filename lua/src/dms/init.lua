@@ -3,7 +3,7 @@
 
 DMS = DMS or {}
 
-DMS.START_ORDER = { "Spawner", "Ground", "Director", "Encounters", "Narrative", "Comms", "Intel" }
+DMS.START_ORDER = { "Spawner", "Ground", "Director", "Encounters", "Narrative", "Comms", "Intel", "Ambient" }
 
 local function count(t)
   if type(t) ~= "table" then

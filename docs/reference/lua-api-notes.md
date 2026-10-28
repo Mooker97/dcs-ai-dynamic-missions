@@ -211,3 +211,55 @@ kinds.
 - Whether `RTB_ON_BINGO` sends them to the nearest friendly airbase rather than along our RTB
   route. The state machine does not model a bingo RTB: such a group stays in `station` until it
   dies or its station time runs out.
+
+## Ambient base traffic (`lua/src/dms/ambient.lua`)
+
+`DMS_CONFIG.ambient` (see CONTRACTS) lists sites, normally one per player departure/recovery
+airbase. `DMS.Ambient.start()` (last in `START_ORDER`) runs one `Clock.every(checkSec)` tick.
+
+### Lifecycle per site
+
+- **Inactive -> active**: a player unit of the site's coalition (`DMS.Spawner.playerUnits()`, so the
+  DMS.Test proxy counts) within `activeRadiusM` of the site point. Emits `ambient.activated`,
+  then fills layers one spawn per `staggerSec` in the order statics, ground, departures, helo,
+  arrivals (never several in one frame).
+- **Active**: every tick refreshes `lastNear` while a player is within `despawnRadiusM`, starts
+  parked departures, removes departed/landed aircraft and re-fills layers below `count` (after
+  `intervalSec` for departures/arrivals). A failed spawn logs its reason once
+  (`[DMS][Ambient] Site 'x': skipped <layer> spawn (<reason>)`) and retries after 60 s.
+- **Active -> inactive**: no player within `despawnRadiusM` for `graceSec`. Every group is
+  `destroy()`ed and every static removed; emits `ambient.deactivated {reason = "left"}`. Pending
+  staggered spawns are dropped (epoch counter). Returning within `activeRadiusM` re-activates.
+
+### Layers and DCS tasking
+
+| Layer | Spawn | Lifetime |
+|---|---|---|
+| departures | `uncontrolled = true`, first waypoint `TakeOffParking` / `From Parking Area` with `airdromeId`, unit `parking = Term_Index` on a free spot from `Airbase:getParking(true)` (Term_Type 68/72/100/104, plus 40 for helicopters), never inside `avoid` | `setCommand{id = "Start"}` once the runway gate is open and a random 60-240 s has passed; destroyed beyond `min(despawnRadiusM + distanceM/2, 0.9 distanceM)` from the site; replaced after `intervalSec` |
+| arrivals | airborne `distanceM` out on a random bearing, route -> `Land` / `Landing` waypoint with `airdromeId` | destroyed 90 s after its `unit.landed`, or after 40 min |
+| ground | 4 loop points: 30-55 m off random parking spots (or random land points within `radiusM`), never water/shallow water/runway, `avoid`, or within 25 m of a spot | re-routed (reversed) when the lead reaches the last point |
+| helo | airborne on a 6-point circle (`radiusM`, `altM` RADIO), starting opposite the nearest player | route re-issued each lap |
+| statics | `coalition.addStaticObject` (layer `category` passed through) on the same ground-point rules | until deactivation |
+
+All groups get `SetImmortal`, `SetInvisible`, ROE weapon hold (air: reaction NO_REACTION;
+ground: alarm GREEN) 1 s after spawn. Aircraft get `payload.fuel = 0.6 * Unit.getDescByName(type).fuelMassMax`
+when that API answers, else no payload table.
+
+**Runway gate**: departures are not started and arrivals are not spawned until a player of any
+coalition registered in `DMS.Bus._players` has a `unit.takeoff`, or `departureDelaySec` has passed
+since start. This keeps the runway free while the player starts up and taxis.
+
+**Budgets**: `maxGroups`/`maxUnits` per site and globally (statics count as units only). Ambient
+groups are not tracked in `DMS.Registry` and never emit `spawner.spawned`, so the Director's spawn
+budget, `budgets.maxActive*` and `DMS.Test` spawn checks are unaffected; the Director ignores
+`unit.dead`/`unit.shot` from ambient groups (`DMS.Ambient.isAmbient`). They are on the player's
+coalition, so Intel never marks them.
+
+### Unverified in DCS **[?]**
+
+- `Airbase:getParking(true)` returning only free spots on every map, and `Term_Type` filtering
+  keeping large transports (C-130) out of spots that are too small.
+- Uncontrolled parked aircraft obeying `{id = "Start"}` after `SetImmortal`/`SetInvisible`.
+- `Unit.getDescByName(type).fuelMassMax` (fallback: no payload; DCS may then spawn with 0 fuel).
+- `Group:destroy()` of ambient groups not producing `unit.dead` (guarded anyway via `isAmbient`).
+- Ground AI driving between apron points without blocking taxiways the player uses.

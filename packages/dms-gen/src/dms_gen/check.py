@@ -373,6 +373,7 @@ def _check_config(
             rep.add("error", "config_bad_zone", f"trigger zone '{tr.get('zone')}' missing", eid)
         if tr.get("beat") is not None and tr.get("beat") not in beat_ids:
             rep.add("warning", "config_bad_beat", f"trigger beat '{tr.get('beat')}' missing", eid)
+    _check_ambient(rep, as_map(cfg.get("ambient")), templates)
     voice = as_map(cfg.get("voice"))
     subtitle_only = sorted(str(k) for k, v in voice.items() if not as_map(v).get("file"))
     missing = sorted(
@@ -413,6 +414,47 @@ def _check_config(
         beats=len(beat_ids),
     )
     return cfg
+
+
+AMBIENT_LAYERS = ("departures", "arrivals", "ground", "helo", "statics")
+
+
+@lru_cache(maxsize=1)
+def _catalog_unit_types() -> frozenset[str]:
+    from dms_core import catalog
+
+    return frozenset(catalog.load_catalog().units)
+
+
+def _check_ambient(rep: CheckReport, ambient: dict[Any, Any], templates: dict[str, Any]) -> None:
+    """Every ambient layer type must be in the unit catalog, every template in DMS_CONFIG."""
+    if not ambient:
+        return
+    known = _catalog_unit_types()
+    for i, site in enumerate(_as_list(ambient.get("sites"))):
+        site = _as_map(site)
+        sid = site.get("id", i + 1)
+        layers = _as_map(site.get("layers"))
+        for name in AMBIENT_LAYERS:
+            layer = _as_map(layers.get(name))
+            where = f"ambient.sites.{sid}.layers.{name}"
+            for t in _as_list(layer.get("types")):
+                if t not in known:
+                    rep.add(
+                        "error",
+                        "ambient_bad_type",
+                        f"ambient unit type {t!r} is not in the unit catalog",
+                        where,
+                    )
+            for tpl in _as_list(layer.get("templates")):
+                if tpl not in templates:
+                    rep.add(
+                        "error",
+                        "ambient_bad_template",
+                        f"ambient template {tpl!r} missing from DMS_CONFIG.templates",
+                        where,
+                    )
+    rep.stats["ambient_sites"] = len(_as_list(ambient.get("sites")))
 
 
 def _check_lua_syntax(rep: CheckReport, miz: MizFile, files: set[str]) -> None:

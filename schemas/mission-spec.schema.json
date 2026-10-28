@@ -1,5 +1,31 @@
 {
   "$defs": {
+    "AmbientSpec": {
+      "additionalProperties": false,
+      "description": "Friendly base traffic around the player flights' airbases (planner-generated).",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "description": "Generate ambient traffic at player bases.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "density": {
+          "default": "low",
+          "description": "How busy the bases look; 'off' disables ambient traffic.",
+          "enum": [
+            "off",
+            "low",
+            "medium",
+            "high"
+          ],
+          "title": "Density",
+          "type": "string"
+        }
+      },
+      "title": "AmbientSpec",
+      "type": "object"
+    },
     "Area": {
       "additionalProperties": false,
       "description": "A named area other parts of the spec refer to by id (objectives, threats, routes, pools).",
@@ -1335,6 +1361,10 @@
     "dynamic": {
       "$ref": "#/$defs/DynamicIntent",
       "description": "Runtime randomness."
+    },
+    "ambient": {
+      "$ref": "#/$defs/AmbientSpec",
+      "description": "Friendly base traffic at the player flights' departure airbases."
     },
     "seed": {
       "anyOf": [

@@ -12,7 +12,8 @@
 --   checks = { {kind = "booted"}, {kind = "beats_in_order", beats = {...}, deadlineSec = 600}, ... },
 -- }
 -- Check kinds: booted | spawns {min} | beats_in_order {beats} | beat {id} | comms {min} |
---   encounter {id} | convoy_halt | outcome {result}. Optional per check: name, deadlineSec.
+--   encounter {id} | convoy_halt | outcome {result} | ambient_cycle {site}. Optional per check:
+--   name, deadlineSec.
 --
 -- Player proxy: on mission.start the proxy's units are registered as players (DMS.Bus._players)
 -- and a synthetic "player.spawned" is emitted for each, so Narrative/Intel/Director/Comms and
@@ -307,6 +308,7 @@ local function freshObs()
     outcomes = {},
     proxyTakeoff = false,
     proxyLanded = false,
+    ambient = {}, -- site -> {act=n, deact=n, cycled=bool}
   }
 end
 T._obs = T._obs or freshObs()
@@ -405,6 +407,34 @@ function T._observe()
     if ev and ev.group == T.proxyName() then
       O.proxyLanded = true
       T.info("proxy", string.format("landed t=%.0f place=%s", now(), tostring(ev.place)))
+    end
+  end)
+  on("ambient.activated", function(ev)
+    if ev and ev.site then
+      local a = O.ambient[ev.site] or { act = 0, deact = 0 }
+      O.ambient[ev.site] = a
+      a.act = a.act + 1
+      T.info("ambient", string.format("%s activated (%s group(s)) t=%.0f", ev.site, tostring(ev.groups), now()))
+    end
+  end)
+  on("ambient.deactivated", function(ev)
+    if ev and ev.site then
+      local a = O.ambient[ev.site] or { act = 0, deact = 0 }
+      O.ambient[ev.site] = a
+      a.deact = a.deact + 1
+      if a.act > 0 then
+        a.cycled = true
+      end
+      T.info(
+        "ambient",
+        string.format(
+          "%s deactivated (%s, %s group(s) removed) t=%.0f",
+          ev.site,
+          tostring(ev.reason),
+          tostring(ev.groups),
+          now()
+        )
+      )
     end
   end)
   on("zone.entered", function(ev)
@@ -535,6 +565,27 @@ CHECKS.outcome = function(c, deadline)
     end
     return false,
       string.format("%d outcome line(s), no end%s", #T._obs.outcomes, c.result and (" with result=" .. c.result) or "")
+  end, deadline)
+end
+
+-- An ambient site activated (proxy near the base) and later deactivated (proxy left).
+CHECKS.ambient_cycle = function(c, deadline)
+  T.expect(c.name, function()
+    local parts, ok = {}, false
+    local sites = {}
+    for id in pairs(T._obs.ambient) do
+      sites[#sites + 1] = id
+    end
+    table.sort(sites)
+    for _, id in ipairs(sites) do
+      local a = T._obs.ambient[id]
+      parts[#parts + 1] = string.format("%s(act=%d deact=%d)", id, a.act, a.deact)
+      if a.cycled and (c.site == nil or c.site == id) then
+        ok = true
+      end
+    end
+    local detail = #parts > 0 and table.concat(parts, " ") or "no ambient site activated"
+    return ok, detail
   end, deadline)
 end
 

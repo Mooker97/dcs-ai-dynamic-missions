@@ -23,6 +23,7 @@ from ._common import (
 from .beats import Beat, BeatEffects, BeatMark, BeatSheet, BeatTrigger
 from .campaign import Act, ArcMission, Branch, CampaignArc, Qualities, QualityDef
 from .mission import (
+    AmbientSpec,
     Area,
     DirectorIntent,
     DynamicIntent,
@@ -58,6 +59,11 @@ from .plan import (
     Pylon,
 )
 from .runtime import (
+    Ambient,
+    AmbientAvoid,
+    AmbientLayer,
+    AmbientLayers,
+    AmbientSite,
     Budgets,
     CircleZone,
     Director,
@@ -126,6 +132,12 @@ __all__ = [
     "MISSION_TYPES",
     "THEATERS",
     "Act",
+    "Ambient",
+    "AmbientAvoid",
+    "AmbientLayer",
+    "AmbientLayers",
+    "AmbientSite",
+    "AmbientSpec",
     "ArcMission",
     "Area",
     "Beat",

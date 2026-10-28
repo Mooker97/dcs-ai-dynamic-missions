@@ -357,11 +357,142 @@ class Players(DMSModel):
     coalition: Literal[1, 2] = Field(default=2, description="1 = red, 2 = blue.")
 
 
+class AmbientLayer(DMSModel):
+    """One kind of ambient traffic at a site (departures, arrivals, ground, helo or statics)."""
+
+    count: int = Field(
+        default=1, ge=0, description="Groups (statics: objects) this layer keeps alive."
+    )
+    types: list[str] = Field(
+        default_factory=list, description="DCS unit type names to pick from (unit catalog ids)."
+    )
+    templates: list[str] | None = Field(
+        default=None, description="DMS template ids to pick from instead of / besides types."
+    )
+    category: str | None = Field(
+        default=None,
+        description="Air layers: 'airplane' | 'helicopter'; statics: DCS static category (e.g. 'Unarmed').",
+    )
+    interval_sec: Range | None = Field(
+        default=None, description="departures/arrivals: replacement delay, number or [min, max]."
+    )
+    distance_m: float | None = Field(
+        default=None, gt=0, description="departures: fly-out distance; arrivals: spawn distance."
+    )
+    alt_m: float | None = Field(default=None, ge=0, description="Flight altitude in meters.")
+    speed: float | None = Field(default=None, gt=0, description="Speed in m/s.")
+    radius_m: float | None = Field(
+        default=None, gt=0, description="ground/helo/statics: area radius around the site point."
+    )
+
+
+class AmbientLayers(DMSModel):
+    """The traffic layers of one ambient site (every layer optional)."""
+
+    departures: AmbientLayer | None = Field(
+        default=None, description="Aircraft parked, then taking off and flying out."
+    )
+    arrivals: AmbientLayer | None = Field(
+        default=None, description="Aircraft spawned airborne that land at the site."
+    )
+    ground: AmbientLayer | None = Field(
+        default=None, description="Service vehicles looping around the apron."
+    )
+    helo: AmbientLayer | None = Field(default=None, description="Helicopters orbiting the site.")
+    statics: AmbientLayer | None = Field(
+        default=None, description="Static objects placed while the site is active."
+    )
+
+
+class AmbientAvoid(DMSModel):
+    """A circle where ambient traffic never spawns or parks (player parking spots etc.)."""
+
+    x: float = Field(description="Center DCS x (north), meters.")
+    y: float = Field(description="Center DCS y (east), meters.")
+    radius_m: float = Field(default=60, gt=0, description="Radius in meters.")
+
+
+class AmbientSite(DMSModel):
+    """One airbase (or point) with ambient friendly traffic."""
+
+    id: Ident = Field(description="Site id, e.g. 'hatay'.")
+    airbase: str | None = Field(
+        default=None, description="DCS airbase name (unset = point only, no parking/landing)."
+    )
+    point: XY | None = Field(default=None, description="Site centre (default: airbase position).")
+    coalition: Literal[1, 2] = Field(default=2, description="1 = red, 2 = blue.")
+    country: str = Field(description="DCS country key for spawned traffic, e.g. 'USA'.")
+    active_radius_m: float = Field(
+        default=8000, gt=0, description="A player within this radius activates the site."
+    )
+    despawn_radius_m: float = Field(
+        default=12000,
+        gt=0,
+        description="Site deactivates once no player is within this radius for grace_sec.",
+    )
+    max_groups: int = Field(default=8, ge=0, description="Max live ambient groups at this site.")
+    max_units: int = Field(
+        default=16, ge=0, description="Max live ambient units at this site (statics count)."
+    )
+    avoid: list[AmbientAvoid] = Field(
+        default_factory=list, description="Circles where nothing spawns or parks."
+    )
+    layers: AmbientLayers = Field(default_factory=AmbientLayers, description="Traffic layers.")
+
+    @model_validator(mode="after")
+    def _radii(self) -> AmbientSite:
+        if self.despawn_radius_m <= self.active_radius_m:
+            raise ValueError(
+                f"ambient site '{self.id}': despawn_radius_m ({self.despawn_radius_m}) must be "
+                f"greater than active_radius_m ({self.active_radius_m})"
+            )
+        if self.airbase is None and self.point is None:
+            raise ValueError(f"ambient site '{self.id}' needs an airbase or a point")
+        return self
+
+
+class Ambient(DMSModel):
+    """DMS_CONFIG.ambient: friendly base traffic around the player's airbases."""
+
+    enabled: bool = Field(default=True, description="false keeps DMS.Ambient inert.")
+    check_sec: float = Field(default=5, gt=0, description="Activation/maintenance interval.")
+    grace_sec: float = Field(
+        default=30, ge=0, description="Seconds with no player in range before deactivating."
+    )
+    stagger_sec: float = Field(default=3, ge=0, description="Delay between layer spawns.")
+    departure_delay_sec: float = Field(
+        default=600,
+        ge=0,
+        description="Departures/arrivals wait for the first player takeoff or this many seconds.",
+    )
+    max_groups: int = Field(default=12, ge=0, description="Global ambient group cap.")
+    max_units: int = Field(
+        default=24, ge=0, description="Global ambient unit cap (statics count as units)."
+    )
+    sites: list[AmbientSite] = Field(default_factory=list, description="Ambient sites.")
+
+    @model_validator(mode="after")
+    def _unique_sites(self) -> Ambient:
+        ids = [s.id for s in self.sites]
+        dupes = sorted({i for i in ids if ids.count(i) > 1})
+        if dupes:
+            raise ValueError(f"duplicate ambient site ids: {dupes}")
+        return self
+
+
 class TestCheck(DMSModel):
     """One in-mission assertion for a headless test run (lua/src/dms/test.lua)."""
 
     kind: Literal[
-        "booted", "spawns", "beats_in_order", "beat", "comms", "encounter", "convoy_halt", "outcome"
+        "booted",
+        "spawns",
+        "beats_in_order",
+        "beat",
+        "comms",
+        "encounter",
+        "convoy_halt",
+        "outcome",
+        "ambient_cycle",
     ] = Field(description="Check kind.")
     name: str | None = Field(default=None, description="Name in [DMS.TEST] lines (default kind).")
     deadline_sec: float | None = Field(
@@ -374,6 +505,9 @@ class TestCheck(DMSModel):
     id: Ident | None = Field(default=None, description="beat / encounter: the id to watch.")
     result: Literal["success", "failure"] | None = Field(
         default=None, description="outcome: expected end result (unset = any end)."
+    )
+    site: Ident | None = Field(
+        default=None, description="ambient_cycle: site id to watch (unset = any site)."
     )
 
 
@@ -420,6 +554,9 @@ class RuntimeConfig(DMSModel):
     )
     narrative: NarrativeSettings | None = Field(
         default=None, description="Beat engine pacing (unset = runtime defaults)."
+    )
+    ambient: Ambient | None = Field(
+        default=None, description="Friendly base traffic around player airbases (unset = off)."
     )
     test: TestSettings | None = Field(
         default=None, description="Headless test mode (only in `dms build --test` builds)."

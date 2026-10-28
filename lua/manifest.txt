@@ -14,5 +14,6 @@ encounters
 narrative
 comms
 intel
+ambient
 test
 init

@@ -370,8 +370,12 @@ function Director.start()
     end
   end)
 
+  local function ambient(group)
+    return DMS.Ambient and DMS.Ambient.isAmbient and DMS.Ambient.isAmbient(group)
+  end
+
   on("unit.shot", function(ev)
-    if ev.coalition == pc or not ev.initiator then
+    if ev.coalition == pc or not ev.initiator or ambient(ev.initiatorGroup) then
       return
     end
     local pos = unitPos(ev.initiator)
@@ -388,6 +392,9 @@ function Director.start()
   end)
 
   on("unit.dead", function(ev)
+    if ambient(ev.group) then
+      return -- friendly base traffic (DMS.Ambient) never moves pacing
+    end
     local g = Director._unitFlight[ev.unit]
     if g then
       Director.addIntensity(g, c.gain.playerDead, "player dead")

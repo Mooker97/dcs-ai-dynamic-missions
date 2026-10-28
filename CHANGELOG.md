@@ -10,6 +10,11 @@ tagged **(flown)** once it has been verified in DCS. Everything else is "impleme
 ## [Unreleased]: v0.3 skeleton
 
 ### Added
+- `DMS.Ambient`: friendly base traffic (parked departures, arrivals, apron vehicles, pattern helo,
+  statics) around the player's departure/recovery airbases, spawned when a player is near and
+  destroyed when they leave; mission-spec `ambient: {enabled, density}` (default on, low),
+  planner sites from the catalog, `dms check` type validation, `ambient_cycle` test check.
+  Implemented, not flown.
 - The architecture was approved: own Lua core, four pillars, and a story-first pipeline. See
   `docs/ARCHITECTURE.md`, `docs/CONTRACTS.md` and ADRs 0001–0011 in `docs/adr/`.
 - Reference docs: `docs/reference/dcs-scripting-gotchas.md`, `miz-format.md` and `lessons.md`.

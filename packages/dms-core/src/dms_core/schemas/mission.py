@@ -330,6 +330,15 @@ class DynamicIntent(DMSModel):
 # ---------------------------------------------------------------------------
 
 
+class AmbientSpec(DMSModel):
+    """Friendly base traffic around the player flights' airbases (planner-generated)."""
+
+    enabled: bool = Field(default=True, description="Generate ambient traffic at player bases.")
+    density: Literal["off", "low", "medium", "high"] = Field(
+        default="low", description="How busy the bases look; 'off' disables ambient traffic."
+    )
+
+
 class MissionSpec(DMSModel):
     """Declarative mission spec (mission-spec.yaml). Areas by reference, forces by role."""
 
@@ -367,6 +376,10 @@ class MissionSpec(DMSModel):
     threats: list[Threat] = Field(default_factory=list, description="Pre-placed enemy presence.")
     support: list[Support] = Field(default_factory=list, description="Friendly assets.")
     dynamic: DynamicIntent = Field(default_factory=DynamicIntent, description="Runtime randomness.")
+    ambient: AmbientSpec = Field(
+        default_factory=AmbientSpec,
+        description="Friendly base traffic at the player flights' departure airbases.",
+    )
     seed: int | None = Field(
         default=None, description="Planner seed; null picks one and records it."
     )

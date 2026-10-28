@@ -340,6 +340,8 @@ function M.reset()
   M.groups = {} -- name -> group record
   M.units = {} -- name -> unit record
   M.statics = {} -- name -> static record
+  M.airbases = {} -- name -> Airbase (MOCK.addAirbase)
+  M.airbaseList = {}
   M.nextGroupId = 1
   M.nextUnitId = 1
   M.flags = {}
@@ -929,6 +931,61 @@ end
 function M.makeAirbase(name, pos, side)
   return setmetatable({ name_ = name, pos_ = pos or vec3(), coalition_ = side }, Airbase)
 end
+function Airbase:getID()
+  return self.id_ or 0
+end
+-- getParking(available): list of {Term_Index, Term_Type, vTerminalPos, fDistToRW, TO_AC};
+-- available=true filters spots marked occupied (spot.occupied, or a live unit within 15 m).
+function Airbase:getParking(available)
+  local out = {}
+  for _, sp in ipairs(self.parking_ or {}) do
+    local busy = sp.occupied == true
+    if available and not busy then
+      for _, u in pairs(M.units) do
+        if not u.dead then
+          local dx, dz = u.x - sp.x, u.z - sp.y
+          if dx * dx + dz * dz < 225 then
+            busy = true
+            break
+          end
+        end
+      end
+    end
+    if not (available and busy) then
+      out[#out + 1] = {
+        Term_Index = sp.index,
+        Term_Type = sp.termType or 104,
+        vTerminalPos = vec3(sp.x, 0, sp.y),
+        fDistToRW = sp.distToRW or 500,
+        TO_AC = busy,
+      }
+    end
+  end
+  return out
+end
+function Airbase.getByName(name)
+  return M.airbases[name]
+end
+-- MOCK.addAirbase{name=, x=, y=, coalition=, id=, parking={{x=, y=, termType=104, occupied=}}}
+-- -> Airbase (Airbase.getByName / world.getAirbases / coalition.getAirbases see it)
+function M.addAirbase(spec)
+  local ab = M.makeAirbase(spec.name, vec3(spec.x or 0, 0, spec.y or 0), spec.coalition)
+  ab.id_ = spec.id or (#M.airbaseList + 1)
+  ab.parking_ = {}
+  for i, sp in ipairs(spec.parking or {}) do
+    ab.parking_[i] = {
+      index = sp.index or i,
+      x = sp.x,
+      y = sp.y,
+      termType = sp.termType,
+      occupied = sp.occupied,
+      distToRW = sp.distToRW,
+    }
+  end
+  M.airbases[spec.name] = ab
+  M.airbaseList[#M.airbaseList + 1] = ab
+  return ab
+end
 
 -- Controller (STRICT) ---------------------------------------------------
 local function validateTask(task, depth)
@@ -1181,8 +1238,14 @@ function coalition.getStaticObjects(side)
   return list
 end
 
-function coalition.getAirbases()
-  return {}
+function coalition.getAirbases(side)
+  local out = {}
+  for _, ab in ipairs(M.airbaseList or {}) do
+    if side == nil or ab:getCoalition() == side then
+      out[#out + 1] = ab
+    end
+  end
+  return out
 end
 function coalition.addRefPoint() end
 function coalition.getMainRefPoint()
@@ -1369,7 +1432,11 @@ function world.getPlayer()
   return nil
 end
 function world.getAirbases()
-  return {}
+  local out = {}
+  for i, ab in ipairs(M.airbaseList or {}) do
+    out[i] = ab
+  end
+  return out
 end
 function world.getMarkPanels()
   local r = {}
@@ -1927,6 +1994,8 @@ Timers: MOCK.advance(sec). Errors inside a callback go to MOCK.rawErrors and kil
 Events: MOCK.fireEvent{id="HIT", initiator=, target=, weapon=}. Handler errors -> rawErrors.
   MOCK.killUnit / MOCK.killGroup / MOCK.hitUnit / MOCK.spawnPlayer build realistic sequences.
   MOCK.makeWeapon(type), MOCK.makeScenery(type, pos), MOCK.makeAirbase(name, pos, side).
+  MOCK.addAirbase{name, x, y, coalition, id, parking={{x, y, termType, occupied}}} registers an
+  airbase for Airbase.getByName / getParking(available) / world.getAirbases.
 Zones: MOCK.addZone{name, x, y, radius} or {name, points={{x,y}...}} -> env.mission.triggers.zones
   and trigger.misc.getZone. Terrain: MOCK.terrainHeight (num|fn), MOCK.waterAreas / roadAreas
   ({x,y,radius} | {points}, shallow=true), MOCK.losFn(p1,p2).

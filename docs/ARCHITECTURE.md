@@ -96,8 +96,9 @@ quirks are documented in [`reference/dcs-scripting-gotchas.md`](reference/dcs-sc
 | 10 | narrative | Storylet/beat engine: preconditions on qualities/flags/events, priority, cooldowns, effects, outcomes |
 | 11 | comms | Voice and subtitle queue (no overlap), per-group sound, radioTransmission, F10 per-group menus |
 | 12 | intel | Fog of war (spawn-time `hidden` plus F10 marks on detection), BDA ([ADR 0008](adr/0008-fog-of-war-hidden-plus-marks.md)) |
+| 13 | ambient | Friendly base traffic (parked departures, arrivals, apron vehicles, pattern helo, statics) around the player's airbases; spawned when a player is near, destroyed when they leave (hysteresis). Own budget: not in the registry, invisible to the director and intel |
 
-Modules 6–12 build only on the core API (1–5) and the raw DCS API. `init.lua` calls each module's
+Modules 6–13 build only on the core API (1–5) and the raw DCS API. `init.lua` calls each module's
 `DMS.<Module>.start()` when `DMS_CONFIG` is present.
 
 **Optional plugins** (`lua/plugins/`, pinned versions) are loaded before `dms.lua` when a spec asks

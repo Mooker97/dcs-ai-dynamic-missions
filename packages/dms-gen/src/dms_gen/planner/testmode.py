@@ -319,14 +319,30 @@ def make_test_plan(
         if minutes is not None
         else float(math.ceil(route_m / (proxy_speed_kmh / 3.6) / 60 + GROUND_MIN + MARGIN_MIN))
     )
-    lua = build_test_lua(proxy_name, mins, beat_list, [e.id for e in rt.encounters])
+    # ambient_cycle needs a site the proxy starts near and later leaves (beyond despawn radius)
+    ambient = (
+        rt.ambient is not None
+        and rt.ambient.enabled
+        and any(
+            s.point is None
+            or max(_dist((s.point.x, s.point.y), p) for p in path) > s.despawn_radius_m
+            for s in rt.ambient.sites
+        )
+    )
+    lua = build_test_lua(
+        proxy_name, mins, beat_list, [e.id for e in rt.encounters], ambient=ambient
+    )
     return TestBuild(plan=tp, lua=lua, proxy=proxy_name, minutes=mins, route_km=route_km)
 
 
 def default_checks(
-    minutes: float, beats: list[Beat], encounter_ids: list[str]
+    minutes: float, beats: list[Beat], encounter_ids: list[str], *, ambient: bool = False
 ) -> list[dict[str, Any]]:
-    """The default in-mission check list (see lua/src/dms/test.lua for the kinds)."""
+    """The default in-mission check list (see lua/src/dms/test.lua for the kinds).
+
+    ``ambient``: the runtime has ``DMS_CONFIG.ambient`` enabled with at least one site, so an
+    ``ambient_cycle`` check (a site activates, then deactivates once the proxy leaves) is added.
+    """
     d = int(minutes * 60 - 30)
     spine = [b for b in beats if b.guaranteed]
     checks: list[dict[str, Any]] = [
@@ -349,6 +365,8 @@ def default_checks(
         checks.append(
             {"kind": "encounter", "name": f"encounter_{eid}", "id": eid, "deadlineSec": d}
         )
+    if ambient:
+        checks.append({"kind": "ambient_cycle", "name": "ambient_cycle", "deadlineSec": d})
     checks.append({"kind": "convoy_halt", "name": "convoy_halt_on_hit"})
     outcome: dict[str, Any] = {"kind": "outcome", "name": "outcome_end"}
     result = _end_result(beats)
@@ -359,12 +377,19 @@ def default_checks(
     return checks
 
 
-def build_test_lua(proxy: str, minutes: float, beats: list[Beat], encounter_ids: list[str]) -> str:
+def build_test_lua(
+    proxy: str,
+    minutes: float,
+    beats: list[Beat],
+    encounter_ids: list[str],
+    *,
+    ambient: bool = False,
+) -> str:
     cfg = {
         "enabled": True,
         "playerProxy": proxy,
         "minutes": minutes,
-        "checks": default_checks(minutes, beats, encounter_ids),
+        "checks": default_checks(minutes, beats, encounter_ids, ambient=ambient),
     }
     TestSettings.model_validate(from_lua(TestSettings, cfg))  # DMS_CONFIG.test contract
     return (

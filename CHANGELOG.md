@@ -37,6 +37,12 @@ tagged **(flown)** once it has been verified in DCS. Everything else is "impleme
   the outcome is `success` (47 model min in 4.7 real min). `dms debrief --dry-run` parses that real
   log and picks m02.
 - CI is green on `rebuild` (first push); Lua is StyLua-formatted and StyLua is blocking.
+- **Base traffic (`DMS.Ambient`), headless DCS 2026-10-28:** at m01's Hatay it activated as the
+  proxy spawned (2 statics, 2 ground vehicles, a parked C-130 that started up once the proxy took
+  off, then an arriving C-130), despawned everything when the proxy left (`ambient_cycle` PASS), and
+  re-activated on its return. 0 errors or warnings. Not yet seen in the cockpit.
+- Arma: four new scenarios (Ambush, Village Sweep, Hold the OP, Recon and Strike; RHS + LAMBS + ACE)
+  and a drop-in base-life ambient module with a test mission. Static checks only so far.
   This is a headless smoke test, not a cockpit check.
 - `dms-mcp`: FastMCP stdio server with 6 tools (validate, plan, build, check, schema,
   campaign_status). Implemented, not flown.

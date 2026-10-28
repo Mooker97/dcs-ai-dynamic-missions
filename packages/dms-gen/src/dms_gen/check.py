@@ -431,8 +431,12 @@ def _check_fog(rep: CheckReport, mission: dict[Any, Any], cfg: dict[str, Any]) -
     players_v = cfg.get("players")
     players: dict[str, Any] = players_v if isinstance(players_v, dict) else {}
     enemy = "red" if players.get("coalition", 2) == 2 else "blue"
+    known_v = intel.get("knownGroups")
+    known = {str(n) for n in known_v.values()} if isinstance(known_v, dict) else set()
+    if isinstance(known_v, list):
+        known = {str(n) for n in known_v}
     for side, cat, g in _groups(mission):
-        if side == enemy and cat != "static" and not g.get("hidden"):
+        if side == enemy and cat != "static" and not g.get("hidden") and g.get("name") not in known:
             rep.add(
                 "warning",
                 "enemy_not_hidden",

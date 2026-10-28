@@ -778,6 +778,16 @@ class _Planner:
                 reveal_radius_m=fow.reveal_radius_km * 1000,
                 mark_refresh_sec=fow.mark_refresh_sec,
                 stale_sec=fow.mark_refresh_sec * 8,
+                known_groups=[
+                    g.name
+                    for g in self.groups
+                    if g.source in {t.id for t in self.spec.threats if not t.hidden_on_map}
+                    and not g.hidden
+                    and g.category != "static"
+                ]
+                or None
+                if fow.enabled
+                else None,
             ),
             players=Players(coalition=2 if self.players_side == "blue" else 1),
         )

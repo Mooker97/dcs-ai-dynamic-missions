@@ -345,6 +345,10 @@ class Intel(DMSModel):
     sensors: bool | None = Field(
         default=None, description="Also reveal what player-side sensors detect (default true)."
     )
+    known_groups: list[str] | None = Field(
+        default=None,
+        description="Enemy groups shown on the F10 map by design (spec hidden_on_map: false).",
+    )
 
 
 class Players(DMSModel):

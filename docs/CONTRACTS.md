@@ -215,7 +215,9 @@ DMS_CONFIG = {
   qualities = { intel = 0, enemy_aa = 2 },            -- campaign values at plan time; seeds `requires.qualities`
   narrative = { minGapSec = 8, pendingTtlSec = 45, zonePollSec = 3 },
   intel = { fogOfWar = true, revealRadiusM = 5000, markRefreshSec = 15, staleSec = 120,
-            removeSec = nil --[[default 3 * staleSec]], scanSec = 5, markRadiusM = 600, sensors = true },
+            removeSec = nil --[[default 3 * staleSec]], scanSec = 5, markRadiusM = 600, sensors = true,
+            knownGroups = { "aaa_reyhanli_1" } --[[enemy groups shown on F10 by design (spec hidden_on_map: false);
+                                                   `dms check` does not flag them]] },
   players = { coalition = 2 },
   test = { enabled = true, playerProxy = "Dustoff 1" --[[AI group treated as the player]], minutes = 40,
            checks = { {kind = "booted", name = nil, deadlineSec = nil}, {kind = "spawns", min = 1},

@@ -1787,6 +1787,22 @@
           "default": null,
           "description": "Also reveal what player-side sensors detect (default true).",
           "title": "Sensors"
+        },
+        "known_groups": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Enemy groups shown on the F10 map by design (spec hidden_on_map: false).",
+          "title": "Known Groups"
         }
       },
       "title": "Intel",

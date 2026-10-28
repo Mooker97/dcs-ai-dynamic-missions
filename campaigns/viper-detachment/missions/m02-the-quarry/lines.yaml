@@ -157,7 +157,7 @@ lines:
   - id: ops_sam_warning_v2
     speaker: ops_lindqvist
     beat: sam_warning
-    text: "Python, Rook Ops. Possible SA-8 or SA-13 near the Quarry. Not located. Watch your RWR."
+    text: "Python, Rook Ops. Possible short-range SAM near the Quarry. Not located. Watch your RWR."
   - id: ops_sam_warning_v3
     speaker: ops_lindqvist
     beat: sam_warning

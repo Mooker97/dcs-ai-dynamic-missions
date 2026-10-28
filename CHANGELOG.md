@@ -50,7 +50,11 @@ tagged **(flown)** once it has been verified in DCS. Everything else is "impleme
   off, then an arriving C-130), despawned everything when the proxy left (`ambient_cycle` PASS), and
   re-activated on its return. 0 errors or warnings. Not yet seen in the cockpit.
 - Arma: four new scenarios (Ambush, Village Sweep, Hold the OP, Recon and Strike; RHS + LAMBS + ACE)
-  and a drop-in base-life ambient module with a test mission. Static checks only so far.
+  and a drop-in base-life ambient module with a test mission.
+  - Headless Arma 2026-10-28: **Recon and Strike passed** (13/13, win) on its first run. **Base-life
+    passed** (13/13) vanilla and with RHS (auto-picked US Army OCP): spawned 14 men, 3 vehicles and a
+    landing heli; despawned everything beyond 900 m; re-activated on return. Ambush, Village Sweep and
+    Hold the OP had first-run fixes and are being rerun.
   This is a headless smoke test, not a cockpit check.
 - `dms-mcp`: FastMCP stdio server with 6 tools (validate, plan, build, check, schema,
   campaign_status). Implemented, not flown.

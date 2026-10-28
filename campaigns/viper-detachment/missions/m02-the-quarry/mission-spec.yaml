@@ -16,11 +16,12 @@
 # - Outcome keys (arc): full_bunkers_destroyed (count), command_building_destroyed, secondaries,
 #   civilians_hit, player_lost.
 #
-# START CHOICE (arc rule): two player flights, both PYTHON 1 on the radio (player 1-1, Pike 1-2):
-#   "Python Ramp" -> DCS group "Python Ramp 1": cold start on the Incirlik ramp.
-#   "Python Air"  -> DCS group "Python Air 2": air start ~20 NM WNW of IP SHALE on the ingress axis.
-#   The planner names groups "<callsign> <index>", so the index is not the flight number.
-#   No beat depends on takeoff; the spine starts at the check-in ring around the IP.
+# START CHOICE (arc rule): two start variants of the same flight, PYTHON 1-1 in the cockpit
+# (player lead) with Pike as the AI wingman 1-2 in single player:
+#   variant ramp -> out/m02-the-quarry-ramp.miz: cold start on the Incirlik ramp.
+#   variant air  -> out/m02-the-quarry-air.miz: air start 20,000 ft / 420 kts, 20 NM short of IP SHALE.
+#   Planned group names are "Python 1" (ramp) and "Python 2" (air); no beat filters on them.
+#   No beat in the spine depends on takeoff; it starts at the check-in ring around the IP.
 schema_version: 1
 id: m02-the-quarry
 title: "The Quarry"
@@ -47,9 +48,6 @@ areas:
     where: {kind: near_airbase, airbase: Incirlik, radius_nm: 12}
 
   # --- route ----------------------------------------------------------------------------------
-  - id: air_start
-    description: "Air-start point on the ingress axis, ~20 NM WNW of IP SHALE, near Azaz. Over the NBB-held plain."
-    where: {kind: latlon, lat: 36.610, lon: 36.967, radius_nm: 1}
   - id: ip_shale
     description: "IP SHALE, 12 NM north-west of the Quarry over the NBB-held plain. Run-in from here."
     where: {kind: latlon, lat: 36.509, lon: 37.362, radius_nm: 2}
@@ -149,33 +147,44 @@ areas:
     where: {kind: latlon, lat: 37.050, lon: 36.300, radius_nm: 5}
 
 player_flights:
-  # Both flights are PYTHON 1 on the radio; only one is flown. Identical loadouts.
-  - callsign: Python Ramp
+  # Start variants (one .miz each): ramp -> out/m02-the-quarry-ramp.miz, air -> out/m02-the-quarry-air.miz.
+  # Both are callsign Python (cockpit PYTHON 1-1, AI wingman Pike = 1-2). slot: player = lead is the
+  # single-player Player, unit 2 is an AI wingman in the same group.
+  - callsign: Python
     aircraft: F-16C_50
     count: 2
     coalition: blue
     country: USA
     start_area: incirlik
     start_type: parking_cold
-    loadout: "AIM-120C*2, AIM-9X*2, GBU-24*2, FUEL*2, ECM, TGP"
+    variant: ramp
+    slot: player
+    loadout: auto                      # STRIKE -> F-16C_50 preset lgb_strike
     frequency_mhz: 305.0
     tasking: >-
-      Ramp start. Cold start at Incirlik, depart runway 05, transit ESE (Shell on the AR track if
+      RAMP START. Cold start at Incirlik, depart runway 05, transit ESE (Shell on the AR track if
       needed), check in with Magic inside 10 NM of IP SHALE, run in from the IP, self-lase LGBs on
       the active storage sites and the command building, egress north to GATE, RTB Incirlik.
-  - callsign: Python Air
+  - callsign: Python
     aircraft: F-16C_50
     count: 2
     coalition: blue
     country: USA
-    start_area: air_start
+    start_area: incirlik               # the line Incirlik -> IP SHALE sets the air-start axis
     start_type: air
-    loadout: "AIM-120C*2, AIM-9X*2, GBU-24*2, FUEL*2, ECM, TGP"
+    variant: air
+    slot: player
+    air_start:
+      altitude_ft: 20000
+      speed_kts: 420
+      distance_nm_before_first_wp: 20
+      toward: ip_shale
+    loadout: auto                      # STRIKE -> F-16C_50 preset lgb_strike
     frequency_mhz: 305.0
     tasking: >-
-      Air start. Already airborne ~20 NM WNW of IP SHALE on the ingress axis, master arm safe. Same
-      sortie from the check-in onward: Magic check-in, run-in from IP SHALE, self-lase, egress
-      north to GATE, RTB Incirlik.
+      AIR START. Airborne at 20,000 ft, 420 kts, 20 NM short of IP SHALE on the ingress axis from
+      Incirlik, master arm safe. Same sortie from the check-in onward: Magic check-in, run-in from
+      IP SHALE, self-lase, egress north to GATE, RTB Incirlik.
 
 objectives:
   - id: strike_stocks
@@ -261,6 +270,7 @@ support:
     callsign: "Jackal Two-Three"
     area: jackal_village
     composition: "Hummer, Soldier M4, Soldier M4"
+    faction: partner_nbb               # bible: NBB (CJTF Blue); Jackal lives with an NBB company
     speaker: jtac_ortiz
     frequency_mhz: 41.5
 
@@ -373,5 +383,5 @@ notes: >-
   spine: checkin_magic, jackal_report, cleared_engage, rtb_call, on_deck (plus player_lost on
   death). Variation per play: which 2 of 5 sites are full, which SAM and where, MANPADS present or
   not and on which heading, squirter or not, civilian vehicle count and placement, line variants.
-  Loadout per arc: 2x GBU-24 (pydcs F-16C_50 carries GBU-24A/B on pylons 3/4/6/7) plus 2x
-  AIM-120C, 2x AIM-9X, 2 tanks, ECM, TGP; written as the pydcs payload name.
+  Loadout: auto -> F-16C_50 preset lgb_strike (4x GBU-12 on TERs, 2 tanks, ALQ-184, LITENING,
+  AIM-120C/AIM-9X); the arc's 2x GBU-24 is not a generator preset.

@@ -75,7 +75,7 @@ acts:
       - id: m01-broken-umbrella
         title: "Broken Umbrella"
         mission_type: SEAD
-        status: planned
+        status: designed
         player_aircraft: F-16C_50
         dramatic_question: "Can PYTHON open the sky over Al Bab for the ISR orbit, or will the Engineer's SAMs stay silent and alive?"
         synopsis: >-
@@ -111,7 +111,7 @@ acts:
       - id: m02-the-quarry
         title: "The Quarry"
         mission_type: STRIKE
-        status: planned
+        status: designed
         player_aircraft: F-16C_50
         dramatic_question: "Does PYTHON destroy the right bunkers at the Quarry, or bomb empty concrete while the stocks survive?"
         synopsis: >-
@@ -153,7 +153,7 @@ acts:
       - id: m03-troops-in-contact
         title: "Troops in Contact"
         mission_type: CAS
-        status: planned
+        status: designed
         player_aircraft: F-16C_50
         dramatic_question: "Can PYTHON break the NPF assault on Jackal's village without hitting the people the Brigade is defending?"
         synopsis: >-
@@ -192,7 +192,7 @@ acts:
       - id: m04-last-launcher
         title: "The Last Launcher"
         mission_type: DEAD
-        status: planned
+        status: designed
         player_aircraft: F-16C_50
         dramatic_question: "Can PYTHON find and stop the convoy moving the Engineer's last SAM east before it reaches the river, without hitting the wrong trucks?"
         synopsis: >-

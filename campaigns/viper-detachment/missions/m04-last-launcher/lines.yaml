@@ -1,0 +1,546 @@
+# m04 The Last Launcher — voice lines. Schema: schemas/voice-lines.schema.json (VoiceLineSet).
+# One entry per variant (<line>_vN); beats pick one at random without immediate repeats.
+# Subtitles only for now (no ElevenLabs render); file/dur_sec stay empty.
+# Style: callsign-first, brevity-correct, no cheering. Pike/Magic/Tower terse (<= ~12 words),
+# Lindqvist and Jackal normal (<= ~20 words). Both start options fly as PYTHON on the radio.
+mission_id: m04-last-launcher
+model: eleven_v3
+lines:
+  # --- Rook Ops: mission_start ---------------------------------------------------------------------
+  - id: ops_start_v1
+    speaker: ops_lindqvist
+    beat: mission_start
+    delivery: "Routine, measured. A dawn brief already given; this is the reminder."
+    text: "Python, Rook Ops. Tasking unchanged. Check in with Magic at HAMMER."
+  - id: ops_start_v2
+    speaker: ops_lindqvist
+    beat: mission_start
+    text: "Python, Rook Ops. Radio check. Push HAMMER as briefed, Magic has the picture."
+  - id: ops_start_v3
+    speaker: ops_lindqvist
+    beat: mission_start
+    text: "Python, Rook Ops. You're on the squadron discrete. Check in with Magic at HAMMER, then back to me."
+  - id: ops_start_v4
+    speaker: ops_lindqvist
+    beat: mission_start
+    text: "Python, Rook Ops. Loud and clear. Expect a retask after HAMMER. Keep your fuel up."
+
+  # --- Incirlik Ground / Tower (ramp start only) ---------------------------------------------------
+  - id: ground_taxi_v1
+    speaker: tower_incirlik
+    beat: ground_taxi
+    delivery: "Standard phraseology, flat, a little fast."
+    text: "Python, Incirlik Ground. Taxi runway zero-five via Alpha. Hold short."
+  - id: ground_taxi_v2
+    speaker: tower_incirlik
+    beat: ground_taxi
+    text: "Python, Ground. Runway zero-five, taxi via Alpha, hold short. Altimeter on the ATIS."
+  - id: ground_taxi_v3
+    speaker: tower_incirlik
+    beat: ground_taxi
+    text: "Python flight, Incirlik Ground. Taxi zero-five, Alpha. Contact Tower holding short."
+  - id: tower_departure_v1
+    speaker: tower_incirlik
+    beat: tower_departure
+    delivery: "Bored, precise."
+    text: "Python, Incirlik Tower. Airborne. Contact departure. Good day."
+  - id: tower_departure_v2
+    speaker: tower_incirlik
+    beat: tower_departure
+    text: "Python, Tower. Radar contact passed to departure. Frequency change approved."
+  - id: tower_departure_v3
+    speaker: tower_incirlik
+    beat: tower_departure
+    text: "Python flight, Incirlik Tower. Airborne. Switch departure."
+  - id: tower_recovery_v1
+    speaker: tower_incirlik
+    beat: tower_recovery
+    delivery: "Flat; the only warmth is in the welcome."
+    text: "Python, Incirlik Tower. Welcome back. Runway zero-five. Report initial."
+  - id: tower_recovery_v2
+    speaker: tower_incirlik
+    beat: tower_recovery
+    text: "Python, Tower. Runway zero-five, no traffic. Report initial."
+  - id: tower_recovery_v3
+    speaker: tower_incirlik
+    beat: tower_recovery
+    text: "Python flight, Incirlik Tower. Zero-five in use. Report initial, overhead approved."
+
+  # --- Magic: check-in ----------------------------------------------------------------------------
+  - id: magic_checkin_v1
+    speaker: awacs_magic
+    beat: checkin_magic
+    delivery: "Cool, unhurried, exact."
+    text: "Python, Magic. Radar contact, HAMMER. Picture clean. Contact Rook Ops."
+  - id: magic_checkin_v2
+    speaker: awacs_magic
+    beat: checkin_magic
+    text: "Python, Magic. Radar contact. Picture clean. Rook Ops has tasking for you."
+  - id: magic_checkin_v3
+    speaker: awacs_magic
+    beat: checkin_magic
+    text: "Python, Magic. Identified, HAMMER. No air. Rook Ops wants you."
+  - id: magic_checkin_v4
+    speaker: awacs_magic
+    beat: checkin_magic
+    text: "Python, Magic. Radar contact. Clean. Shell on station if needed. Contact Rook Ops."
+  - id: magic_checkin_late_v1
+    speaker: awacs_magic
+    beat: checkin_late
+    delivery: "Same pace; a hint of correction."
+    text: "Python, Magic. Radar contact, already in the box. Contact Rook Ops."
+  - id: magic_checkin_late_v2
+    speaker: awacs_magic
+    beat: checkin_late
+    text: "Python, Magic. Missed you at HAMMER. Radar contact now. Contact Rook Ops."
+  - id: magic_checkin_late_v3
+    speaker: awacs_magic
+    beat: checkin_late
+    text: "Python, Magic. Identified, inside the box. Picture clean. Rook Ops has tasking."
+
+  # --- Rook Ops: retask (the turn) -----------------------------------------------------------------
+  - id: ops_retask_v1
+    speaker: ops_lindqvist
+    beat: retask
+    delivery: "Shorter sentences than usual. Deliberate."
+    text: "Python, Rook Ops. Retask, time critical. SAM convoy moving east from the Garrison. Stop it before the river."
+  - id: ops_retask_v2
+    speaker: ops_lindqvist
+    beat: retask
+    text: "Python, Rook Ops. New tasking. The Engineer's launcher is on the road east. Forty minutes to the crossings."
+  - id: ops_retask_v3
+    speaker: ops_lindqvist
+    beat: retask
+    text: "Python, Rook Ops. Time critical target. SA-6 on the move toward the Euphrates, three possible roads. Find it."
+  - id: ops_retask_v4
+    speaker: ops_lindqvist
+    beat: retask
+    text: "Python, Rook Ops. Retask. Convoy left the Garrison before dawn with the last SAM. Window is forty minutes."
+
+  - id: ops_cold_search_v1
+    speaker: ops_lindqvist
+    beat: cold_search
+    delivery: "Plain. She doesn't like it either."
+    text: "Python, Rook Ops. No ground reporting this morning. Three roads. Search with the pod."
+  - id: ops_cold_search_v2
+    speaker: ops_lindqvist
+    beat: cold_search
+    text: "Python, Rook Ops. Brigade has nobody forward. You're the sensor. Work the roads north to south."
+  - id: ops_cold_search_v3
+    speaker: ops_lindqvist
+    beat: cold_search
+    text: "Python, Rook Ops. No observers on the plain today. Roads are marked. Civilian traffic on all of them."
+
+  # --- Jackal: observer report (partner_morale >= 1) -----------------------------------------------
+  - id: jackal_cue_n_v1
+    speaker: jtac_ortiz
+    beat: jackal_cue_n
+    delivery: "Crisp, deliberate, wind behind him."
+    text: "Python, Jackal Two-Three. Brigade observers have the convoy on the northern road, east of Al Bab."
+  - id: jackal_cue_n_v2
+    speaker: jtac_ortiz
+    beat: jackal_cue_n
+    text: "Python, Jackal Two-Three. Report from Brigade. Tracked vehicles and technicals, northern road, heading Manbij."
+  - id: jackal_cue_n_v3
+    speaker: jtac_ortiz
+    beat: jackal_cue_n
+    text: "Python, Jackal. Observers on the ridge saw them go by. Northern road, eastbound, maybe ten minutes ago."
+  - id: jackal_cue_c_v1
+    speaker: jtac_ortiz
+    beat: jackal_cue_c
+    delivery: "Crisp, deliberate."
+    text: "Python, Jackal Two-Three. Brigade observers have the convoy on the central road, heading for the dam."
+  - id: jackal_cue_c_v2
+    speaker: jtac_ortiz
+    beat: jackal_cue_c
+    text: "Python, Jackal Two-Three. Report from Brigade. Tracked vehicles with technicals, central road, eastbound."
+  - id: jackal_cue_c_v3
+    speaker: jtac_ortiz
+    beat: jackal_cue_c
+    text: "Python, Jackal. Our observers saw them cross the farm road north-east of the Garrison. Central road, toward Tishrin."
+  - id: jackal_cue_s_v1
+    speaker: jtac_ortiz
+    beat: jackal_cue_s
+    delivery: "Crisp, deliberate."
+    text: "Python, Jackal Two-Three. Brigade observers have the convoy on the southern road, past Deir Hafer."
+  - id: jackal_cue_s_v2
+    speaker: jtac_ortiz
+    beat: jackal_cue_s
+    text: "Python, Jackal Two-Three. Report from Brigade. Tracked vehicles and technicals, southern road, toward the lake."
+  - id: jackal_cue_s_v3
+    speaker: jtac_ortiz
+    beat: jackal_cue_s
+    text: "Python, Jackal. A farmer called it in. Southern road, east of Deir Hafer, eastbound, moving slow."
+
+  # --- Magic: on station ---------------------------------------------------------------------------
+  - id: magic_on_station_v1
+    speaker: awacs_magic
+    beat: on_station
+    delivery: "Cool, measured."
+    text: "Python, Magic. In the box. Picture clean. No air."
+  - id: magic_on_station_v2
+    speaker: awacs_magic
+    beat: on_station
+    text: "Python, Magic. Copy in the box. Clean. Shell available on request."
+  - id: magic_on_station_v3
+    speaker: awacs_magic
+    beat: on_station
+    text: "Python, Magic. Radar contact, inside the box. No factors."
+
+  # --- Rook Ops: ISR hints (cold search, 10 minutes in) -------------------------------------------
+  - id: ops_hint_n_v1
+    speaker: ops_lindqvist
+    beat: hint_n
+    delivery: "Matter of fact."
+    text: "Python, Rook Ops. ISR reports vehicle movement on the northern road, toward Manbij."
+  - id: ops_hint_n_v2
+    speaker: ops_lindqvist
+    beat: hint_n
+    text: "Python, Rook Ops. Signals hit, northern road. Somebody's talking about the bridge. Look there."
+  - id: ops_hint_n_v3
+    speaker: ops_lindqvist
+    beat: hint_n
+    text: "Python, Rook Ops. Best guess is the northern road. Movement reported east of Al Bab."
+  - id: ops_hint_c_v1
+    speaker: ops_lindqvist
+    beat: hint_c
+    delivery: "Matter of fact."
+    text: "Python, Rook Ops. ISR reports vehicle movement on the central road, toward the dam."
+  - id: ops_hint_c_v2
+    speaker: ops_lindqvist
+    beat: hint_c
+    text: "Python, Rook Ops. Signals hit, central road. Somebody's talking about the dam. Look there."
+  - id: ops_hint_c_v3
+    speaker: ops_lindqvist
+    beat: hint_c
+    text: "Python, Rook Ops. Best guess is the central road. Movement reported north-east of the Garrison."
+  - id: ops_hint_s_v1
+    speaker: ops_lindqvist
+    beat: hint_s
+    delivery: "Matter of fact."
+    text: "Python, Rook Ops. ISR reports vehicle movement on the southern road, toward the lake."
+  - id: ops_hint_s_v2
+    speaker: ops_lindqvist
+    beat: hint_s
+    text: "Python, Rook Ops. Signals hit, southern road. Somebody's talking about Maskanah. Look there."
+  - id: ops_hint_s_v3
+    speaker: ops_lindqvist
+    beat: hint_s
+    text: "Python, Rook Ops. Best guess is the southern road. Movement reported past Deir Hafer."
+
+  # --- Pike: search and PID ------------------------------------------------------------------------
+  - id: pike_technicals_v1
+    speaker: wingman_pike
+    beat: technicals_spotted
+    delivery: "Calm, economical. Better than in m01."
+    text: "Python, Two. Technicals eastbound. Guns in the beds."
+  - id: pike_technicals_v2
+    speaker: wingman_pike
+    beat: technicals_spotted
+    text: "Python, Two. Contact, three pickups, mounted guns, eastbound."
+  - id: pike_technicals_v3
+    speaker: wingman_pike
+    beat: technicals_spotted
+    text: "Python, Two. Armed pickups on the road. Escort, probably."
+  - id: pike_technicals_v4
+    speaker: wingman_pike
+    beat: technicals_spotted
+    text: "Python, Two. Technicals. Heavy guns. Moving east."
+  - id: pike_convoy_found_v1
+    speaker: wingman_pike
+    beat: convoy_found
+    delivery: "Level. One breath before the type."
+    text: "Python, Two. Contact. Tracked vehicles eastbound. Looks like the SA-6."
+  - id: pike_convoy_found_v2
+    speaker: wingman_pike
+    beat: convoy_found
+    text: "Python, Two. Tally tracks. Launchers and a radar vehicle. That's it."
+  - id: pike_convoy_found_v3
+    speaker: wingman_pike
+    beat: convoy_found
+    text: "Python, Two. Contact, SA-6 vehicles on the road. Radar stowed."
+  - id: pike_convoy_found_v4
+    speaker: wingman_pike
+    beat: convoy_found
+    text: "Python, Two. Tracked vehicles, missiles on the back one. Eastbound."
+  - id: pike_pid_v1
+    speaker: wingman_pike
+    beat: pike_pid_decoy
+    delivery: "Careful, unhurried. He has thought about this."
+    text: "Python, Two. Trucks westbound on the same road. No weapons. Those look civilian."
+  - id: pike_pid_v2
+    speaker: wingman_pike
+    beat: pike_pid_decoy
+    text: "Python, Two. Second group. Box trucks and a car. I see no guns."
+  - id: pike_pid_v3
+    speaker: wingman_pike
+    beat: pike_pid_decoy
+    text: "Python, Two. Lorries coming the other way. Civilian, I think. Confirm before you lase."
+  - id: pike_pid_v4
+    speaker: wingman_pike
+    beat: pike_pid_decoy
+    text: "Python, Two. Check your track. Westbound trucks are civil. Ours is eastbound."
+
+  # --- Rook Ops / Pike: overwatch SA-8 -------------------------------------------------------------
+  - id: ops_overwatch_warning_v1
+    speaker: ops_lindqvist
+    beat: overwatch_warning
+    delivery: "Pace unchanged, sentences shorter."
+    text: "Python, Rook Ops. Overwatch is moving up beside the road. Expect a shot within a minute."
+  - id: ops_overwatch_warning_v2
+    speaker: ops_lindqvist
+    beat: overwatch_warning
+    text: "Python, Rook Ops. Observers report the overwatch setting up near the road. If it's the eight, HARM it."
+  - id: ops_overwatch_warning_v3
+    speaker: ops_lindqvist
+    beat: overwatch_warning
+    text: "Python, Rook Ops. Air defence vehicles stopping beside the road ahead of you. Watch your RWR and flares."
+  - id: ops_overwatch_warning_v4
+    speaker: ops_lindqvist
+    beat: overwatch_warning
+    text: "Python, Rook Ops. Overwatch near the road, dark for now. He'll come up when you're close."
+  - id: pike_overwatch_hot_v1
+    speaker: wingman_pike
+    beat: overwatch_hot
+    delivery: "Fast, not loud."
+    text: "Python, Two. Overwatch is up, near the road. Defending."
+  - id: pike_overwatch_hot_v2
+    speaker: wingman_pike
+    beat: overwatch_hot
+    text: "Python, Two. Launch, near the road. Defending."
+  - id: pike_overwatch_hot_v3
+    speaker: wingman_pike
+    beat: overwatch_hot
+    text: "Python, Two. Overwatch active. If you get mud, it's the eight."
+  - id: pike_overwatch_hot_v4
+    speaker: wingman_pike
+    beat: overwatch_hot
+    text: "Python, Two. Air defence up beside the road. Check RWR."
+  - id: pike_overwatch_dead_v1
+    speaker: wingman_pike
+    beat: overwatch_destroyed
+    delivery: "Flat, the relief is in the breath."
+    text: "Python, Two. Good effect. Overwatch destroyed."
+  - id: pike_overwatch_dead_v2
+    speaker: wingman_pike
+    beat: overwatch_destroyed
+    text: "Python, Two. Overwatch is down. Naked."
+  - id: pike_overwatch_dead_v3
+    speaker: wingman_pike
+    beat: overwatch_destroyed
+    text: "Python, Two. Overwatch destroyed. Clear to work the road."
+  - id: ops_manpads_warning_v1
+    speaker: ops_lindqvist
+    beat: manpads_warning
+    delivery: "Measured."
+    text: "Python, Rook Ops. Reporting puts MANPADS at the crossings. Keep it high."
+  - id: ops_manpads_warning_v2
+    speaker: ops_lindqvist
+    beat: manpads_warning
+    text: "Python, Rook Ops. Shoulder-launched threat near the river. No low passes."
+  - id: ops_manpads_warning_v3
+    speaker: ops_lindqvist
+    beat: manpads_warning
+    text: "Python, Rook Ops. Igla team reported at a crossing. Stay above the hard deck."
+
+  # --- The convoy fight ----------------------------------------------------------------------------
+  - id: ops_launcher_dead_v1
+    speaker: ops_lindqvist
+    beat: carrier_destroyed
+    delivery: "Even. A short pause before 'destroyed'."
+    text: "Python, Rook Ops. Copy radar destroyed. The launchers are blind."
+  - id: ops_launcher_dead_v2
+    speaker: ops_lindqvist
+    beat: carrier_destroyed
+    text: "Python, Rook Ops. Copy. Straight Flush destroyed. Logging it."
+  - id: ops_launcher_dead_v3
+    speaker: ops_lindqvist
+    beat: carrier_destroyed
+    text: "Python, Rook Ops. Radar vehicle confirmed destroyed on the pod video. Copy."
+  - id: ops_launcher_dead_v4
+    speaker: ops_lindqvist
+    beat: carrier_destroyed
+    text: "Python, Rook Ops. Copy the radar. That one won't cross the river."
+  - id: pike_vehicle_hit_v1
+    speaker: wingman_pike
+    beat: carrier_vehicle_hit
+    delivery: "Level, quick."
+    text: "Python, Two. One down. Not the radar. Radar still moving."
+  - id: pike_vehicle_hit_v2
+    speaker: wingman_pike
+    beat: carrier_vehicle_hit
+    text: "Python, Two. Good hit, a launcher. Radar's still there."
+  - id: pike_vehicle_hit_v3
+    speaker: wingman_pike
+    beat: carrier_vehicle_hit
+    text: "Python, Two. One vehicle burning. Re-attack the radar."
+  - id: pike_halted_v1
+    speaker: wingman_pike
+    beat: convoy_halted
+    delivery: "Quick, informative."
+    text: "Python, Two. Convoy's stopped."
+  - id: pike_halted_v2
+    speaker: wingman_pike
+    beat: convoy_halted
+    text: "Python, Two. They've stopped. Won't last long."
+  - id: pike_halted_v3
+    speaker: wingman_pike
+    beat: convoy_halted
+    text: "Python, Two. Convoy halted on the road. Good time to lase."
+  - id: ops_escape_warning_v1
+    speaker: ops_lindqvist
+    beat: escape_warning
+    delivery: "Measured. The deadline is the message."
+    text: "Python, Rook Ops. Five minutes. Then they're in the river towns."
+  - id: ops_escape_warning_v2
+    speaker: ops_lindqvist
+    beat: escape_warning
+    text: "Python, Rook Ops. Five minutes left on the window. After that we lose them."
+  - id: ops_escape_warning_v3
+    speaker: ops_lindqvist
+    beat: escape_warning
+    text: "Python, Rook Ops. Window closes in five. No attacks inside the towns."
+  - id: ops_escaped_v1
+    speaker: ops_lindqvist
+    beat: convoy_escaped
+    delivery: "Flat. No reproach."
+    text: "Python, Rook Ops. Convoy's into the river towns. Endex on the convoy."
+  - id: ops_escaped_v2
+    speaker: ops_lindqvist
+    beat: convoy_escaped
+    text: "Python, Rook Ops. Window's closed. They're across or under cover. Endex."
+  - id: ops_escaped_v3
+    speaker: ops_lindqvist
+    beat: convoy_escaped
+    text: "Python, Rook Ops. Time. Convoy's in among the houses now. Weapons hold on the convoy."
+
+  # --- Consequences --------------------------------------------------------------------------------
+  - id: pike_check_fire_v1
+    speaker: wingman_pike
+    beat: civilian_hit
+    delivery: "Repetition, not volume."
+    text: "Check fire, check fire. That was a civilian vehicle."
+  - id: pike_check_fire_v2
+    speaker: wingman_pike
+    beat: civilian_hit
+    text: "Python, Two. Check fire. That's the westbound group. Civilian."
+  - id: pike_check_fire_v3
+    speaker: wingman_pike
+    beat: civilian_hit
+    text: "Check fire, check fire. No weapons on that truck."
+  - id: pike_check_fire_v4
+    speaker: wingman_pike
+    beat: civilian_hit
+    text: "Python, Two. Check fire. Wrong group. Civilian lorry hit."
+  - id: pike_say_status_v1
+    speaker: wingman_pike
+    beat: player_hit
+    delivery: "Quick, controlled."
+    text: "Python, Two. Flash on your jet. Say status."
+  - id: pike_say_status_v2
+    speaker: wingman_pike
+    beat: player_hit
+    text: "Python, Two. You're hit. Say status."
+  - id: pike_say_status_v3
+    speaker: wingman_pike
+    beat: player_hit
+    text: "Python, Two. Something hit you. Status?"
+
+  # --- Recovery ------------------------------------------------------------------------------------
+  - id: ops_rtb_v1
+    speaker: ops_lindqvist
+    beat: rtb_call
+    delivery: "Measured, routine again."
+    text: "Python, Rook Ops. RTB when able. BDA on deck."
+  - id: ops_rtb_v2
+    speaker: ops_lindqvist
+    beat: rtb_call
+    text: "Python, Rook Ops. You're released. Bring it home. Shell is there if you need it."
+  - id: ops_rtb_v3
+    speaker: ops_lindqvist
+    beat: rtb_call
+    text: "Python, Rook Ops. That's the tasking. RTB Incirlik, divert Gaziantep."
+  - id: ops_rtb_v4
+    speaker: ops_lindqvist
+    beat: rtb_call
+    text: "Python, Rook Ops. Off station when ready. Check out with Magic on the way."
+  - id: ops_on_deck_v1
+    speaker: ops_lindqvist
+    beat: on_deck
+    delivery: "Relaxed by a degree."
+    text: "Python, Rook Ops. Copy on deck."
+  - id: ops_on_deck_v2
+    speaker: ops_lindqvist
+    beat: on_deck
+    text: "Python, Rook Ops. Copy on deck. Debrief in thirty."
+  - id: ops_on_deck_v3
+    speaker: ops_lindqvist
+    beat: on_deck
+    text: "Python, Rook Ops. On deck, copy. Tapes to the vault."
+  - id: ops_landed_early_v1
+    speaker: ops_lindqvist
+    beat: landed_early
+    delivery: "Neutral."
+    text: "Python, Rook Ops. Copy on deck. Convoy's still moving. We'll hand it on."
+  - id: ops_landed_early_v2
+    speaker: ops_lindqvist
+    beat: landed_early
+    text: "Python, Rook Ops. Copy you're down. Nobody else is close. The convoy goes free."
+  - id: ops_landed_early_v3
+    speaker: ops_lindqvist
+    beat: landed_early
+    text: "Python, Rook Ops. Copy on deck. Say reason in the debrief."
+
+  # --- Closing (one fires after on_deck) -----------------------------------------------------------
+  - id: ops_closing_clean_v1
+    speaker: ops_lindqvist
+    beat: closing_clean
+    delivery: "Dry. The nearest she gets to pleased."
+    text: "Python, Rook Ops. That's the last radar we know of. Tomorrow is ISR escort. Boring is the goal."
+  - id: ops_closing_clean_v2
+    speaker: ops_lindqvist
+    beat: closing_clean
+    text: "Python, Rook Ops. Radar and overwatch both. The plain is open. Copy. Nice work, Python."
+  - id: ops_closing_clean_v3
+    speaker: ops_lindqvist
+    beat: closing_clean
+    text: "Python, Rook Ops. Nothing left that emits. Tomorrow's tasking is dull. That's the point."
+  - id: ops_closing_partial_v1
+    speaker: ops_lindqvist
+    beat: closing_partial
+    delivery: "Even."
+    text: "Python, Rook Ops. Radar's done. Copy. Nice work, Python."
+  - id: ops_closing_partial_v2
+    speaker: ops_lindqvist
+    beat: closing_partial
+    text: "Python, Rook Ops. That radar won't cross the river. That's what mattered today."
+  - id: ops_closing_partial_v3
+    speaker: ops_lindqvist
+    beat: closing_partial
+    text: "Python, Rook Ops. Radar confirmed. The rest of the list is short now."
+  - id: ops_closing_civ_v1
+    speaker: ops_lindqvist
+    beat: closing_civ
+    delivery: "Clipped. No emotion on the net."
+    text: "Python, Rook Ops. Bring the tapes straight to the vault. Legal will want them."
+  - id: ops_closing_civ_v2
+    speaker: ops_lindqvist
+    beat: closing_civ
+    text: "Python, Rook Ops. Copy. Straight to the vault with the pod video. Don't talk to anyone first."
+  - id: ops_closing_civ_v3
+    speaker: ops_lindqvist
+    beat: closing_civ
+    text: "Python, Rook Ops. Copy on deck. Brigade is asking about the westbound trucks. Vault, now."
+  - id: ops_closing_escaped_v1
+    speaker: ops_lindqvist
+    beat: closing_escaped
+    delivery: "Flat; a fact, not a judgement."
+    text: "Python, Rook Ops. It's across. We'll see that radar again."
+  - id: ops_closing_escaped_v2
+    speaker: ops_lindqvist
+    beat: closing_escaped
+    text: "Python, Rook Ops. The Engineer keeps his radar. We'll plan for it on the far bank."
+  - id: ops_closing_escaped_v3
+    speaker: ops_lindqvist
+    beat: closing_escaped
+    text: "Python, Rook Ops. No radar today. Debrief in thirty. Bring the search tapes."

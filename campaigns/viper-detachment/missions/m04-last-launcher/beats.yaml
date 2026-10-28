@@ -1,0 +1,516 @@
+# m04 The Last Launcher — beats. Schema: schemas/beats.schema.json (BeatSheet). Compiled into DMS_CONFIG.beats.
+# group_prefix values are pool ids (runtime spawns are named <pool id>...): sam_carrier_*, escort_*,
+# overwatch_*, civ_decoy_* / civ_traffic (prefix civ_), river_manpads.
+#
+# Guaranteed spine (guaranteed: true; reachable from BOTH start options, never from takeoff):
+#   mission_start -> checkin_magic (zone push_hammer) -> retask (flag checked_in) -> on_station (zone
+#   search_box) -> rtb_call (flag convoy_resolved: SA-6 radar destroyed OR the 40-minute escape call)
+#   -> on_deck (any landing after the RTB call).
+# Mission end on death: player_lost (silent). Result: result_success / result_failure after on_deck,
+# or landed_early.
+# Route roll: exactly one of route_n / route_c / route_s fires (1/3 each) when intel < 2; with
+# intel >= 2 the southern road is ruled out and route_n_known / route_c_known pick 50/50.
+mission_id: m04-last-launcher
+beats:
+  # ==== Guaranteed spine =========================================================================
+  # GUARANTEED
+  - id: mission_start
+    when: {event: player.spawned, players_only: true}
+    delay_sec: 10
+    priority: 90
+    once: true
+    guaranteed: true
+    speaker: ops_lindqvist
+    lines: [ops_start_v1, ops_start_v2, ops_start_v3, ops_start_v4]
+    text: "Python, Rook Ops. Tasking unchanged. Check in with Magic at HAMMER."
+    mark: {type: circle, at: "zone:push_hammer", text: "HAMMER (push / Magic check-in)", radius_m: 14816}
+    effects: {set_flag: started}
+
+  # GUARANTEED
+  - id: checkin_magic
+    when: {event: zone.entered, zone: push_hammer, players_only: true}
+    requires: {flags_not: [checked_in]}
+    priority: 85
+    once: true
+    guaranteed: true
+    speaker: awacs_magic
+    lines: [magic_checkin_v1, magic_checkin_v2, magic_checkin_v3, magic_checkin_v4]
+    text: "Python, Magic. Radar contact, HAMMER. Picture clean. Contact Rook Ops for tasking."
+    effects: {set_flag: checked_in}
+
+  # GUARANTEED
+  - id: retask
+    when: {event: flag, flag: checked_in}
+    requires: {flags_not: [retasked]}
+    delay_sec: 4
+    priority: 88
+    once: true
+    guaranteed: true
+    speaker: ops_lindqvist
+    lines: [ops_retask_v1, ops_retask_v2, ops_retask_v3, ops_retask_v4]
+    text: "Python, Rook Ops. Retask, time critical. SAM convoy moving east from the Garrison toward the river. Find it and stop it. Forty minutes."
+    mark: {type: text, at: "zone:search_box", text: "SEARCH BOX (convoy, 3 candidate roads)"}
+    effects: {set_flag: retasked}
+
+  # GUARANTEED
+  - id: on_station
+    when: {event: zone.entered, zone: search_box, players_only: true}
+    requires: {flags: [retasked], flags_not: [on_station]}
+    priority: 80
+    once: true
+    guaranteed: true
+    speaker: awacs_magic
+    lines: [magic_on_station_v1, magic_on_station_v2, magic_on_station_v3]
+    text: "Python, Magic. In the box. Picture clean. No air."
+    effects: {set_flag: on_station}
+
+  # GUARANTEED
+  - id: rtb_call
+    when: {event: flag, flag: convoy_resolved}
+    requires: {flags_not: [rtb_called]}
+    delay_sec: 10
+    priority: 86
+    once: true
+    guaranteed: true
+    speaker: ops_lindqvist
+    lines: [ops_rtb_v1, ops_rtb_v2, ops_rtb_v3, ops_rtb_v4]
+    text: "Python, Rook Ops. RTB when able. BDA on deck."
+    effects: {set_flag: rtb_called}
+
+  # GUARANTEED
+  - id: on_deck
+    when: {event: unit.landed, players_only: true}
+    requires: {flags: [rtb_called]}
+    priority: 90
+    once: true
+    guaranteed: true
+    speaker: ops_lindqvist
+    lines: [ops_on_deck_v1, ops_on_deck_v2, ops_on_deck_v3]
+    text: "Python, Rook Ops. Copy on deck."
+    effects: {set_flag: landed}
+
+  # ==== Optional: ramp start only (never required) ==============================================
+  - id: ground_taxi
+    when: {event: zone.entered, zone: incirlik, players_only: true}
+    requires: {flags_not: [retasked, taxi_given]}
+    delay_sec: 45
+    priority: 50
+    once: true
+    speaker: tower_incirlik
+    lines: [ground_taxi_v1, ground_taxi_v2, ground_taxi_v3]
+    text: "Python, Incirlik Ground. Taxi runway zero-five via Alpha. Hold short."
+    effects: {set_flag: taxi_given}
+
+  - id: tower_departure
+    when: {event: unit.takeoff, players_only: true}
+    requires: {flags_not: [retasked]}
+    priority: 55
+    once: true
+    speaker: tower_incirlik
+    lines: [tower_departure_v1, tower_departure_v2, tower_departure_v3]
+    text: "Python, Incirlik Tower. Airborne. Contact departure."
+
+  - id: tower_recovery
+    when: {event: zone.entered, zone: incirlik_approach, players_only: true}
+    requires: {flags: [rtb_called]}
+    priority: 55
+    once: true
+    speaker: tower_incirlik
+    lines: [tower_recovery_v1, tower_recovery_v2, tower_recovery_v3]
+    text: "Python, Incirlik Tower. Runway zero-five. Report initial."
+
+  # ==== Optional: late check-in (flight skipped HAMMER) ==========================================
+  - id: checkin_late
+    when: {event: zone.entered, zone: search_box, players_only: true}
+    requires: {flags_not: [checked_in]}
+    priority: 84
+    once: true
+    speaker: awacs_magic
+    lines: [magic_checkin_late_v1, magic_checkin_late_v2, magic_checkin_late_v3]
+    text: "Python, Magic. Radar contact, already in the box. Contact Rook Ops for tasking."
+    effects: {set_flag: checked_in}
+
+  # ==== Silent: route roll (exactly one fires) ===================================================
+  - id: route_n
+    when: {event: beat.fired, beat: retask}
+    requires: {flags_not: [route_set], qualities: [{quality: intel, op: "<", value: 2}], chance: 33}
+    priority: 70
+    once: true
+    effects: {set_flag: [route_set, route_n_set]}
+
+  - id: route_c
+    when: {event: beat.fired, beat: retask}
+    requires: {flags_not: [route_set], qualities: [{quality: intel, op: "<", value: 2}], chance: 50}
+    priority: 69
+    once: true
+    effects: {set_flag: [route_set, route_c_set]}
+
+  - id: route_s
+    when: {event: beat.fired, beat: retask}
+    requires: {flags_not: [route_set], qualities: [{quality: intel, op: "<", value: 2}]}
+    priority: 68
+    once: true
+    effects: {set_flag: [route_set, route_s_set]}
+
+  - id: route_n_known
+    when: {event: beat.fired, beat: retask}
+    requires: {flags_not: [route_set], qualities: [{quality: intel, op: ">=", value: 2}], chance: 50}
+    priority: 70
+    once: true
+    effects:
+      set_flag: [route_set, route_n_set]
+      start_encounter: [convoy_n, escort_run_n, overwatch_sam_n, decoy_n]
+
+  - id: route_c_known
+    when: {event: beat.fired, beat: retask}
+    requires: {flags_not: [route_set], qualities: [{quality: intel, op: ">=", value: 2}]}
+    priority: 69
+    once: true
+    effects:
+      set_flag: [route_set, route_c_set]
+      start_encounter: [convoy_c, escort_run_c, overwatch_sam_c, decoy_c]
+
+  # ==== Silent: candidate-road marks for the F10 map =============================================
+  - id: mark_route_n
+    when: {event: beat.fired, beat: retask}
+    delay_sec: 2
+    priority: 20
+    once: true
+    mark: {type: text, at: "zone:route_n_end", text: "N ROAD: Manbij / northern bridge"}
+
+  - id: mark_route_c
+    when: {event: beat.fired, beat: retask}
+    delay_sec: 2
+    priority: 20
+    once: true
+    mark: {type: text, at: "zone:route_c_end", text: "C ROAD: Tishrin dam"}
+
+  - id: mark_route_s
+    when: {event: beat.fired, beat: retask}
+    requires: {qualities: [{quality: intel, op: "<", value: 2}]}
+    delay_sec: 2
+    priority: 20
+    once: true
+    mark: {type: text, at: "zone:route_s_end", text: "S ROAD: Maskanah / lake"}
+
+  # ==== Optional: convoy cue (observers, cold search, ISR hint) ===================================
+  - id: cold_search
+    when: {event: beat.fired, beat: retask}
+    requires: {qualities: [{quality: partner_morale, op: "<", value: 1}]}
+    delay_sec: 20
+    priority: 60
+    once: true
+    speaker: ops_lindqvist
+    lines: [ops_cold_search_v1, ops_cold_search_v2, ops_cold_search_v3]
+    text: "Python, Rook Ops. No ground reporting this morning. Three roads. Search with the pod."
+
+  - id: jackal_cue_n
+    when: {event: encounter.spawned, encounter: convoy_n}
+    requires: {qualities: [{quality: partner_morale, op: ">=", value: 1}]}
+    delay_sec: 45
+    priority: 72
+    once: true
+    speaker: jtac_ortiz
+    lines: [jackal_cue_n_v1, jackal_cue_n_v2, jackal_cue_n_v3]
+    text: "Python, Jackal Two-Three. Brigade observers have the convoy on the northern road, east of Al Bab."
+    mark: {type: circle, at: "zone:route_n_start", text: "NBB REPORT: CONVOY", radius_m: 3000}
+    effects: {set_flag: convoy_reported}
+
+  - id: jackal_cue_c
+    when: {event: encounter.spawned, encounter: convoy_c}
+    requires: {qualities: [{quality: partner_morale, op: ">=", value: 1}]}
+    delay_sec: 45
+    priority: 72
+    once: true
+    speaker: jtac_ortiz
+    lines: [jackal_cue_c_v1, jackal_cue_c_v2, jackal_cue_c_v3]
+    text: "Python, Jackal Two-Three. Brigade observers have the convoy on the central road, heading for the dam."
+    mark: {type: circle, at: "zone:route_c_start", text: "NBB REPORT: CONVOY", radius_m: 3000}
+    effects: {set_flag: convoy_reported}
+
+  - id: jackal_cue_s
+    when: {event: encounter.spawned, encounter: convoy_s}
+    requires: {qualities: [{quality: partner_morale, op: ">=", value: 1}]}
+    delay_sec: 45
+    priority: 72
+    once: true
+    speaker: jtac_ortiz
+    lines: [jackal_cue_s_v1, jackal_cue_s_v2, jackal_cue_s_v3]
+    text: "Python, Jackal Two-Three. Brigade observers have the convoy on the southern road, past Deir Hafer."
+    mark: {type: circle, at: "zone:route_s_start", text: "NBB REPORT: CONVOY", radius_m: 3000}
+    effects: {set_flag: convoy_reported}
+
+  - id: hint_n
+    when: {event: beat.fired, beat: on_station}
+    requires: {flags: [route_n_set], flags_not: [convoy_found, technicals_seen, convoy_reported, convoy_resolved]}
+    delay_sec: 600
+    priority: 65
+    once: true
+    speaker: ops_lindqvist
+    lines: [ops_hint_n_v1, ops_hint_n_v2, ops_hint_n_v3]
+    text: "Python, Rook Ops. ISR reports vehicle movement on the northern road, toward Manbij."
+    mark: {type: circle, at: "zone:route_n_start", text: "ISR: MOVEMENT", radius_m: 5000}
+
+  - id: hint_c
+    when: {event: beat.fired, beat: on_station}
+    requires: {flags: [route_c_set], flags_not: [convoy_found, technicals_seen, convoy_reported, convoy_resolved]}
+    delay_sec: 600
+    priority: 65
+    once: true
+    speaker: ops_lindqvist
+    lines: [ops_hint_c_v1, ops_hint_c_v2, ops_hint_c_v3]
+    text: "Python, Rook Ops. ISR reports vehicle movement on the central road, toward the dam."
+    mark: {type: circle, at: "zone:route_c_start", text: "ISR: MOVEMENT", radius_m: 5000}
+
+  - id: hint_s
+    when: {event: beat.fired, beat: on_station}
+    requires: {flags: [route_s_set], flags_not: [convoy_found, technicals_seen, convoy_reported, convoy_resolved]}
+    delay_sec: 600
+    priority: 65
+    once: true
+    speaker: ops_lindqvist
+    lines: [ops_hint_s_v1, ops_hint_s_v2, ops_hint_s_v3]
+    text: "Python, Rook Ops. ISR reports vehicle movement on the southern road, toward the lake."
+    mark: {type: circle, at: "zone:route_s_start", text: "ISR: MOVEMENT", radius_m: 5000}
+
+  # ==== Optional: the search and PID ==============================================================
+  - id: technicals_spotted
+    when: {event: intel.revealed, group_prefix: escort}
+    requires: {flags_not: [technicals_seen, convoy_found]}
+    priority: 62
+    once: true
+    speaker: wingman_pike
+    lines: [pike_technicals_v1, pike_technicals_v2, pike_technicals_v3, pike_technicals_v4]
+    text: "Python, Two. Technicals eastbound. Guns in the beds."
+    effects: {set_flag: technicals_seen}
+
+  - id: convoy_found
+    when: {event: intel.revealed, group_prefix: sam_carrier}
+    requires: {flags_not: [convoy_found]}
+    priority: 75
+    once: true
+    speaker: wingman_pike
+    lines: [pike_convoy_found_v1, pike_convoy_found_v2, pike_convoy_found_v3, pike_convoy_found_v4]
+    text: "Python, Two. Contact. Tracked vehicles eastbound. Looks like the SA-6."
+    effects: {set_flag: convoy_found}
+
+  - id: pike_pid_decoy
+    when: {event: beat.fired, beat: on_station}
+    requires: {flags: [route_set], flags_not: [sam_carrier_destroyed, civilians_hit]}
+    delay_sec: 240
+    priority: 70
+    once: true
+    speaker: wingman_pike
+    lines: [pike_pid_v1, pike_pid_v2, pike_pid_v3, pike_pid_v4]
+    text: "Python, Two. Trucks westbound on the same road. No weapons. Those look civilian."
+    effects: {set_flag: decoy_called}
+
+  # ==== Optional: overwatch SA-8 (telegraph -> hot -> dead) =======================================
+  # Telegraph for overwatch_sam_n/_c/_s: each encounter requests this beat by id (beat.request) 30-60 s
+  # before going hot, so the `when` below only documents one of the three sources.
+  - id: overwatch_warning
+    when: {event: encounter.telegraph, encounter: overwatch_sam_n}
+    priority: 92
+    once: true
+    speaker: ops_lindqvist
+    lines: [ops_overwatch_warning_v1, ops_overwatch_warning_v2, ops_overwatch_warning_v3, ops_overwatch_warning_v4]
+    text: "Python, Rook Ops. Overwatch is moving up beside the road. Expect a shot within a minute."
+    effects: {set_flag: overwatch_warned}
+
+  - id: overwatch_hot
+    when: {event: encounter.sam_hot, group_prefix: overwatch}
+    priority: 93
+    once: true
+    speaker: wingman_pike
+    lines: [pike_overwatch_hot_v1, pike_overwatch_hot_v2, pike_overwatch_hot_v3, pike_overwatch_hot_v4]
+    text: "Python, Two. Overwatch is up, near the road. Defending."
+    effects: {set_flag: overwatch_hot}
+
+  - id: overwatch_destroyed
+    when: {event: group.dead, group_prefix: overwatch}
+    priority: 80
+    once: true
+    speaker: wingman_pike
+    lines: [pike_overwatch_dead_v1, pike_overwatch_dead_v2, pike_overwatch_dead_v3]
+    text: "Python, Two. Good effect. Overwatch destroyed."
+    effects: {set_flag: overwatch_sam_destroyed, outcome: {overwatch_sam_destroyed: true}}
+
+  - id: manpads_warning             # telegraph for crossing_manpads
+    when: {event: encounter.telegraph, encounter: crossing_manpads}
+    priority: 88
+    once: true
+    speaker: ops_lindqvist
+    lines: [ops_manpads_warning_v1, ops_manpads_warning_v2, ops_manpads_warning_v3]
+    text: "Python, Rook Ops. Reporting puts MANPADS at the crossings. Keep it high."
+
+  # ==== Optional: the convoy fight ===============================================================
+  # The SA-6 element is a 1S91 radar plus launchers. Destroying the radar is the kill that matters:
+  # without it the launchers cannot engage, and it is the last working SA-6 radar the NPF has.
+  - id: carrier_destroyed
+    when: {event: unit.dead, group_prefix: sam_carrier, type_name: "Kub 1S91 str"}
+    requires: {flags_not: [sam_carrier_destroyed]}
+    priority: 95
+    once: true
+    speaker: ops_lindqvist
+    lines: [ops_launcher_dead_v1, ops_launcher_dead_v2, ops_launcher_dead_v3, ops_launcher_dead_v4]
+    text: "Python, Rook Ops. Copy radar destroyed. The launchers are blind."
+    effects:
+      set_flag: [sam_carrier_destroyed, convoy_resolved]
+      outcome: {sam_carrier_destroyed: true, convoy_escaped: false}
+
+  - id: carrier_vehicle_hit
+    when: {event: unit.dead, group_prefix: sam_carrier}
+    requires: {flags_not: [sam_carrier_destroyed]}
+    priority: 64
+    once: true
+    speaker: wingman_pike
+    lines: [pike_vehicle_hit_v1, pike_vehicle_hit_v2, pike_vehicle_hit_v3]
+    text: "Python, Two. One down. Not the radar. Radar still moving."
+
+  - id: convoy_halted
+    when: {event: convoy.halted, group_prefix: sam_carrier}
+    requires: {flags_not: [sam_carrier_destroyed]}
+    priority: 45
+    once: false
+    cooldown_sec: 180
+    speaker: wingman_pike
+    lines: [pike_halted_v1, pike_halted_v2, pike_halted_v3]
+    text: "Python, Two. Convoy's stopped."
+
+  - id: escort_first_kill           # silent: outcome only
+    when: {event: unit.dead, group_prefix: escort}
+    requires: {beats_not_fired: [escort_all_dead]}
+    priority: 40
+    once: true
+    effects: {outcome: {escort_destroyed: 1}}
+
+  - id: escort_all_dead             # silent: outcome only (escort group = 3 technicals)
+    when: {event: group.dead, group_prefix: escort}
+    priority: 41
+    once: true
+    effects: {outcome: {escort_destroyed: 3}}
+
+  - id: escape_warning
+    when: {event: beat.fired, beat: retask}
+    requires: {flags_not: [convoy_resolved]}
+    delay_sec: 2100
+    priority: 85
+    once: true
+    speaker: ops_lindqvist
+    lines: [ops_escape_warning_v1, ops_escape_warning_v2, ops_escape_warning_v3]
+    text: "Python, Rook Ops. Five minutes. Then they're in the river towns."
+    effects: {set_flag: escape_warned}
+
+  - id: convoy_escaped
+    when: {event: beat.fired, beat: retask}
+    requires: {flags_not: [convoy_resolved]}
+    delay_sec: 2400
+    priority: 87
+    once: true
+    speaker: ops_lindqvist
+    lines: [ops_escaped_v1, ops_escaped_v2, ops_escaped_v3]
+    text: "Python, Rook Ops. Convoy's into the river towns. Endex on the convoy."
+    effects:
+      set_flag: [convoy_escaped, convoy_resolved]
+      outcome: {convoy_escaped: true, sam_carrier_destroyed: false}
+
+  # ==== Optional: consequences ===================================================================
+  - id: civilian_hit
+    when: {event: unit.dead, group_prefix: civ_}
+    priority: 96
+    once: false
+    cooldown_sec: 60
+    speaker: wingman_pike
+    lines: [pike_check_fire_v1, pike_check_fire_v2, pike_check_fire_v3, pike_check_fire_v4]
+    text: "Check fire, check fire. That was a civilian vehicle."
+    effects: {set_flag: civilians_hit, outcome: {civilians_hit: true}}
+
+  - id: player_hit
+    when: {event: unit.hit, players_only: true}
+    priority: 89
+    once: false
+    cooldown_sec: 120
+    speaker: wingman_pike
+    lines: [pike_say_status_v1, pike_say_status_v2, pike_say_status_v3]
+    text: "Python, Two. Flash on your jet. Say status."
+
+  # GUARANTEED-ON-DEATH (mission end record; not part of the tested spine)
+  - id: player_lost                 # silent: nobody on the net says it to a dead crew
+    when: {event: unit.dead, players_only: true}
+    priority: 100
+    once: true
+    effects: {set_flag: player_lost, outcome: {player_lost: true}, end_mission: failure}
+
+  - id: landed_early
+    when: {event: unit.landed, players_only: true}
+    requires: {flags: [retasked], flags_not: [convoy_resolved]}
+    priority: 88
+    once: true
+    speaker: ops_lindqvist
+    lines: [ops_landed_early_v1, ops_landed_early_v2, ops_landed_early_v3]
+    text: "Python, Rook Ops. Copy on deck. Convoy's still moving. We'll hand it on."
+    effects: {outcome: {convoy_escaped: true, sam_carrier_destroyed: false}, end_mission: failure}
+
+  # ==== Closing line (after on_deck; exactly one fires) ==========================================
+  - id: closing_clean
+    when: {event: beat.fired, beat: on_deck}
+    requires:
+      flags: [sam_carrier_destroyed, overwatch_sam_destroyed]
+      flags_not: [civilians_hit]
+      qualities: [{quality: collateral, op: "==", value: 0}]
+    delay_sec: 8
+    priority: 60
+    once: true
+    speaker: ops_lindqvist
+    lines: [ops_closing_clean_v1, ops_closing_clean_v2, ops_closing_clean_v3]
+    text: "Python, Rook Ops. That's the last radar we know of. Tomorrow is ISR escort. Boring is the goal."
+
+  - id: closing_partial
+    when: {event: beat.fired, beat: on_deck}
+    requires:
+      flags: [sam_carrier_destroyed]
+      flags_not: [civilians_hit]
+      beats_not_fired: [closing_clean]
+    delay_sec: 8
+    priority: 58
+    once: true
+    speaker: ops_lindqvist
+    lines: [ops_closing_partial_v1, ops_closing_partial_v2, ops_closing_partial_v3]
+    text: "Python, Rook Ops. Radar's done. Copy. Nice work, Python."
+
+  - id: closing_civ
+    when: {event: beat.fired, beat: on_deck}
+    requires: {flags: [civilians_hit]}
+    delay_sec: 8
+    priority: 59
+    once: true
+    speaker: ops_lindqvist
+    lines: [ops_closing_civ_v1, ops_closing_civ_v2, ops_closing_civ_v3]
+    text: "Python, Rook Ops. Bring the tapes straight to the vault. Legal will want them."
+
+  - id: closing_escaped
+    when: {event: beat.fired, beat: on_deck}
+    requires: {flags_not: [sam_carrier_destroyed, civilians_hit]}
+    delay_sec: 8
+    priority: 57
+    once: true
+    speaker: ops_lindqvist
+    lines: [ops_closing_escaped_v1, ops_closing_escaped_v2, ops_closing_escaped_v3]
+    text: "Python, Rook Ops. It's across. We'll see that radar again."
+
+  # ==== Silent: mission result (after the closing line) ==========================================
+  - id: result_success
+    when: {event: beat.fired, beat: on_deck}
+    requires: {flags: [sam_carrier_destroyed]}
+    delay_sec: 30
+    priority: 50
+    once: true
+    effects: {end_mission: success}
+
+  - id: result_failure
+    when: {event: beat.fired, beat: on_deck}
+    requires: {flags_not: [sam_carrier_destroyed]}
+    delay_sec: 30
+    priority: 50
+    once: true
+    effects: {end_mission: failure}

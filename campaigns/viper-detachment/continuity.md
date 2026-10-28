@@ -38,3 +38,10 @@
 - Thread payoffs: SA-6 → m01/m04; Quarry bunkers → m02; Pike → m04; the Engineer → m04.
 - Branches: only replay-on-player_lost; otherwise linear. Outcomes act through qualities.
 - Every mission: two PYTHON 1 player flights (ramp start at Incirlik, air start near the IP). No beat depends on takeoff.
+
+### 2026-10-28 — mission-designer — m01–m04 designed
+- m01-broken-umbrella (03 NOV 2016, 0700L): SEAD window over Al Bab; SA-6 battery at one of 3 sites (goes hot inside ~8 NM), pop-up SHORAD (80% at sam_threat 2), MQ-9 "Cyclops Two" is narrative only.
+- m02-the-quarry (05 NOV 2016, 1030L): LGB strike on a quarry depot ~4 NM NE of Al Bab; 2 of 5 storage sites hold stocks (seeded); farm hamlet 300 m east is no-strike.
+- m03-troops-in-contact (08 NOV 2016, 1500L): CAS for NBB company LANTERN with Jackal Two-Three, 6 km N of Tell Rifaat; Mill and Orchard positions; NBB hold limit set by partner_morale.
+- m04-last-launcher (14 NOV 2016, 0630L): the last SA-6 element convoy on one of 3 roads to the Euphrates (north/Manbij, centre/Tishrin, south/Maskanah), with a civilian decoy convoy; success = 1S91 radar destroyed.
+- All four: ramp flight at Incirlik + air-start flight before the IP, both PYTHON on the radio. Subtitles only.

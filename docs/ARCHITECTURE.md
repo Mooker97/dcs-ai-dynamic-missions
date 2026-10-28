@@ -134,8 +134,10 @@ and real people never get invented quotes.
   `MissionSpec`, and `dms plan` turns it into an exact `BuildPlan` and a `RuntimeConfig`.
 - **Grounding tools** come from pydcs data: `find_airbase`, `list_units(era, coalition, role)` and
   `list_loadouts`. The LLM picks areas and roles, and Python picks coordinates and types.
-- **Interface:** the `dms` CLI (typer) plus skills come first. An MCP server will be a thin wrapper
-  added in v0.8 ([ADR 0005](adr/0005-cli-and-skills-before-mcp.md)).
+- **Interface:** the `dms` CLI (typer) plus skills come first. `dms-mcp` is a thin FastMCP stdio
+  wrapper with six tools (validate, plan, build, check, schema, campaign_status) that call
+  `dms_core` / `dms_gen` in-process ([ADR 0005](adr/0005-cli-and-skills-before-mcp.md)).
+  CLI commands are listed in [CONTRACTS](CONTRACTS.md#file-formats).
 
 ## Pillar 4: Voice
 
@@ -157,6 +159,7 @@ and real people never get invented quotes.
 | `packages/dms-gen` | plan + build (pydcs), Lua injection, kneeboard |
 | `packages/dms-voice` | ElevenLabs, ffmpeg FX, cache |
 | `packages/dms-cli` | The `dms` command |
+| `packages/dms-mcp` | `dms-mcp` FastMCP stdio server (6 tools, thin wrapper over core/gen) |
 | `lua/src/dms/`, `lua/manifest.txt` | Runtime modules and their load order |
 | `lua/spec/`, `lua/mocks/` | Lua specs (run via pytest + lupa) and the DCS mock with a fake clock |
 | `lua/plugins/` | Pinned optional MOOSE, MIST and Skynet |

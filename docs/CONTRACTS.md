@@ -33,6 +33,8 @@ DMS_CONFIG                        -- global table emitted by the generator (see 
 DMS.boot() -> bool                -- start modules in DMS.START_ORDER, then emit "mission.start"; once only
 DMS.START_ORDER = { "Spawner", "Ground", "Director", "Encounters", "Narrative", "Comms", "Intel" }
 -- boot calls mod.start(mod) under safeCall; start functions ignore their arguments.
+DMS.BOOT_RETRIES = 5  DMS.BOOT_RETRY_SEC = 1   -- deferred-boot polling when DMS_CONFIG loads late
+DMS._deferBoot()                  -- internal (init.lua); skipped if a module was started by hand
 
 -- core.lua
 DMS.Log.debug(prefix, fmt, ...)   -- only when DMS.Log.isDebug(); "[DMS][prefix] msg" via env.info
@@ -58,6 +60,7 @@ DMS.Bus.on(name, fn(payload, name)) -> token   -- name "*" receives everything
 DMS.Bus.off(token)                DMS.Bus.emit(name, payload)
 DMS.Bus.learnGroup(groupOrName)   DMS.Bus.rescan()   DMS.Bus.unitInfo(unitName)
 DMS.Bus._players[unitName]        -- live player units (set at BIRTH, cleared after their unit.dead)
+DMS.Bus.install() / uninstall()   -- add/remove the world event handler (install also rescans); called by init
 
 -- registry.lua
 DMS.Registry.allocName(prefix) -> "DMS_<prefix>_<n>"   -- runtime spawns are named DMS_<poolOrTemplateId>_<n>
@@ -75,31 +78,58 @@ DMS.Registry.list(filterFn(name, meta)) -> sorted names
 DMS.Spawner.spawn(templateId, zoneId|point|{zone=}|{x,y,radiusM}, opts) -> groupName|nil, reason
 --   opts: country, heading (DEGREES), hidden, encounter, minPlayerDistM (default 5 km ground / 37 km air),
 --         outOfLOS, buildingRadius, tries, prefix, skill, lateActivation, ignoreBudget, onReady(name),
---         radiusM, cost. Ground points must be land (no water / shallow water) for every unit.
+--         radiusM, cost, altM / speed (air), losHeightM (outOfLOS eye height, default 3),
+--         readyDelaySec (before onReady).
+--         Ground points must be land (no water / shallow water) for every unit.
 DMS.Spawner.spawnPool(poolId, opts) -> {groupName...}   -- count = Rng.range(pool.pick), scaled by director
+--   opts as spawn, plus count (fixed, not scaled) and zone | point (where; default a random pool.zones entry)
 DMS.Spawner.getZone(id) zoneCenter(z) zoneRadius(z) inZone(z, p) randomPointInZone(z) playerUnits()
+DMS.Spawner.isLand(p) isWater(p) validPoint(p, opts, players) -> ok, reason
+--   validPoint opts: category (ship = water, air = anywhere, else land), buildingRadius, outOfLOS,
+--                    losHeightM, minPlayerDistM
+DMS.Spawner.buildGroupData(name, tpl, pos, headingRad, opts) -> DCS group table   -- used by spawn
 -- ground.lua
 DMS.Ground.routeTo(name, point, opts) halt resume holdFire openFire returnFire alarm(name, "GREEN"|"RED"|"AUTO")
 DMS.Ground.hunt(name, target, opts) stopHunt watch(name, opts) haltOnHit(convoy, resumeAfterSec) leadPos
+DMS.Ground.fireAtPoint(name, point, {radius=100, expendQty}) -> bool
 -- director.lua
 DMS.Director.canSpawn(cost, flight?) -> ok, reason   noteSpawn(cost)   state(flight?) intensity(flight?)
 DMS.Director.skillFor(skill) scaleCount(n) scaleDelay(sec) adapt(delta, why) level()
+DMS.Director.addIntensity(flight, amount, why) addPlayer(unit, group?) removePlayer(unit) flights() -> sorted names
+DMS.Director.spawnBudget() -> spawns/min   tick(dt)   -- tick is driven by start(); call directly only in specs
 -- encounters.lua
 DMS.Encounters.trigger(id, opts) -> bool   -- opts: boolean force | {force=bool, beat=id}; ignores chance,
                                            --       respects once unless force
 DMS.Encounters.get(id) groups(id) add(def)
+--   event trigger: {type="event", event=<bus event>}; `name` is accepted as an alias for `event`
 -- narrative.lua
 DMS.Narrative.trigger(id, source) setFlag(name, value) getFlag(name) isFlagSet(name)
 DMS.Narrative.getQuality(q) addQuality(q, d) setOutcome(tbl) finish(result) firedList() firedCount(id)
+DMS.Narrative.outcome() qualities() qualityDeltas()   -- live tables (read-only by convention)
+DMS.Narrative.pump()                       -- internal: run beat selection now (trigger/events call it)
 -- comms.lua
 DMS.Comms.say(speaker, lineIds, text, opts) -> lineId|true|false
 --   opts: coalition, groupId, frequency (MHz|Hz), modulation (0 AM, 1 FM), pos, power, priority,
 --         cooldownSec, key, callsign, durSec, keep (never dropped from a full queue)
 --   frequency/modulation default to DMS_CONFIG.speakers[speaker]; callsign likewise.
 DMS.Comms.text(msg, opts) repeatLast(groupId, coalition) history() addMenuCommand(path, label, fn)
+DMS.Comms.isBusy() -> bool   statusText() -> string   menuFor(groupId) -> menu record|nil
+DMS.Comms.addStatusProvider(fn() -> string|{string...})   -- extra lines in the status menu text
 -- intel.lua
-DMS.Intel.reveal(groupName, reason, opts) forget(g) contacts() report(groupId) kills()
+DMS.Intel.reveal(groupName, reason, opts) forget(g) contacts() contact(g) report(groupId) kills()
 DMS.Intel.mark(spec) -> handle            -- see "mark" below
+DMS.Intel.removeMarkHandle(handle) -> bool
+DMS.Intel.resolveGroup(name) -> groupName|nil   -- "group:<name>": exact live group, else first live
+                                                --  prefix match (with or without "DMS_")
+-- test.lua: DMS.Test (headless-DCS assertions; inert unless DMS_CONFIG.test.enabled)
+--   Starts itself on mission.start (not in START_ORDER). Logs "[DMS.TEST] PASS|FAIL|SKIP|INFO <name> <detail>"
+--   and "[DMS.TEST] DONE <passed>/<total>" (parsed by tools/dcs_harness).
+DMS.Test.pass(name, detail) fail skip info   check(name, cond, detail) -> bool   done() autoDone(graceSec)
+DMS.Test.expect(name, fn(atEnd) -> ok, detail, fatal, deadlineSec, {interval=2, negate})
+DMS.Test.config() isEnabled() proxyName() isProxyRun() runChecks(checks, deadlineSec)
+--   DMS_CONFIG.test = {enabled, playerProxy=<AI group treated as the player>, minutes, checks={...}}
+--   check kinds: booted | spawns{min} | beats_in_order{beats} | beat{id} | comms{min} |
+--                encounter{id} | convoy_halt | outcome{result}; optional name, deadlineSec
 ```
 
 ### Events
@@ -294,13 +324,14 @@ Deterministic dcs.log -> campaign state. No schema changes: debrief metadata liv
 | Module | Models | Written by |
 |---|---|---|
 | `story.py` | `StoryBible`, `Faction`, `Character`, `VoiceProfile`, `TimelineEvent`, `Source` | story-writer skill |
-| `campaign.py` | `CampaignArc`, `Act`, `ArcMission`, `Branch`, `Qualities` (`next_mission` set by the debriefer) | campaign-planner / debriefer |
-| `mission.py` | `MissionSpec` (LLM-facing, declarative: theater, era, datetime, weather_preset, player_flights, mission_type, objectives, threats, support, dynamic) | mission-designer skill |
-| `beats.py` | `Beat`, `BeatTrigger`, `BeatEffects`, `BeatMark` | mission-designer skill |
-| `voice.py` | `VoiceLine` (optional multi-speaker `turns` for Text-to-Dialogue), `VoiceLineSet` (lines.yaml) | mission-designer / voice-director |
+| `campaign.py` | `CampaignArc`, `Act`, `ArcMission`, `Branch`, `QualityDef`, `Qualities` (`next_mission` set by the debriefer) | campaign-planner / debriefer |
+| `mission.py` | `MissionSpec` (LLM-facing, declarative: theater, era, date, start_time, weather_preset, player_flights, mission_type, objectives, threats, support, dynamic) | mission-designer skill |
+| `beats.py` | `BeatSheet` (beats.yaml), `Beat`, `BeatTrigger`, `BeatEffects`, `BeatMark` | mission-designer skill |
+| `voice.py` | `VoiceLine` (optional multi-speaker `turns` of `DialogueTurn` for Text-to-Dialogue), `VoiceLineSet` (lines.yaml) | mission-designer / voice-director |
 | `plan.py` | `BuildPlan` (exact: positions x/y, unit types, payload CLSIDs, frequencies, group names, trigger list, resources; `blue_countries` / `red_countries` / `neutral_countries` coalition membership) | `dms plan` |
 | `runtime.py` | `RuntimeConfig` (= DMS_CONFIG above) | `dms plan` |
-| `outcome.py` | `MissionOutcome` (parsed `[DMS.OUTCOME]` lines) | debriefer |
+| `outcome.py` | `MissionOutcome` (parsed `[DMS.OUTCOME]` lines; `parse_dcs_log`, `summarize_outcomes`) | `dms outcome` / debriefer |
+| `validation.py` | `Issue` (path, problem, suggestions, severity); `validate_mission_bundle` cross-file checks | `dms validate` |
 
 Vocabulary notes: threat role `civilian` = unarmed civilian vehicles only (pair with a neutral
 faction; the planner must never pick armed types for it, and lists that faction's country in
@@ -316,9 +347,24 @@ writes JSON Schema files to `schemas/` at the repo root for skills and editors.
 - **Campaign folder:** `campaigns/<slug>/premise.md, bible.yaml, arc.yaml, continuity.md, state/qualities.yaml, state/outcomes/<mNN>.yaml, missions/mNN-<slug>/{mission-spec.yaml, beats.yaml, briefing.md, kneeboard.md, lines.yaml, voice/, out/}`
 - **YAML** for authored files. **JSON** for machine intermediates (`plan.json`).
 - **Voice cache:** `~/.dms/tts-cache/<sha256>.ogg`, where the key is `sha256(voice_id|model|text|fx_preset)`.
-- **CLI:** `dms validate <spec>`, `dms plan <spec> -o plan.json`, `dms voice <lines.yaml>`,
-  `dms build <plan.json> -o out.miz`, `dms check <miz>`, `dms schema`, `dms bundle-lua`,
-  `dms debrief <campaign_dir> --mission mNN [--log PATH] [--dry-run] [--force] [--seed N] [--json]`.
+- **CLI** (`packages/dms-cli`, typer; global `--root <repo>`, default: walk up to the uv workspace).
+  `<mission>` is a mission folder or its `mission-spec.yaml`.
+  - `dms validate <mission> [--beats --lines --bible] [--json]`: schema + cross-file + planner checks.
+  - `dms plan <mission> [-o plan.json] [--seed N] [--voice-manifest]`: default output
+    `<mission>/out/plan.json`; the voice manifest defaults to `<mission>/voice/manifest.json` if present.
+  - `dms voice <lines.yaml|mission> [--out --dry-run --fx --voices --model]`: output `<mission>/voice`.
+  - `dms build <plan.json|mission> [-o out.miz] [--lua]`: a folder reads `<mission>/out/plan.json` and
+    writes `<mission>/out/<id>.miz`, then runs check.
+  - `dms run <mission> [--seed --skip-voice -o]`: validate -> voice -> plan -> build -> check.
+  - `--test [--test-minutes M]` on `plan`, `build` (plus `--seed`) and `run`: headless-DCS test variant
+    (AI player proxy + `DMS.Test` checks) in `out/test/<id>-test.miz`; normal outputs are untouched.
+  - `dms check <miz> [--json]`, `dms schema [--out]`, `dms bundle-lua [--out]`.
+  - `dms catalog units|templates [--era --coalition --role --category]`,
+    `dms catalog airbases --theater T [--near name|x,y --limit]`, `dms catalog mission-types`; all take `--json`.
+  - `dms outcome <dcs.log> [--mission-id] [--json]`: parse `[DMS.OUTCOME]` lines and summarise.
+  - `dms new-campaign <slug>`: copy `campaigns/_template` to `campaigns/<slug>`.
+  - `dms debrief <campaign_dir> --mission mNN [--log PATH] [--dry-run] [--force] [--seed N] [--json]`:
+    latest session's `[DMS.OUTCOME]` lines -> `state/outcomes/<mNN>.yaml`, qualities, next mission.
 
 ## MCP server (`packages/dms-mcp`, v0.8)
 

@@ -21,7 +21,9 @@ uv run pytest lua                   # Lua specs only (Lua 5.1 via lupa + lua/moc
 uv run ruff check . && uv run ruff format .
 uv run mypy packages                # strict
 uv run python tools/bundle_lua.py   # lua/src -> dist/dms.lua (manifest order)
-uv run dms --help                   # validate | plan | voice | build | check | schema | bundle-lua
+uv run dms --help                   # validate | plan | voice | build | run | check | schema | bundle-lua
+                                    # | catalog | outcome | new-campaign  (see CONTRACTS "File formats")
+uv run dms-mcp                      # MCP server (stdio)
 ```
 
 ## Hard rules
@@ -60,6 +62,7 @@ uv run dms --help                   # validate | plan | voice | build | check | 
 | `packages/dms-gen` | plan/build (pydcs), Lua injection, kneeboard |
 | `packages/dms-voice` | ElevenLabs, ffmpeg radio FX, `~/.dms/tts-cache` |
 | `packages/dms-cli` | `dms` command (typer) |
+| `packages/dms-mcp` | `dms-mcp` FastMCP stdio server, 6 tools wrapping core/gen (validate, plan, build, check, schema, campaign_status) |
 | `lua/src/dms/` + `lua/manifest.txt` | runtime modules and their load order |
 | `lua/spec/`, `lua/mocks/` | specs and the DCS mock (fake clock) |
 | `lua/plugins/` | optional pinned MOOSE/MIST/Skynet (the core never depends on them) |

@@ -270,6 +270,30 @@
           "default": null,
           "description": "Declare the mission over with this result.",
           "title": "End Mission"
+        },
+        "speak": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BeatSpeak"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Radio call overriding the beat's speaker/lines/text (unset = use the beat's)."
+        },
+        "mark": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BeatMark"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "F10 mark dropped when the beat itself has no `mark`."
         }
       },
       "title": "BeatEffects",
@@ -345,6 +369,62 @@
         "at"
       ],
       "title": "BeatMark",
+      "type": "object"
+    },
+    "BeatSpeak": {
+      "additionalProperties": false,
+      "description": "Radio call made by an effect; each field overrides the beat's own speaker / lines / text.",
+      "properties": {
+        "speaker": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Character id who speaks (default: the beat's speaker).",
+          "title": "Speaker"
+        },
+        "lines": {
+          "anyOf": [
+            {
+              "items": {
+                "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+                "maxLength": 64,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Voice line ids from lines.yaml (default: the beat's lines).",
+          "title": "Lines"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Subtitle / fallback text (default: the beat's text).",
+          "title": "Text"
+        }
+      },
+      "title": "BeatSpeak",
       "type": "object"
     },
     "BeatTrigger": {

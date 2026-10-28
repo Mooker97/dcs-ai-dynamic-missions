@@ -61,5 +61,5 @@ def test_build_from_plan(tmp_path: Path) -> None:
     assert red.hidden and [u["name"] for u in red.units] == ["Red 1-1", "Red 1-2"]
     start = next(t for t in s.triggers if t["comment"] == "DMS: load scripts")
     files = [s.resources[a["file"]] for a in start["actions"]]
-    assert files == ["dms.lua", "dms_config.lua"]
+    assert files == ["dms_config.lua", "dms.lua"]  # contract: config before dms.lua
     assert {z["name"] for z in s.zones} == {"Z1", "Q1"}

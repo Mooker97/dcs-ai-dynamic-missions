@@ -294,6 +294,30 @@
           "default": null,
           "description": "Declare the mission over with this result.",
           "title": "End Mission"
+        },
+        "speak": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BeatSpeak"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Radio call overriding the beat's speaker/lines/text (unset = use the beat's)."
+        },
+        "mark": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BeatMark"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "F10 mark dropped when the beat itself has no `mark`."
         }
       },
       "title": "BeatEffects",
@@ -369,6 +393,62 @@
         "at"
       ],
       "title": "BeatMark",
+      "type": "object"
+    },
+    "BeatSpeak": {
+      "additionalProperties": false,
+      "description": "Radio call made by an effect; each field overrides the beat's own speaker / lines / text.",
+      "properties": {
+        "speaker": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Character id who speaks (default: the beat's speaker).",
+          "title": "Speaker"
+        },
+        "lines": {
+          "anyOf": [
+            {
+              "items": {
+                "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+                "maxLength": 64,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Voice line ids from lines.yaml (default: the beat's lines).",
+          "title": "Lines"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Subtitle / fallback text (default: the beat's text).",
+          "title": "Text"
+        }
+      },
+      "title": "BeatSpeak",
       "type": "object"
     },
     "BeatTrigger": {
@@ -2183,6 +2263,174 @@
       "title": "TemplateUnit",
       "type": "object"
     },
+    "TestCheck": {
+      "additionalProperties": false,
+      "description": "One in-mission assertion for a headless test run (lua/src/dms/test.lua).",
+      "properties": {
+        "kind": {
+          "description": "Check kind.",
+          "enum": [
+            "booted",
+            "spawns",
+            "beats_in_order",
+            "beat",
+            "comms",
+            "encounter",
+            "convoy_halt",
+            "outcome"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Name in [DMS.TEST] lines (default kind).",
+          "title": "Name"
+        },
+        "deadline_sec": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Model seconds after start before a pending check fails.",
+          "title": "Deadline Sec"
+        },
+        "min": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "spawns / comms: minimum count.",
+          "title": "Min"
+        },
+        "beats": {
+          "anyOf": [
+            {
+              "items": {
+                "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+                "maxLength": 64,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "beats_in_order: beat ids expected in this order.",
+          "title": "Beats"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "beat / encounter: the id to watch.",
+          "title": "Id"
+        },
+        "result": {
+          "anyOf": [
+            {
+              "enum": [
+                "success",
+                "failure"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "outcome: expected end result (unset = any end).",
+          "title": "Result"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "TestCheck",
+      "type": "object"
+    },
+    "TestSettings": {
+      "additionalProperties": false,
+      "description": "DMS_CONFIG.test: headless test mode, set only by `dms build --test` (dms_test.lua).",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "description": "false keeps test mode inert.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "player_proxy": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "AI group name treated as the player by every module.",
+          "title": "Player Proxy"
+        },
+        "minutes": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Model minutes; pending checks fail and DONE is logged then.",
+          "title": "Minutes"
+        },
+        "checks": {
+          "description": "Assertions to run.",
+          "items": {
+            "$ref": "#/$defs/TestCheck"
+          },
+          "title": "Checks",
+          "type": "array"
+        }
+      },
+      "title": "TestSettings",
+      "type": "object"
+    },
     "VoiceEntry": {
       "additionalProperties": false,
       "description": "Rendered audio for a voice line id.",
@@ -2423,6 +2671,18 @@
       ],
       "default": null,
       "description": "Beat engine pacing (unset = runtime defaults)."
+    },
+    "test": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TestSettings"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Headless test mode (only in `dms build --test` builds)."
     }
   },
   "required": [

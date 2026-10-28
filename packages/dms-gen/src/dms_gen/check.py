@@ -1,8 +1,9 @@
 """check_miz: structural checks on a built DMS .miz (``dms check``).
 
 Opens the archive with :class:`dms_core.miz.MizFile` (lupa round-trip, never pydcs) and checks
-ids/names, player slots, resources, script order, compiled trigger strings, DMS_CONFIG keys and
-references, voice files, Lua 5.1 syntax, fog-of-war hidden flags and map bounds.
+ids/names, player slots, resources, script order, compiled trigger strings, DMS_CONFIG schema
+(:class:`RuntimeConfig`), keys and references, beat reachability, voice files, Lua 5.1 syntax,
+fog-of-war hidden flags and map bounds. See docs/CONTRACTS.md "dms check".
 """
 
 # mypy: disallow-untyped-calls=False
@@ -13,11 +14,13 @@ import os
 from collections import Counter
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, get_args
 
 from dms_core import luaio
 from dms_core.miz import MizFile
-from pydantic import BaseModel, ConfigDict, Field
+from dms_core.schemas.beats import BeatEvent
+from dms_core.schemas.runtime import RuntimeConfig
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 Severity = Literal["error", "warning", "info"]
 L10N = "l10n/DEFAULT/"
@@ -155,6 +158,7 @@ def check_miz(path: str | os.PathLike[str]) -> CheckReport:
     _check_lua_syntax(rep, miz, files)
     if config is not None:
         _check_fog(rep, mission, config)
+        _check_beat_reachability(rep, mission, config)
     rep.stats.update(
         resources=len(res),
         scripts=len(scripts),
@@ -312,6 +316,15 @@ def _check_config(
     for key in REQUIRED_CONFIG_KEYS:
         if key not in cfg:
             rep.add("error", "config_key_missing", f"DMS_CONFIG.{key} missing", path)
+    try:
+        RuntimeConfig.from_lua_table(cfg)
+    except ValidationError as exc:
+        errs = exc.errors()
+        for err in errs[:20]:
+            loc = ".".join(str(p) for p in err["loc"])
+            rep.add("error", "config_schema", f"DMS_CONFIG.{loc}: {err['msg']}", path)
+        if len(errs) > 20:
+            rep.add("error", "config_schema", f"... and {len(errs) - 20} more schema errors", path)
 
     def as_map(v: Any) -> dict[str, Any]:
         return v if isinstance(v, dict) else {}
@@ -340,8 +353,21 @@ def _check_config(
     for e in as_list(cfg.get("encounters")):
         e = as_map(e)
         eid = f"encounters.{e.get('id')}"
-        if e.get("pool") not in pools:
-            rep.add("error", "config_bad_pool", f"encounter pool '{e.get('pool')}' missing", eid)
+        if e.get("pool") is not None:
+            if e.get("pool") not in pools:
+                rep.add(
+                    "error", "config_bad_pool", f"encounter pool '{e.get('pool')}' missing", eid
+                )
+        elif e.get("template") is not None:
+            if e.get("template") not in templates:
+                rep.add(
+                    "error",
+                    "config_bad_template",
+                    f"encounter template '{e.get('template')}' missing",
+                    eid,
+                )
+        elif e.get("group") is None:
+            rep.add("error", "config_no_source", "encounter needs pool, template or group", eid)
         tr = as_map(e.get("trigger"))
         if tr.get("zone") is not None and tr.get("zone") not in zones:
             rep.add("error", "config_bad_zone", f"trigger zone '{tr.get('zone')}' missing", eid)
@@ -412,4 +438,183 @@ def _check_fog(rep: CheckReport, mission: dict[Any, Any], cfg: dict[str, Any]) -
                 "enemy_not_hidden",
                 "fog of war is on but this enemy group is visible on the F10 map",
                 str(g.get("name")),
+            )
+
+
+KNOWN_EVENTS = frozenset(get_args(BeatEvent))
+
+
+def _as_map(v: Any) -> dict[Any, Any]:
+    return v if isinstance(v, dict) else {}
+
+
+def _as_list(v: Any) -> list[Any]:
+    if isinstance(v, list):
+        return v
+    if isinstance(v, dict):
+        return list(v.values())
+    return [] if v is None else [v]
+
+
+def _set_flags(effects: dict[Any, Any]) -> set[str]:
+    """Flag names a beat's effects set (setFlag string, list, or {name = value} map)."""
+    sf = effects.get("setFlag")
+    if isinstance(sf, dict):
+        return {str(v) if isinstance(k, int) else str(k) for k, v in sf.items()}
+    return {str(f) for f in _as_list(sf)}
+
+
+def _me_flags(mission: dict[Any, Any]) -> set[str]:
+    """Flags any mission-editor trigger action sets (a_set_flag and friends)."""
+    out: set[str] = set()
+    for rule in _as_list(mission.get("trigrules")):
+        for a in _as_list(_as_map(rule).get("actions")):
+            a = _as_map(a)
+            if "flag" in str(a.get("predicate", "")) and a.get("flag") is not None:
+                out.add(str(a.get("flag")))
+    return out
+
+
+def _me_zones(mission: dict[Any, Any]) -> set[str]:
+    zones = _as_map(mission.get("triggers")).get("zones")
+    return {str(_as_map(z).get("name")) for z in _as_list(zones) if _as_map(z).get("name")}
+
+
+def _when_event(w: dict[Any, Any]) -> Any:
+    """Canonical event of a `when` table, resolving the Lua shorthand forms."""
+    if w.get("event") is not None:
+        return w.get("event")
+    if w.get("afterSec") is not None or w.get("timer") is not None:
+        return "timer"
+    if w.get("flag") is not None:
+        return "flag"
+    if w.get("zone") is not None:
+        return "zone.entered"
+    if w.get("director") is not None or w.get("directorState") is not None:
+        return "director.state"
+    if w.get("beat") is not None:
+        return "beat.fired"
+    return None
+
+
+def _check_beat_reachability(
+    rep: CheckReport, mission: dict[Any, Any], cfg: dict[str, Any]
+) -> None:
+    """Beats whose trigger can never fire (contract: guaranteed beats must be reachable)."""
+    beats = [_as_map(b) for b in _as_list(cfg.get("beats"))]
+    if not beats:
+        return
+    groups = _groups(mission)
+    me_groups = {str(g.get("name")) for _s, _c, g in groups}
+    me_units = {str(_as_map(u).get("name")) for _s, _c, g in groups for u in _items(g.get("units"))}
+    spawn_ids = {str(k) for k in _as_map(cfg.get("pools"))} | {
+        str(k) for k in _as_map(cfg.get("templates"))
+    }
+    zones = {str(k) for k in _as_map(cfg.get("zones"))} | _me_zones(mission)
+    encounters = {str(_as_map(e).get("id")) for e in _as_list(cfg.get("encounters"))}
+    director_on = _as_map(cfg.get("director")).get("enabled", True) is not False
+
+    def runtime_name(name: str) -> bool:
+        """Could a runtime spawn (DMS_<poolOrTemplate>_<n>[...]) carry this name?"""
+        return name.startswith("DMS_") and any(name[4:].startswith(i + "_") for i in spawn_ids)
+
+    def prefix_ok(prefix: str, names: set[str]) -> bool:
+        if any(n.startswith(prefix) for n in names):
+            return True
+        bare = prefix[4:] if prefix.startswith("DMS_") else prefix
+        return any(i.startswith(bare) or bare.startswith(i + "_") for i in spawn_ids)
+
+    def static_problem(b: dict[Any, Any]) -> str | None:
+        w = _as_map(b.get("when"))
+        ev = _when_event(w)
+        if ev is None:
+            return "trigger has no event"
+        if ev not in KNOWN_EVENTS:
+            return f"unknown event '{ev}'"
+        z = w.get("zone")
+        if z is not None and str(z) not in zones:
+            return f"unknown zone '{z}'"
+        g = w.get("group")
+        if g is not None and str(g) not in me_groups and not runtime_name(str(g)):
+            return f"unknown group '{g}'"
+        gp = w.get("groupPrefix")
+        if gp is not None and not prefix_ok(str(gp), me_groups):
+            return f"no group matches prefix '{gp}'"
+        u = w.get("unit")
+        if u is not None and str(u) not in me_units and not runtime_name(str(u)):
+            return f"unknown unit '{u}'"
+        up = w.get("unitPrefix")
+        if up is not None and not prefix_ok(str(up), me_units):
+            return f"no unit matches prefix '{up}'"
+        enc = w.get("encounter")
+        if ev == "encounter.spawned" and enc is not None and str(enc) not in encounters:
+            return f"unknown encounter '{enc}'"
+        if ev == "director.state" and not director_on:
+            return "director.state trigger but the director is disabled"
+        return None
+
+    def needs(b: dict[Any, Any]) -> tuple[set[str], set[str]]:
+        """(flags, beat ids) that must become available before the beat can fire."""
+        w = _as_map(b.get("when"))
+        req = _as_map(b.get("requires"))
+        raw = req.get("flags")
+        if isinstance(raw, dict) and not all(isinstance(k, int) for k in raw):
+            flags = {str(k) for k, v in raw.items() if v is True}
+        else:
+            flags = {str(f) for f in _as_list(raw)}
+        flags |= {str(f) for f in _as_list(req.get("flagsSet"))}
+        ev = _when_event(w)
+        if ev == "flag" and w.get("flag") is not None:
+            value = w.get("value")
+            if (
+                value is None
+                or value is True
+                or (isinstance(value, int | float) and not isinstance(value, bool) and value != 0)
+            ):
+                flags.add(str(w.get("flag")))
+        deps = {str(x) for x in _as_list(req.get("beatsFired"))}
+        if ev == "beat.fired" and w.get("beat") is not None:
+            deps.add(str(w.get("beat")))
+        return flags, deps
+
+    by_id = {str(b.get("id")): b for b in beats}
+    problems = {bid: static_problem(b) for bid, b in by_id.items()}
+    reachable: set[str] = set()
+    flags_available = _me_flags(mission)
+    changed = True
+    while changed:
+        changed = False
+        for bid, b in by_id.items():
+            if bid in reachable or problems[bid]:
+                continue
+            flags, deps = needs(b)
+            if flags <= flags_available and deps <= reachable:
+                reachable.add(bid)
+                flags_available |= _set_flags(_as_map(b.get("effects")))
+                changed = True
+    for bid, b in by_id.items():
+        if bid in reachable:
+            continue
+        why = problems[bid]
+        if why is None:
+            flags, deps = needs(b)
+            parts = [f"flag '{f}' is never set" for f in sorted(flags - flags_available)]
+            parts += [
+                f"beat '{d}' " + ("does not exist" if d not in by_id else "can never fire")
+                for d in sorted(deps - reachable)
+            ]
+            why = "; ".join(parts) or "unreachable"
+        if b.get("guaranteed"):
+            rep.add(
+                "error",
+                "guaranteed_unreachable",
+                f"guaranteed beat '{bid}' can never fire: {why}",
+                f"beats.{bid}",
+            )
+        else:
+            rep.add(
+                "warning",
+                "beat_unreachable",
+                f"beat '{bid}' can never fire: {why}",
+                f"beats.{bid}",
             )

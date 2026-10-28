@@ -50,6 +50,8 @@ _AI_TASKS = {
     "TANKER": "tanker",
     "Refueling": "tanker",
 }
+_RUNTIME_SCRIPTS = frozenset({"dms.lua", "dms_test.lua"})
+"""Scripts that read DMS_CONFIG; a generated dms_config.lua is inserted before the first."""
 _LABELS = {
     "none": ForcedOptions.Labels.None_,
     "full": ForcedOptions.Labels.Full,
@@ -137,7 +139,9 @@ def build_from_plan(
         if plan.runtime is not None and not any(p.name == "dms_config.lua" for p in scripts):
             cfg = Path(tmp) / "dms_config.lua"
             cfg.write_text(plan.runtime.to_lua_source(), encoding="utf-8")
-            scripts.append(cfg)
+            # Contract order: plugins -> dms_config.lua (-> dms_test.lua) -> dms.lua.
+            runtime_at = [i for i, p in enumerate(scripts) if p.name in _RUNTIME_SCRIPTS]
+            scripts.insert(runtime_at[0] if runtime_at else len(scripts), cfg)
         if scripts:
             b.embed_lua_files(scripts)
         for trig in plan.triggers:

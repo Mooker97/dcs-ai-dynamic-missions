@@ -207,8 +207,22 @@ DMS_CONFIG = {
   intel = { fogOfWar = true, revealRadiusM = 5000, markRefreshSec = 15, staleSec = 120,
             removeSec = nil --[[default 3 * staleSec]], scanSec = 5, markRadiusM = 600, sensors = true },
   players = { coalition = 2 },
+  test = { enabled = true, playerProxy = "Dustoff 1" --[[AI group treated as the player]], minutes = 40,
+           checks = { {kind = "booted", name = nil, deadlineSec = nil}, {kind = "spawns", min = 1},
+                      {kind = "beats_in_order", beats = {"a", "b"}}, {kind = "beat", id = "a"},
+                      {kind = "comms", min = 2}, {kind = "encounter", id = "popup_aa"},
+                      {kind = "convoy_halt"}, {kind = "outcome", result = "success"} } },
 }
 ```
+
+- `test` is only present in `dms build --test` builds (headless DCS runs): `dms_test.lua`, loaded
+  between `dms_config.lua` and `dms.lua`, sets `DMS_CONFIG.test` and `debug = true`; read by
+  `lua/src/dms/test.lua`. Python model: `RuntimeConfig.test` (`TestSettings`, `TestCheck`).
+- Spec-level `convoy` encounters (`mission-spec.yaml` `dynamic.encounters`, which only name a
+  pool) compile to `spawnZone` = the pool's first area and `destination` = the pool's last area
+  (pool with 2+ areas), else the proximity trigger area when it differs, else the nearest
+  `terrain: road` area outside the spawn area, else the nearest other area outside it. The runtime
+  spawns the convoy from the pool there and routes it to `destination` (`speed`/`action` defaults).
 
 ### Beats (`beats.yaml` -> `DMS_CONFIG.beats`, compiled verbatim)
 
@@ -222,7 +236,9 @@ DMS_CONFIG = {
   mark = { type = "text", at = "zone:patrol_box", text = "PATROL BOX", radiusM = nil, coalition = nil },
   effects = { setFlag = "patrol_complete" --[[or list]], flagValue = nil, clearFlag = nil --[[or list]],
               outcome = { patrol_complete = true }, startEncounter = nil --[[or list]], spawnPool = nil,
-              qualityDeltas = { trust = 1 }, endMission = nil --[["success"|"failure"]] } }
+              qualityDeltas = { trust = 1 }, endMission = nil --[["success"|"failure"]],
+              speak = nil --[[ {speaker=, lines={...}, text=} overrides the beat's speaker/lines/text ]],
+              mark = nil --[[ same shape as beat mark; used when the beat has no mark ]] } }
 ```
 
 **when** - canonical form is `event` plus filters:
@@ -253,6 +269,8 @@ a map `{f = true|false}`, `flagsSet`, `notFlags` / `flagsNotSet`, `qualities` as
 reported cumulatively in the outcome; the debriefer applies them to `state/qualities.yaml`.
 `endMission` finishes the narrative (writes the `end` outcome line). Aliases: `finish` / `end` /
 `result` (victory -> success, defeat -> failure), `qualities` -> `qualityDeltas`.
+`speak` (`{speaker, lines, text}`, each optional) replaces the beat's own speaker / lines / text
+for the radio call; `mark` (beat-mark shape) is dropped when the beat has no top-level `mark`.
 
 **mark** - `at` is `group:<name>` (exact, else first group whose name or `DMS_`-stripped name
 starts with it), `unit:<name>`, `zone:<id>` or `point:<x>,<y>` (DCS map meters). `type`
@@ -270,6 +288,26 @@ queued) and `chance` is rolled; queued beats wait in a pending queue (TTL
 ready beats the highest priority fires (ties random), at most one radio beat per
 `narrative.minGapSec`. Silent beats (no speaker, lines or text) bypass the gap and fire at once.
 Chains are expressed with `when: {event: beat.fired, beat: <id>}`, not with same-event flags.
+
+### `dms check` (dms_gen.check.check_miz)
+
+Structural checks on a built `.miz` (lupa round-trip, never pydcs). Errors fail the check:
+- ids/names unique, at least one Client/Player slot (warning in test builds), units on the map;
+- `mapResource` files present; compiled trigger strings present; `DO SCRIPT FILE` order is
+  plugins -> `dms_config.lua` (-> `dms_test.lua`) -> `dms.lua` (`script_order`, `test_script_order`);
+- `dms_config.lua` evaluates and validates against `RuntimeConfig` (`config_schema`; Lua camelCase
+  field names map back to snake_case, user keys untouched); required keys present;
+- references: pool members/zones exist; each encounter has a source (`pool` that exists, or
+  `template` that exists, or `group`) (`config_bad_pool` / `config_bad_template` /
+  `config_no_source`); trigger zones/beats exist; beat lines are in `voice`; voice files embedded;
+- **beat reachability**: a beat's trigger must be able to fire. A `zone` must be a config zone or
+  an ME trigger zone; `group`/`groupPrefix` an ME group or a possible runtime spawn
+  (`DMS_<poolOrTemplate>_<n>`); `unit` an ME unit or a runtime spawn; `event` a known event;
+  `encounter` a config encounter; `beat` a reachable beat; `flag` (event or `requires.flags`)
+  set by a reachable beat's `setFlag` or an ME trigger action; `requires.beatsFired` reachable
+  beats; `director.state` needs the director enabled. Unreachable `guaranteed` beats are errors
+  (`guaranteed_unreachable`), others warnings (`beat_unreachable`);
+- Lua 5.1 syntax of every embedded `.lua`; fog of war on -> enemy groups hidden (warning).
 
 ### Outcome lines
 

@@ -19,7 +19,9 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+import yaml
 from dms_core.schemas.beats import Beat, BeatSheet
+from dms_core.schemas.campaign import Qualities
 from dms_core.schemas.mission import MissionSpec, PlayerFlight, Support, Threat
 from dms_core.schemas.plan import (
     BuildPlan,
@@ -57,6 +59,7 @@ from dms_core.schemas.runtime import (
 )
 from dms_core.schemas.story import StoryBible
 from dms_core.schemas.voice import VoiceLineSet
+from pydantic import ValidationError
 
 from ..builder.mission import aircraft_type
 from . import forces
@@ -627,6 +630,45 @@ class _Planner:
         )
 
     # -- runtime -------------------------------------------------------------------------
+    def convoy_route(
+        self,
+        pool_zones: Sequence[str],
+        trigger_area: str | None,
+        rt_zones: Mapping[str, CircleZone | PolygonZone],
+    ) -> tuple[str | None, str | None]:
+        """(spawn zone, destination) for a spec-level convoy encounter (see CONTRACTS).
+
+        Spawn in the pool's first area; drive to its last area (2+ areas), else to the
+        trigger area when it differs, else to the nearest road area outside the spawn area,
+        else the nearest other area outside it. Destination is None when nothing qualifies.
+        """
+        if not pool_zones:
+            return None, None
+        start = pool_zones[0]
+        if len(pool_zones) > 1 and pool_zones[-1] != start:
+            return start, pool_zones[-1]
+        if trigger_area and trigger_area != start and trigger_area in rt_zones:
+            return start, trigger_area
+        here = self.areas[start]
+        terrain = {a.id: a.terrain for a in self.spec.areas}
+        others = [
+            a
+            for a in rt_zones
+            if a != start
+            and a in self.areas
+            and not here.contains(self.areas[a].center)
+            and not self.areas[a].contains(here.center)
+            and on_map(self.spec.theater, *self.areas[a].center)
+        ]
+        if not others:
+            return start, None
+
+        def dist(a: str) -> float:
+            return math.dist(here.center, self.areas[a].center)
+
+        roads = [a for a in others if terrain.get(a) == "road"]
+        return start, min(roads or others, key=lambda a: (dist(a), a))
+
     def runtime(
         self,
         rt_zones: dict[str, CircleZone | PolygonZone],
@@ -682,6 +724,11 @@ class _Planner:
         encounters = []
         for e in spec.dynamic.encounters:
             tr = e.trigger
+            spawn_zone, destination = (
+                self.convoy_route(pools[e.pool].zones, tr.area, rt_zones)
+                if e.kind == "convoy" and e.pool in pools
+                else (None, None)
+            )
             radius = (
                 tr.radius_nm * NM if tr.radius_nm else (5 * NM if tr.type == "proximity" else None)
             )
@@ -702,6 +749,8 @@ class _Planner:
                     hunt=e.hunt,
                     waves=(e.waves or 3) if e.kind == "waves" else e.waves,
                     gap_sec=(e.gap_min[0] * 60, e.gap_min[1] * 60) if e.gap_min else None,
+                    spawn_zone=spawn_zone,
+                    destination=destination,
                 )
             )
         d = spec.dynamic.director
@@ -908,6 +957,24 @@ def plan_mission(
         options=PlanOptions(fog_of_war_map=spec.dynamic.fog_of_war.enabled),
         runtime=runtime,
     )
+
+
+def load_campaign_qualities(mission_dir: str | os.PathLike[str]) -> dict[str, float]:
+    """Campaign quality values for ``plan_mission(qualities=...)``.
+
+    Reads ``<mission_dir>/../../state/qualities.yaml`` (``campaigns/<slug>/missions/mNN-x`` ->
+    ``campaigns/<slug>/state/qualities.yaml``), validated as :class:`Qualities`. Returns ``{}``
+    when the file is absent (standalone missions). Raises ``ValueError`` if it is invalid.
+    """
+    path = Path(mission_dir) / ".." / ".." / "state" / "qualities.yaml"
+    if not path.is_file():
+        return {}
+    raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    try:
+        q = Qualities.model_validate(raw)
+    except ValidationError as exc:
+        raise ValueError(f"{path.resolve()}: invalid qualities file: {exc}") from exc
+    return {str(k): float(v) for k, v in q.values.items()}
 
 
 def write_runtime_config(plan: BuildPlan, base_dir: str | os.PathLike[str] | None = None) -> Path:

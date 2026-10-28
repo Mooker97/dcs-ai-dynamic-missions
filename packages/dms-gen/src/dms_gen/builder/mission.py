@@ -658,7 +658,8 @@ class MissionBuilder:
     def embed_lua_files(self, files_in_order: Iterable[str | os.PathLike[str]]) -> list[str]:
         """Add scripts as ordered DO SCRIPT FILE actions in one MISSION START trigger.
 
-        Order is the caller's: framework plugins first, then dms.lua, then dms_config.lua.
+        Order is the caller's: framework plugins first, then dms_config.lua, then dms.lua
+        (docs/CONTRACTS.md "Embed order"; ``dms check`` flags config after dms.lua).
         Repeated calls append to the same trigger. Returns the resource keys.
         """
         if self._lua_trigger is None:

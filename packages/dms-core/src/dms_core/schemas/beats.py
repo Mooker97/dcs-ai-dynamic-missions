@@ -226,6 +226,20 @@ class BeatMark(DMSModel):
         return d
 
 
+class BeatSpeak(DMSModel):
+    """Radio call made by an effect; each field overrides the beat's own speaker / lines / text."""
+
+    speaker: Ident | None = Field(
+        default=None, description="Character id who speaks (default: the beat's speaker)."
+    )
+    lines: list[Ident] | None = Field(
+        default=None, description="Voice line ids from lines.yaml (default: the beat's lines)."
+    )
+    text: str | None = Field(
+        default=None, description="Subtitle / fallback text (default: the beat's text)."
+    )
+
+
 class BeatEffects(DMSModel):
     """What the beat changes when it fires."""
 
@@ -259,6 +273,13 @@ class BeatEffects(DMSModel):
     )
     end_mission: Literal["success", "failure"] | None = Field(
         default=None, description="Declare the mission over with this result."
+    )
+    speak: BeatSpeak | None = Field(
+        default=None,
+        description="Radio call overriding the beat's speaker/lines/text (unset = use the beat's).",
+    )
+    mark: BeatMark | None = Field(
+        default=None, description="F10 mark dropped when the beat itself has no `mark`."
     )
 
     @model_validator(mode="before")

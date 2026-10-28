@@ -284,3 +284,35 @@ writes JSON Schema files to `schemas/` at the repo root for skills and editors.
 - **Voice cache:** `~/.dms/tts-cache/<sha256>.ogg`, where the key is `sha256(voice_id|model|text|fx_preset)`.
 - **CLI:** `dms validate <spec>`, `dms plan <spec> -o plan.json`, `dms voice <lines.yaml>`,
   `dms build <plan.json> -o out.miz`, `dms check <miz>`, `dms schema`, `dms bundle-lua`.
+
+## MCP server (`packages/dms-mcp`, v0.8)
+
+`dms-mcp` is a FastMCP server (official `mcp` SDK 1.x, `mcp.server.fastmcp.FastMCP`) on **stdio**.
+It is a thin wrapper ([ADR 0005](adr/0005-cli-and-skills-before-mcp.md)): the tools call
+`dms_core` / `dms_gen` in-process (plus the path and issue helpers in `dms_cli.util`) and never
+shell out to `dms`. The tool logic lives in `dms_mcp.ops` (plain functions returning dicts) so it
+can be tested without a client; `dms_mcp.server` only registers the tools.
+
+- **Root:** relative paths resolve against the repo root: `$DMS_ROOT` if set, else the uv workspace
+  found from the working directory.
+- **Results:** every tool returns a JSON object with `ok: bool`. A failure the caller can fix
+  (missing file, schema errors before planning, unknown name) is returned as
+  `{"ok": false, "error": "<message>"}`, not raised as a protocol error.
+- **Issues** use the CLI's finding shape: `{path, problem, suggestions[], severity}`.
+  Check issues use `CheckIssue`: `{severity, code, message, where}`.
+
+| Tool | Arguments | Does | Returns (besides `ok`) |
+|---|---|---|---|
+| `validate` | `path` | Like `dms validate`. `path` is a mission folder or `mission-spec.yaml`, or a `bible.yaml` / `arc.yaml` / `qualities.yaml` (schema only) | `kind`, `path`, `files`, `errors`, `warnings`, `issues` |
+| `plan` | `mission_dir`, `seed?` | Like `dms plan`: writes `<mission>/out/plan.json` (uses `voice/manifest.json` when present) | `plan`, `voice_manifest`, `mission_id`, `seed`, `theater`, `players[]`, `stats` |
+| `build` | `mission_dir`, `test=false` | `dms build` + check. Plans first when `out/plan.json` is missing. `test=true` is `dms build --test` (seed from `out/plan.json`, writes `out/test/`, `out/<id>-test.miz`) | `miz`, `test`, `mission_id`, `seed`, `stats`, `notes[]`, `check`, `harness` (test only) |
+| `check` | `miz_path` | `dms check` | `CheckReport` fields: `path`, `issues`, `stats` |
+| `schema` | `name` | JSON Schema of one document model. `name` is a `DOCUMENT_MODELS` stem (`mission-spec`, ...), a class name (`MissionSpec`) or `bible` / `arc` / `lines` | `name`, `model`, `schema` |
+| `campaign_status` | `campaign_slug` | Read-only overview of `campaigns/<slug>` | `title`, `files`, `qualities`, `flags`, `next_mission`, `outcomes[]`, `missions[]` (`id`, `title`, `designed`, `files`, `voiced`, `planned`, `built[]`, `out[]`, `last_check`, `debriefed`), `arc_missions_not_designed[]` |
+
+- **`out/check.json`:** `build` and `check` record the last check result next to the `.miz` as
+  `{"<file>.miz": CheckReport + "checked_at" (UTC ISO)}`, and `campaign_status` reports it as
+  `last_check`. This file is generated output (git-ignored with `out/`). The CLI does not write it yet.
+- Voice rendering (paid ElevenLabs calls) and campaign writes (debrief, `new-campaign`) are not
+  exposed over MCP. Use the CLI and skills for those.
+- **Entry point:** `dms-mcp` (console script). An example `.mcp.json` is in `packages/dms-mcp/README.md`.

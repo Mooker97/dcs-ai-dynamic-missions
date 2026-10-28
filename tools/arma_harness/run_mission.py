@@ -343,6 +343,8 @@ WORKSHOP = Path("E:/SteamLibrary/steamapps/workshop/content/107410")
 # "core" = CBA + ACE (sp repack: no medical/fatigue) + LAMBS Danger.
 MOD_PRESETS: dict[str, list[str]] = {
     "core": ["450814997", "1744095754", "1858075458"],
+    # core + RHS AFRF, USAF, GREF (GREF needs AFRF loaded)
+    "rhs": ["450814997", "1744095754", "1858075458", "843425103", "843577117", "843593391"],
 }
 
 

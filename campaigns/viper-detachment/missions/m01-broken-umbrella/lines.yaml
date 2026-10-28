@@ -244,7 +244,7 @@ lines:
   - id: ops_sa8_warning_v2
     speaker: ops_lindqvist
     beat: sa8_warning
-    text: "Python, Rook Ops. Possible SHORAD vehicle close to the town. Watch for launches."
+    text: "Python, Rook Ops. Possible SA-8 close to the town. Watch for launches."
   - id: ops_sa8_warning_v3
     speaker: ops_lindqvist
     beat: sa8_warning
@@ -252,7 +252,7 @@ lines:
   - id: ops_sa8_warning_v4
     speaker: ops_lindqvist
     beat: sa8_warning
-    text: "Python, Rook Ops. Possible pop-up SAM around Al Bab. Keep your speed up."
+    text: "Python, Rook Ops. Possible pop-up SA-8 around Al Bab. Keep your speed up."
 
   # --- Pike: SA-8 spike (sa8_spike) --------------------------------------------------------
   - id: pike_sa8_spike_v1

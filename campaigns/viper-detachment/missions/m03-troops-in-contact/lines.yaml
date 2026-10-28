@@ -552,7 +552,7 @@ lines:
     speaker: jtac_ortiz
     beat: sa13_warning
     delivery: "Urgent, but controlled."
-    text: "Python, Jackal. Missile vehicle, launch rails up, moving north out of Tell Rifaat. SA-9 or SA-13 class."
+    text: "Python, Jackal. Missile vehicle, launch rails up, moving north out of Tell Rifaat. SA-13, Gopher."
   - id: sa13_warning_v2
     speaker: jtac_ortiz
     beat: sa13_warning

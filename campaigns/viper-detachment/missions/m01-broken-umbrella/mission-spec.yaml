@@ -85,6 +85,16 @@ areas:
     description: "SA-8 pop-up candidate: north of Al Bab, on the road toward the border."
     where: {kind: near_named_place, place: Al-Bab, radius_nm: 1, bearing_deg: 20, distance_nm: 4}
     terrain: open
+  # ---- SA-6 search box (route TGT2 for the SA-6 hunt) ----------------------------------------
+  - id: sa6_search
+    description: "SA-6 search box: the farmland between Al Bab and Kuweires that holds all three candidate sites. Route TGT2."
+    where: {kind: near_named_place, place: Al-Bab, radius_nm: 4, bearing_deg: 150, distance_nm: 6}
+    terrain: open
+  # ---- egress ----------------------------------------------------------------------------------
+  - id: egress_north
+    description: "EGRESS: 20 NM north of Al Bab at the Turkish border, on the planned egress line north toward ARROW and home."
+    where: {kind: near_named_place, place: Al-Bab, radius_nm: 3, bearing_deg: 350, distance_nm: 20}
+    terrain: open
   # ---- support orbits ---------------------------------------------------------------------------
   - id: magic_orbit
     description: "E-3 orbit over southern Turkey, north of Gaziantep."
@@ -142,12 +152,14 @@ objectives:
     kind: destroy
     description: "Destroy the SA-6 battery's Straight Flush radar (HARM, then GBU-12 on what is left)."
     primary: false
+    area: sa6_search
     target: sa6_site
     success_flag: sa6_radar_dead
   - id: kill_sa8
     kind: destroy
     description: "Destroy the SA-8 if it reveals itself."
     primary: false
+    area: al_bab
     target: sa8_popup
     success_flag: sa8_dead
   - id: rtb
@@ -181,13 +193,16 @@ support:
     faction: usaf_rook
     speaker: awacs_magic
     frequency_mhz: 251.0
+    modulation: AM
   - id: shell
     role: tanker
     callsign: "Shell"
     area: shell_track
     composition: "1x KC-135 (boom)"
     faction: usaf_rook
-    frequency_mhz: 251.0             # the builder puts AWACS and tanker on 251.0 (support frequency not carried into the plan yet)
+    frequency_mhz: 276.1
+    modulation: AM
+    tacan: "51Y"
 
 dynamic:
   pools:
@@ -202,7 +217,8 @@ dynamic:
       areas: [sa8_west, sa8_south, sa8_north]
       pick: [1, 1]
       faction: npf_heavy
-      notes: "One short-range SAM vehicle or pair. Intent: SA-8 (HARM-able). Pools cannot pin templates yet (PoolIntent has no templates field), so the planner still weights SA-9/SA-13/Strela above SA-8; all are briefed as 'pop-up SHORAD, SA-8 assessed'. Outcome key stays sa8_destroyed (arc)."
+      templates: [sa8, sa8_section]
+      notes: "One SA-8 Gecko vehicle or a pair (HARM-able Land Roll radar). Pinned to the SA-8 templates. Outcome key stays sa8_destroyed (arc)."
     - id: manpads_teams
       roles: [manpads]
       areas: [al_bab_edges]

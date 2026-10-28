@@ -1,7 +1,6 @@
 # m04 The Last Launcher — beats. Schema: schemas/beats.schema.json (BeatSheet). Compiled into DMS_CONFIG.beats.
 # group_prefix values are pool ids (runtime spawns are named <pool id>...): sam_carrier_*, escort_*,
-# civ_decoy_* / civ_traffic (prefix civ_), river_manpads; plus the static SA-8 threats overwatch_n_1 /
-# overwatch_c_1 / overwatch_s_1 (prefix overwatch).
+# civ_decoy_* / civ_traffic (prefix civ_), river_manpads, overwatch_* (the SA-8 above the rolled road).
 # Variants: ramp (Python 1, cold at Incirlik) and air (Python 2, 20 NM short of HAMMER). No beat
 # filters on a group or unit name: player beats use players_only (the lead only; the AI wingman
 # Pike never counts). Ramp-only beats (ground_taxi, tower_departure) are gated by the incirlik
@@ -164,7 +163,7 @@ beats:
     once: true
     effects:
       set_flag: [route_set, route_n_set]
-      start_encounter: [convoy_n, escort_run_n, decoy_n]
+      start_encounter: [convoy_n, escort_run_n, decoy_n, overwatch_amb_n]
 
   - id: route_c_known
     when: {event: beat.fired, beat: retask}
@@ -173,7 +172,7 @@ beats:
     once: true
     effects:
       set_flag: [route_set, route_c_set]
-      start_encounter: [convoy_c, escort_run_c, decoy_c]
+      start_encounter: [convoy_c, escort_run_c, decoy_c, overwatch_amb_c]
 
   # ==== Silent: candidate-road marks for the F10 map =============================================
   - id: mark_route_n
@@ -311,8 +310,8 @@ beats:
     effects: {set_flag: decoy_called}
 
   # ==== Optional: overwatch SA-8 (revealed -> shooting -> dead) ===================================
-  # The SA-8s are static hidden threats (pinned template sa8). Fog of war reveals one when PYTHON is
-  # within 8 km, inside its envelope edge: that is the warning.
+  # The SA-8 is an ambush_sam pool (sa8 / sa8_section) above the rolled road. The warning fires on its
+  # encounter telegraph (30-60 s before it goes hot) or on the fog-of-war reveal (8 km), whichever is first.
   - id: overwatch_warning
     when: {event: intel.revealed, group_prefix: overwatch}
     priority: 92

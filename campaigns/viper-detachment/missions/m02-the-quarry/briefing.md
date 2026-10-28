@@ -46,6 +46,10 @@ Al Bab, with laser-guided bombs to destroy the insurgents' stocks without harmin
   (2) Check in with Magic inside 10 NM of IP SHALE (12 NM NW of the target). (3) Rook Ops clears
   you to engage inside 10 NM of the Quarry. (4) TGP search, self-lase LGB runs. (5) Egress north
   to GATE (11 NM N of the target), call Rook Ops, RTB Incirlik.
+- **Steerpoints (loaded in both files, flown at 20,000 ft).** STPT 1 start (Incirlik ramp, or the
+  air-start point) · STPT 2 **IP** SHALE · STPT 3 **TGT1** the Quarry pit (storage sites) ·
+  STPT 4 **TGT2** command compound, west lip · STPT 5 **EGRESS** GATE · STPT 6 **HOME** Incirlik.
+  IP to TGT1 about 12 NM run-in from the north-west; TGT to GATE about 11 NM north.
 - **Tasks.** PYTHON 1-1: GBU-12 on the active sites, then the command building. PYTHON 1-2:
   wingman, buddy-lase backup, BDA calls.
 - **Coordinating instructions.**
@@ -74,11 +78,11 @@ Al Bab, with laser-guided bombs to destroy the insurgents' stocks without harmin
 | Agency | Callsign | Frequency |
 |---|---|---|
 | Squadron / ops | Rook Ops (PYTHON 1 flight freq) | 305.0 AM |
-| AWACS | Magic | 251.0 AM |
+| AWACS (E-3A) | Magic 1-1 | 251.0 AM |
 | JTAC (with NBB, CJTF Blue) | Jackal Two-Three | 41.5 FM |
-| Tanker | Shell | 276.1 AM (briefed; not set on the tanker by the generator yet) |
+| Tanker (KC-135, boom) | Shell 1-1 | 276.1 AM, TACAN 51Y |
 | Incirlik Ground/Tower | Incirlik | 360.0 AM / 122.0 AM |
 
-- Frequencies from the mission plan (out/plan.json: flight 305.0, Magic 251.0, Jackal 41.5 FM). Incirlik from the airfield data. The cockpit callsign is PYTHON 1-1 in both files.
+- Frequencies, callsigns and TACAN are set on the aircraft in the mission (out/plan.json: flight 305.0, Magic 251.0, Shell 276.1 / 51Y, Jackal 41.5 FM). Incirlik from the airfield data. The cockpit callsign is PYTHON 1-1 in both files.
 - Bullseye: Minakh. Codeword for stocks destroyed: none; call BDA in plain text on egress.
 - Lost comms: complete the attack only with PID, egress via GATE, recover Incirlik.

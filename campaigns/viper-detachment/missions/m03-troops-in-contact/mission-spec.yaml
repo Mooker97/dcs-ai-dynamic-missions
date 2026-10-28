@@ -33,12 +33,16 @@ areas:
     description: "10 NM circle around Incirlik; entering it after the fight triggers the tower call."
     where: {kind: near_airbase, airbase: Incirlik, radius_nm: 10}
   # --- ingress ------------------------------------------------------------------------------
-  - id: cp_tusk
-    description: "Contact point TUSK, 12 NM north-west of the village over NBB-held ground. Check-in with Magic, hand-off to Jackal."
+  - id: ip_tusk
+    description: "Contact point TUSK (the IP steerpoint), 12 NM north-west of the village over NBB-held ground. Check-in with Magic, hand-off to Jackal."
     where: {kind: latlon, lat: 36.628, lon: 36.889, radius_nm: 4}
   - id: fight_box
     description: "The fight: the village, the compounds south of it and the north edge of Tell Rifaat."
     where: {kind: latlon, lat: 36.508, lon: 37.105, radius_nm: 4}
+  # --- egress -------------------------------------------------------------------------------
+  - id: egress_west
+    description: "Egress point west of Azaz on the planned exit west from the fight toward TUSK and home; the EGRESS steerpoint."
+    where: {kind: latlon, lat: 36.575, lon: 36.950, radius_nm: 3}
   - id: ar_track
     description: "Tanker track SHELL over southern Turkey, between Incirlik and the CP."
     where: {kind: near_airbase, airbase: Incirlik, radius_nm: 8, bearing_deg: 95, distance_nm: 40}
@@ -130,7 +134,7 @@ player_flights:
       altitude_ft: 20000
       speed_kts: 420
       distance_nm_before_first_wp: 20
-      toward: cp_tusk
+      toward: ip_tusk
     loadout: auto
     frequency_mhz: 305.0
     tasking: >-
@@ -219,18 +223,21 @@ support:
     area: village_lantern
     composition: "1x Hummer"
     speaker: jtac_ortiz
-    frequency_mhz: 41.5
+    frequency_mhz: 41.5               # below 88 MHz -> FM automatically
   - id: magic
     role: awacs
     callsign: "Magic"
     area: awacs_orbit
     speaker: awacs_magic
     frequency_mhz: 251.0
+    modulation: AM
   - id: shell
     role: tanker
     callsign: "Shell"
     area: ar_track
     frequency_mhz: 276.1
+    modulation: AM
+    tacan: "51Y"
 
 dynamic:
   pools:
@@ -263,7 +270,8 @@ dynamic:
       areas: [sa13_hide]
       pick: [1, 1]
       faction: npf_heavy
-      notes: "SA-13 class wanted (catalog has sa13_gopher_section, but pools cannot pin templates yet; the planner draws from all era sam_short templates). Lines stay generic 'SA-9 or SA-13 class'. Present only at sam_threat >= 2."
+      templates: [sa13_gopher_section]
+      notes: "Pinned to the SA-13 Gopher section (IR, optically aimed: no RWR warning). Present only at sam_threat >= 2."
     - id: civ_traffic
       roles: [civilian]
       areas: [road_south, road_north]

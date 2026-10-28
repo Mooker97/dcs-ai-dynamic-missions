@@ -12,6 +12,15 @@
 | 4 | Egress | North to GATE (11 NM N). BDA to Rook Ops |
 | 5 | Recover | Incirlik. Div Gaziantep / Adana / Hatay |
 
+| STPT | Name | Point |
+|---|---|---|
+| 1 | Start | Incirlik ramp / air-start point |
+| 2 | IP | SHALE, 12 NM NW of tgt |
+| 3 | TGT1 | Quarry pit (sites A-E) |
+| 4 | TGT2 | Command compound, W lip |
+| 5 | EGRESS | GATE, 11 NM N of tgt |
+| 6 | HOME | Incirlik |
+
 **Targets:** 2 of 5 sites active (trucks + bowser) · command bldg W lip
 **Known:** ZU-23 on rim · **Possible:** MANPADS, short-range SAM E/S of tgt, technicals
 **NO STRIKE:** hamlet 300 m E of the wall · traffic on the Al Bab road
@@ -23,7 +32,7 @@
 | Agency | Callsign | Freq |
 |---|---|---|
 | Ops / flight | Rook Ops | 305.0 AM |
-| AWACS | Magic | 251.0 AM |
+| AWACS | Magic 1-1 | 251.0 AM |
 | JTAC | Jackal 2-3 | 41.5 FM |
-| Tanker | Shell | 276.1 AM (briefed, not set) |
+| Tanker | Shell 1-1 | 276.1 AM · TCN 51Y |
 | Twr | Incirlik | 360.0 / 122.0 AM |

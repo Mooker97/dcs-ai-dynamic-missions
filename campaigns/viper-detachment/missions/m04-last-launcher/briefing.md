@@ -8,8 +8,8 @@ Two weeks into the tasking, the Garrison's air defences are thinner but not gone
 the SA-6 battery, the radar vehicle the Engineer kept running and its launchers, left Kuweires
 before dawn under a technical escort. NPF radio traffic overnight talked about "the river". We
 assess they are moving it east to the Euphrates crossings, out of our reach on the far bank.
-The Garrison also lost track of two or three SA-8s; we assess one sits on the high ground above
-each road east as overwatch.
+The Garrison also lost track of two or three SA-8s; we assess one is already on the high ground
+above the convoy's road as overwatch, radar dark until you come close.
 
 There are three roads east: north through Manbij to the northern bridge, the centre road to the
 Tishrin dam, and south past Deir Hafer to Maskanah on the lake. We do not know which one they
@@ -21,12 +21,12 @@ first light, and from 15,000 ft a lorry looks like a launcher.
 - **Enemy.** *Known:* ZU-23 guns on the Kuweires perimeter (marked). *Convoy:* SA-6 element (one
   1S91 Straight Flush radar, three 2P25 launchers, self-propelled) with DShK technicals,
   eastbound at about 35 km/h. Radar stowed while moving; it can still stop and emit. *Overwatch:*
-  one SA-8 Gecko (radar, HARM target) on the high ground above each candidate road, unlocated
-  until you are close. *Possible:* Igla teams at the crossings. *Most likely:* the convoy keeps moving and
+  an SA-8 Gecko (one or a pair; radar, HARM target) on the high ground above the convoy's road,
+  emitter silent and unlocated until you are close. Rook Ops calls it as soon as it is seen. *Possible:* Igla teams at the crossings. *Most likely:* the convoy keeps moving and
   hides in traffic. *Most dangerous:* the overwatch or the SA-6 radar comes up while you are low and
   slow on a lasing run.
-- **Friendly.** Magic (E-3) has the air picture. Rook Ops (Maj. Lindqvist) on the squadron
-  discrete. Shell (KC-135) on the AR track over southern Turkey. Jackal Two-Three with the Brigade
+- **Friendly.** Magic (E-3, 251.0) has the air picture. Rook Ops (Maj. Lindqvist) on the squadron
+  discrete. Shell (KC-135, 276.1, TACAN 51Y) on the AR track over southern Turkey, west of Gaziantep. Jackal Two-Three with the Brigade
   north of Tell Rifaat; Brigade observers report only if they are out.
 - **Civilians.** Traffic on all three roads; Manbij, Maskanah and the dam villages are built up.
 
@@ -47,7 +47,15 @@ Euphrates crossings, suppressing its overwatch, to remove the NPF's last radar S
 - **Concept.** (1) Ramp: start, taxi, depart Incirlik, tank on Shell if needed. (2) Push HAMMER,
   check in with Magic. (3) Rook Ops retasks; the 40-minute window starts. Candidate roads are marked
   on F10. (4) Search with the pod, north to south unless cued. (5) HARM the SA-8 when it
-  emits, then lase the radar vehicle (moving target). (6) RTB on Rook Ops' call.
+  emits, then lase the radar vehicle (moving target). (6) On Rook Ops' call, egress via ANVIL, RTB.
+- **Steerpoints (both files; 20,000 ft, after the departure point):**
+
+  | STPT | Name | Position | Note |
+  |---|---|---|---|
+  | 1 | IP | HAMMER, N36 37.2 E037 25.2 | push point, Magic check-in |
+  | 2 | TGT | search box centre, N36 16.2 E037 55.2 | the convoy is on one of the three roads, not here |
+  | 3 | EGRESS | ANVIL, N36 46.8 E037 18.0 | border north of Al Bab |
+  | 4 | HOME | Incirlik | landing |
 - **Coordinating instructions.**
   - ROE: PID before release. Westbound traffic is not the convoy. Nothing inside towns.
   - Near buildings or civilian traffic, state the target to Rook Ops before release.
@@ -68,10 +76,11 @@ Euphrates crossings, suppressing its overwatch, to remove the NPF's last radar S
 | Agency | Callsign | Freq |
 |---|---|---|
 | Flight / squadron discrete | Python 1-1 / Rook Ops | 305.000 AM |
-| AWACS | Magic | 251.000 AM |
-| JTAC | Jackal Two-Three | 41.500 AM (as built) |
-| Tanker | Shell | 251.000 AM |
+| AWACS | Magic (Magic 1-1) | 251.000 AM |
+| JTAC | Jackal Two-Three | 41.500 FM |
+| Tanker | Shell (Shell 1-1), TACAN 51Y | 276.100 AM |
 | Incirlik Ground / Tower | Incirlik | 360.100 AM |
 
 - Codewords: HAMMER = push point; "endex" = window closed, weapons hold on the convoy.
-- Lost comms: complete the search if the window is open, then RTB via HAMMER.
+- Codeword ANVIL = egress point.
+- Lost comms: complete the search if the window is open, then RTB via ANVIL.

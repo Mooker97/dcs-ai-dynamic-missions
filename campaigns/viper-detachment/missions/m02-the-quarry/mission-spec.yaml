@@ -191,6 +191,11 @@ objectives:
     kind: destroy
     description: "Destroy the active storage sites in the Quarry: two of five sites hold the stocks, the rest are empty."
     primary: true
+    area: quarry                       # route TGT1 steerpoint on the pit
+    # target: a threat id makes the planner skip its own objective group for this area (without
+    # it, it would plant an extra 'strike_stocks_1' hvt group in the pit). The real stocks are the
+    # full_bunkers pool below; quarry_guards is the guard section living beside them.
+    target: quarry_guards
     success_flag: stocks_destroyed
   - id: strike_command
     kind: destroy
@@ -203,7 +208,8 @@ objectives:
     kind: protect
     description: "No civilian harm in the hamlet east of the Quarry or on the roads around it."
     primary: true
-    area: hamlet
+    # No objective area on purpose: every non-land objective area becomes a TGT steerpoint, and a
+    # TGT on the no-strike hamlet is wrong. The hamlet area stays defined for beats and the pool.
     failure_flag: civilians_hit
   - id: rtb
     kind: land
@@ -258,13 +264,15 @@ support:
     area: magic_orbit
     composition: "E-3A"
     speaker: awacs_magic
-    frequency_mhz: 251.0
+    frequency_mhz: 251.0               # UHF AM, tuned on the E-3 and the speaker
+
   - id: shell
     role: tanker
     callsign: "Shell"
     area: shell_track
     composition: "KC-135 (boom)"
-    frequency_mhz: 276.1
+    frequency_mhz: 276.1               # UHF AM, tuned on the tanker
+    tacan: "51Y"
   - id: jackal
     role: jtac
     callsign: "Jackal Two-Three"

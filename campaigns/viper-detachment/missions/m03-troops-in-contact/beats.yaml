@@ -23,12 +23,12 @@ beats:
     speaker: ops_lindqvist
     lines: [ops_scramble_v1, ops_scramble_v2, ops_scramble_v3, ops_scramble_v4]
     text: "Python, Rook Ops. Troops in contact north of Tell Rifaat. Jackal Two-Three requests CAS. Push CP Tusk, check in with Magic."
-    mark: {type: text, at: "zone:cp_tusk", text: "CP TUSK"}
+    mark: {type: text, at: "zone:ip_tusk", text: "CP TUSK"}
     effects: {set_flag: started}
 
   # GUARANTEED
   - id: magic_handoff
-    when: {event: zone.entered, zone: cp_tusk, players_only: true}
+    when: {event: zone.entered, zone: ip_tusk, players_only: true}
     requires: {flags_not: [checked_in]}
     priority: 88
     once: true
@@ -432,7 +432,7 @@ beats:
     once: true
     speaker: jtac_ortiz
     lines: [sa13_warning_v1, sa13_warning_v2, sa13_warning_v3, sa13_warning_v4]
-    text: "Python, Jackal. Missile vehicle, launch rails up, moving north out of Tell Rifaat. SA-9 or SA-13 class."
+    text: "Python, Jackal. Missile vehicle, launch rails up, moving north out of Tell Rifaat. SA-13, Gopher."
     mark: {type: circle, at: "zone:sa13_hide", radius_m: 1500, text: "POSS SHORT-RANGE SAM (OBSERVER REPORT)"}
     effects: {set_flag: sa13_warned}
 

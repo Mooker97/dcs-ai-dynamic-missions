@@ -281,7 +281,7 @@ lines:
     beat: pike_pid_decoy
     text: "Python, Two. Check your track. Westbound trucks are civil. Ours is eastbound."
 
-  # --- Rook Ops / Pike: overwatch SA-8 (static, pinned template sa8) -------------------------------------------------------------
+  # --- Rook Ops / Pike: overwatch SA-8 (ambush_sam pool, sa8 / sa8_section) -------------------------------------------------------------
   - id: ops_overwatch_warning_v1
     speaker: ops_lindqvist
     beat: overwatch_warning

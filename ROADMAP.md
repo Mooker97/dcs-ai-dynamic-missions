@@ -18,7 +18,7 @@ A feature is done when all of the following are true:
 ## v0.3: Skeleton (in progress)
 - [x] Restructure in place on `rebuild`: uv workspace, `legacy/`, Git LFS
 - [x] Interface contracts (`docs/CONTRACTS.md`)
-- [ ] CI green on `rebuild` (Python job and Lua job) *(all green locally; branch not pushed yet, so CI has never run)*
+- [x] CI green on `rebuild` (Python job and Lua job) *(first run 2026-10-28; StyLua advisory)*
 - [ ] Docs reset: README, CLAUDE.md, ARCHITECTURE, ADRs and references *(written; awaiting review)*
 - [ ] `dms_core` schemas (story, campaign, mission, beats, voice, plan, runtime, outcome) and JSON Schema export *(implemented + tested)*
 - [ ] lupa miz I/O with byte-exact round-trip tests on all fixtures *(implemented + tested)*

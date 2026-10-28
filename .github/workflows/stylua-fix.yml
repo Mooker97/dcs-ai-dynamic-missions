@@ -1,0 +1,27 @@
+name: StyLua fix
+
+# Manual: formats lua/ with StyLua and uploads the result as a patch artifact (stylua.patch).
+# Apply locally with: gh run download <id> -n stylua-patch && git apply stylua.patch
+on:
+  workflow_dispatch:
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: StyLua (write)
+        uses: JohnnyMorganz/stylua-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          version: latest
+          args: lua/src lua/spec lua/mocks
+
+      - name: Make patch
+        run: git diff > stylua.patch && wc -l stylua.patch
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stylua-patch
+          path: stylua.patch

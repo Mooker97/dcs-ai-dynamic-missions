@@ -69,13 +69,28 @@ switch (_mode) do {
 		DMS_exfilHeli = _heli;
 		private _ehKilled = _heli addEventHandler ["Killed", { ["DMS_FailHeli", false, "extraction helicopter destroyed"] call DMS_fnc_end; }];
 		["Exfil heli spawned"] call DMS_fnc_log;
-		private _lost = { !alive _heli || {!canMove _heli} || {!alive (driver _heli)} };
-		// A heli that is shot up but not destroyed would otherwise hang the extraction forever.
-		[_heli] spawn {
+		// Disabled = pilot dead, hull nearly gone, or main rotor/engine destroyed. Not canMove: it
+		// reported false for a healthy Ghost Hawk on touchdown and lift-off (test batch 2026-10-28).
+		private _disabledWhy = {
 			params ["_h"];
-			waitUntil { sleep 2; DMS_over || {!alive _h} || {!canMove _h} || {!alive (driver _h)} || {DMS_exfilHeli != _h} };
+			if (!alive (driver _h)) exitWith { "pilot dead" };
+			if (damage _h > 0.8) exitWith { format ["damage %1", (round ((damage _h) * 100)) / 100] };
+			if ((_h getHitPointDamage "HitHRotor") >= 0.9) exitWith { "main rotor destroyed" };
+			if ((_h getHitPointDamage "HitEngine") >= 0.9) exitWith { "engine destroyed" };
+			""
+		};
+		private _lost = { !alive _heli || {([_heli] call _disabledWhy) != ""} };
+		// A heli that is shot up but not destroyed would otherwise hang the extraction forever.
+		[_heli, _disabledWhy] spawn {
+			params ["_h", "_disabledWhy"];
+			private _why = "";
+			waitUntil {
+				sleep 2;
+				if (alive _h) then { _why = [_h] call _disabledWhy; };
+				DMS_over || {!alive _h} || {_why != ""} || {DMS_exfilHeli != _h}
+			};
 			if (!DMS_over && {DMS_exfilHeli == _h} && {alive _h}) then {
-				["DMS_FailHeli", false, "extraction helicopter disabled"] call DMS_fnc_end;
+				["DMS_FailHeli", false, format ["extraction helicopter disabled (%1)", _why]] call DMS_fnc_end;
 			};
 		};
 

@@ -208,17 +208,14 @@ local function newWorld()
     w.nextGid = w.nextGid + 1
     local g = setmetatable({ name = name, coal = coal, units = {}, id = opts.id or w.nextGid }, GroupM)
     for i, u in ipairs(units) do
-      local un = setmetatable(
-        {
-          name = u.name or (name .. "-" .. i),
-          type = u.type or "BTR-80",
-          pos = { x = u.x, y = 0, z = u.z },
-          alive = true,
-          group = g,
-          player = u.player,
-        },
-        UnitM
-      )
+      local un = setmetatable({
+        name = u.name or (name .. "-" .. i),
+        type = u.type or "BTR-80",
+        pos = { x = u.x, y = 0, z = u.z },
+        alive = true,
+        group = g,
+        player = u.player,
+      }, UnitM)
       g.units[#g.units + 1] = un
       w.units[un.name] = un
     end
@@ -535,17 +532,12 @@ describe("DMS.Comms", function()
         for _ = 1, 40 do
           local r = math.random()
           if r < 0.5 then
-            DMS.Comms.say(
-              "ops",
-              { ids[math.random(1, 5)], ids[math.random(1, 5)] },
-              "t",
-              {
-                priority = math.random(0, 3),
-                cooldownSec = math.random(0, 5),
-                groupId = (math.random() < 0.3) and 11 or nil,
-                frequency = (math.random() < 0.2) and 124.5 or nil,
-              }
-            )
+            DMS.Comms.say("ops", { ids[math.random(1, 5)], ids[math.random(1, 5)] }, "t", {
+              priority = math.random(0, 3),
+              cooldownSec = math.random(0, 5),
+              groupId = (math.random() < 0.3) and 11 or nil,
+              frequency = (math.random() < 0.2) and 124.5 or nil,
+            })
           elseif r < 0.7 then
             spawn(math.random(10, 13), "G", "U", "P")
           elseif r < 0.8 then

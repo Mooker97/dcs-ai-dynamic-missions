@@ -345,15 +345,11 @@ function Ground.hunt(name, target, opts)
       DMS.Log.debug(P, "'%s' hunting '%s'", name, tgt)
     end
     local ip = Ground.interceptPoint(hp, tp, Ground.leadVel(tgt), speed, opts.maxLeadSec)
-    Ground.routeTo(
-      name,
-      ip,
-      {
-        speed = speed,
-        action = opts.action or "Off Road",
-        stopShortM = opts.standoffM or Ground.defaults.huntStandoffM,
-      }
-    )
+    Ground.routeTo(name, ip, {
+      speed = speed,
+      action = opts.action or "Off Road",
+      stopShortM = opts.standoffM or Ground.defaults.huntStandoffM,
+    })
     return true
   end
   Ground._hunts[name] = DMS.Clock.every(interval, tick, { firstDelay = opts.firstDelay or 0.5, jitter = opts.jitter })

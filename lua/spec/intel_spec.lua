@@ -208,17 +208,14 @@ local function newWorld()
     w.nextGid = w.nextGid + 1
     local g = setmetatable({ name = name, coal = coal, units = {}, id = opts.id or w.nextGid }, GroupM)
     for i, u in ipairs(units) do
-      local un = setmetatable(
-        {
-          name = u.name or (name .. "-" .. i),
-          type = u.type or "BTR-80",
-          pos = { x = u.x, y = 0, z = u.z },
-          alive = true,
-          group = g,
-          player = u.player,
-        },
-        UnitM
-      )
+      local un = setmetatable({
+        name = u.name or (name .. "-" .. i),
+        type = u.type or "BTR-80",
+        pos = { x = u.x, y = 0, z = u.z },
+        alive = true,
+        group = g,
+        player = u.player,
+      }, UnitM)
       g.units[#g.units + 1] = un
       w.units[un.name] = un
     end
@@ -364,14 +361,10 @@ end
 
 local function setup(w)
   w.addGroup("Viper1", 2, { { name = "Viper1-1", x = 0, z = 0, player = "Mav" } })
-  w.addGroup(
-    "SAM1",
-    1,
-    {
-      { name = "SAM1-1", x = 4000, z = 0, type = "Osa 9A33 ln" },
-      { name = "SAM1-2", x = 4100, z = 100, type = "Osa 9A33 ln" },
-    }
-  )
+  w.addGroup("SAM1", 1, {
+    { name = "SAM1-1", x = 4000, z = 0, type = "Osa 9A33 ln" },
+    { name = "SAM1-2", x = 4100, z = 100, type = "Osa 9A33 ln" },
+  })
   w.addGroup("FAR", 1, { { name = "FAR-1", x = 60000, z = 0, type = "T-72B" } })
 end
 
@@ -489,16 +482,13 @@ describe("DMS.Intel", function()
       DMS.Bus.emit("unit.shot", { initiator = "FAR-1", initiatorGroup = "FAR", coalition = 1, weapon = "x" })
       assert(DMS.Intel.contact("FAR"), "launch reveals shooter")
       w.addGroup("TRUCKS", 1, { { name = "TRUCKS-1", x = 90000, z = 0 } })
-      DMS.Bus.emit(
-        "unit.hit",
-        {
-          target = "TRUCKS-1",
-          targetGroup = "TRUCKS",
-          targetCoalition = 1,
-          initiator = "Viper1-1",
-          initiatorGroup = "Viper1",
-        }
-      )
+      DMS.Bus.emit("unit.hit", {
+        target = "TRUCKS-1",
+        targetGroup = "TRUCKS",
+        targetCoalition = 1,
+        initiator = "Viper1-1",
+        initiatorGroup = "Viper1",
+      })
       assert(DMS.Intel.contact("TRUCKS"), "engaged target revealed")
       w.clear()
       DMS.Bus.emit("group.dead", { group = "FAR", coalition = 1 })

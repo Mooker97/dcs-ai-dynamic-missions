@@ -661,10 +661,12 @@ local function capRtb(st, g, rec)
       local home = rec.home or s.center
       c:setTask({
         id = "Mission",
-        params = { route = { points = {
-          airPoint(v2(lp), s, {}),
-          airPoint(home, s, {}),
-        } } },
+        params = {
+          route = { points = {
+            airPoint(v2(lp), s, {}),
+            airPoint(home, s, {}),
+          } },
+        },
       })
     end)
     if not ok then

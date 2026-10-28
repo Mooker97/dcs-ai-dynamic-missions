@@ -247,21 +247,18 @@ describe("Encounters", function()
   end)
 
   it("convoy: named convoy halts when hit and gets escorts", function()
-    boot(
+    boot({
       {
-        {
-          id = "cv",
-          kind = "convoy",
-          group = "Convoy1",
-          pool = "btr",
-          resumeAfterSec = 30,
-          trigger = { type = "time", afterSec = 1 },
-        },
+        id = "cv",
+        kind = "convoy",
+        group = "Convoy1",
+        pool = "btr",
+        resumeAfterSec = 30,
+        trigger = { type = "time", afterSec = 1 },
       },
-      function(c)
-        c.intel.fogOfWar = false
-      end
-    )
+    }, function(c)
+      c.intel.fogOfWar = false
+    end)
     MOCK.addGroup({
       name = "Convoy1",
       coalition = 1,

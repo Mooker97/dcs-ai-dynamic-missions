@@ -403,17 +403,12 @@ local function applyEffects(beat)
   local text = (sp and sp.text) or beat.text
   if speaker or lines or text then
     if DMS.Comms and DMS.Comms.say then
-      DMS.Comms.say(
-        speaker,
-        lines,
-        text,
-        {
-          coalition = playerCoalition(),
-          priority = beat.priority or 0,
-          frequency = sp and sp.frequency or beat.frequency,
-          keep = beat.guaranteed and true or nil,
-        }
-      )
+      DMS.Comms.say(speaker, lines, text, {
+        coalition = playerCoalition(),
+        priority = beat.priority or 0,
+        frequency = sp and sp.frequency or beat.frequency,
+        keep = beat.guaranteed and true or nil,
+      })
     elseif text and trigger and trigger.action and trigger.action.outTextForCoalition then
       trigger.action.outTextForCoalition(playerCoalition(), (speaker and (speaker .. ": ") or "") .. text, 10)
     end

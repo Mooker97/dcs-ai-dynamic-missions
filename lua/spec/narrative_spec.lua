@@ -208,17 +208,14 @@ local function newWorld()
     w.nextGid = w.nextGid + 1
     local g = setmetatable({ name = name, coal = coal, units = {}, id = opts.id or w.nextGid }, GroupM)
     for i, u in ipairs(units) do
-      local un = setmetatable(
-        {
-          name = u.name or (name .. "-" .. i),
-          type = u.type or "BTR-80",
-          pos = { x = u.x, y = 0, z = u.z },
-          alive = true,
-          group = g,
-          player = u.player,
-        },
-        UnitM
-      )
+      local un = setmetatable({
+        name = u.name or (name .. "-" .. i),
+        type = u.type or "BTR-80",
+        pos = { x = u.x, y = 0, z = u.z },
+        alive = true,
+        group = g,
+        player = u.player,
+      }, UnitM)
       g.units[#g.units + 1] = un
       w.units[un.name] = un
     end
@@ -471,24 +468,21 @@ describe("DMS.Narrative", function()
   end)
 
   it("supports timer, beat-chain, director, flag-requirement and zone triggers", function()
-    local c = cfgWith(
-      {
-        { id = "t60", when = { afterSec = 60 }, once = true },
-        { id = "chain", when = { beat = "t60" }, once = true, effects = { setFlag = "chained" } },
-        { id = "gated", when = { event = "x.g" }, once = true, requires = { flags = { chained = true } } },
-        { id = "peak", when = { director = "PEAK" }, once = true },
-        { id = "ridge", when = { zone = "ridge" }, once = true },
-      },
-      {
-        zones = {
-          ridge = { kind = "circle", x = 10000, y = 0, radius = 2000 },
-          box = {
-            kind = "polygon",
-            points = { { x = 0, y = 0 }, { x = 10, y = 0 }, { x = 10, y = 10 }, { x = 0, y = 10 } },
-          },
+    local c = cfgWith({
+      { id = "t60", when = { afterSec = 60 }, once = true },
+      { id = "chain", when = { beat = "t60" }, once = true, effects = { setFlag = "chained" } },
+      { id = "gated", when = { event = "x.g" }, once = true, requires = { flags = { chained = true } } },
+      { id = "peak", when = { director = "PEAK" }, once = true },
+      { id = "ridge", when = { zone = "ridge" }, once = true },
+    }, {
+      zones = {
+        ridge = { kind = "circle", x = 10000, y = 0, radius = 2000 },
+        box = {
+          kind = "polygon",
+          points = { { x = 0, y = 0 }, { x = 10, y = 0 }, { x = 10, y = 10 }, { x = 0, y = 10 } },
         },
-      }
-    )
+      },
+    })
     c.narrative = { minGapSec = 2, pendingTtlSec = 30, zonePollSec = 3 }
     withWorld(c, function(w)
       w.addGroup("Viper1", 2, { { name = "Viper1-1", x = 0, z = 0, player = "Mav" } })
@@ -529,29 +523,26 @@ describe("DMS.Narrative", function()
   end)
 
   it("delegates effects to Comms, Intel, Encounters and writes [DMS.OUTCOME] json", function()
-    local c = cfgWith(
+    local c = cfgWith({
       {
-        {
-          id = "tgt_down",
-          when = { event = "group.dead", group = "HVT" },
-          priority = 80,
-          once = true,
-          speaker = "ops",
-          lines = { "tgt_v1", "tgt_v2" },
-          text = "Splash HVT.",
-          mark = "zone:town",
-          effects = { setFlag = "tgt_down", outcome = { hvtKilled = true }, startEncounter = "egress_cap" },
-        },
-        { id = "win", when = { beat = "tgt_down" }, once = true, text = "RTB.", effects = { finish = "victory" } },
+        id = "tgt_down",
+        when = { event = "group.dead", group = "HVT" },
+        priority = 80,
+        once = true,
+        speaker = "ops",
+        lines = { "tgt_v1", "tgt_v2" },
+        text = "Splash HVT.",
+        mark = "zone:town",
+        effects = { setFlag = "tgt_down", outcome = { hvtKilled = true }, startEncounter = "egress_cap" },
       },
-      {
-        voice = {
-          tgt_v1 = { file = "tgt_v1.ogg", text = "Splash one", durSec = 3, speaker = "ops" },
-          tgt_v2 = { file = "tgt_v2.ogg", text = "Target down", durSec = 3, speaker = "ops" },
-        },
-        zones = { town = { kind = "circle", x = 100, y = 200, radius = 1500 } },
-      }
-    )
+      { id = "win", when = { beat = "tgt_down" }, once = true, text = "RTB.", effects = { finish = "victory" } },
+    }, {
+      voice = {
+        tgt_v1 = { file = "tgt_v1.ogg", text = "Splash one", durSec = 3, speaker = "ops" },
+        tgt_v2 = { file = "tgt_v2.ogg", text = "Target down", durSec = 3, speaker = "ops" },
+      },
+      zones = { town = { kind = "circle", x = 100, y = 200, radius = 1500 } },
+    })
     withWorld(c, function(w)
       local started = {}
       DMS.Encounters = {
@@ -623,15 +614,12 @@ describe("DMS.Narrative", function()
           },
         }
       end
-      local c = cfgWith(
-        beats,
-        {
-          seed = seed,
-          zones = { z1 = { kind = "circle", x = 0, y = 0, radius = 3000 } },
-          qualities = { q = 0 },
-          voice = { l1 = { file = "l1.ogg", durSec = 2 } },
-        }
-      )
+      local c = cfgWith(beats, {
+        seed = seed,
+        zones = { z1 = { kind = "circle", x = 0, y = 0, radius = 3000 } },
+        qualities = { q = 0 },
+        voice = { l1 = { file = "l1.ogg", durSec = 2 } },
+      })
       c.narrative = { minGapSec = math.random(0, 10), pendingTtlSec = math.random(1, 60) }
       withWorld(c, function(w)
         w.addGroup("P1", 2, { { name = "P1-1", x = 5000, z = 5000, player = "p" } })

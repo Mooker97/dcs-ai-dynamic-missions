@@ -560,19 +560,16 @@ end
 --   rec.task (current task), rec.tasks (number of setTask+pushTask calls), rec.pushed (last pushed),
 --   rec.stopped (last StopRoute value), rec.roe / rec.alarm (last ROE / ALARM_STATE option values)
 local function newController(ownerName, ownerKind, rec)
-  return setmetatable(
-    {
-      owner = ownerName,
-      kind = ownerKind,
-      rec = rec or {},
-      options = {},
-      task = nil,
-      tasks = {},
-      commands = {},
-      onOff = true,
-    },
-    Controller
-  )
+  return setmetatable({
+    owner = ownerName,
+    kind = ownerKind,
+    rec = rec or {},
+    options = {},
+    task = nil,
+    tasks = {},
+    commands = {},
+    onOff = true,
+  }, Controller)
 end
 
 -- Unit -----------------------------------------------------------------

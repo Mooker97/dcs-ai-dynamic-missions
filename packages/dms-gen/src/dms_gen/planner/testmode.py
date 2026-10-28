@@ -16,7 +16,7 @@ import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from dms_core.schemas import BeatSheet, BuildPlan, MissionSpec
 from dms_core.schemas.beats import Beat
@@ -32,6 +32,10 @@ CORNER_INSET = 0.15
 MARGIN_MIN = 10.0  # approach, landing and slack
 # Cold start + taxi before takeoff; measured 8.3 min for the AH-64 proxy in DCS 2.9.30 (2026-10-28).
 GROUND_MIN = 10.0
+HELO_SPEED_KMH = 220.0
+HELO_ALT_M = 120.0  # AGL
+PLANE_SPEED_KMH = 780.0  # ~420 kt
+PLANE_ALT_M = 4500.0  # MSL, ~15,000 ft
 
 _IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 _LUA_KEYWORDS = {
@@ -179,8 +183,8 @@ def make_test_plan(
     beats: list[Beat] | BeatSheet | None,
     *,
     minutes: float | None = None,
-    proxy_speed_kmh: float = 220,
-    proxy_alt_m: float = 120,
+    proxy_speed_kmh: float | None = None,
+    proxy_alt_m: float | None = None,
     variant: str | None = None,
 ) -> TestBuild:
     """Return a test variant of ``plan`` (deep copy) with an AI player proxy + dms_test.lua.
@@ -192,6 +196,14 @@ def make_test_plan(
     if tp.runtime is None:
         raise ValueError("plan has no runtime config")
     orig = pick_test_proxy(tp, variant)
+    # Helicopters fly the route low and slow; fixed-wing jets need a jet profile (an F-16 at the
+    # helicopter's 120 m / 220 km/h fell out of the sky in the first Viper run).
+    plane = orig.category == "plane"
+    if proxy_speed_kmh is None:
+        proxy_speed_kmh = PLANE_SPEED_KMH if plane else HELO_SPEED_KMH
+    if proxy_alt_m is None:
+        proxy_alt_m = PLANE_ALT_M if plane else HELO_ALT_M
+    alt_type: Literal["BARO", "RADIO"] = "BARO" if plane else "RADIO"
     beat_list = _beat_list(beats, tp)
     zones = tp.runtime.zones
 
@@ -237,7 +249,7 @@ def make_test_plan(
                 x=round(start_xy[0], 1),
                 y=round(start_xy[1], 1),
                 alt_m=proxy_alt_m,
-                alt_type="RADIO",
+                alt_type=alt_type,
                 speed_kmh=proxy_speed_kmh,
             )
         )
@@ -247,7 +259,7 @@ def make_test_plan(
                 x=round(x, 1),
                 y=round(y, 1),
                 alt_m=proxy_alt_m,
-                alt_type="RADIO",
+                alt_type=alt_type,
                 speed_kmh=proxy_speed_kmh,
             )
         )

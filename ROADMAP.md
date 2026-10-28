@@ -63,7 +63,7 @@ A feature is done when all of the following are true:
 ## Arma 3 track ([plan](docs/arma/PLAN.md), [ADR 0012](docs/adr/0012-multiple-game-backends.md))
 - [x] Research, knowledge base (`docs/arma/kb/`), MVP mission "The Hill" written
 - [ ] Headless harness (`tools/arma_harness/`) + class/site verification in real Arma *(works in engine; waiting on CI)*
-- [ ] The Hill passes unattended test mode across 3+ seeds
+- [ ] The Hill passes unattended test mode across 3+ seeds *(full win seen on seed 3, vanilla and modded; forced endings pass; seeds 1–2 lose real AI fights)*
 - [ ] User playtest of The Hill (feel, comm menu, hold action, balance)
 - [ ] Generalise into a DMS backend (spec → `fn_config.sqf`), only after The Hill plays well
 

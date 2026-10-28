@@ -27,7 +27,9 @@ TEST_SCRIPT = "dms_test.lua"
 TEST_SCRIPT_PATH = f"l10n/DEFAULT/{TEST_SCRIPT}"
 MAX_TIME_TRIGGER_SEC = 240.0
 CORNER_INSET = 0.15
-MARGIN_MIN = 8.0
+MARGIN_MIN = 10.0  # approach, landing and slack
+# Cold start + taxi before takeoff; measured 8.3 min for the AH-64 proxy in DCS 2.9.30 (2026-10-28).
+GROUND_MIN = 10.0
 
 _IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 _LUA_KEYWORDS = {
@@ -315,7 +317,7 @@ def make_test_plan(
     mins = (
         float(minutes)
         if minutes is not None
-        else float(math.ceil(route_m / (proxy_speed_kmh / 3.6) / 60 + MARGIN_MIN))
+        else float(math.ceil(route_m / (proxy_speed_kmh / 3.6) / 60 + GROUND_MIN + MARGIN_MIN))
     )
     lua = build_test_lua(proxy_name, mins, beat_list, [e.id for e in rt.encounters])
     return TestBuild(plan=tp, lua=lua, proxy=proxy_name, minutes=mins, route_km=route_km)

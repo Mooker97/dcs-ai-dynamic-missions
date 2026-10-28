@@ -23,6 +23,8 @@ from dms_core.schemas.beats import Beat
 from dms_core.schemas.plan import PlanGroup, PlanResource, PlanUnit, PlanWaypoint
 from dms_core.schemas.runtime import CircleZone, PolygonZone, TestSettings, from_lua
 
+from .variants import pick_test_proxy, variant_plan
+
 TEST_SCRIPT = "dms_test.lua"
 TEST_SCRIPT_PATH = f"l10n/DEFAULT/{TEST_SCRIPT}"
 MAX_TIME_TRIGGER_SEC = 240.0
@@ -179,15 +181,17 @@ def make_test_plan(
     minutes: float | None = None,
     proxy_speed_kmh: float = 220,
     proxy_alt_m: float = 120,
+    variant: str | None = None,
 ) -> TestBuild:
-    """Return a test variant of ``plan`` (deep copy) with an AI player proxy + dms_test.lua."""
-    tp = plan.model_copy(deep=True)
-    clients = [g for g in tp.groups if g.client]
-    if not clients:
-        raise ValueError("plan has no player (client) group to replace with a proxy")
+    """Return a test variant of ``plan`` (deep copy) with an AI player proxy + dms_test.lua.
+
+    The proxy replaces one client group: from ``variant`` when given, preferring a ramp/runway
+    start (so on-deck and landing beats are reachable). All other client groups are dropped.
+    """
+    tp = variant_plan(plan, variant) if variant else plan.model_copy(deep=True)
     if tp.runtime is None:
         raise ValueError("plan has no runtime config")
-    orig = clients[0]
+    orig = pick_test_proxy(tp, variant)
     beat_list = _beat_list(beats, tp)
     zones = tp.runtime.zones
 

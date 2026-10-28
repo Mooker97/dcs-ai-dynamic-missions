@@ -2,7 +2,7 @@
 theater: Syria
 mission_type: CONVOY_ESCORT
 player_aircraft: [OH58D]
-max_warnings: 0        # cap on validate warnings (set to the observed count)
+max_warnings: 1        # cap on validate warnings (observed: callsign is not a DCS name for the type)
 min_groups: 3          # plan.groups lower bound (set to observed)
 runtime:               # exact counts in plan.runtime (set to observed)
   beats: 7

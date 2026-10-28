@@ -13,6 +13,7 @@ from .planning import (
 )
 from .testmode import TestBuild, build_test_lua, make_test_plan, write_test_lua
 from .validate import has_errors, validate
+from .variants import pick_test_proxy, plan_variants, variant_miz_name, variant_plan
 
 __all__ = [
     "PLACES",
@@ -27,11 +28,15 @@ __all__ = [
     "has_errors",
     "load_campaign_qualities",
     "make_test_plan",
+    "pick_test_proxy",
     "placeholder_duration",
     "plan_mission",
+    "plan_variants",
     "resolve_area",
     "resolve_seed",
     "validate",
+    "variant_miz_name",
+    "variant_plan",
     "write_runtime_config",
     "write_test_lua",
 ]

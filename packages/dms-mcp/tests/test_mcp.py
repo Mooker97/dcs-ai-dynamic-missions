@@ -141,6 +141,34 @@ def test_build_test_variant(repo: Path, mission: Path, lua_bundle: Path) -> None
     assert (mission / "out" / "test" / "dms_test.lua").is_file()
 
 
+def test_build_per_variant(repo: Path, mission: Path, lua_bundle: Path) -> None:
+    import copy
+    import json
+
+    ops.plan(mission, root=repo)
+    plan_path = mission / "out" / "plan.json"
+    data = json.loads(plan_path.read_text(encoding="utf-8"))
+    client = next(g for g in data["groups"] if g["client"])
+    client["variant"] = "ramp"
+    air = copy.deepcopy(client)
+    air["name"], air["variant"] = "Air Flight", "air"
+    for i, u in enumerate(air["units"], start=1):
+        u["name"] = f"Air Flight-{i}"
+    data["groups"].append(air)
+    plan_path.write_text(json.dumps(data), encoding="utf-8")
+
+    res = ops.build(mission, root=repo, lua=lua_bundle)
+    assert res["ok"] is True, res
+    assert [v["variant"] for v in res["variants"]] == ["ramp", "air"]
+    assert [Path(v["miz"]).name for v in res["variants"]] == [
+        f"{MISSION_NAME}-ramp.miz",
+        f"{MISSION_NAME}-air.miz",
+    ]
+    assert res["miz"].endswith(f"{MISSION_NAME}.miz")
+    only = ops.build(mission, root=repo, lua=lua_bundle, variant="air")
+    assert [v["variant"] for v in only["variants"]] == ["air"]
+
+
 def test_check_missing_file(repo: Path) -> None:
     res = ops.guarded(ops.check)("missing.miz", root=repo)
     assert res == {"ok": False, "error": f"not found: {(repo / 'missing.miz').resolve()}"}

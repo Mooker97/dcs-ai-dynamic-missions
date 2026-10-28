@@ -62,10 +62,20 @@ def build(
             "instead of the flyable mission."
         ),
     ] = False,
+    variant: Annotated[
+        str | None,
+        Field(
+            description="Player-flight start variant (e.g. 'ramp', 'air'). Null builds every "
+            "variant (<id>-<variant>.miz each, <id>.miz = first); with test, the variant the AI "
+            "proxy comes from."
+        ),
+    ] = None,
 ) -> dict[str, Any]:
     """Build <mission>/out/<id>.miz from out/plan.json (planning first if it is missing), embed
-    the Lua runtime, then run the structural check. Returns the .miz path, notes and check."""
-    return ops.guarded(ops.build)(mission_dir, test)
+    the Lua runtime, then run the structural check. With player-flight variants, one .miz per
+    variant is built and checked ('variants' in the result). Returns the .miz path(s), notes and
+    check."""
+    return ops.guarded(ops.build)(mission_dir, test, variant=variant)
 
 
 @mcp.tool()

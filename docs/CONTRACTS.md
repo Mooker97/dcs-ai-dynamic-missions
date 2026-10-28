@@ -438,6 +438,43 @@ faction; the planner must never pick armed types for it, and lists that faction'
 `BuildPlan.neutral_countries` so the builder creates it in the neutral coalition). Beat `coalition` filters accept 0
 (neutral), 1 (red), 2 (blue).
 
+Player flights (`PlayerFlight`), start options and slots:
+
+- `variant: str | null`: flights with the same variant are built together; each distinct variant
+  produces its own `.miz` named `<id>-<variant>.miz`; flights without a variant appear in every
+  variant. No variants at all = one `<id>.miz` (unchanged). Typical single-player choice:
+  `variant: ramp` (`start_type: parking_cold`) and `variant: air` (`start_type: air` + `air_start`).
+- `slot: player|client` (default `player`): `player` = lead unit is the single-player `Player`,
+  the other `count-1` units are AI wingmen (skill `High`) that spawn and fly in SP; `client` = all
+  units `Client` (multiplayer). Only one `player` flight per variant: later ones are planned as
+  `client` (validate warns). AI wingmen have no player name, so the runtime (`coalition.getPlayers`,
+  `player.spawned`, `players_only` filters, `Spawner.playerUnits`) only ever treats the lead as the
+  player.
+- `air_start: {altitude_ft=20000, speed_kts=420, distance_nm_before_first_wp=20, toward=null}`
+  (only with `start_type: air`; omitted = defaults when `start_type: air`): the planner puts the
+  flight `distance_nm_before_first_wp` short of its first route point (`toward` area id, default
+  the first objective area) on the line from `start_area`, heading toward it, at that altitude
+  (BARO) and speed; the route continues to that point.
+- Loadout `auto` (or an unrecognised intent) picks the aircraft's preset for the mission type
+  (F-16C_50: SEAD/DEAD -> `sead`, STRIKE/INTERDICTION -> `lgb_strike`, CAS -> `cas`); free text
+  with HARM/SEAD, GBU/LGB/strike, CAS/Maverick maps to those presets. Fuel is always full internal.
+- Radio callsign: the spec `callsign` is applied to the group in DCS when it is one of the type's
+  DCS callsign names for that country (F-16C_50/USA: Viper, Venom, Lobo, Cowboy, Python, Rattler,
+  Panther, Wolf, Weasel, Wild, Ninja, Jedi); otherwise the closest valid name is chosen
+  deterministically and `dms validate` warns. `PlanGroup.radio_callsign` records the result
+  (`"Python 1-1"`, flight number counted per callsign within a variant).
+
+Threats and support: `Threat.templates: list[str]` pins the catalog templates the planner may
+pick for that threat (they must be templates of the role and era; validate errors when none
+match, warns for ignored ids). `Support.faction` (friendly bible faction) sets the asset's DCS
+country; without it the speaker character's faction is used when it is on the players' side,
+else the side's first country.
+
+Plan fields: `PlanGroup.variant` (copied from the flight), `PlanGroup.radio_callsign`,
+`BuildPlan.neutral_countries` (countries of every neutral-coalition faction used by threats or
+pools; threats of a neutral faction are planned in the neutral coalition and the builder adds the
+countries to the neutral coalition).
+
 Every model gets `model_config = ConfigDict(extra="forbid")` and `Field(description=...)` on
 fields; the descriptions double as LLM guidance. `dms_core.schemas.export_json_schemas(out_dir)`
 writes JSON Schema files to `schemas/` at the repo root for skills and editors.
@@ -457,11 +494,16 @@ writes JSON Schema files to `schemas/` at the repo root for skills and editors.
   - `dms plan <mission> [-o plan.json] [--seed N] [--voice-manifest]`: default output
     `<mission>/out/plan.json`; the voice manifest defaults to `<mission>/voice/manifest.json` if present.
   - `dms voice <lines.yaml|mission> [--out --dry-run --fx --voices --model]`: output `<mission>/voice`.
-  - `dms build <plan.json|mission> [-o out.miz] [--lua]`: a folder reads `<mission>/out/plan.json` and
-    writes `<mission>/out/<id>.miz`, then runs check.
+  - `dms build <plan.json|mission> [-o out.miz] [--lua] [--variant V]`: a folder reads
+    `<mission>/out/plan.json` and writes `<mission>/out/<id>.miz`, then runs check. With player
+    flight variants it writes one `<mission>/out/<id>-<variant>.miz` per variant (plan order) and
+    checks each; `<id>.miz` is a copy of the first variant's build (backward compatibility).
+    `--variant V` builds only that variant (`-o` then names its file).
   - `dms run <mission> [--seed --skip-voice -o]`: validate -> voice -> plan -> build -> check.
   - `--test [--test-minutes M]` on `plan`, `build` (plus `--seed`) and `run`: headless-DCS test variant
     (AI player proxy + `DMS.Test` checks) in `out/test/<id>-test.miz`; normal outputs are untouched.
+    The proxy replaces a ramp/runway player flight (start `parking_*`/`runway` preferred, so
+    on-deck/landing beats are reachable); `build --test --variant V` picks the proxy from variant V.
   - `dms check <miz> [--json]`, `dms schema [--out]`, `dms bundle-lua [--out]`.
   - `dms catalog units|templates [--era --coalition --role --category]`,
     `dms catalog airbases --theater T [--near name|x,y --limit]`, `dms catalog mission-types`; all take `--json`.
@@ -502,7 +544,7 @@ can be tested without a client; `dms_mcp.server` only registers the tools.
 |---|---|---|---|
 | `validate` | `path` | Like `dms validate`. `path` is a mission folder or `mission-spec.yaml`, or a `bible.yaml` / `arc.yaml` / `qualities.yaml` (schema only) | `kind`, `path`, `files`, `errors`, `warnings`, `issues` |
 | `plan` | `mission_dir`, `seed?` | Like `dms plan`: writes `<mission>/out/plan.json` (uses `voice/manifest.json` when present) | `plan`, `voice_manifest`, `mission_id`, `seed`, `theater`, `players[]`, `stats` |
-| `build` | `mission_dir`, `test=false` | `dms build` + check. Plans first when `out/plan.json` is missing. `test=true` is `dms build --test` (seed from `out/plan.json`, writes `out/test/`, `out/<id>-test.miz`) | `miz`, `test`, `mission_id`, `seed`, `stats`, `notes[]`, `check`, `harness` (test only) |
+| `build` | `mission_dir`, `test=false`, `variant=null` | `dms build` + check (one `.miz` per player-flight variant + `<id>.miz` = first; `variants[]` lists `{variant, miz, ok, check}`). Plans first when `out/plan.json` is missing. `test=true` is `dms build --test` (seed from `out/plan.json`, writes `out/test/`, `out/<id>-test.miz`) | `miz`, `test`, `mission_id`, `seed`, `stats`, `notes[]`, `check`, `harness` (test only) |
 | `check` | `miz_path` | `dms check` | `CheckReport` fields: `path`, `issues`, `stats` |
 | `schema` | `name` | JSON Schema of one document model. `name` is a `DOCUMENT_MODELS` stem (`mission-spec`, ...), a class name (`MissionSpec`) or `bible` / `arc` / `lines` | `name`, `model`, `schema` |
 | `campaign_status` | `campaign_slug` | Read-only overview of `campaigns/<slug>` | `title`, `files`, `qualities`, `flags`, `next_mission`, `outcomes[]`, `missions[]` (`id`, `title`, `designed`, `files`, `voiced`, `planned`, `built[]`, `out[]`, `last_check`, `debriefed`), `arc_missions_not_designed[]` |

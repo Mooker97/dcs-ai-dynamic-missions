@@ -47,6 +47,54 @@ PRESETS: dict[str, dict[str, dict[int, str]]] = {
             4: "M261___19_x_UnGd_Rkts__70_mm_Hydra_70_M151_HE__M433_RC_Fuze",
         },
     },
+    # F-16C Block 50. Stations: 1/9 wingtips, 2/8 and 3/7 wing, 4/6 inboard wet,
+    # 5 centreline, 10 left chin (HTS), 11 right chin (targeting pod).
+    "F-16C_50": {
+        # SEAD/DEAD: 2x HARM on 3/7, 2x GBU-12 on 4/6, HTS + LITENING, ALQ-184 on the
+        # centreline, 2x AIM-120C + 2x AIM-9X for self-defence. No external tanks.
+        "sead": {
+            1: "AIM_9X_Sidewinder_IR_AAM",
+            2: "AIM_120C_AMRAAM___Active_Radar_AAM",
+            3: "AGM_88C_HARM___High_Speed_Anti_Radiation_Missile_",
+            4: "GBU_12___500lb_Laser_Guided_Bomb",
+            5: "ALQ_184",
+            6: "GBU_12___500lb_Laser_Guided_Bomb",
+            7: "AGM_88C_HARM___High_Speed_Anti_Radiation_Missile_",
+            8: "AIM_120C_AMRAAM___Active_Radar_AAM",
+            9: "AIM_9X_Sidewinder_IR_AAM",
+            10: "AN_ASQ_213_HTS___HARM_Targeting_System",
+            11: "AN_AAQ_28_LITENING___Targeting_Pod_",
+        },
+        # Precision strike: 4x GBU-12 on TER-9/A racks (3/7), 2x 370 gal tanks (4/6),
+        # ALQ-184 centreline, LITENING, 2x AIM-120C + 2x AIM-9X.
+        "lgb_strike": {
+            1: "AIM_9X_Sidewinder_IR_AAM",
+            2: "AIM_120C_AMRAAM___Active_Radar_AAM",
+            3: "TER_9_A___2_x_GBU_12___500lb_Laser_Guided_Bomb",
+            4: "Fuel_tank_370_gal",
+            5: "ALQ_184",
+            6: "Fuel_tank_370_gal",
+            7: "TER_9_A___2_x_GBU_12___500lb_Laser_Guided_Bomb_",  # right-hand rack name
+            8: "AIM_120C_AMRAAM___Active_Radar_AAM",
+            9: "AIM_9X_Sidewinder_IR_AAM",
+            11: "AN_AAQ_28_LITENING___Targeting_Pod_",
+        },
+        # CAS: 2x 370 gal tanks (4/6) for loiter, ALQ-184 centreline, LITENING.
+        # Only 3/7 carry A/G stores alongside tanks, so: 3 = TER-9/A 2x GBU-12,
+        # 7 = LAU-88 2x AGM-65D (IIR, usable at night). 2x AIM-120C + 2x AIM-9X.
+        "cas": {
+            1: "AIM_9X_Sidewinder_IR_AAM",
+            2: "AIM_120C_AMRAAM___Active_Radar_AAM",
+            3: "TER_9_A___2_x_GBU_12___500lb_Laser_Guided_Bomb",
+            4: "Fuel_tank_370_gal",
+            5: "ALQ_184",
+            6: "Fuel_tank_370_gal",
+            7: "LAU_88___2_x_AGM_65D___Maverick_D__IIR_ASM__",  # right-hand rack name
+            8: "AIM_120C_AMRAAM___Active_Radar_AAM",
+            9: "AIM_9X_Sidewinder_IR_AAM",
+            11: "AN_AAQ_28_LITENING___Targeting_Pod_",
+        },
+    },
 }
 
 #: Aircraft that must never get a silent default loadout (pydcs/DCS default is fuel tanks).

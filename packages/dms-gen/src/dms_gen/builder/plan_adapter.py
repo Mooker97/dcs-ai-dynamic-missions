@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import datetime as _dt
 import os
+import re
 import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -98,6 +99,8 @@ def build_from_plan(
         b.country("blue", name)
     for name in plan.red_countries:
         b.country("red", name)
+    for name in plan.neutral_countries:
+        b.country("neutrals", name)
     if plan.briefing:
         br = plan.briefing
         b.set_briefing(br.title, br.description, br.blue_task, br.red_task)
@@ -193,6 +196,8 @@ def _add_group(b: MissionBuilder, g: PlanGroup) -> None:
     group: Any
     if g.client:
         start: StartKind = _START_BY_ACTION.get(first.action, "air") if first else "air"
+        air = start == "air"
+        wing = next((u.skill for u in g.units[1:] if u.skill not in ("Client", "Player")), "High")
         group = b.add_player_flight(
             coal,
             g.country,
@@ -206,6 +211,16 @@ def _add_group(b: MissionBuilder, g: PlanGroup) -> None:
             altitude_m=u0.alt_m,
             frequency_mhz=g.frequency_mhz,
             client=not any(u.skill == "Player" for u in g.units),
+            speed_kmh=(first.speed_kmh or None) if (air and first) else None,
+            heading_deg=u0.heading_deg if air else None,
+            waypoints=[
+                AirWaypoint(p.x, p.y, p.alt_m or 150, p.speed_kmh or 220, p.alt_type)
+                for p in g.route[1:]
+                if p.action in ("Turning Point", "Fly Over Point")
+            ],
+            unit_positions=[(u.x, u.y) for u in g.units] if air else None,
+            wingman_skill=wing,  # type: ignore[arg-type]
+            callsign=_parse_callsign(g.radio_callsign),
         )
     else:
         kind = _AI_TASKS.get(str(g.task or ""))
@@ -237,6 +252,16 @@ def _add_group(b: MissionBuilder, g: PlanGroup) -> None:
     group.late_activation = g.late_activation
     group.hidden = g.hidden
     group.uncontrolled = g.uncontrolled
+
+
+def _parse_callsign(text: str | None) -> tuple[str, int] | None:
+    """'Python 1-1' -> ('Python', 1); None for missing/unparseable callsigns."""
+    if not text:
+        return None
+    m = re.match(r"^\s*([A-Za-z][A-Za-z ]*?)\s*(\d+)(?:-\d+)?\s*$", text)
+    if m is None:
+        return None
+    return m.group(1), int(m.group(2))
 
 
 def _add_route_flight(

@@ -104,8 +104,29 @@ class Area(DMSModel):
 # ---------------------------------------------------------------------------
 
 
+class AirStart(DMSModel):
+    """Where and how an air-start player flight appears (start_type 'air')."""
+
+    altitude_ft: float = Field(
+        default=20000, gt=0, le=60000, description="Start altitude in feet MSL (BARO)."
+    )
+    speed_kts: float = Field(
+        default=420, gt=0, le=1200, description="Start speed in knots (true airspeed)."
+    )
+    distance_nm_before_first_wp: float = Field(
+        default=20,
+        ge=0,
+        le=200,
+        description="How far short of the first route point (IP / ingress area) the flight starts, NM.",
+    )
+    toward: Ident | None = Field(
+        default=None,
+        description="Area id of the first route point (IP). Null = the first objective with an area. The flight starts on the line from start_area to it, heading toward it.",
+    )
+
+
 class PlayerFlight(DMSModel):
-    """A flight of player (client) aircraft."""
+    """A flight of player aircraft (single-player 'player' lead + AI wingmen, or MP 'client' slots)."""
 
     callsign: str = Field(description="Flight callsign, e.g. 'Dustoff', 'Gunfighter'.")
     aircraft: str = Field(
@@ -128,6 +149,25 @@ class PlayerFlight(DMSModel):
         default=None, gt=0, description="Flight frequency in MHz; null lets the planner choose."
     )
     tasking: str | None = Field(default=None, description="What this flight is told to do.")
+    variant: str | None = Field(
+        default=None,
+        pattern=r"^[a-z0-9][a-z0-9_-]*$",
+        description="Start option, e.g. 'ramp' or 'air'. Flights with the same variant are built together; each distinct variant produces its own .miz '<id>-<variant>.miz'; flights without variant appear in every variant.",
+    )
+    slot: Literal["player", "client"] = Field(
+        default="player",
+        description="'player': lead unit is the single-player Player, the other count-1 units are AI wingmen (skill High) that spawn and fly in SP. 'client': all units are Client slots (multiplayer). One 'player' flight per variant.",
+    )
+    air_start: AirStart | None = Field(
+        default=None,
+        description="Air-start placement (start_type 'air' only; defaults apply when omitted): altitude_ft, speed_kts, distance_nm_before_first_wp, toward.",
+    )
+
+    @model_validator(mode="after")
+    def _check_air_start(self) -> PlayerFlight:
+        if self.air_start is not None and self.start_type != "air":
+            raise ValueError("air_start is only valid with start_type 'air'")
+        return self
 
 
 ThreatRole = Literal[
@@ -167,6 +207,10 @@ class Threat(DMSModel):
     hidden_on_map: bool = Field(
         default=True, description="Hide on the F10 map until detected (fog of war)."
     )
+    templates: list[str] = Field(
+        default_factory=list,
+        description="Pin the threat to these catalog template ids (e.g. ['sa8', 'sa8_section'] to guarantee a radar SAM / HARM target); the planner picks only among them. They must be templates for the role and era (dms catalog templates --role). Empty = any template for the role/era/faction.",
+    )
     notes: str | None = Field(default=None, description="Placement or behaviour hints.")
 
 
@@ -197,6 +241,10 @@ class Support(DMSModel):
     )
     composition: str | None = Field(
         default=None, description="Free-text composition, e.g. '4x M1126 Stryker, 2x HEMTT'."
+    )
+    faction: Ident | None = Field(
+        default=None,
+        description="Bible faction id (friendly side); its DCS country is used for the asset's units. Null = the speaker's faction if it is on the players' side, else the first country of the players' side.",
     )
     speaker: Ident | None = Field(
         default=None, description="Bible character who talks for this asset."
@@ -402,6 +450,8 @@ class MissionSpec(DMSModel):
         refs: list[tuple[str, str]] = []
         for i, f in enumerate(self.player_flights):
             refs.append((f"player_flights[{i}].start_area", f.start_area))
+            if f.air_start is not None and f.air_start.toward:
+                refs.append((f"player_flights[{i}].air_start.toward", f.air_start.toward))
         for i, o in enumerate(self.objectives):
             if o.area:
                 refs.append((f"objectives[{i}].area", o.area))

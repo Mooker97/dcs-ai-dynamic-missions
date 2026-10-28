@@ -361,8 +361,17 @@ def _write_runtime_config(plan: Any, out_dir: Path) -> Path | None:
     return path
 
 
-def _build(plan_path: Path, out: Path | None, lua: Path | None) -> tuple[Path, list[str]]:
+def _build_variants(
+    plan_path: Path, out: Path | None, lua: Path | None, variant: str | None
+) -> list[tuple[str | None, Path, list[str]]]:
+    """Build plan.json into one .miz per player-flight variant: ``(variant, miz, notes)``.
+
+    No variants: one ``<id>.miz`` (``out`` overrides). With variants: ``<id>-<variant>.miz``
+    each, then ``<id>.miz`` (or ``out``) as a byte copy of the first variant, returned last as
+    ``(None, path, notes)``. ``variant`` builds only that one (``out`` names it).
+    """
     from dms_core.schemas import BuildPlan
+    from dms_core.variants import plan_variants, variant_miz_name, variant_plan
 
     try:
         plan = BuildPlan.model_validate_json(plan_path.read_text(encoding="utf-8"))
@@ -370,8 +379,28 @@ def _build(plan_path: Path, out: Path | None, lua: Path | None) -> tuple[Path, l
         _print_findings(pydantic_findings(exc, plan_path.name, BuildPlan))
         raise CliError(f"{plan_path.name} is not a valid BuildPlan", 1) from None
     mdir = mission_dir_for_plan(plan_path)
-    out = out or mdir / "out" / f"{plan.mission_id}.miz"
-    return _build_obj(plan, mdir, out, lua, mdir / "out", plan_path.parent)
+    odir = mdir / "out"
+    variants = plan_variants(plan)
+    if variant is not None and variant not in variants:
+        raise CliError(f"unknown variant {variant!r}; plan has {variants or 'no variants'}", 1)
+    if not variants:
+        miz = out or odir / variant_miz_name(plan.mission_id, None)
+        built, notes = _build_obj(plan, mdir, miz, lua, odir, plan_path.parent)
+        return [(None, built, notes)]
+    todo = [variant] if variant is not None else variants
+    builds: list[tuple[str | None, Path, list[str]]] = []
+    for v in todo:
+        miz = (out if variant is not None and out else None) or odir / variant_miz_name(
+            plan.mission_id, v
+        )
+        built, notes = _build_obj(variant_plan(plan, v), mdir, miz, lua, odir, plan_path.parent)
+        builds.append((v, built, [f"variant {v}: {built.name}", *notes]))
+    if variant is None:
+        alias = (out or odir / variant_miz_name(plan.mission_id, None)).resolve()
+        alias.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(builds[0][1], alias)
+        builds.append((None, alias, [f"{alias.name} = copy of variant {variants[0]}"]))
+    return builds
 
 
 def _build_obj(
@@ -401,7 +430,13 @@ TEST_DIR = "test"
 TEST_PLAN_FILE = "plan.test.json"
 
 
-def _make_test(mp: MissionPaths, bundle: Bundle, plan_obj: Any, minutes: float | None) -> Any:
+def _make_test(
+    mp: MissionPaths,
+    bundle: Bundle,
+    plan_obj: Any,
+    minutes: float | None,
+    variant: str | None = None,
+) -> Any:
     """make_test_plan + write out/test/{dms_test.lua, plan.test.json}; returns the TestBuild."""
     from dms_gen.planner import (  # type: ignore[import-untyped,unused-ignore]
         make_test_plan,
@@ -409,7 +444,7 @@ def _make_test(mp: MissionPaths, bundle: Bundle, plan_obj: Any, minutes: float |
     )
 
     try:
-        tb = make_test_plan(plan_obj, bundle.spec, bundle.beats, minutes=minutes)
+        tb = make_test_plan(plan_obj, bundle.spec, bundle.beats, minutes=minutes, variant=variant)
     except ValueError as exc:
         raise CliError(f"test build failed: {exc}", 1) from exc
     tdir = mp.out_dir / TEST_DIR
@@ -453,6 +488,14 @@ TestOpt = Annotated[
         "--test",
         help="Headless-DCS test variant: AI player proxy + in-mission checks (out/test/, "
         "<id>-test.miz). Normal outputs are left untouched.",
+    ),
+]
+VariantOpt = Annotated[
+    str | None,
+    typer.Option(
+        "--variant",
+        help="Player-flight start variant (e.g. ramp / air): build only <id>-<variant>.miz; "
+        "with --test, take the proxy from this variant.",
     ),
 ]
 TestMinutesOpt = Annotated[
@@ -583,26 +626,45 @@ def build(
     seed: Annotated[
         int | None, typer.Option(help="--test: planner seed (default: seed of out/plan.json).")
     ] = None,
+    variant: VariantOpt = None,
 ) -> None:
-    """Build a .miz from plan.json, then run check on it."""
+    """Build a .miz from plan.json (one per player-flight variant), then check each."""
     if test:
-        _build_test_cmd(target, output, lua, test_minutes, seed)
+        _build_test_cmd(target, output, lua, test_minutes, seed, variant)
         return
     t = target.resolve()
     plan_path = t / "out" / PLAN_FILE if t.is_dir() else t
     if not plan_path.is_file():
         raise CliError(f"no plan at {plan_path}; run `dms plan` first")
-    built, notes = _build(plan_path, output, lua)
-    for n in notes:
-        _echo(n)
-    _echo(f"built {built}")
-    if not _print_check(_check(built)):
+    if not _build_and_check(plan_path, output, lua, variant, ""):
         _echo("the .miz was written but check found problems")
         raise typer.Exit(1)
 
 
+def _build_and_check(
+    plan_path: Path, output: Path | None, lua: Path | None, variant: str | None, indent: str
+) -> bool:
+    """Build all variants of plan.json and check each .miz; True when every check passed."""
+    ok = True
+    builds = _build_variants(plan_path, output, lua, variant)
+    for v, built, notes in builds:
+        for n in notes:
+            _echo(f"{indent}{n}")
+        if v is None and len(builds) > 1:
+            continue  # <id>.miz alias: a byte copy of the first variant, already checked
+        _echo(f"{indent}built {built}" + (f" (variant {v})" if v else ""))
+        if not _print_check(_check(built)):
+            ok = False
+    return ok
+
+
 def _build_test_cmd(
-    target: Path, output: Path | None, lua: Path | None, minutes: float | None, seed: int | None
+    target: Path,
+    output: Path | None,
+    lua: Path | None,
+    minutes: float | None,
+    seed: int | None,
+    variant: str | None = None,
 ) -> None:
     t = target.resolve()
     if t.is_file() and t.suffix == ".json":
@@ -616,7 +678,7 @@ def _build_test_cmd(
     manifest_path = mp.voice_manifest if mp.voice_manifest.is_file() else None
     plan_obj = _plan(bundle, seed, manifest_path)
     _echo(f"test: planned seed {plan_obj.seed}")
-    tb = _make_test(mp, bundle, plan_obj, minutes)
+    tb = _make_test(mp, bundle, plan_obj, minutes, variant)
     built, notes = _build_test(mp, tb, output, lua)
     for n in notes:
         _echo(n)
@@ -690,10 +752,14 @@ def run(
         _echo(f"  wrote {plan_path}")
 
     _echo("[4/5] build")
-    if tb is not None:
-        built, notes = _build_test(mp, tb, output, None)
-    else:
-        built, notes = _build(plan_path, output, None)
+    if tb is None:
+        _echo("[5/5] check")
+        if not _build_and_check(plan_path, output, None, None, "  "):
+            _echo("FAILED: the .miz was written but check found problems")
+            raise typer.Exit(1)
+        _echo(f"DONE: {mp.out_dir}")
+        return
+    built, notes = _build_test(mp, tb, output, None)
     for n in notes:
         _echo(f"  {n}")
     _echo(f"  built {built}")

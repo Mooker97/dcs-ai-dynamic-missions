@@ -253,6 +253,54 @@ def test_build_links_existing_lua_resource(
     assert "lua resource linked" in res.output
 
 
+def _add_variant_groups(plan_path: Path) -> None:
+    data = json.loads(plan_path.read_text(encoding="utf-8"))
+    for i, v in enumerate(("ramp", "air"), start=1):
+        data["groups"].append(
+            {
+                "name": f"Python {i}",
+                "category": "plane",
+                "coalition": "blue",
+                "country": "USA",
+                "client": True,
+                "variant": v,
+                "units": [
+                    {
+                        "name": f"Python {i}-1",
+                        "type": "F-16C_50",
+                        "x": 140000 + i * 1000,
+                        "y": 30000,
+                        "alt_m": 6096,
+                        "skill": "Player",
+                    }
+                ],
+                "route": [{"x": 140000 + i * 1000, "y": 30000, "alt_m": 6096, "speed_kmh": 777}],
+            }
+        )
+    plan_path.write_text(json.dumps(data), encoding="utf-8")
+
+
+def test_build_variants(mission: Path, fakes: types.SimpleNamespace, lua_file: Path) -> None:
+    assert invoke("plan", str(mission)).exit_code == 0
+    _add_variant_groups(mission / "out" / "plan.json")
+    res = invoke("build", str(mission), "--lua", str(lua_file))
+    assert res.exit_code == 0, res.output
+    out = mission / "out"
+    ramp, air = out / "m01-first-light-ramp.miz", out / "m01-first-light-air.miz"
+    assert fakes.checked == [ramp, air]
+    assert (out / "m01-first-light.miz").read_bytes() == ramp.read_bytes()
+    assert "variant air" in res.output
+    for miz, keep, drop in ((ramp, "Python 1", "Python 2"), (air, "Python 2", "Python 1")):
+        src = zipfile.ZipFile(miz).read("mission").decode("utf-8")
+        assert f'"{keep}"' in src and f'"{drop}"' not in src
+    fakes.checked.clear()
+    res = invoke("build", str(mission), "--lua", str(lua_file), "--variant", "air")
+    assert res.exit_code == 0, res.output
+    assert fakes.checked == [air]
+    res = invoke("build", str(mission), "--lua", str(lua_file), "--variant", "hot")
+    assert res.exit_code == 1 and "unknown variant" in res.output
+
+
 def test_build_missing_plan(mission: Path) -> None:
     res = invoke("build", str(mission))
     assert res.exit_code == 2 and "dms plan" in res.output

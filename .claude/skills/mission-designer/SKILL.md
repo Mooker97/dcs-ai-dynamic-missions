@@ -50,17 +50,33 @@ authoritative. Unknown keys are rejected.
      `{airbase, radius_nm, bearing_deg, distance_nm}`, `near_named_place`
      `{place, radius_nm, bearing_deg, ...}`, `latlon`, or `zone` (polygon points).
    - `player_flights[]`: `{callsign, aircraft, count, coalition, country, start_area, start_type,
-     loadout, frequency_mhz, tasking}`.
+     loadout, frequency_mhz, tasking, variant, slot, air_start}`. See
+     `references/player-flights.md` for start options. In short: offer the single-player pilot a
+     ramp start **and** an air start by declaring the same flight twice with `variant: ramp`
+     (`start_type: parking_cold`) and `variant: air` (`start_type: air` + `air_start`). Each
+     variant becomes its own `.miz` (`<id>-ramp.miz`, `<id>-air.miz`). Keep `slot: player`
+     (the default: the lead is the Player, wingmen are AI) unless the mission is multiplayer
+     (`slot: client`). Use a callsign DCS knows for the type (F-16C_50: Viper, Venom, Lobo,
+     Cowboy, Python, Rattler, Panther, Wolf, Weasel, Wild, Ninja, Jedi), or validate warns and
+     the cockpit uses the closest name. `loadout: auto` picks the mission-type preset (F-16C_50:
+     SEAD/DEAD `sead`, STRIKE `lgb_strike`, CAS `cas`).
    - `objectives[]`: kind destroy|protect|escort|reach|recon|rescue|survive|land, with `area`,
      `target`, and `success_flag` / `failure_flag` that beats set.
-   - `threats[]`: `{role, area, strength light|medium|heavy, faction, skill, hidden_on_map}`.
+   - `threats[]`: `{role, area, strength light|medium|heavy, faction, skill, hidden_on_map,
+     templates}`. `templates` pins the catalog templates the planner may pick (e.g.
+     `[sa8, sa8_section]` so the SEAD target is a radar SAM; `uv run dms catalog templates --role
+     sam_short`). Civilians: role `civilian` with a neutral bible faction; its country goes into
+     the neutral coalition automatically.
      Threats named in the briefing as known get `hidden_on_map: false`. Scale threats by
      qualities (low intel means more hidden threats; high enemy AA means `heavy`).
-   - `support[]`: `{role, callsign, area, route, composition, speaker}`.
+   - `support[]`: `{role, callsign, area, route, composition, faction, speaker}`. `faction`
+     (a friendly bible faction) sets the units' DCS country, e.g. a partner force on CJTF Blue.
    - `dynamic`: `pools[] {id, roles, areas, pick: [min,max], faction, notes}`, and
      `encounters[] {id, kind, pool, trigger {type proximity|beat|director|time, area, radius_nm,
      beat, after_min}, chance, telegraph_beat, waves, gap_min, hunt}`, plus `fog_of_war`.
      See `references/beats-and-encounters.md`.
+   - Start options (ramp/air variants, `slot`, `air_start`, loadout presets):
+     `references/player-flights.md`.
 4. **Write `beats.yaml` (≥10 beats)** as `{mission_id, beats: [...]}`. Read
    `references/beats-and-encounters.md`.
    - **Guaranteed** beats (mission start, objective payoff, RTB call, landed/debrief, mission end

@@ -110,6 +110,41 @@ def aircraft_type(type_id: str | type[FlyingType]) -> type[FlyingType]:
     )
 
 
+def callsign_names(aircraft: str | type[FlyingType], country: str) -> list[str]:
+    """DCS radio callsign names for ``aircraft`` flown by ``country``, in DCS index order.
+
+    Only types with DCS-specific callnames for ``country`` (western jets: F-16C_50/USA has
+    Viper, Venom, ..., Python, ...) get named callsigns. DCS aircraft definitions inherit the
+    country's common ``Air`` names first (``InheriteCommonCallnames``: Enfield .. Pontiac =
+    1..8), then the type's own names (Viper = 9). Empty = leave pydcs' default callsign.
+    """
+    from dcs import countries
+
+    t = aircraft_type(aircraft)
+    specific = list(getattr(t, "callnames", {}).get(country, []))
+    if not specific:
+        return []
+    common: list[str] = []
+    for cls in countries.country_dict.values():
+        if getattr(cls, "name", None) == country:
+            common = list(getattr(cls, "callsign", {}).get("Air", []))
+            break
+    return common + [n for n in specific if n not in common]
+
+
+def closest_callsign(wanted: str, names: Sequence[str]) -> str | None:
+    """``wanted`` if in ``names`` (case-insensitive), else the closest name (deterministic)."""
+    import difflib
+
+    if not names:
+        return None
+    by_low = {n.lower(): n for n in names}
+    if wanted.lower() in by_low:
+        return by_low[wanted.lower()]
+    close = difflib.get_close_matches(wanted.lower(), list(by_low), n=1, cutoff=0.0)
+    return by_low[close[0]] if close else names[0]
+
+
 class MissionBuilder:
     """Build a new DCS mission. All positions are DCS map metres (x north, y east)."""
 
@@ -243,7 +278,12 @@ class MissionBuilder:
 
     def country(self, coalition: Coalition, name: str) -> Country:
         """Return the country, moving it into ``coalition`` if pydcs defaults put it elsewhere."""
-        target = self.mission.coalition[_COALITION_NAMES[coalition]]
+        cname_ = _COALITION_NAMES[coalition]
+        if cname_ not in self.mission.coalition:  # pydcs only creates blue and red
+            from dcs.coalition import Coalition as DcsCoalition
+
+            self.mission.coalition[cname_] = DcsCoalition(cname_)
+        target = self.mission.coalition[cname_]
         c = target.country(name)
         if c is not None:
             return c  # type: ignore[no-any-return]
@@ -298,8 +338,20 @@ class MissionBuilder:
         altitude_m: float | None = None,
         frequency_mhz: float | None = None,
         client: bool = True,
+        speed_kmh: float | None = None,
+        heading_deg: float | None = None,
+        waypoints: Sequence[AirWaypoint] = (),
+        unit_positions: Sequence[XY] | None = None,
+        wingman_skill: Skill = "High",
     ) -> unitgroup.FlyingGroup[Any]:
-        """Player/client flight. ``client=False`` makes the lead a single-player 'Player'."""
+        """Player flight. ``client=True``: every unit is a multiplayer 'Client' slot.
+        ``client=False``: the lead is the single-player 'Player' and the other units are AI
+        wingmen with ``wingman_skill``.
+
+        Air starts (``start="air"``) spawn at ``position``/``altitude_m`` with ``speed_kmh`` and
+        ``heading_deg``; ``unit_positions`` (one per unit) override pydcs' 10 m line-up, and
+        ``waypoints`` are appended after the start point. Internal fuel is always full.
+        """
         group = self._flight(
             coalition,
             country,
@@ -311,12 +363,28 @@ class MissionBuilder:
             task_=None,
             position=position,
             altitude_m=altitude_m,
+            speed_kmh=speed_kmh,
         )
         for i, u in enumerate(group.units):
             if client:
                 u.set_client()
             elif i == 0:
                 u.set_player()
+            else:
+                u.skill = DcsSkill(wingman_skill)
+            u.fuel = u.unit_type.fuel_max  # full internal (pydcs air starts default to 90 %)
+            if start == "air":
+                if unit_positions is not None and i < len(unit_positions):
+                    u.position = self.point(*unit_positions[i])
+                if heading_deg is not None:
+                    u.heading = heading_deg % 360
+        if start == "air" and group.points:
+            group.points[0].position = self.point(
+                group.units[0].position.x, group.units[0].position.y
+            )
+        for wp in waypoints:
+            mp = group.add_waypoint(self.point(wp.x, wp.y), wp.alt_m, wp.speed_kmh)
+            mp.alt_type = wp.alt_type
         self._apply_payload(group, payload)
         if callsign is not None:
             self._apply_callsign(group, country, callsign)
@@ -490,6 +558,7 @@ class MissionBuilder:
         task_: type[task.MainTask] | None,
         position: XY | None,
         altitude_m: float | None,
+        speed_kmh: float | None = None,
     ) -> unitgroup.FlyingGroup[Any]:
         m = self.mission
         c = self.country(coalition, country)
@@ -504,7 +573,14 @@ class MissionBuilder:
                 position = (ab_pos.x, ab_pos.y)
             alt = altitude_m if altitude_m is not None else (150 if t.helicopter else 3000)
             group = m.flight_group_inflight(
-                c, name, t, self.point(*position), int(alt), maintask=maintask, group_size=count
+                c,
+                name,
+                t,
+                self.point(*position),
+                int(alt),
+                speed=speed_kmh,
+                maintask=maintask,
+                group_size=count,
             )
         else:
             if airbase is None:
@@ -538,12 +614,11 @@ class MissionBuilder:
         self, group: unitgroup.FlyingGroup[Any], country: str, callsign: tuple[str, int]
     ) -> None:
         cs_name, flight_no = callsign
-        t = group.units[0].unit_type
-        names: list[str] = list(getattr(t, "callnames", {}).get(country, []))
-        c = self.mission.country(country)
-        for cat_names in getattr(c, "callsign", {}).values():
-            names.extend(n for n in cat_names if n not in names)
-        idx = names.index(cs_name) + 1 if cs_name in names else 1
+        names = callsign_names(group.units[0].unit_type, country)
+        if not names:
+            return  # numeric-callsign type/country: keep pydcs' assignment
+        cs_name = closest_callsign(cs_name, names) or names[0]
+        idx = names.index(cs_name) + 1
         for i, u in enumerate(group.units, start=1):
             u.callsign = None
             u.callsign_dict = {1: idx, 2: flight_no, 3: i, "name": f"{cs_name}{flight_no}{i}"}

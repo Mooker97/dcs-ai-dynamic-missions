@@ -383,7 +383,7 @@ def test_build_and_check_ok(tmp_path: Path) -> None:
     out = build_from_plan(plan, tmp_path / "t01.miz", base_dir=tmp_path)
     rep = check_miz(out)
     assert rep.ok, rep.model_dump_json(indent=1)
-    assert rep.stats["player_slots"] == 2
+    assert rep.stats["player_slots"] == 1  # slot "player": SP lead + AI wingman
     assert not [i for i in rep.issues if i.code == "voice_subtitle_only"]
     json.loads(rep.model_dump_json())
 

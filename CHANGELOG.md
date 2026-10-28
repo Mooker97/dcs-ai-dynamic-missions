@@ -10,6 +10,14 @@ tagged **(flown)** once it has been verified in DCS. Everything else is "impleme
 ## [Unreleased]: v0.3 skeleton
 
 ### Added
+- Player flights: start `variant`s (one `<id>-<variant>.miz` per variant, `<id>.miz` = first;
+  `dms build --variant`, MCP `build(variant=)`), `slot: player|client` (SP Player lead + AI
+  wingmen by default), `air_start` placement short of the IP, radio callsign applied in the
+  cockpit (`PlanGroup.radio_callsign`, validate warns when the name is not a DCS name for the
+  type), F-16C_50 payload presets `sead` / `lgb_strike` / `cas` picked by mission type, full
+  internal fuel; test builds prefer a ramp proxy (`--test --variant`). `Threat.templates` pins
+  threat templates; `Support.faction` sets friendly countries; neutral factions fill
+  `BuildPlan.neutral_countries` (civilians spawn in the neutral coalition). Implemented, not flown.
 - `DMS.Ambient`: friendly base traffic (parked departures, arrivals, apron vehicles, pattern helo,
   statics) around the player's departure/recovery airbases, spawned when a player is near and
   destroyed when they leave; mission-spec `ambient: {enabled, density}` (default on, low),

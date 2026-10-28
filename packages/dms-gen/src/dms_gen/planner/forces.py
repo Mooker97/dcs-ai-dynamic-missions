@@ -163,6 +163,22 @@ def candidates(
     return half or base
 
 
+def pinned(role: str, era: str | None, ids: list[str]) -> list[TemplateChoice]:
+    """Catalog templates among ``ids`` that ``role`` uses and that fit ``era`` (in ``ids`` order).
+
+    Faction equipment does not narrow a pinned set: the designer asked for these templates.
+    """
+    c = cat.load_catalog()
+    allowed = set(ROLE_TEMPLATES.get(role, []))
+    out: list[TemplateChoice] = []
+    for i in ids:
+        t = c.templates.get(i)
+        if t is None or i not in allowed or (era is not None and era not in t.eras):
+            continue
+        out.append(_from_catalog(t))
+    return out
+
+
 def pick_for_strength(
     choices: list[TemplateChoice], strength: str, rng: random.Random
 ) -> TemplateChoice:

@@ -397,10 +397,18 @@ def build(
     test: bool = False,
     root: Path | None = None,
     lua: Path | None = None,
+    variant: str | None = None,
 ) -> dict[str, Any]:
     """Build ``<mission>/out/<id>.miz`` from out/plan.json (planned first when missing), then
-    check it. ``test`` builds the headless variant ``out/<id>-test.miz`` instead."""
+    check it. ``test`` builds the headless variant ``out/<id>-test.miz`` instead.
+
+    With player-flight variants, one ``out/<id>-<variant>.miz`` is built and checked per variant
+    (``variants`` in the result) and ``<id>.miz`` is a copy of the first. ``variant`` builds only
+    that one; with ``test`` it picks the variant the AI proxy comes from."""
+    import shutil
+
     from dms_core.schemas import BuildPlan
+    from dms_core.variants import plan_variants, variant_miz_name, variant_plan
 
     r = repo_root(root)
     mp = _mission(mission_dir, r)
@@ -412,7 +420,7 @@ def build(
         from dms_gen.planner import make_test_plan, write_test_lua
 
         try:
-            tb = make_test_plan(plan_obj, bundle.spec, bundle.beats)
+            tb = make_test_plan(plan_obj, bundle.spec, bundle.beats, variant=variant)
         except ValueError as exc:
             raise OpError(f"test build failed: {exc}") from exc
         tdir = mp.out_dir / TEST_DIR
@@ -442,9 +450,42 @@ def build(
             plan_path.write_text(plan_obj.model_dump_json(indent=2), encoding="utf-8")
             notes.append(f"no plan.json; planned seed {plan_obj.seed} -> {_rel(plan_path, r)}")
         summary = plan_stats(plan_obj)
-        out = mp.out_dir / f"{plan_obj.mission_id}.miz"
-        built, more = _build_plan(plan_obj, mp.dir, out, r, lua, mp.out_dir)
         harness = None
+        variants = plan_variants(plan_obj)
+        if variant is not None and variant not in variants:
+            raise OpError(f"unknown variant {variant!r}; plan has {variants or 'no variants'}")
+        if variants:
+            results: list[dict[str, Any]] = []
+            for v in [variant] if variant is not None else variants:
+                vout = mp.out_dir / variant_miz_name(plan_obj.mission_id, v)
+                vbuilt, vmore = _build_plan(
+                    variant_plan(plan_obj, v), mp.dir, vout, r, lua, mp.out_dir
+                )
+                notes.extend(vmore)
+                vrep = _check_and_record(vbuilt)
+                results.append(
+                    {"variant": v, "miz": _rel(vbuilt, r), "ok": bool(vrep["ok"]), "check": vrep}
+                )
+            if variant is None:
+                alias = mp.out_dir / variant_miz_name(plan_obj.mission_id, None)
+                shutil.copyfile(r / results[0]["miz"], alias)
+                notes.append(f"{alias.name} = copy of variant {variants[0]}")
+                report = _check_and_record(alias)
+                miz = _rel(alias, r)
+            else:
+                report = results[0]["check"]
+                miz = results[0]["miz"]
+            return {
+                "ok": all(x["ok"] for x in results) and bool(report["ok"]),
+                "miz": miz,
+                "test": False,
+                **summary,
+                "notes": notes,
+                "check": report,
+                "variants": results,
+            }
+        out = mp.out_dir / variant_miz_name(plan_obj.mission_id, None)
+        built, more = _build_plan(plan_obj, mp.dir, out, r, lua, mp.out_dir)
     notes.extend(more)
     report = _check_and_record(built)
     result: dict[str, Any] = {

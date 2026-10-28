@@ -21,7 +21,7 @@ stage, repairing, and explaining what each stage produced.
 | validate | `uv run dms validate mission-spec.yaml` | errors with suggested fixes, or OK |
 | plan | `uv run dms plan mission-spec.yaml -o plan.json` | `plan.json`: exact positions, unit types, payload CLSIDs, frequencies, group names, triggers, seed, `DMS_CONFIG` |
 | voice | `uv run dms voice lines.yaml --dry-run`, then `uv run dms voice lines.yaml` | cost estimate, then `voice/*.ogg` (radio FX applied, cached) |
-| build | `uv run dms build plan.json -o out/mNN.miz` | the `.miz`: pydcs mission + `dms.lua` bundle + `dms_config.lua` + audio + briefing text from `briefing.md` + kneeboard pages rendered from `kneeboard.md` |
+| build | `uv run dms build <mission folder>` (`--variant air` for one variant) | the `.miz`: pydcs mission + `dms.lua` bundle + `dms_config.lua` + audio + briefing text from `briefing.md` + kneeboard pages rendered from `kneeboard.md`. With start variants: one `out/<id>-<variant>.miz` per variant (each checked) plus `out/<id>.miz` = copy of the first |
 | check | `uv run dms check out/mNN.miz` | structural report: IDs, slots, resources, config schema, `luac -p` |
 
 Run all commands from the repo root with full paths, e.g.
@@ -57,17 +57,27 @@ build-plan, runtime-config, ...) from the pydantic models in `packages/dms-core/
      fewer so it fits on one page. The page font has no `—` or `→`, so these print as `-` and `->`.
    - The rendered pages exist only inside the `.miz`, so don't commit PNGs. To preview a page, run
      `uv run python -c "from dms_gen.builder import write_kneeboard_pages as w; print(w('<dir>/kneeboard.md', '<scratch dir>'))"`.
+   - **Start variants.** When `player_flights` carry `variant:` (e.g. `ramp` and `air`), the
+     build writes `out/<id>-ramp.miz` and `out/<id>-air.miz` (only that variant's player flight
+     in each; shared everything else) and `out/<id>.miz` as a copy of the first variant. Each
+     variant `.miz` is checked. Tell the user which file is which start.
+   - `uv run dms build <mission> --test [--variant V]` makes the headless test build; its AI proxy
+     replaces the ramp/runway flight by default, `--variant air` tests the air start.
 6. **Check.** Every finding is either fixed (back to the stage that owns it: spec → validate/plan,
    lines → voice, generator bug → report) or explicitly accepted by the user.
 7. **Explain how to fly it** (below), then point at the debriefer skill for after the flight.
 
 ## Flying it
 
-1. Copy `out/mNN.miz` to `C:\Users\mook\Saved Games\DCS\Missions\` (Open Beta:
-   `Saved Games\DCS.openbeta\Missions\`).
+1. Copy the `.miz` for the start you want to `C:\Users\mook\Saved Games\DCS\Missions\`
+   (Open Beta: `Saved Games\DCS.openbeta\Missions\`): `out/<id>-ramp.miz` for a cold start on
+   the ramp, `out/<id>-air.miz` for an air start near the IP (copy both to have the choice in
+   DCS). Missions without variants have just `out/<id>.miz`.
 2. DCS → Mission → open it, or open it in the Mission Editor to inspect first. Don't re-save it from
    the ME unless needed, because the ME can strip unreferenced sound files.
 3. Read the briefing screen (it comes from `briefing.md`). Then take the player slot (e.g. Dusty 1-1).
+   In single player the lead is your aircraft and the rest of the flight are AI wingmen (comms
+   menu, F1 Wingman). The cockpit callsign is the plan's `radio_callsign`.
    In the cockpit, the kneeboard (RShift+K, then `[`/`]` to page) shows the rendered `kneeboard.md`
    after the airframe's own pages. The F10 map is Fog of War by design: enemies appear as
    marks only when detected.

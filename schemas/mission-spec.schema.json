@@ -1,5 +1,53 @@
 {
   "$defs": {
+    "AirStart": {
+      "additionalProperties": false,
+      "description": "Where and how an air-start player flight appears (start_type 'air').",
+      "properties": {
+        "altitude_ft": {
+          "default": 20000,
+          "description": "Start altitude in feet MSL (BARO).",
+          "exclusiveMinimum": 0,
+          "maximum": 60000,
+          "title": "Altitude Ft",
+          "type": "number"
+        },
+        "speed_kts": {
+          "default": 420,
+          "description": "Start speed in knots (true airspeed).",
+          "exclusiveMinimum": 0,
+          "maximum": 1200,
+          "title": "Speed Kts",
+          "type": "number"
+        },
+        "distance_nm_before_first_wp": {
+          "default": 20,
+          "description": "How far short of the first route point (IP / ingress area) the flight starts, NM.",
+          "maximum": 200,
+          "minimum": 0,
+          "title": "Distance Nm Before First Wp",
+          "type": "number"
+        },
+        "toward": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Area id of the first route point (IP). Null = the first objective with an area. The flight starts on the line from start_area to it, heading toward it.",
+          "title": "Toward"
+        }
+      },
+      "title": "AirStart",
+      "type": "object"
+    },
     "AmbientSpec": {
       "additionalProperties": false,
       "description": "Friendly base traffic around the player flights' airbases (planner-generated).",
@@ -699,7 +747,7 @@
     },
     "PlayerFlight": {
       "additionalProperties": false,
-      "description": "A flight of player (client) aircraft.",
+      "description": "A flight of player aircraft (single-player 'player' lead + AI wingmen, or MP 'client' slots).",
       "properties": {
         "callsign": {
           "description": "Flight callsign, e.g. 'Dustoff', 'Gunfighter'.",
@@ -787,6 +835,42 @@
           "default": null,
           "description": "What this flight is told to do.",
           "title": "Tasking"
+        },
+        "variant": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9_-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Start option, e.g. 'ramp' or 'air'. Flights with the same variant are built together; each distinct variant produces its own .miz '<id>-<variant>.miz'; flights without variant appear in every variant.",
+          "title": "Variant"
+        },
+        "slot": {
+          "default": "player",
+          "description": "'player': lead unit is the single-player Player, the other count-1 units are AI wingmen (skill High) that spawn and fly in SP. 'client': all units are Client slots (multiplayer). One 'player' flight per variant.",
+          "enum": [
+            "player",
+            "client"
+          ],
+          "title": "Slot",
+          "type": "string"
+        },
+        "air_start": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AirStart"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Air-start placement (start_type 'air' only; defaults apply when omitted): altitude_ft, speed_kts, distance_nm_before_first_wp, toward."
         }
       },
       "required": [
@@ -1011,6 +1095,22 @@
           "description": "Free-text composition, e.g. '4x M1126 Stryker, 2x HEMTT'.",
           "title": "Composition"
         },
+        "faction": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Bible faction id (friendly side); its DCS country is used for the asset's units. Null = the speaker's faction if it is on the players' side, else the first country of the players' side.",
+          "title": "Faction"
+        },
         "speaker": {
           "anyOf": [
             {
@@ -1134,6 +1234,14 @@
           "description": "Hide on the F10 map until detected (fog of war).",
           "title": "Hidden On Map",
           "type": "boolean"
+        },
+        "templates": {
+          "description": "Pin the threat to these catalog template ids (e.g. ['sa8', 'sa8_section'] to guarantee a radar SAM / HARM target); the planner picks only among them. They must be templates for the role and era (dms catalog templates --role). Empty = any template for the role/era/faction.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Templates",
+          "type": "array"
         },
         "notes": {
           "anyOf": [

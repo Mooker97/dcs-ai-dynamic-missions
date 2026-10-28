@@ -2475,6 +2475,32 @@
           "default": null,
           "description": "MissionSpec id this group realises (threat/support/flight).",
           "title": "Source"
+        },
+        "variant": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Player-flight start variant; client groups of other variants are left out of that variant's .miz. Null = in every variant.",
+          "title": "Variant"
+        },
+        "radio_callsign": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "DCS radio callsign of the lead applied by the builder, e.g. 'Python 1-1' (name flight-unit).",
+          "title": "Radio Callsign"
         }
       },
       "required": [

@@ -112,6 +112,20 @@ class PlanGroup(DMSModel):
     source: Ident | None = Field(
         default=None, description="MissionSpec id this group realises (threat/support/flight)."
     )
+    variant: str | None = Field(
+        default=None,
+        description=(
+            "Player-flight start variant; client groups of other variants are left out of "
+            "that variant's .miz. Null = in every variant."
+        ),
+    )
+    radio_callsign: str | None = Field(
+        default=None,
+        description=(
+            "DCS radio callsign of the lead applied by the builder, e.g. 'Python 1-1' "
+            "(name flight-unit)."
+        ),
+    )
 
 
 class PlanZone(DMSModel):

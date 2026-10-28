@@ -22,7 +22,7 @@ from typing import Any
 import yaml
 from dms_core.schemas.beats import Beat, BeatSheet
 from dms_core.schemas.campaign import Qualities
-from dms_core.schemas.mission import MissionSpec, PlayerFlight, Support, Threat
+from dms_core.schemas.mission import AirStart, MissionSpec, PlayerFlight, Support, Threat
 from dms_core.schemas.plan import (
     BuildPlan,
     PlanBriefing,
@@ -61,7 +61,7 @@ from dms_core.schemas.story import StoryBible
 from dms_core.schemas.voice import VoiceLineSet
 from pydantic import ValidationError
 
-from ..builder.mission import aircraft_type
+from ..builder.mission import aircraft_type, callsign_names, closest_callsign
 from . import forces
 from .ambient import plan_ambient
 from .context import (
@@ -112,6 +112,10 @@ _SUPPORT_AIR = {
     "escort": ("f15c_cap_2ship", "CAP"),
     "cas": ("a10c_cas_2ship", "CAS"),
 }
+FT = 0.3048
+KTS_KMH = 1.852
+#: Air-start formation: each wingman this far behind and to the right of the previous unit (m).
+AIR_START_SPACING_M = 300.0
 #: Minimum metres between pre-placed groups, and SAM-to-SAM spacing.
 GROUP_SPACING_M = 250.0
 SAM_SPACING_M = 1500.0
@@ -322,6 +326,10 @@ class _Planner:
         self.placer = _Placer(spec.theater, self.rng, bases)
         self.players_side = spec.player_flights[0].coalition
         self.enemy_side = "red" if self.players_side == "blue" else "blue"
+        self.neutral: list[str] = []
+        self.char_faction = (
+            {c.id: c.faction for c in bible.characters if c.faction} if bible is not None else {}
+        )
 
     # -- helpers -------------------------------------------------------------------------
     def area(self, area_id: str) -> ResolvedArea:
@@ -341,14 +349,33 @@ class _Planner:
         """Pydcs country name for a faction on ``side`` (falls back to the side's first)."""
         if faction and faction in self.factions:
             fc, fcoal, _ = self.factions[faction]
-            if fcoal == side and (fc in self.side_countries(side) or not self.side_countries(side)):
-                return fc
             if fcoal == "neutral":
+                if fc not in self.neutral:
+                    self.neutral.append(fc)
+                return fc
+            if fcoal == side and (fc in self.side_countries(side) or not self.side_countries(side)):
                 return fc
         countries = self.side_countries(side)
         if not countries:
             raise PlanError(f"no {side} countries in spec")
         return countries[0]
+
+    def side_of(self, faction: str | None) -> str:
+        """'neutral' for a bible faction on the neutral side, else the enemy side."""
+        if faction and faction in self.factions and self.factions[faction][1] == "neutral":
+            return "neutral"
+        return self.enemy_side
+
+    def friendly_country(self, s: Support) -> str:
+        """Country of the support asset's faction (or its speaker's), else the side's first."""
+        side = self.players_side
+        fallback = self.side_countries(side)[0] if self.side_countries(side) else "USA"
+        for fid in (s.faction, self.char_faction.get(s.speaker or "")):
+            if fid and fid in self.factions:
+                fc, fside, _ = self.factions[fid]
+                if fside == side:
+                    return fc
+        return fallback
 
     def choices(self, role: str, faction: str | None, strength: str) -> list[forces.TemplateChoice]:
         fac = self.factions.get(faction) if faction else None
@@ -356,40 +383,125 @@ class _Planner:
 
     # -- players -------------------------------------------------------------------------
     def plan_players(self) -> None:
+        player_taken: set[str | None] = set()
+        flights_by_cs: dict[tuple[str | None, str], int] = {}
         for i, f in enumerate(self.spec.player_flights, start=1):
-            self.groups.append(self._player_group(f, i))
+            v = f.variant
+            sp = f.slot == "player"
+            if sp:
+                clash = (v in player_taken or None in player_taken) if v else bool(player_taken)
+                if clash:
+                    sp = False  # one single-player lead per variant: later flights become clients
+                else:
+                    player_taken.add(v)
+            g = self._player_group(f, i, sp)
+            g.radio_callsign = self._radio_callsign(f, flights_by_cs)
+            self.groups.append(g)
 
-    def _player_group(self, f: PlayerFlight, idx: int) -> PlanGroup:
+    def _radio_callsign(
+        self, f: PlayerFlight, counter: dict[tuple[str | None, str], int]
+    ) -> str | None:
+        names = callsign_names(f.aircraft, canonical_country(f.country) or f.country)
+        name = closest_callsign(f.callsign, names)
+        if name is None:
+            return None
+        key = (f.variant, name)
+        counter[key] = counter.get(key, 0) + 1
+        return f"{name} {counter[key]}-1"
+
+    def _air_start_geometry(
+        self, f: PlayerFlight, start: tuple[float, float]
+    ) -> tuple[tuple[float, float], float, tuple[float, float] | None]:
+        """(start point, heading deg, first route point or None) for an air start."""
+        a = f.air_start or AirStart()
+        target: tuple[float, float] | None = None
+        if a.toward:
+            target = self.area(a.toward).center
+        else:
+            obj = next((o for o in self.spec.objectives if o.area), None)
+            if obj is not None and obj.area is not None:
+                target = self.area(obj.area).center
+        if target is None:
+            return start, 0.0, None
+        dx, dy = target[0] - start[0], target[1] - start[1]
+        dist = math.hypot(dx, dy)
+        if dist < 1.0:
+            ux, uy = 1.0, 0.0  # start == target: approach from the south, heading north
+        else:
+            ux, uy = dx / dist, dy / dist
+        back = a.distance_nm_before_first_wp * NM
+        sx, sy = target[0] - ux * back, target[1] - uy * back
+        hdg = round(math.degrees(math.atan2(uy, ux)) % 360.0, 2) % 360.0
+        return (sx, sy), hdg, target
+
+    def _player_group(self, f: PlayerFlight, idx: int, single_player: bool) -> PlanGroup:
         area = self.area(f.start_area)
         ac = aircraft_type(f.aircraft)
         helo = bool(getattr(ac, "helicopter", False))
         name = self.names.alloc(f"{f.callsign} {idx}")
-        payload, _choice = payload_for(f.aircraft, f.loadout)
+        payload, _choice = payload_for(f.aircraft, f.loadout, self.spec.mission_type)
         freq = f.frequency_mhz or float(getattr(ac, "radio_frequency", 0) or 0) or None
+        hdg = 0.0
+        positions = [(area.x + 30 * (j - 1), area.y) for j in range(1, f.count + 1)]
+        route: list[PlanWaypoint]
         if f.start_type != "air" and area.airbase:
-            wp = PlanWaypoint(
-                x=round(area.x, 1),
-                y=round(area.y, 1),
-                action=_START_ACTION[f.start_type],  # type: ignore[arg-type]
-                airbase=area.airbase,
-            )
+            route = [
+                PlanWaypoint(
+                    x=round(area.x, 1),
+                    y=round(area.y, 1),
+                    action=_START_ACTION[f.start_type],  # type: ignore[arg-type]
+                    airbase=area.airbase,
+                )
+            ]
             alt: float | None = None
+        elif f.start_type == "air" and not helo:
+            a = f.air_start or AirStart()
+            alt = round(a.altitude_ft * FT, 1)
+            spd = round(a.speed_kts * KTS_KMH, 1)
+            (sx, sy), hdg, target = self._air_start_geometry(f, area.center)
+            rad = math.radians(hdg)
+            fx, fy = math.cos(rad), math.sin(rad)  # forward (x north, y east)
+            rx, ry = -fy, fx  # right of the heading
+            sp = AIR_START_SPACING_M
+            positions = [
+                (sx - fx * sp * k + rx * sp * k, sy - fy * sp * k + ry * sp * k)
+                for k in range(f.count)
+            ]  # echelon right
+            route = [PlanWaypoint(x=round(sx, 1), y=round(sy, 1), alt_m=alt, speed_kmh=spd)]
+            if target is not None:
+                route.append(
+                    PlanWaypoint(
+                        x=round(target[0], 1),
+                        y=round(target[1], 1),
+                        alt_m=alt,
+                        speed_kmh=spd,
+                        name="IP",
+                    )
+                )
         else:
             alt = 150.0 if helo else 3000.0
-            wp = PlanWaypoint(
-                x=round(area.x, 1), y=round(area.y, 1), alt_m=alt, speed_kmh=200 if helo else 500
-            )
+            route = [
+                PlanWaypoint(
+                    x=round(area.x, 1),
+                    y=round(area.y, 1),
+                    alt_m=alt,
+                    speed_kmh=200 if helo else 500,
+                )
+            ]
+        lead_skill: PlanSkill = "Player" if single_player else "Client"
+        wing_skill: PlanSkill = "High" if single_player else "Client"
         units = [
             PlanUnit(
                 name=f"{name}-{j}",
                 type=f.aircraft,
-                x=round(area.x + 30 * (j - 1), 1),
-                y=round(area.y, 1),
+                x=round(x, 1),
+                y=round(y, 1),
                 alt_m=alt,
-                skill="Client",
+                heading_deg=hdg,
+                skill=lead_skill if j == 1 else wing_skill,
                 payload=payload,
             )
-            for j in range(1, f.count + 1)
+            for j, (x, y) in enumerate(positions, start=1)
         ]
         return PlanGroup(
             name=name,
@@ -398,10 +510,11 @@ class _Planner:
             country=canonical_country(f.country) or f.country,
             task=self.spec.mission_type,
             units=units,
-            route=[wp],
+            route=route,
             frequency_mhz=freq,
             client=True,
             source=f.callsign if re.match(r"^[A-Za-z0-9][A-Za-z0-9_.\-]*$", f.callsign) else None,
+            variant=f.variant,
         )
 
     # -- threats -------------------------------------------------------------------------
@@ -410,11 +523,16 @@ class _Planner:
             self._threat(t)
 
     def _threat(self, t: Threat) -> None:
-        choices = self.choices(t.role, t.faction, t.strength)
+        choices: list[forces.TemplateChoice] = []
+        if t.templates:
+            choices = forces.pinned(t.role, self.era, t.templates)
+        if not choices:
+            choices = self.choices(t.role, t.faction, t.strength)
         if not choices:
             return  # validate reports roles without templates
         area = self.area(t.area)
-        country = self.country_for(t.faction, self.enemy_side)
+        side = self.side_of(t.faction)
+        country = self.country_for(t.faction, side)
         hidden = bool(t.hidden_on_map and self.fog)
         n = forces.group_count(t.role, t.strength)
         for _ in range(n):
@@ -428,7 +546,7 @@ class _Planner:
                     _air_group(
                         name,
                         tpl,
-                        self.enemy_side,
+                        side,
                         country,
                         task,
                         area.center,
@@ -445,7 +563,7 @@ class _Planner:
                 PlanGroup(
                     name=name,
                     category="vehicle",
-                    coalition=self.enemy_side,  # type: ignore[arg-type]
+                    coalition=side,  # type: ignore[arg-type]
                     country=country,
                     units=_units_at(name, tpl, at, hdg, t.skill),
                     hidden=hidden,
@@ -462,7 +580,7 @@ class _Planner:
                     PlanGroup(
                         name=name,
                         category="vehicle",
-                        coalition=self.enemy_side,  # type: ignore[arg-type]
+                        coalition=side,  # type: ignore[arg-type]
                         country=country,
                         units=_units_at(name, tpl, at, self.rng.uniform(0, 359), t.skill),
                         hidden=hidden,
@@ -507,7 +625,7 @@ class _Planner:
 
     def _support(self, s: Support) -> PlanGroup | None:
         side = self.players_side
-        country = self.side_countries(side)[0] if self.side_countries(side) else "USA"
+        country = self.friendly_country(s)
         if s.role in _SUPPORT_AIR:
             tpl_id, task = _SUPPORT_AIR[s.role]
             from dms_core import catalog as cat
@@ -957,6 +1075,7 @@ def plan_mission(
         weather=p.weather(),
         blue_countries=p.blue,
         red_countries=p.red,
+        neutral_countries=[c for c in p.neutral if c not in p.blue and c not in p.red],
         groups=p.groups,
         zones=plan_zones,
         triggers=[],

@@ -20,7 +20,7 @@ from dms_core.schemas.story import StoryBible
 from dms_core.schemas.validation import Issue, suggest, validate_mission_bundle
 from dms_core.schemas.voice import VoiceLineSet
 
-from ..builder.mission import aircraft_type
+from ..builder.mission import aircraft_type, callsign_names, closest_callsign
 from . import forces
 from .context import (
     canonical_country,
@@ -163,9 +163,25 @@ def validate(
                 )
             )
         if category is not None:
-            choice = choose_loadout(f.aircraft, f.loadout)
+            choice = choose_loadout(f.aircraft, f.loadout, spec.mission_type)
             if not choice.ok:
                 issues.append(_warn(fp + ".loadout", choice.note))
+            names = callsign_names(f.aircraft, canonical_country(f.country) or f.country)
+            got = closest_callsign(f.callsign, names)
+            if got is not None and got.lower() != f.callsign.lower():
+                issues.append(
+                    _warn(
+                        fp + ".callsign",
+                        f"callsign {f.callsign} not available for {f.aircraft} ({f.country}); "
+                        f"using {got} 1-1 in the cockpit. Use the real radio callsign in the "
+                        "briefing, or pick one of the valid names",
+                        names,
+                    )
+                )
+            if f.start_type == "air" and category == "helicopter" and f.air_start is not None:
+                issues.append(
+                    _warn(fp + ".air_start", "air_start is ignored for helicopters (low air start)")
+                )
         start = resolved.get(f.start_area)
         if start is not None and f.start_type != "air" and start.airbase is None:
             issues.append(
@@ -210,6 +226,25 @@ def validate(
                         )
                     )
 
+    # one single-player lead per variant (flights without a variant are in every variant)
+    seen_player: dict[str | None, int] = {}
+    for i, f in enumerate(spec.player_flights):
+        if f.slot != "player":
+            continue
+        v = f.variant
+        clash = next((j for k, j in seen_player.items() if v is None or k is None or k == v), None)
+        if clash is not None:
+            issues.append(
+                _warn(
+                    f"player_flights[{i}].slot",
+                    f"player_flights[{clash}] is already the single-player 'player' flight of "
+                    f"variant '{v or 'all'}'; this flight is planned as 'client' slots. Give "
+                    "start options different `variant`s (e.g. ramp / air) or set slot: client",
+                )
+            )
+        else:
+            seen_player[v] = i
+
     # --- threats --------------------------------------------------------------------------
     roles = Counter(t.role for t in spec.threats)
     est_units = 0
@@ -224,6 +259,26 @@ def validate(
         if t.faction and t.faction in factions and factions[t.faction][1] not in ("red", "neutral"):
             issues.append(_warn(tp + ".faction", f"faction '{t.faction}' is not red"))
         ch = forces.candidates(t.role, era, factions.get(t.faction or ""), t.faction, t.strength)
+        if t.templates:
+            role_ids = forces.ROLE_TEMPLATES.get(t.role, [])
+            ok = forces.pinned(t.role, era, t.templates)
+            bad = [i for i in t.templates if i not in {x.id for x in ok}]
+            if not ok:
+                issues.append(
+                    _err(
+                        tp + ".templates",
+                        f"none of {t.templates} is a '{t.role}' template for era {era}",
+                        [x.id for x in forces.candidates(t.role, era)] or role_ids,
+                    )
+                )
+            elif bad:
+                issues.append(
+                    _warn(
+                        tp + ".templates",
+                        f"ignored (not a '{t.role}' template for era {era}): {bad}",
+                        [x.id for x in forces.candidates(t.role, era)],
+                    )
+                )
         if not ch:
             issues.append(
                 _err(
@@ -252,21 +307,24 @@ def validate(
 
     for fid, (fc, fside, _u) in factions.items():
         canon = canonical_country(fc)
-        used = any(t.faction == fid for t in spec.threats) or any(
-            p.faction == fid for p in spec.dynamic.pools
+        used = (
+            any(t.faction == fid for t in spec.threats)
+            or any(p.faction == fid for p in spec.dynamic.pools)
+            or any(s.faction == fid for s in spec.support)
         )
         if not used:
             continue
         if canon is None:
             issues.append(_err("threats", f"faction '{fid}' uses unknown DCS country '{fc}'"))
         elif fside == "neutral":
-            issues.append(
-                _warn(
-                    "dynamic.pools",
-                    f"neutral faction '{fid}' ({canon}): the runtime can only spawn it if the "
-                    "country exists in the mission; BuildPlan has no neutral country list yet",
+            if canon in blue_c or canon in red_c:
+                issues.append(
+                    _warn(
+                        "threats",
+                        f"neutral faction '{fid}' country '{canon}' is also a blue/red country; "
+                        "it stays in that coalition, not neutral",
+                    )
                 )
-            )
         elif canon not in (blue_c if fside == "blue" else red_c):
             issues.append(
                 _warn(
@@ -355,6 +413,23 @@ def validate(
             issues.append(_warn(op, f"{o.kind} objective without area or target"))
     for i, s in enumerate(spec.support):
         sp = f"support[{i}]"
+        if s.faction and bible is not None and s.faction not in factions:
+            issues.append(
+                _err(
+                    sp + ".faction", f"unknown faction '{s.faction}'", suggest(s.faction, factions)
+                )
+            )
+        elif s.faction and s.faction in factions:
+            fside = factions[s.faction][1]
+            pside = spec.player_flights[0].coalition
+            if fside != pside:
+                issues.append(
+                    _warn(
+                        sp + ".faction",
+                        f"faction '{s.faction}' is {fside}, not the players' side ({pside}); "
+                        "the first country of the players' side is used",
+                    )
+                )
         if s.role in ("medevac", "farp"):
             issues.append(
                 _warn(sp + ".role", f"support role '{s.role}' is not built yet; it is skipped")

@@ -1,0 +1,341 @@
+# m01 Broken Umbrella — beats. Schema: schemas/beats.schema.json (BeatSheet). Compiled into DMS_CONFIG.beats.
+# group_prefix values are spec ids (threat / pool); planned and spawned group names start with them.
+# Guaranteed spine (guaranteed: true; reachable from BOTH start options, never depends on takeoff):
+#   mission_start -> magic_checkin (IP ARROW) -> window_open (+20 s) -> fence_in (16 NM of Al Bab)
+#   -> window_closed (push + 10 min) -> rtb_call (window close + 5 min, vul end) -> on_deck
+# Ground/Tower beats are optional extras that only the ramp-start flight ('Python 1') will hear.
+# The MQ-9 'Cyclops Two' is narrative: its fate is decided by whether the SA-6 launches during the
+# window and whether its radar is dead 45 s later (telegraphed by Magic's 'Cyclops defending').
+mission_id: m01-broken-umbrella
+beats:
+  # ---- Guaranteed spine ---------------------------------------------------------------------
+  # GUARANTEED
+  - id: mission_start
+    when: {event: player.spawned, players_only: true}
+    delay_sec: 10
+    priority: 90
+    once: true
+    guaranteed: true
+    speaker: ops_lindqvist
+    lines: [ops_radio_check_v1, ops_radio_check_v2, ops_radio_check_v3, ops_radio_check_v4]
+    text: "Python, Rook Ops, radio check. Brief is unchanged. Check in with Magic at ARROW."
+    mark: {type: text, at: "zone:ip_arrow", text: "IP ARROW"}
+    effects: {set_flag: started}
+
+  # GUARANTEED
+  - id: magic_checkin
+    when: {event: zone.entered, zone: ip_arrow, players_only: true}
+    requires: {flags_not: [checked_in]}
+    priority: 85
+    once: true
+    guaranteed: true
+    speaker: awacs_magic
+    lines: [magic_checkin_v1, magic_checkin_v2, magic_checkin_v3, magic_checkin_v4]
+    text: "Python, Magic, radar contact ARROW. Picture clean, no air. Push Rook Ops."
+    effects: {set_flag: checked_in}
+
+  # GUARANTEED
+  - id: window_open
+    when: {event: beat.fired, beat: magic_checkin}
+    delay_sec: 20
+    priority: 88
+    once: true
+    guaranteed: true
+    speaker: ops_lindqvist
+    lines: [ops_window_open_v1, ops_window_open_v2, ops_window_open_v3, ops_window_open_v4]
+    text: "Python, Rook Ops. Window is open, push. Cyclops Two is inbound to Al Bab."
+    mark: {type: circle, at: "zone:al_bab", radius_m: 5500, text: "CYCLOPS ORBIT"}
+    effects: {set_flag: window_open}
+
+  # GUARANTEED
+  - id: fence_in
+    when: {event: zone.entered, zone: fence_ring, players_only: true}
+    requires: {flags_not: [fenced_in]}
+    priority: 80
+    once: true
+    guaranteed: true
+    speaker: wingman_pike
+    lines: [pike_fence_in_v1, pike_fence_in_v2, pike_fence_in_v3, pike_fence_in_v4]
+    text: "Two's fenced in. Naked."
+    effects: {set_flag: fenced_in}
+
+  # GUARANTEED
+  - id: window_closed
+    when: {event: beat.fired, beat: window_open}
+    delay_sec: 600
+    priority: 90
+    once: true
+    guaranteed: true
+    speaker: ops_lindqvist
+    lines: [ops_window_closed_v1, ops_window_closed_v2, ops_window_closed_v3, ops_window_closed_v4]
+    text: "Python, Rook Ops. Window closed. Cleared to hunt emitters for five minutes, then RTB."
+    effects: {set_flag: window_closed}
+
+  # GUARANTEED
+  - id: rtb_call
+    when: {event: beat.fired, beat: window_closed}
+    delay_sec: 300
+    priority: 85
+    once: true
+    guaranteed: true
+    speaker: ops_lindqvist
+    lines: [ops_rtb_v1, ops_rtb_v2, ops_rtb_v3, ops_rtb_v4]
+    text: "Python, Rook Ops. Vul time. RTB, BDA on deck."
+    effects: {set_flag: rtb_called}
+
+  # GUARANTEED
+  - id: on_deck
+    when: {event: unit.landed, players_only: true}
+    requires: {flags: [window_open]}
+    priority: 90
+    once: true
+    guaranteed: true
+    speaker: ops_lindqvist
+    lines: [ops_on_deck_v1, ops_on_deck_v2, ops_on_deck_v3, ops_on_deck_v4]
+    text: "Python, Rook Ops. Copy on deck. Debrief in the vault."
+    effects: {set_flag: landed, outcome: {landed: true}, end_mission: success}
+
+  # ---- Optional: ramp-start extras (Python 1 only) -------------------------------------------
+  - id: ground_taxi
+    when: {event: player.spawned, group: "Python 1"}
+    delay_sec: 420
+    requires: {flags_not: [airborne]}
+    priority: 50
+    once: true
+    speaker: tower_incirlik
+    lines: [ground_taxi_v1, ground_taxi_v2, ground_taxi_v3]
+    text: "Python One-One, Incirlik Ground, taxi runway zero-five, hold short."
+
+  - id: tower_departure
+    when: {event: unit.takeoff, players_only: true}
+    requires: {flags_not: [airborne]}
+    priority: 60
+    once: true
+    speaker: tower_incirlik
+    lines: [tower_departure_v1, tower_departure_v2, tower_departure_v3, tower_departure_v4]
+    text: "Python One-One, Incirlik Tower, airborne. Contact departure."
+    effects: {set_flag: airborne}
+
+  - id: tower_landing
+    when: {event: zone.entered, zone: incirlik_approach, players_only: true}
+    requires: {flags: [window_open], flags_not: [landed]}
+    priority: 70
+    once: true
+    speaker: tower_incirlik
+    lines: [tower_land_v1, tower_land_v2, tower_land_v3, tower_land_v4]
+    text: "Python One-One, Incirlik Tower, runway zero-five, cleared to land."
+
+  # ---- Optional: the SA-6 (always spawned, emits late) ---------------------------------------
+  - id: sa6_emitting                # telegraph for encounter sa6_battery (30-60 s before hot)
+    when: {event: encounter.telegraph, encounter: sa6_battery}
+    priority: 88
+    once: true
+    speaker: ops_lindqvist
+    lines: [ops_sa6_elint_v1, ops_sa6_elint_v2, ops_sa6_elint_v3, ops_sa6_elint_v4]
+    text: "Python, Rook Ops. ELINT has a Straight Flush coming up, south-east of Al Bab."
+    effects: {set_flag: sa6_warned}
+
+  - id: sa6_magnum
+    when: {event: encounter.sam_hot, encounter: sa6_battery}
+    delay_sec: 5
+    priority: 87
+    once: true
+    speaker: wingman_pike
+    lines: [pike_magnum_v1, pike_magnum_v2, pike_magnum_v3, pike_magnum_v4]
+    text: "Two, Magnum, SA-6."
+    effects: {set_flag: sa6_hot, outcome: {sa6_emitted: true}}
+
+  - id: cyclops_defending           # telegraph: 45 s to kill the radar before Cyclops is lost
+    when: {event: unit.shot, group_prefix: sa6_site}
+    requires: {flags: [window_open], flags_not: [window_closed, cyclops_defending, sa6_radar_dead]}
+    priority: 92
+    once: true
+    speaker: awacs_magic
+    lines: [magic_cyclops_defending_v1, magic_cyclops_defending_v2, magic_cyclops_defending_v3, magic_cyclops_defending_v4]
+    text: "Python, Magic. Cyclops Two defending. SAM launch south-east of Al Bab."
+    effects: {set_flag: cyclops_defending}
+
+  - id: cyclops_lost
+    when: {event: beat.fired, beat: cyclops_defending}
+    delay_sec: 45
+    requires: {flags_not: [sa6_radar_dead]}
+    priority: 92
+    once: true
+    speaker: ops_lindqvist
+    lines: [ops_cyclops_lost_v1, ops_cyclops_lost_v2, ops_cyclops_lost_v3]
+    text: "Python, Rook Ops. Cyclops Two has lost link. Assess it shot down."
+    effects: {set_flag: mq9_lost, outcome: {mq9_lost: true, window_held: false}}
+
+  - id: cyclops_survived
+    when: {event: beat.fired, beat: cyclops_defending}
+    delay_sec: 45
+    requires: {flags: [sa6_radar_dead]}
+    priority: 80
+    once: true
+    speaker: awacs_magic
+    lines: [magic_cyclops_ok_v1, magic_cyclops_ok_v2, magic_cyclops_ok_v3]
+    text: "Python, Magic. Cyclops Two defended, back in the orbit."
+
+  - id: sa6_radar_destroyed
+    when: {event: unit.dead, type_name: "Kub 1S91 str"}
+    priority: 75
+    once: true
+    speaker: ops_lindqvist
+    lines: [ops_radar_down_v1, ops_radar_down_v2, ops_radar_down_v3, ops_radar_down_v4]
+    text: "Python, Rook Ops. ELINT has the Straight Flush off the air. Copy your shot."
+    effects: {set_flag: sa6_radar_dead, outcome: {sa6_radar_destroyed: true}}
+
+  - id: sa6_launcher_1              # silent: launcher count for the debriefer
+    when: {event: unit.dead, type_name: "Kub 2P25 ln"}
+    priority: 55
+    once: true
+    effects: {outcome: {sa6_launchers_destroyed: 1}}
+
+  - id: sa6_launcher_2              # silent
+    when: {event: unit.dead, type_name: "Kub 2P25 ln"}
+    requires: {beats_fired: [sa6_launcher_1]}
+    priority: 55
+    once: true
+    effects: {outcome: {sa6_launchers_destroyed: 2}}
+
+  - id: sa6_launcher_3              # silent
+    when: {event: unit.dead, type_name: "Kub 2P25 ln"}
+    requires: {beats_fired: [sa6_launcher_2]}
+    priority: 55
+    once: true
+    effects: {outcome: {sa6_launchers_destroyed: 3}}
+
+  - id: sa6_battery_dead
+    when: {event: group.dead, group_prefix: sa6_site}
+    priority: 70
+    once: true
+    speaker: wingman_pike
+    lines: [pike_battery_dead_v1, pike_battery_dead_v2, pike_battery_dead_v3]
+    text: "Python, Two. No movement at the SA-6 site. Vehicles burning."
+    effects: {outcome: {sa6_battery_destroyed: true}}
+
+  # ---- Optional: the SA-8 pop-up -------------------------------------------------------------
+  - id: sa8_warning                 # telegraph for encounter sa8_popup_site
+    when: {event: encounter.telegraph, encounter: sa8_popup_site}
+    priority: 89
+    once: true
+    speaker: ops_lindqvist
+    lines: [ops_sa8_warning_v1, ops_sa8_warning_v2, ops_sa8_warning_v3, ops_sa8_warning_v4]
+    text: "Python, Rook Ops. Ground reporting, short-range SAM moving near Al Bab. No location."
+    effects: {set_flag: sa8_warned}
+
+  - id: sa8_spike
+    when: {event: encounter.sam_hot, encounter: sa8_popup_site}
+    priority: 91
+    once: true
+    speaker: wingman_pike
+    lines: [pike_sa8_spike_v1, pike_sa8_spike_v2, pike_sa8_spike_v3, pike_sa8_spike_v4]
+    text: "Python, Two, pop-up SAM near the town. Defending."
+    mark: {type: circle, at: "group:sa8_popup", radius_m: 9000, text: "POP-UP SAM"}
+    effects: {set_flag: sa8_hot}
+
+  - id: sa8_destroyed
+    when: {event: group.dead, group_prefix: sa8_popup}
+    priority: 75
+    once: true
+    speaker: ops_lindqvist
+    lines: [ops_sa8_dead_v1, ops_sa8_dead_v2, ops_sa8_dead_v3]
+    text: "Python, Rook Ops. Copy pop-up SAM destroyed. Logging it."
+    effects: {set_flag: sa8_dead, outcome: {sa8_destroyed: true}}
+
+  # ---- Optional: window result (after window_closed) -----------------------------------------
+  - id: window_held_report
+    when: {event: beat.fired, beat: window_closed}
+    delay_sec: 12
+    requires: {flags_not: [mq9_lost]}
+    priority: 82
+    once: true
+    speaker: ops_lindqvist
+    lines: [ops_window_held_v1, ops_window_held_v2, ops_window_held_v3, ops_window_held_v4]
+    text: "Python, Rook Ops. Cyclops Two stayed on station the whole window. Copy. Nice work."
+    effects: {set_flag: window_held, outcome: {window_held: true, mq9_lost: false}}
+
+  - id: window_failed_report
+    when: {event: beat.fired, beat: window_closed}
+    delay_sec: 12
+    requires: {flags: [mq9_lost]}
+    priority: 82
+    once: true
+    speaker: ops_lindqvist
+    lines: [ops_window_failed_v1, ops_window_failed_v2, ops_window_failed_v3]
+    text: "Python, Rook Ops. No ISR over Al Bab today. Hunt what you can."
+    effects: {outcome: {window_held: false}}
+
+  # ---- Optional: contact and consequences ----------------------------------------------------
+  - id: aaa_firing
+    when: {event: unit.shot, group_prefix: aaa_albab}
+    priority: 60
+    once: false
+    cooldown_sec: 180
+    speaker: wingman_pike
+    lines: [pike_aaa_v1, pike_aaa_v2, pike_aaa_v3, pike_aaa_v4]
+    text: "Python, Two, triple-A, north-west edge of town."
+
+  - id: manpads_launch
+    when: {event: unit.shot, group_prefix: manpads_teams}
+    priority: 86
+    once: false
+    cooldown_sec: 120
+    speaker: wingman_pike
+    lines: [pike_manpads_v1, pike_manpads_v2, pike_manpads_v3, pike_manpads_v4]
+    text: "Python, Two, missile launch, low, off the town. Flares."
+
+  - id: player_hit
+    when: {event: unit.hit, players_only: true}
+    priority: 85
+    once: false
+    cooldown_sec: 120
+    speaker: ops_lindqvist
+    lines: [ops_say_status_v1, ops_say_status_v2, ops_say_status_v3]
+    text: "Python, Rook Ops, say status."
+    effects: {outcome: {player_damaged: true}}
+
+  - id: civilian_hit
+    when: {event: unit.dead, group_prefix: civilians}
+    priority: 95
+    once: false
+    cooldown_sec: 60
+    speaker: ops_lindqvist
+    lines: [ops_check_fire_v1, ops_check_fire_v2, ops_check_fire_v3, ops_check_fire_v4]
+    text: "Python, Rook Ops. Check fire, check fire. That was a civilian vehicle on the Al Bab road."
+    effects: {set_flag: civilians_hit, outcome: {civilians_hit: true}}
+
+  - id: collateral_logged           # silent: collateral +1 once per mission, however many vehicles
+    when: {event: beat.fired, beat: civilian_hit}
+    priority: 50
+    once: true
+    effects: {quality_deltas: {collateral: 1}}
+
+  - id: wingman_lost_ramp           # silent
+    when: {event: unit.dead, unit: "Python 1-2"}
+    priority: 99
+    once: true
+    effects: {outcome: {wingman_lost: true}}
+
+  - id: wingman_lost_air            # silent
+    when: {event: unit.dead, unit: "Python 2-2"}
+    priority: 99
+    once: true
+    effects: {outcome: {wingman_lost: true}}
+
+  - id: player_lost                 # silent: nobody on the net says it to a dead crew
+    when: {event: unit.dead, players_only: true}
+    priority: 100
+    once: true
+    effects: {set_flag: player_lost, outcome: {player_lost: true}, end_mission: failure}
+
+  # ---- Filler: overheard net traffic during RELAX --------------------------------------------
+  - id: ambient_picture
+    when: {event: director.state, state: RELAX}
+    requires: {flags: [checked_in], flags_not: [rtb_called], chance: 50}
+    priority: 10
+    once: false
+    cooldown_sec: 300
+    speaker: awacs_magic
+    lines: [magic_picture_v1, magic_picture_v2, magic_picture_v3, magic_picture_v4]
+    text: "Python, Magic, picture clean."

@@ -7,6 +7,7 @@ dependencies = [
     "dms-core",
     "pillow>=11.0",
     "pydcs==1.0.0",
+    "pyyaml>=6",
 ]
 
 [build-system]

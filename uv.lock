@@ -507,6 +507,7 @@ dependencies = [
     { name = "dms-core" },
     { name = "pillow" },
     { name = "pydcs" },
+    { name = "pyyaml" },
 ]
 
 [package.metadata]
@@ -514,6 +515,7 @@ requires-dist = [
     { name = "dms-core", editable = "packages/dms-core" },
     { name = "pillow", specifier = ">=11.0" },
     { name = "pydcs", specifier = "==1.0.0" },
+    { name = "pyyaml", specifier = ">=6" },
 ]
 
 [[package]]

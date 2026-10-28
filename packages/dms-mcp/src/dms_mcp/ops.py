@@ -99,6 +99,7 @@ class Bundle:
     beats: Any | None
     lines: Any | None
     bible: Any | None
+    mission_dir: Path | None = None
 
 
 def load_bundle(mp: MissionPaths) -> tuple[list[Finding], Bundle | None]:
@@ -126,7 +127,7 @@ def load_bundle(mp: MissionPaths) -> tuple[list[Finding], Bundle | None]:
             findings.extend(pydantic_findings(exc, path.name, model))
     if findings:
         return findings, None
-    return findings, Bundle(**loaded)
+    return findings, Bundle(**loaded, mission_dir=mp.dir)
 
 
 def _semantic(b: Bundle) -> list[Finding]:
@@ -205,6 +206,11 @@ def _plan_obj(bundle: Bundle, seed: int | None, manifest: Path | None) -> Any:
             voice_manifest=manifest,
             seed=seed,
             bible=bundle.bible,
+            qualities=(
+                planner.load_campaign_qualities(bundle.mission_dir)
+                if bundle.mission_dir is not None
+                else None
+            ),
         )
     except (planner.PlanError, ValueError, KeyError) as exc:
         raise OpError(f"planning failed: {exc}") from exc

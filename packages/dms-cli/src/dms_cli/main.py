@@ -104,6 +104,7 @@ class Bundle:
     beats: Any | None
     lines: Any | None
     bible: Any | None
+    mission_dir: Path | None = None
 
 
 def _load_bundle(mp: MissionPaths) -> tuple[list[Finding], Bundle | None]:
@@ -130,7 +131,7 @@ def _load_bundle(mp: MissionPaths) -> tuple[list[Finding], Bundle | None]:
             findings.extend(pydantic_findings(exc, path.name, model))
     if findings:
         return findings, None
-    return findings, Bundle(**loaded)
+    return findings, Bundle(**loaded, mission_dir=mp.dir)
 
 
 def _semantic_findings(b: Bundle) -> tuple[list[Finding], str | None]:
@@ -185,6 +186,12 @@ def _plan(bundle: Bundle, seed: int | None, manifest: Path | None) -> Any:
     params = inspect.signature(planner.plan_mission).parameters
     if "bible" in params:
         kwargs["bible"] = bundle.bible
+    loader = getattr(planner, "load_campaign_qualities", None)
+    if bundle.mission_dir is not None and loader is not None and "qualities" in params:
+        try:  # campaign values at plan time -> DMS_CONFIG.qualities
+            kwargs["qualities"] = loader(bundle.mission_dir)
+        except ValueError as exc:
+            raise CliError(f"campaign qualities: {exc}", 1) from exc
     try:
         return planner.plan_mission(bundle.spec, **kwargs)
     except Exception as exc:

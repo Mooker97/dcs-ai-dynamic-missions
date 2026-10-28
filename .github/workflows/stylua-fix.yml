@@ -1,9 +1,11 @@
 name: StyLua fix
 
-# Manual: formats lua/ with StyLua and uploads the result as a patch artifact (stylua.patch).
+# Manual (or push to the stylua-fix branch): formats lua/ with StyLua and uploads the result as a patch artifact (stylua.patch).
 # Apply locally with: gh run download <id> -n stylua-patch && git apply stylua.patch
 on:
   workflow_dispatch:
+  push:
+    branches: [stylua-fix]
 
 jobs:
   format:

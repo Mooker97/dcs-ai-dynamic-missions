@@ -141,4 +141,89 @@ describe("Director", function()
     DMS.Bus.emit("player.left", { unit = "Viper1-1", group = "Viper1" })
     assert.are.equal(0, #DMS.Director.flights())
   end)
+  it("200 seeds: phases cycle in order, spawn budget never exceeded, difficulty within clamps", function()
+    local NEXT = { BUILD_UP = "PEAK", PEAK = "RELAX", RELAX = "BUILD_UP" }
+    local SKILL_OK = { Average = true, Good = true, High = true, Excellent = true }
+    local cycles, spawns, peaks = 0, 0, 0
+    for seed = 1, 200 do
+      DMS.Bus.uninstall()
+      MOCK.reset()
+      DMS.Bus.install()
+      DMS.Rng.seed(seed * 7919)
+      local amin = -(seed % 3) * 0.5        -- 0, -0.5, -1
+      local amax = (1 + seed % 4) * 0.25     -- 0.25 .. 1
+      local relax = { 20 + seed % 30, 60 + seed % 40 }
+      local peakHold = 10 + seed % 10
+      DMS_CONFIG = {
+        players = { coalition = 2 },
+        budgets = { spawnsPerMin = 1 + seed % 5 },
+        director = { enabled = true, peak = 50 + seed % 40, relaxSec = relax, peakHoldSec = peakHold,
+          decayPerSec = 0.5 + (seed % 4) * 0.5, adapt = { min = amin, max = amax } },
+      }
+      DMS.Director.reset()
+      DMS.Director.start()
+      local maxI = DMS.Director._cfg.maxIntensity
+      local track, costs, problems = {}, {}, {}
+      local function bad(msg) problems[#problems + 1] = string.format("t=%.0f %s", DMS.Clock.now(), msg) end
+      local tok = DMS.Bus.on("director.state", function(ev)
+        local f = DMS.Director._flights[ev.flight]
+        local tr = track[ev.flight]
+        if not tr or tr.obj ~= f then tr = { obj = f, state = "BUILD_UP", since = DMS.Clock.now() } end
+        if NEXT[tr.state] ~= ev.state then bad(ev.flight .. " " .. tr.state .. " -> " .. ev.state) end
+        local held = DMS.Clock.now() - tr.since
+        if tr.state == "PEAK" and held < peakHold - 1e-6 then bad("PEAK held only " .. held) end
+        if tr.state == "RELAX" and held < relax[1] - 1e-6 then bad("RELAX held only " .. held) end
+        if ev.state == "PEAK" then peaks = peaks + 1 end
+        if tr.state == "RELAX" then cycles = cycles + 1 end
+        tr.state, tr.since = ev.state, DMS.Clock.now()
+        track[ev.flight] = tr
+      end)
+      local nFlights = 1 + seed % 3
+      for i = 1, nFlights do spawnPlayer("Viper" .. i, i * 20000, 0) end
+      MOCK.addGroup({ name = "shooter", coalition = 1, category = "ground", units = { { name = "shooter-1", x = 9000, y = 0 } }, silent = true })
+      for _ = 1, 360 do
+        local r = DMS.Rng.random()
+        local who = "Viper" .. DMS.Rng.int(1, nFlights)
+        local rec = MOCK.units[who .. "-1"]
+        local alive = rec ~= nil and not rec.dead
+        if r < 0.15 and alive then
+          MOCK.hitUnit(who .. "-1", { initiator = "shooter-1", weapon = "SA-8", damage = 0 })
+        elseif r < 0.20 then
+          DMS.Bus.emit("unit.dead", { unit = "e", group = "eg", coalition = 1 })
+        elseif r < 0.21 and alive then
+          MOCK.killUnit(who .. "-1")
+        elseif r < 0.25 and not alive then
+          spawnPlayer(who, 0, 0)
+        end
+        for _ = 1, DMS.Rng.int(0, 3) do
+          local ok = DMS.Director.canSpawn(1)
+          local st = DMS.Director.state()
+          if ok and (st == "PEAK" or st == "RELAX") then bad("canSpawn true in " .. st) end
+          if ok then
+            DMS.Bus.emit("spawner.spawned", { group = "g", cost = 1 })
+            spawns = spawns + 1
+            local now, sum = DMS.Clock.now(), 0
+            costs[#costs + 1] = now
+            for _, t in ipairs(costs) do if now - t < 60 then sum = sum + 1 end end
+            if sum > DMS.Director.spawnBudget() + 1e-9 then bad("budget " .. sum .. " > " .. DMS.Director.spawnBudget()) end
+          end
+        end
+        local lvl = DMS.Director.level()
+        if lvl < amin - 1e-9 or lvl > amax + 1e-9 then bad("level " .. lvl .. " outside [" .. amin .. ", " .. amax .. "]") end
+        if not SKILL_OK[DMS.Director.skillFor("High")] then bad("skillFor " .. tostring(DMS.Director.skillFor("High"))) end
+        if DMS.Director.scaleCount(1) < 1 then bad("scaleCount < 1") end
+        for _, name in ipairs(DMS.Director.flights()) do
+          local i = DMS.Director.intensity(name)
+          if i < 0 or i > maxI then bad("intensity " .. i) end
+        end
+        MOCK.advance(5)
+      end
+      DMS.Bus.off(tok)
+      assert.are.equal(0, #problems, "seed " .. seed .. ": " .. table.concat(problems, "; "))
+      assert.are.equal(0, #MOCK.rawErrors, "raw errors at seed " .. seed)
+    end
+    assert.truthy(peaks > 200, "too few PEAKs: " .. peaks)
+    assert.truthy(cycles > 100, "too few full cycles: " .. cycles)
+    assert.truthy(spawns > 1000, "too few spawns: " .. spawns)
+  end)
 end)

@@ -1,5 +1,5 @@
 -- encounters.lua: runs DMS_CONFIG.encounters.
--- Kinds: pool, ambush_sam, waves, hunt, convoy. Triggers: time, proximity, beat, event, director,
+-- Kinds: pool, ambush_sam, waves, hunt, convoy, cap. Triggers: time, proximity, beat, event, director,
 -- manual. chance / once per encounter. Emits encounter.spawned / encounter.cleared.
 DMS = DMS or {}
 DMS.Encounters = DMS.Encounters or {}
@@ -19,6 +19,19 @@ Enc.defaults = {
   convoyResumeSec = { 60, 120 },
   huntIntervalSec = 30,
   huntSpeed = 8,
+  -- cap
+  capCheckSec = 10,
+  capAltM = 7000,
+  capSpeed = 220,               -- m/s
+  capLegM = 30000,              -- race-track leg length
+  capEngageRadiusM = 40000,
+  capArriveM = 10000,           -- within leg/2 + this of the station centre = on station
+  capStationTimeoutSec = 1200,  -- never seen arriving: start the station clock anyway
+  capRtbDespawnSec = 600,       -- RTB this long (or home reached): despawn when out of sight
+  capHomeM = 5000,
+  capDespawnMinPlayerM = 37000, -- never despawn within ~20 nm of an enemy player
+  capReplaceDelaySec = { 60, 180 },
+  capMaxDeferSec = 900,
 }
 
 local function cfg() return DMS_CONFIG or {} end
@@ -108,7 +121,9 @@ local function aliveGroups(st)
 end
 
 local function checkCleared(st)
-  if st.cleared or not st.spawnedAny or st.pending > 0 then return end
+  if st.cleared or not st.spawnedAny then return end
+  if st.preClear then st.preClear() end -- cap: process losses (and queue replacements) first
+  if st.pending > 0 or (st.capQueued or 0) > 0 then return end
   if aliveGroups(st) == 0 then
     st.cleared = true
     DMS.Log.info(P, "Encounter '%s' cleared", st.def.id)
@@ -170,20 +185,31 @@ local function startHunts(st, groups)
 end
 
 -- Spawn now if the director allows, otherwise retry until allowed or maxDeferSec elapsed.
-local function gatedSpawn(st, opts, after)
+-- gate (optional): {strict = bool, maxDeferSec = n, onDrop = fn(why)}. Non-strict spawns anyway once
+-- maxDeferSec has passed; strict drops the spawn instead (the director budget is never exceeded).
+local function gatedSpawn(st, opts, after, gate)
   local def = st.def
+  gate = gate or {}
   local gated = def.gated ~= false and DMS.Director and DMS.Director.canSpawn
   local started = DMS.Clock.now()
-  local maxDefer = def.maxDeferSec or Enc.defaults.maxDeferSec
+  local maxDefer = gate.maxDeferSec or def.maxDeferSec or Enc.defaults.maxDeferSec
   st.pending = st.pending + 1
   local function attempt()
     if st.stopped then st.pending = st.pending - 1 return end
     if gated then
       local ok, why = DMS.Director.canSpawn(def.cost or 1)
-      if not ok and DMS.Clock.now() - started < maxDefer then
-        DMS.Log.debug(P, "Encounter '%s' deferred by director (%s)", def.id, tostring(why))
-        addTimer(st, DMS.Clock.after(def.gateRetrySec or Enc.defaults.gateRetrySec, attempt))
-        return
+      if not ok then
+        if DMS.Clock.now() - started < maxDefer then
+          DMS.Log.debug(P, "Encounter '%s' deferred by director (%s)", def.id, tostring(why))
+          addTimer(st, DMS.Clock.after(def.gateRetrySec or Enc.defaults.gateRetrySec, attempt))
+          return
+        end
+        if gate.strict then
+          st.pending = st.pending - 1
+          DMS.Log.info(P, "Encounter '%s' spawn skipped: director refused for %.0fs (%s)", def.id, maxDefer, tostring(why))
+          if gate.onDrop then gate.onDrop(why) end
+          return
+        end
       end
     end
     st.pending = st.pending - 1
@@ -346,7 +372,324 @@ KIND.convoy = function(st)
   end
   DMS.Log.info(P, "Convoy encounter '%s' tracking '%s'", def.id, convoy)
 end
-KIND.cap = KIND.pool
+-- ---------------------------------------------------------------- cap
+-- Enemy air group(s) fly to a station (zone centre or point), orbit there (Race-Track or Circle)
+-- with an EngageTargetsInZone en-route task, optionally leave after timeOnStationSec (RTB route
+-- home, then despawn out of sight), and may be replaced up to maxSpawns groups in total.
+-- Every launch is strictly director-gated: if the director refuses for capMaxDeferSec the launch
+-- is dropped, so the director spawn budget is never exceeded.
+-- Task tables follow the Hoggit SSE docs (Orbit, EngageTargetsInZone en-route task in a
+-- waypoint ComboTask, the same shape legacy/lua-library/ai-behavior/fire-support.lua uses).
+
+local function optVal(path)
+  local ok, v = pcall(path)
+  if ok then return v end
+  return nil
+end
+
+local function enumAir(group, name, fallback)
+  local v = optVal(function() return AI.Option.Air.val[group][name] end)
+  if v == nil then
+    DMS.Log.warn(P, "Unknown AI.Option.Air.val.%s '%s', using %s", group, tostring(name), fallback)
+    v = optVal(function() return AI.Option.Air.val[group][fallback] end)
+  end
+  return v
+end
+
+-- Resolved station geometry for a CAP def: {center, pattern, point, point2, altM, speed, radius}.
+function Enc.capStation(def)
+  local o = def.orbit or {}
+  local z = def.zone and DMS.Spawner.getZone(def.zone)
+  local center = (def.point and v2(def.point)) or (z and DMS.Spawner.zoneCenter(z))
+  if not center then return nil end
+  local pattern = o.pattern or "Race-Track"
+  if pattern ~= "Race-Track" and pattern ~= "Circle" then
+    DMS.Log.warn(P, "CAP '%s': unknown orbit pattern '%s', using Race-Track", tostring(def.id), tostring(pattern))
+    pattern = "Race-Track"
+  end
+  local s = {
+    center = center,
+    pattern = pattern,
+    altM = DMS.Rng.range(o.altM or Enc.defaults.capAltM),
+    speed = DMS.Rng.range(o.speed or Enc.defaults.capSpeed),
+    radius = def.engageRadiusM or math.max(Enc.defaults.capEngageRadiusM, (z and DMS.Spawner.zoneRadius(z)) or 0),
+    legM = 0,
+  }
+  if pattern == "Race-Track" then
+    local leg = DMS.Rng.range(o.legM or Enc.defaults.capLegM)
+    local hdg = math.rad(o.headingDeg or (DMS.Rng.random() * 360))
+    local hx, hy = math.cos(hdg) * leg / 2, math.sin(hdg) * leg / 2
+    s.point = { x = center.x - hx, y = center.y - hy }
+    s.point2 = { x = center.x + hx, y = center.y + hy }
+    s.legM = leg
+  else
+    s.point = { x = center.x, y = center.y }
+  end
+  return s
+end
+
+-- {id="Orbit", params={pattern, point, point2?, speed, altitude}}
+function Enc.capOrbitTask(s, number)
+  local pattern = s.pattern
+  if pattern == "Race-Track" then
+    pattern = optVal(function() return AI.Task.OrbitPattern.RACE_TRACK end) or "Race-Track"
+  else
+    pattern = optVal(function() return AI.Task.OrbitPattern.CIRCLE end) or "Circle"
+  end
+  local params = { pattern = pattern, point = { x = s.point.x, y = s.point.y }, speed = s.speed, altitude = s.altM }
+  if s.point2 then params.point2 = { x = s.point2.x, y = s.point2.y } end
+  return { number = number or 1, auto = false, enabled = true, id = "Orbit", params = params }
+end
+
+-- En-route {id="EngageTargetsInZone", params={point, zoneRadius, targetTypes, priority}}
+function Enc.capEngageTask(s, targetTypes, number)
+  return { number = number or 1, auto = false, enabled = true, id = "EngageTargetsInZone",
+    params = { point = { x = s.center.x, y = s.center.y }, zoneRadius = s.radius,
+      targetTypes = targetTypes or { "Air" }, priority = 0 } }
+end
+
+local function airPoint(p, s, tasks)
+  return { x = p.x, y = p.y, alt = s.altM, alt_type = "BARO", type = "Turning Point", action = "Turning Point",
+    speed = s.speed, speed_locked = true, ETA = 0, ETA_locked = false,
+    task = { id = "ComboTask", params = { tasks = tasks or {} } } }
+end
+
+local function airCtrl(g)
+  local grp = DMS.Ground.getGroup(g)
+  if not grp then return nil end
+  local ok, c = pcall(grp.getController, grp)
+  return ok and c or nil
+end
+
+local function capOptions(def, c)
+  local A = AI.Option.Air
+  local roe = enumAir("ROE", def.roe or "OPEN_FIRE", "OPEN_FIRE")
+  local react = enumAir("REACTION_ON_THREAT", def.reaction or "EVADE_FIRE", "EVADE_FIRE")
+  c:setOption(A.id.ROE, roe)
+  c:setOption(A.id.REACTION_ON_THREAT, react)
+  c:setOption(A.id.RTB_ON_BINGO, true)
+  c:setOption(A.id.PROHIBIT_AG, true)
+  if def.radar then c:setOption(A.id.RADAR_USING, enumAir("RADAR_USING", def.radar, "FOR_SEARCH_IF_REQUIRED")) end
+end
+
+local function capTask(st, g)
+  local rec = st.cap[g]
+  if not rec or rec.state ~= "transit" then return end
+  local s = st.capStation
+  local c = airCtrl(g)
+  local lp = DMS.Ground.leadPos(g)
+  if not c or not lp then
+    DMS.Log.warn(P, "CAP '%s': group '%s' not taskable", st.def.id, g)
+    return
+  end
+  rec.home = rec.home or v2(lp)
+  local ok, err = pcall(function()
+    capOptions(st.def, c)
+    c:setTask({ id = "Mission", params = { route = { points = {
+      airPoint(v2(lp), s, { Enc.capEngageTask(s, st.def.targetTypes, 1) }),
+      airPoint(s.point, s, { Enc.capOrbitTask(s, 1) }),
+    } } } })
+  end)
+  if not ok then
+    DMS.Log.error(P, "CAP '%s': tasking '%s' failed: %s", st.def.id, g, tostring(err))
+    return
+  end
+  rec.tasked = true
+  rec.since = DMS.Clock.now()
+  DMS.Log.info(P, "CAP '%s': '%s' tasked to %s station (%.0f, %.0f) alt %.0f m, engage radius %.0f m",
+    st.def.id, g, s.pattern, s.center.x, s.center.y, s.altM, s.radius)
+end
+
+local function capRtb(st, g, rec)
+  local s = st.capStation
+  local c = airCtrl(g)
+  local lp = DMS.Ground.leadPos(g)
+  rec.state = "rtb"
+  rec.rtbAt = DMS.Clock.now()
+  if c and lp then
+    local ok, err = pcall(function()
+      c:setOption(AI.Option.Air.id.ROE, AI.Option.Air.val.ROE.RETURN_FIRE)
+      local home = rec.home or s.center
+      c:setTask({ id = "Mission", params = { route = { points = {
+        airPoint(v2(lp), s, {}),
+        airPoint(home, s, {}),
+      } } } })
+    end)
+    if not ok then DMS.Log.error(P, "CAP '%s': RTB tasking '%s' failed: %s", st.def.id, g, tostring(err)) end
+  end
+  DMS.Log.info(P, "CAP '%s': '%s' off station, RTB", st.def.id, g)
+  DMS.Bus.emit("encounter.cap_rtb", { id = st.def.id, encounter = st.def.id, group = g })
+end
+
+local function nearestEnemyPlayerM(st, g, p)
+  local myCoal = DMS.Registry.get(g) and DMS.Registry.get(g).coalition
+  local best
+  for _, pl in ipairs(DMS.Spawner.playerUnits()) do
+    if pl.coalition ~= myCoal then
+      local d = d2(v2(p), v2(pl.pos))
+      if not best or d < best then best = d end
+    end
+  end
+  return best
+end
+
+local capLaunch -- forward
+
+local function capReplace(st, why)
+  local def = st.def
+  local max = def.maxSpawns or 0
+  if st.capSpawned + st.capQueued >= max then
+    DMS.Log.debug(P, "CAP '%s': no replacement after %s (%d/%d groups used)", def.id, why, st.capSpawned + st.capQueued, max)
+    return
+  end
+  st.capQueued = st.capQueued + 1
+  local delay = DMS.Rng.range(def.replaceDelaySec or Enc.defaults.capReplaceDelaySec)
+  DMS.Log.info(P, "CAP '%s': replacement after %s in %.0fs (%d/%d groups used)", def.id, why, delay,
+    st.capSpawned + st.capQueued, max)
+  addTimer(st, DMS.Clock.after(delay, function()
+    if st.stopped then st.capQueued = st.capQueued - 1 return end
+    capLaunch(st, true)
+  end))
+end
+
+local function capLost(st, g, rec)
+  rec.state = "dead"
+  DMS.Log.info(P, "CAP '%s': '%s' lost", st.def.id, g)
+  DMS.Bus.emit("encounter.cap_lost", { id = st.def.id, encounter = st.def.id, group = g })
+  if st.def.replaceOnDead ~= false then capReplace(st, "loss") end
+end
+
+local function capStep(st, g, rec, now)
+  if rec.state == "dead" or rec.state == "gone" then return end
+  if not DMS.Registry.isAlive(g) then
+    capLost(st, g, rec)
+    return
+  end
+  if not rec.tasked then return end
+  local def = st.def
+  local s = st.capStation
+  local lp = DMS.Ground.leadPos(g)
+  if rec.state == "transit" then
+    local arrived = lp and d2(v2(lp), s.center) <= s.legM / 2 + (def.arriveM or Enc.defaults.capArriveM)
+    local timedOut = now - rec.since >= (def.stationTimeoutSec or Enc.defaults.capStationTimeoutSec)
+    if arrived or timedOut then
+      rec.state = "station"
+      rec.stationAt = now
+      if def.timeOnStationSec then rec.leaveAt = now + DMS.Rng.range(def.timeOnStationSec) end
+      DMS.Log.info(P, "CAP '%s': '%s' on station (%s)%s", def.id, g, arrived and "arrived" or "timeout",
+        rec.leaveAt and string.format(", leaving in %.0fs", rec.leaveAt - now) or "")
+      DMS.Bus.emit("encounter.cap_on_station", { id = def.id, encounter = def.id, group = g })
+    end
+  elseif rec.state == "station" then
+    if rec.leaveAt and now >= rec.leaveAt then
+      capRtb(st, g, rec)
+      if def.replaceOnRtb ~= false then capReplace(st, "rtb") end
+    end
+  elseif rec.state == "rtb" then
+    local home = rec.home or s.center
+    local atHome = lp and d2(v2(lp), home) <= Enc.defaults.capHomeM
+    local late = now - rec.rtbAt >= (def.rtbDespawnSec or Enc.defaults.capRtbDespawnSec)
+    if (atHome or late) and lp then
+      local near = nearestEnemyPlayerM(st, g, lp)
+      local minD = def.despawnMinPlayerM or Enc.defaults.capDespawnMinPlayerM
+      if near and near < minD then
+        DMS.Log.debug(P, "CAP '%s': despawn of '%s' deferred (player %.0f m < %.0f m)", def.id, g, near, minD)
+        return
+      end
+      local grp = DMS.Ground.getGroup(g)
+      if grp then pcall(grp.destroy, grp) end
+      rec.state = "gone"
+      DMS.Log.info(P, "CAP '%s': '%s' despawned after RTB (%s)", def.id, g, atHome and "home" or "timeout")
+      DMS.Bus.emit("encounter.cap_despawned", { id = def.id, encounter = def.id, group = g })
+    end
+  end
+end
+
+local function capMonitor(st)
+  if st.capTimer and DMS.Clock.isActive(st.capTimer) then return end
+  st.capTimer = addTimer(st, DMS.Clock.every(st.def.checkSec or Enc.defaults.capCheckSec, function()
+    if st.stopped then return false end
+    local now = DMS.Clock.now()
+    local live = 0
+    for _, g in ipairs(st.capOrder) do
+      local rec = st.cap[g]
+      capStep(st, g, rec, now)
+      if rec.state ~= "dead" and rec.state ~= "gone" then live = live + 1 end
+    end
+    if live == 0 and st.capQueued == 0 and st.pending == 0 then
+      DMS.Log.info(P, "CAP '%s' finished (%d group(s) used)", st.def.id, st.capSpawned)
+      return false
+    end
+    return true
+  end, { firstDelay = 2 }))
+end
+
+local function capInitialCount(def)
+  if not def.pool then return nil end
+  local pool = (cfg().pools or {})[def.pool]
+  if not pool then return nil end
+  local n = math.max(1, math.floor(DMS.Rng.range(pool.pick or 1) + 0.5))
+  if DMS.Director and DMS.Director.scaleCount then n = DMS.Director.scaleCount(n) end
+  return n
+end
+
+-- One gated launch = one group (pools spawn count = 1), so every group passes the director gate.
+capLaunch = function(st, isReplacement)
+  local def = st.def
+  local s = st.capStation
+  local opts = { zone = def.spawnZone, cost = def.cost or 1, altM = s.altM, speed = s.speed,
+    onReady = function(g) capTask(st, g) end }
+  if def.pool then opts.count = 1 end
+  local function settle()
+    if isReplacement then st.capQueued = st.capQueued - 1 end
+  end
+  gatedSpawn(st, opts, function(groups)
+    settle()
+    for _, g in ipairs(groups) do
+      st.capSpawned = st.capSpawned + 1
+      st.cap[g] = { state = "transit", since = DMS.Clock.now(), tasked = false }
+      st.capOrder[#st.capOrder + 1] = g
+    end
+    if #groups == 0 then
+      DMS.Log.info(P, "CAP '%s': launch produced no group (spawner refused)", def.id)
+    else
+      DMS.Log.info(P, "CAP '%s': launched %d group(s)%s (%d/%s used)", def.id, #groups,
+        isReplacement and " as replacement" or "", st.capSpawned, tostring(def.maxSpawns or st.capSpawned))
+    end
+    capMonitor(st)
+  end, { strict = true, maxDeferSec = def.maxDeferSec or Enc.defaults.capMaxDeferSec, onDrop = settle })
+end
+
+KIND.cap = function(st)
+  local def = st.def
+  if not def.pool and not def.template then
+    DMS.Log.warn(P, "CAP '%s' has no pool/template", tostring(def.id))
+    return
+  end
+  local s = Enc.capStation(def)
+  if not s then
+    DMS.Log.warn(P, "CAP '%s' has no station (zone/point)", tostring(def.id))
+    return
+  end
+  st.capStation = s
+  st.cap = st.cap or {}
+  st.capOrder = st.capOrder or {}
+  st.capSpawned = st.capSpawned or 0
+  st.capQueued = st.capQueued or 0
+  if def.maxSpawns and st.capSpawned >= def.maxSpawns then
+    DMS.Log.info(P, "CAP '%s' skipped: spawn limit reached (%d)", def.id, def.maxSpawns)
+    return
+  end
+  DMS.Log.info(P, "CAP '%s' starting: %s station (%.0f, %.0f), maxSpawns %s", def.id, s.pattern, s.center.x,
+    s.center.y, tostring(def.maxSpawns or "-"))
+  local n = capInitialCount(def) or 1
+  if def.maxSpawns then n = math.min(n, def.maxSpawns - st.capSpawned) end
+  st.preClear = function()
+    local now = DMS.Clock.now()
+    for _, g in ipairs(st.capOrder) do capStep(st, g, st.cap[g], now) end
+  end
+  for _ = 1, n do capLaunch(st, false) end
+end
 
 Enc.KIND = KIND
 

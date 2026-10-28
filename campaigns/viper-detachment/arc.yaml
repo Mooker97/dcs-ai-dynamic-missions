@@ -1,0 +1,234 @@
+# Campaign arc — Viper Detachment. Schema: schemas/campaign-arc.schema.json (CampaignArc).
+# Missions are designed one at a time by the mission-designer, from these entries.
+#
+# How outcomes feed forward: the debriefer turns each [DMS.OUTCOME] key into a campaign flag named
+# <mNN>_<key> (e.g. m01_player_lost) and applies quality_effects to state/qualities.yaml. Branches are
+# checked in order; the first whose `when` holds wins; no match = next mission in order.
+#
+# NOTES FOR MISSION DESIGNERS (apply to every mission):
+# - START CHOICE: every mission has TWO player flights, both callsign PYTHON 1 (player = 1-1, AI
+#   wingman Pike = 1-2, identical loadouts):
+#     (a) ramp start: cold, parking, Incirlik (catalog id 16; UHF 360.0 / VHF 122). Departure runway 05
+#         (or 23 with wind). Full Ground -> Tower -> departure -> Magic check-in sequence.
+#     (b) air start: already airborne at ~20,000 ft MSL, 250-300 KIAS, on the ingress axis 15-25 NM
+#         short of the IP/push point, fuel ~80%, master arm safe, with Pike in fighting wing.
+#   Only one is flown. Beats must NOT depend on takeoff or on Ground/Tower calls: Ground/Tower lines
+#   are extras for (a); the story's first guaranteed beat is "check-in with Magic / Rook Ops" or
+#   "reaching the push point", triggered by either flight entering the push zone or by a timer for
+#   (b). Recovery/landing beats are optional (air-start players may still RTB and land at Incirlik).
+# - Transit Incirlik -> area is 80-110 NM (~15-20 min). Tanker Shell (KC-135) on an AR track over
+#   southern Turkey for ramp-start flights; mention it in the kneeboard.
+# - Realism: real loadouts (suggestions per mission below), ATO-style briefings, ROE with PID, Bullseye
+#   = Minakh (suggested) for all Magic calls. Subtitles only (no ElevenLabs).
+# - Replayability: every mission re-rolls SAM sites, target positions, decoys, timings and civilian
+#   traffic in Lua each play. Only qualities and flags persist.
+# - Campaign-level levers (read in every briefing): sam_threat sizes the radar-SAM pool and pop-up
+#   chances; intel marks known sites in the briefing and shrinks candidate sets; insurgent_supply sizes
+#   technical/mortar pools; partner_morale decides how much the NBB reports and holds; collateral
+#   tightens ROE (>= 1: Rook Ops/JTAC clearance near buildings; >= 2: no attacks inside villages at all).
+
+schema_version: 1
+title: "Viper Detachment"
+logline: >-
+  Four sorties from Incirlik in a Viper 2-ship: break an insurgency's captured SAM umbrella,
+  bomb its weapons, hold the line for a partner brigade, and catch the last launcher before it
+  disappears.
+
+qualities:
+  - id: sam_threat
+    description: "Strength of the NPF's captured radar-SAM umbrella. Sizes SA-6/SA-8/SA-13 pools and pop-up chances in every mission."
+    initial: 2
+    min: 0
+    max: 3
+  - id: intel
+    description: "Completeness of the coalition picture. Marks known sites in briefings and shrinks decoy/candidate sets (m02 bunker, m04 convoy route)."
+    initial: 1
+    min: 0
+    max: 3
+  - id: insurgent_supply
+    description: "NPF weapons and ammunition stocks. Sizes technical, mortar and MANPADS pools in m03 and the convoy escort in m04."
+    initial: 2
+    min: 0
+    max: 3
+  - id: partner_morale
+    description: "Northern Border Brigade morale and trust in Rook. Decides how well the NBB holds in m03 and whether its observers find the convoy in m04."
+    initial: 0
+    min: -2
+    max: 2
+  - id: collateral
+    description: "Civilian harm and damage caused by PYTHON. Tightens ROE in later missions, cools Jackal's tone, and shapes the ending."
+    initial: 0
+    min: 0
+    max: 3
+
+acts:
+  - id: act1
+    title: "Take Away the Umbrella"
+    summary: >-
+      Rook's first week: the captured SAMs that shot down the MQ-9 come first, then the stocks
+      that keep the insurgency armed. By the end the coalition can fly over the plain again, or
+      cannot quite.
+    missions:
+      # Suggested loadout (both jets): 2x AGM-88C, 2x AIM-120C, 2x AIM-9X, 2x 370-gal tanks,
+      # ALQ-184, HTS (AN/ASQ-213) + Litening, 2x GBU-12 on the player's jet for DEAD follow-up
+      # (designer may trade tanks for range). Time 0700L, clear, light haze, wind 280/10.
+      - id: m01-broken-umbrella
+        title: "Broken Umbrella"
+        mission_type: SEAD
+        status: planned
+        player_aircraft: F-16C_50
+        dramatic_question: "Can PYTHON open the sky over Al Bab for the ISR orbit, or will the Engineer's SAMs stay silent and alive?"
+        synopsis: >-
+          PYTHON provides SEAD for a 10-minute window (TOT block H to H+10) so an MQ-9 can re-establish
+          its orbit over Al Bab, then hunts what emitted (DEAD with HARM and
+          GBU-12 self-lase from the player's jet). Threats: one SA-6 battery (1S91 radar + 2-3 launchers)
+          at one of three candidate sites south-east of Al Bab toward Kuweires; one SA-8 that pops up
+          (chance 40 + 20*sam_threat %) only when PYTHON is inside 15 NM; ZU-23 emplacements and
+          Igla MANPADS teams around Al Bab. SAMs emit late and briefly; HTS ranging improves with
+          time on station. Outcome keys: window_held (MQ-9 survives the window), sa6_radar_destroyed,
+          sa6_launchers_destroyed (count), sa8_destroyed, mq9_lost, player_lost, wingman_lost.
+        characters: [ops_lindqvist, wingman_pike, awacs_magic, tower_incirlik]
+        key_beats:
+          - "Ramp start only: Incirlik Ground/Tower clearance and departure (optional beats)"
+          - "PYTHON checks in with Magic at the push point (first guaranteed beat, both start options)"
+          - "Rook Ops: 'Window opens, Python push' — MQ-9 'Cyclops 2' starts inbound"
+          - "First SA-6 emission: Magic/HTS report, Pike calls 'Magnum' on his first HARM"
+          - "Pop-up SA-8 (if it rolls): Pike's spike call, defensive reaction"
+          - "Window closes: Rook Ops reports MQ-9 status; PYTHON cleared to hunt or RTB"
+          - "RTB call to Rook Ops with BDA (both start options)"
+        quality_effects:
+          sam_threat: "-1 if sa6_radar_destroyed; -1 more if sa8_destroyed and sa6_launchers_destroyed >= 2 (min 0)"
+          intel: "+1 if window_held (the MQ-9 maps the Quarry for m02)"
+          collateral: "+1 if any civilian vehicle or building in Al Bab is hit"
+        branches:
+          - when: {flags: [m01_player_lost]}
+            goto: m01-broken-umbrella
+            description: "Replay with a new seed. Lindqvist's brief notes the lost jet; the SAM belt is unchanged."
+
+      # Suggested loadout: player 2x GBU-10 (or GBU-24 if available) + 2x GBU-12, Pike 4x GBU-12
+      # (or 2x GBU-10), 2x AIM-120C, 2x AIM-9X, 2x 370-gal, ALQ-184, Litening, HTS optional.
+      # Time 1030L, scattered 15,000 ft, haze to 8 km. Self-lase (code 1688; Pike 1687 for buddy lase).
+      - id: m02-the-quarry
+        title: "The Quarry"
+        mission_type: STRIKE
+        status: planned
+        player_aircraft: F-16C_50
+        dramatic_question: "Does PYTHON destroy the right bunkers at the Quarry, or bomb empty concrete while the stocks survive?"
+        synopsis: >-
+          Pre-planned LGB strike on the NPF's weapons depot and command compound in a disused quarry
+          north-east of Al Bab: four to six bunkers/storage buildings plus a command building in a
+          walled compound beside a farm hamlet (civilian houses within 300 m). Lua chooses which two
+          bunkers are full (secondaries) and which are empty; intel >= 2 marks the full ones in the
+          briefing, intel <= 1 means PYTHON must find them by TGP (trucks, fresh tracks, guards).
+          Jackal Two-Three passes NBB ground reporting on the compound. Threats: ZU-23s and DShK
+          technicals around the quarry, Igla teams on the attack headings, an SA-8 or SA-13 if
+          sam_threat >= 2, the SA-6 too if sam_threat == 3. Outcome keys: full_bunkers_destroyed
+          (count), command_building_destroyed, secondaries (bool), civilians_hit, player_lost.
+        characters: [ops_lindqvist, wingman_pike, jtac_ortiz, awacs_magic, tower_incirlik]
+        key_beats:
+          - "Ramp start only: Ground/Tower (optional)"
+          - "Check-in with Magic at the IP (first guaranteed beat, both start options)"
+          - "Jackal Two-Three: ground reporting on the compound and the hamlet beside it"
+          - "Rook Ops: collateral reminder and 'cleared to engage' (TGP PID required)"
+          - "First bomb impact; Pike calls secondaries (or 'no secondaries')"
+          - "Rook Ops BDA request and RTB"
+        quality_effects:
+          insurgent_supply: "-1 if full_bunkers_destroyed >= 1; -1 more if full_bunkers_destroyed >= 2 (min 0)"
+          intel: "+1 if command_building_destroyed (documents and comms recovered by NBB later)"
+          collateral: "+1 if civilians_hit (hamlet houses or vehicles)"
+        branches:
+          - when: {flags: [m02_player_lost]}
+            goto: m02-the-quarry
+            description: "Replay with a new seed."
+
+  - id: act2
+    title: "Hold the Plain"
+    summary: >-
+      The NPF answers with a ground push on the Brigade, then tries to move its last SAM out of
+      reach. Everything from act 1 decides how hard both fights are.
+    missions:
+      # Suggested loadout: 2x GBU-12, 2x AGM-65D (LAU-117), 1x GBU-10 or 2nd pair GBU-12 (designer),
+      # 510 rnd 20mm, 2x AIM-120C, 2x AIM-9X, 2x 370-gal, ALQ-184, Litening. Time 1500L, scattered
+      # cumulus 7-9,000 ft (forces medium-altitude choices), dust haze, wind 250/15.
+      - id: m03-troops-in-contact
+        title: "Troops in Contact"
+        mission_type: CAS
+        status: planned
+        player_aircraft: F-16C_50
+        dramatic_question: "Can PYTHON break the NPF assault on Jackal's village without hitting the people the Brigade is defending?"
+        synopsis: >-
+          An NBB company and Jackal Two-Three are in contact in a village north of Tell Rifaat: the
+          NPF attacks from fortified farm compounds to the south with DShK/ZU-23 technicals, two or
+          three T-55/BMP-1, mortar teams and RPG infantry (pool sizes scale with insurgent_supply).
+          Jackal runs Type 2 control with 9-lines and talk-ons from big to small (village, compound,
+          building, corner), IR/laser marks; some targets are danger close. Civilian cars flee north
+          on the same road as the technicals; collateral >= 1 means Jackal requires a TGP description
+          before every clearance. Threats: Igla MANPADS, a ZSU-23-4, an SA-13 if sam_threat >= 2.
+          The NBB holds for 20 + 5*partner_morale minutes of unbroken assault. Outcome keys:
+          position_held, fortified_positions_destroyed (count), technicals_destroyed (count),
+          fratricide, civilians_hit, player_lost.
+        characters: [ops_lindqvist, wingman_pike, jtac_ortiz, awacs_magic, tower_incirlik]
+        key_beats:
+          - "Ramp start only: Ground/Tower (optional); ramp flights get a 'scramble from alert' feel"
+          - "Magic hands PYTHON to Jackal Two-Three (first guaranteed beat, both start options)"
+          - "Jackal's situation update with gunfire behind him"
+          - "First 9-line and talk-on onto a fortified compound"
+          - "Danger-close request (Jackal asks for initials)"
+          - "Assault breaks (or the NBB falls back); Jackal's 'good effects' or terse withdrawal call"
+          - "Check-out with Jackal and RTB"
+        quality_effects:
+          partner_morale: "+1 if position_held; +1 more if position_held and fortified_positions_destroyed >= 3; -2 if fratricide; -1 if not position_held"
+          insurgent_supply: "-1 if technicals_destroyed >= 4"
+          collateral: "+1 if civilians_hit"
+        branches:
+          - when: {flags: [m03_player_lost]}
+            goto: m03-troops-in-contact
+            description: "Replay with a new seed; another Rook 2-ship took the fight, the village is still in contact."
+
+      # Suggested loadout (combined package): player = SEAD+strike: 2x AGM-88C, 2x GBU-12, HTS +
+      # Litening; Pike = 2x AGM-65D + 2x GBU-12 (or 2x HARM if sam_threat == 3); both 2x AIM-120C,
+      # 2x AIM-9X, 2x 370-gal, ALQ-184. Time 0630L dawn, low sun from the east (TGP glare), broken
+      # 12,000 ft, morning mist in the valleys burning off by 0730.
+      - id: m04-last-launcher
+        title: "The Last Launcher"
+        mission_type: DEAD
+        status: planned
+        player_aircraft: F-16C_50
+        dramatic_question: "Can PYTHON find and stop the convoy moving the Engineer's last SAM east before it reaches the river, without hitting the wrong trucks?"
+        synopsis: >-
+          Time-critical target: the NPF is moving its surviving radar SAM (the SA-6 radar and a
+          launcher if they survived m01, otherwise an SA-8 pair) on trucks from Kuweires toward
+          Manbij and the Euphrates crossings, under a technical escort sized by insurgent_supply,
+          with an SA-8 on overwatch that pops up when PYTHON descends. The convoy takes one of three
+          routes; intel >= 2 removes one candidate, partner_morale >= 1 means NBB observers report it
+          (Jackal relays), otherwise PYTHON searches with the TGP among civilian trucks on the same
+          roads. PYTHON suppresses the overwatch SAM with HARM, then stops the convoy with LGBs on
+          the lead/carrier vehicles (moving-target lasing). A decoy civilian lorry convoy is always
+          present; Pike flags PID doubts. Outcome keys: sam_carrier_destroyed, overwatch_sam_destroyed,
+          escort_destroyed (count), convoy_escaped, civilians_hit, player_lost.
+        characters: [ops_lindqvist, wingman_pike, jtac_ortiz, awacs_magic, tower_incirlik]
+        key_beats:
+          - "Ramp start only: Ground/Tower (optional)"
+          - "Rook Ops retasks PYTHON at check-in: 'time critical target' (first guaranteed beat, both start options)"
+          - "Convoy cue: Jackal's observers (partner_morale >= 1) or a cold search"
+          - "Overwatch SAM pops up; HARM shot"
+          - "Pike's PID call on the convoy ('Two, those look like civilian trucks' on the decoy)"
+          - "Carrier hit, or the convoy reaches the river and Rook Ops calls 'endex'"
+          - "Final RTB; Lindqvist's closing line depends on the campaign's qualities"
+        quality_effects:
+          sam_threat: "set to 0 if sam_carrier_destroyed and overwatch_sam_destroyed; -1 if only one of them"
+          insurgent_supply: "-1 if escort_destroyed >= 3"
+          collateral: "+2 if civilians_hit (the decoy convoy)"
+          partner_morale: "+1 if sam_carrier_destroyed and not civilians_hit"
+        branches:
+          - when: {flags: [m04_player_lost]}
+            goto: m04-last-launcher
+            description: "Replay with a new seed; the convoy is still moving."
+
+ending_notes: >-
+  The campaign ends after m04. sam_threat == 0: the coalition flies freely over the plain and
+  Lindqvist's last brief is a routine ISR escort ("boring is the goal"). sam_threat >= 1 and
+  convoy_escaped: the Engineer's last radar is across the river and the detachment knows it will
+  meet it again. collateral >= 2: the Brigade holds but the villages turn against it, and Jackal's
+  last call is curt. partner_morale >= 1 and collateral == 0: Jackal's check-out thanks PYTHON by
+  name, the only time anyone on the net does.

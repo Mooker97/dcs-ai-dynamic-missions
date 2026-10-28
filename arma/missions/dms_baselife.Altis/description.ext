@@ -1,0 +1,122 @@
+// DMS "Base life" - test mission for the ambient module (arma/modules/ambient). Altis.
+author = "DMS";
+onLoadName = "Base Life";
+onLoadMission = "A NATO base going about its day: sentries, idle soldiers, a work party, traffic and a helicopter.";
+briefingName = "DMS - Base Life";
+overviewText = "Walk around a busy base. Ambient activity spawns when you are near and is removed when you leave.";
+
+respawn = 0;
+respawnDialog = 0;
+disabledAI = 1;
+enableDebugConsole = 1;
+corpseManagerMode = 0;
+wreckManagerMode = 0;
+
+class Header
+{
+	gameType = "Coop";
+	minPlayers = 1;
+	maxPlayers = 1;
+};
+
+class Params
+{
+	class DMS_seed
+	{
+		title = "Random seed (0 = random, logged)";
+		values[] = {0, 1, 2, 3, 7, 42, 1337, 4242};
+		texts[] = {"Random", "1", "2", "3", "7", "42", "1337", "4242"};
+		default = 0;
+	};
+	class DMS_site
+	{
+		title = "Base";
+		values[] = {1, 2};
+		texts[] = {"AAC airfield military area", "Pyrgos military base"};
+		default = 1;
+	};
+	class DMS_faction
+	{
+		title = "Ambient faction";
+		values[] = {0, 1, 2, 3};
+		texts[] = {"Auto (RHS US Army if loaded, else NATO)", "NATO (vanilla)", "RHS US Army", "RHS USMC"};
+		default = 0;
+	};
+	class DMS_debug
+	{
+		title = "Debug (log to screen)";
+		values[] = {0, 1};
+		texts[] = {"Off", "On"};
+		default = 0;
+	};
+	class DMS_testMode
+	{
+		title = "Test mode (AI squad stands in for the player)";
+		values[] = {0, 1};
+		texts[] = {"Off", "On"};
+		default = 0;
+	};
+	class DMS_testMinutes
+	{
+		title = "Test mode time limit (minutes)";
+		values[] = {10, 15, 20, 30, 45};
+		texts[] = {"10", "15", "20", "30", "45"};
+		default = 20;
+	};
+	// Set by tools/arma_harness/run_mission.py on every test run; not used by this mission.
+	class DMS_testTimeScale
+	{
+		title = "Test mode time scale (unused here)";
+		values[] = {100, 50, 25, 15, 10};
+		texts[] = {"100%", "50%", "25%", "15%", "10%"};
+		default = 100;
+	};
+	class DMS_testStartDist
+	{
+		title = "Test mode start distance (unused here)";
+		values[] = {0, 300, 500};
+		texts[] = {"Normal", "300", "500"};
+		default = 0;
+	};
+	class DMS_testAssist
+	{
+		title = "Test mode assist (unused here)";
+		values[] = {0, 120, 180, 300};
+		texts[] = {"Off", "120", "180", "300"};
+		default = 0;
+	};
+};
+
+class CfgFunctions
+{
+	class DMS
+	{
+		tag = "DMS";
+		class mission
+		{
+			file = "functions";
+			class config {};
+			class log {};
+			class rng {};
+			class end {};
+			class testMode {};
+		};
+	};
+	#include "modules\ambient\cfgFunctions.hpp"
+};
+
+class CfgDebriefing
+{
+	class DMS_Win
+	{
+		title = "Test complete";
+		subtitle = "Base life";
+		description = "The ambient module activated, despawned and reactivated as expected.";
+	};
+	class DMS_TestEnd
+	{
+		title = "Test run ended";
+		subtitle = "Time limit";
+		description = "The unattended test run reached its time limit.";
+	};
+};

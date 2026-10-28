@@ -46,10 +46,13 @@ class VoiceLine(DMSModel):
         default=None, description="Override the speaker's radio FX preset for this line."
     )
     file: str | None = Field(
-        default=None, description="Rendered .ogg file name; filled in by `dms voice`."
+        default=None,
+        description="Rendered .ogg file name (`dms voice` writes voice/manifest.json, not this).",
     )
     dur_sec: float | None = Field(
-        default=None, gt=0, description="Audio duration; filled by `dms voice`."
+        default=None,
+        gt=0,
+        description="Audio duration (`dms voice` writes voice/manifest.json, not this).",
     )
     turns: list[DialogueTurn] | None = Field(
         default=None,

@@ -346,7 +346,11 @@ writes JSON Schema files to `schemas/` at the repo root for skills and editors.
 
 - **Campaign folder:** `campaigns/<slug>/premise.md, bible.yaml, arc.yaml, continuity.md, state/qualities.yaml, state/outcomes/<mNN>.yaml, missions/mNN-<slug>/{mission-spec.yaml, beats.yaml, briefing.md, kneeboard.md, lines.yaml, voice/, out/}`
 - **YAML** for authored files. **JSON** for machine intermediates (`plan.json`).
-- **Voice cache:** `~/.dms/tts-cache/<sha256>.ogg`, where the key is `sha256(voice_id|model|text|fx_preset)`.
+- **Voice cache:** `~/.dms/tts-cache/<sha256>.ogg`, where the key is `sha256(voice_id|model|text|fx_preset)`;
+  a Text-to-Dialogue line (with `turns`) uses sha256 of the canonical JSON
+  `{"kind":"dialogue","model","fx","inputs":[{voice_id,text}]}`. Voice ids come from the bible's
+  `VoiceProfile.eleven_voice_id` first, `data/voice/voices.json` (or `--voices`) second; `--model`
+  overrides the lines.yaml `model`. `dms voice` writes `voice/manifest.json` and never edits lines.yaml.
 - **CLI** (`packages/dms-cli`, typer; global `--root <repo>`, default: walk up to the uv workspace).
   `<mission>` is a mission folder or its `mission-spec.yaml`.
   - `dms validate <mission> [--beats --lines --bible] [--json]`: schema + cross-file + planner checks.

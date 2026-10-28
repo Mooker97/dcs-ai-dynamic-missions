@@ -702,10 +702,11 @@ def run(
 
 def _voice_estimate(lines: Path) -> str:
     try:
-        from dms_voice.cli import load_lines
-        from dms_voice.render import load_voices, plan_lines
+        from dms_voice.cli import load_line_set, resolve_voices
+        from dms_voice.render import plan_lines
 
-        est = plan_lines(load_lines(lines), load_voices())
+        line_set = load_line_set(lines)
+        est = plan_lines(line_set.lines, resolve_voices(lines), model=line_set.model)
         return str(est.summary())
     except Exception as exc:  # estimate is advisory only
         return f"estimate unavailable ({exc})"

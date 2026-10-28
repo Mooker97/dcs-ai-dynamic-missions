@@ -135,7 +135,7 @@
             }
           ],
           "default": null,
-          "description": "Rendered .ogg file name; filled in by `dms voice`.",
+          "description": "Rendered .ogg file name (`dms voice` writes voice/manifest.json, not this).",
           "title": "File"
         },
         "dur_sec": {
@@ -149,7 +149,7 @@
             }
           ],
           "default": null,
-          "description": "Audio duration; filled by `dms voice`.",
+          "description": "Audio duration (`dms voice` writes voice/manifest.json, not this).",
           "title": "Dur Sec"
         },
         "turns": {

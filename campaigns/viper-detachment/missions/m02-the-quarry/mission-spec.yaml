@@ -1,0 +1,377 @@
+# m02 The Quarry — pre-planned LGB strike on the NPF weapons depot and command compound NE of Al Bab.
+# Schema: schemas/mission-spec.schema.json (MissionSpec). Validate: uv run dms validate <this file>
+#
+# STATE DIGEST (state/qualities.yaml at design time; m01 not yet flown, no outcomes):
+#   sam_threat 2, intel 1, insurgent_supply 2, partner_morale 0, collateral 0.
+# - Dramatic question: does PYTHON destroy the right bunkers, or bomb empty concrete while the stocks survive?
+# - intel 1 -> the full bunkers are NOT marked; PYTHON finds them by TGP (trucks, fuel bowser, guards).
+#   intel >= 2 (if m01's window held) -> beat intel_mark drops an F10 mark on one active site.
+# - sam_threat 2 -> one SA-8 or SA-13 pops up (beat sam_cue gates it on sam_threat >= 2 at runtime,
+#   so a lower value after m01 removes it without a redesign). sam_threat 3 (SA-6) is unreachable
+#   here: m01 can only lower sam_threat.
+# - insurgent_supply 2 -> MANPADS ambush chance 70, squirter truck chance 50.
+# - collateral 0 -> standard ROE: Rook Ops clearance before weapons near the hamlet (canon rule).
+# - Continuity: the Quarry was suspected, not confirmed (now confirmed by NBB reporting). Jackal Two-Three
+#   is heard for the first time (bible arc). The Engineer is not heard. No enemy air.
+# - Outcome keys (arc): full_bunkers_destroyed (count), command_building_destroyed, secondaries,
+#   civilians_hit, player_lost.
+#
+# START CHOICE (arc rule): two player flights, both PYTHON 1 on the radio (player 1-1, Pike 1-2):
+#   "Python Ramp" -> DCS group "Python Ramp 1": cold start on the Incirlik ramp.
+#   "Python Air"  -> DCS group "Python Air 2": air start ~20 NM WNW of IP SHALE on the ingress axis.
+#   The planner names groups "<callsign> <index>", so the index is not the flight number.
+#   No beat depends on takeoff; the spine starts at the check-in ring around the IP.
+schema_version: 1
+id: m02-the-quarry
+title: "The Quarry"
+campaign: viper-detachment
+content_mode: fictional
+theater: Syria
+era: 2016
+date: 2016-11-05
+start_time: "10:30"
+weather_preset: scattered          # arc: scattered 15,000 ft, haze. Lines never quote wind or cloud base.
+mission_type: STRIKE
+duration_min: 80
+blue_countries: [USA, Combined Joint Task Forces Blue]
+red_countries: [Insurgents, Combined Joint Task Forces Red]
+cast: [ops_lindqvist, wingman_pike, jtac_ortiz, awacs_magic, tower_incirlik]
+
+areas:
+  # --- home -----------------------------------------------------------------------------------
+  - id: incirlik
+    description: "Incirlik air base, home of Rook detachment. Ramp-start flight parks here."
+    where: {kind: near_airbase, airbase: Incirlik, radius_nm: 1}
+  - id: incirlik_approach
+    description: "Recovery circle around Incirlik; entering it after the RTB call brings the tower call."
+    where: {kind: near_airbase, airbase: Incirlik, radius_nm: 12}
+
+  # --- route ----------------------------------------------------------------------------------
+  - id: air_start
+    description: "Air-start point on the ingress axis, ~20 NM WNW of IP SHALE, near Azaz. Over the NBB-held plain."
+    where: {kind: latlon, lat: 36.610, lon: 36.967, radius_nm: 1}
+  - id: ip_shale
+    description: "IP SHALE, 12 NM north-west of the Quarry over the NBB-held plain. Run-in from here."
+    where: {kind: latlon, lat: 36.509, lon: 37.362, radius_nm: 2}
+  - id: checkin_ring
+    description: "10 NM circle around IP SHALE: entering it is the check-in with Magic (first guaranteed beat, both flights)."
+    where: {kind: latlon, lat: 36.509, lon: 37.362, radius_nm: 10}
+  - id: target_ring
+    description: "10 NM circle around the Quarry: entering it brings Rook Ops' clearance to engage."
+    where: {kind: latlon, lat: 36.410, lon: 37.575, radius_nm: 10}
+  - id: egress_gate
+    description: "EGRESS point GATE, ~11 NM north of the Quarry short of the border. Never crossed on ingress."
+    where: {kind: latlon, lat: 36.585, lon: 37.530, radius_nm: 3}
+    terrain: open
+
+  # --- the Quarry -----------------------------------------------------------------------------
+  - id: quarry
+    description: "The Quarry: a disused limestone quarry 4 NM north-east of Al Bab. Weapons depot and command compound."
+    where: {kind: latlon, lat: 36.410, lon: 37.575, radius_nm: 0.3}
+    terrain: open
+  - id: quarry_rim
+    description: "The rim and approach tracks around the Quarry: guns and technicals."
+    where: {kind: latlon, lat: 36.410, lon: 37.575, radius_nm: 0.7}
+    terrain: open
+  - id: command_compound
+    description: "Walled command compound on the west lip of the Quarry. One building plus vehicles."
+    where: {kind: latlon, lat: 36.4100, lon: 37.5728, radius_nm: 0.08}
+    terrain: open
+  - id: bunker_a
+    description: "Storage site A, north-west face of the pit."
+    where: {kind: latlon, lat: 36.4118, lon: 37.5745, radius_nm: 0.05}
+    terrain: open
+  - id: bunker_b
+    description: "Storage site B, north-east face."
+    where: {kind: latlon, lat: 36.4112, lon: 37.5772, radius_nm: 0.05}
+    terrain: open
+  - id: bunker_c
+    description: "Storage site C, pit floor."
+    where: {kind: latlon, lat: 36.4093, lon: 37.5768, radius_nm: 0.05}
+    terrain: open
+  - id: bunker_d
+    description: "Storage site D, south-west cut."
+    where: {kind: latlon, lat: 36.4085, lon: 37.5745, radius_nm: 0.05}
+    terrain: open
+  - id: bunker_e
+    description: "Storage site E, east cut, closest to the hamlet (about 300 m)."
+    where: {kind: latlon, lat: 36.4100, lon: 37.5788, radius_nm: 0.05}
+    terrain: open
+  - id: quarry_exit
+    description: "South-west gate of the Quarry, on the track down to Al Bab."
+    where: {kind: latlon, lat: 36.4050, lon: 37.5700, radius_nm: 0.1}
+    terrain: road
+  - id: hamlet
+    description: "Farm hamlet east of the Quarry: a dozen houses, families still living there. NO-STRIKE."
+    where: {kind: latlon, lat: 36.4108, lon: 37.5825, radius_nm: 0.1}
+    terrain: urban
+  - id: hamlet_road
+    description: "Farm road from the hamlet south-west past the Quarry gate toward Al Bab."
+    where: {kind: latlon, lat: 36.4000, lon: 37.5650, radius_nm: 0.5}
+    terrain: road
+  - id: albab_north
+    description: "Northern edge of Al Bab where the Quarry track meets the town roads."
+    where: {kind: latlon, lat: 36.3850, lon: 37.5350, radius_nm: 0.3}
+    terrain: road
+
+  # --- threat candidate areas -----------------------------------------------------------------
+  - id: manpads_north
+    description: "Low ridge 2 NM north of the Quarry, under a north-south attack heading."
+    where: {kind: latlon, lat: 36.446, lon: 37.575, radius_nm: 0.4}
+    terrain: high_ground
+  - id: manpads_west
+    description: "Farm compounds 2 NM west of the Quarry, under the run-in from IP SHALE."
+    where: {kind: latlon, lat: 36.412, lon: 37.530, radius_nm: 0.4}
+    terrain: open
+  - id: manpads_southeast
+    description: "Orchards 2 NM south-east of the Quarry."
+    where: {kind: latlon, lat: 36.385, lon: 37.605, radius_nm: 0.4}
+    terrain: open
+  - id: sam_east
+    description: "Candidate SAM hide 3.5 NM east of the Quarry, toward the Kuweires road."
+    where: {kind: latlon, lat: 36.400, lon: 37.650, radius_nm: 1}
+    terrain: open
+  - id: sam_south
+    description: "Candidate SAM hide 3.5 NM south of the Quarry, east of Al Bab."
+    where: {kind: latlon, lat: 36.345, lon: 37.590, radius_nm: 1}
+    terrain: open
+
+  # --- friendlies -----------------------------------------------------------------------------
+  - id: jackal_village
+    description: "NBB-held village north of Tell Rifaat where Jackal Two-Three lives with an NBB company."
+    where: {kind: latlon, lat: 36.500, lon: 37.100, radius_nm: 0.3}
+    terrain: urban
+  - id: magic_orbit
+    description: "E-3 orbit over southern Turkey, north of Kilis."
+    where: {kind: latlon, lat: 36.950, lon: 37.000, radius_nm: 5}
+  - id: shell_track
+    description: "AR track for tanker Shell over southern Turkey, between Incirlik and the border."
+    where: {kind: latlon, lat: 37.050, lon: 36.300, radius_nm: 5}
+
+player_flights:
+  # Both flights are PYTHON 1 on the radio; only one is flown. Identical loadouts.
+  - callsign: Python Ramp
+    aircraft: F-16C_50
+    count: 2
+    coalition: blue
+    country: USA
+    start_area: incirlik
+    start_type: parking_cold
+    loadout: "AIM-120C*2, AIM-9X*2, GBU-24*2, FUEL*2, ECM, TGP"
+    frequency_mhz: 305.0
+    tasking: >-
+      Ramp start. Cold start at Incirlik, depart runway 05, transit ESE (Shell on the AR track if
+      needed), check in with Magic inside 10 NM of IP SHALE, run in from the IP, self-lase LGBs on
+      the active storage sites and the command building, egress north to GATE, RTB Incirlik.
+  - callsign: Python Air
+    aircraft: F-16C_50
+    count: 2
+    coalition: blue
+    country: USA
+    start_area: air_start
+    start_type: air
+    loadout: "AIM-120C*2, AIM-9X*2, GBU-24*2, FUEL*2, ECM, TGP"
+    frequency_mhz: 305.0
+    tasking: >-
+      Air start. Already airborne ~20 NM WNW of IP SHALE on the ingress axis, master arm safe. Same
+      sortie from the check-in onward: Magic check-in, run-in from IP SHALE, self-lase, egress
+      north to GATE, RTB Incirlik.
+
+objectives:
+  - id: strike_stocks
+    kind: destroy
+    description: "Destroy the active storage sites in the Quarry: two of five sites hold the stocks, the rest are empty."
+    primary: true
+    success_flag: stocks_destroyed
+  - id: strike_command
+    kind: destroy
+    description: "Destroy the command building and the vehicles parked at it on the west lip of the Quarry."
+    primary: false
+    area: command_compound
+    target: command_post
+    success_flag: command_destroyed
+  - id: protect_hamlet
+    kind: protect
+    description: "No civilian harm in the hamlet east of the Quarry or on the roads around it."
+    primary: true
+    area: hamlet
+    failure_flag: civilians_hit
+  - id: rtb
+    kind: land
+    description: "Recover to Incirlik (or a briefed divert)."
+    primary: true
+    area: incirlik
+    success_flag: landed
+  - id: survive
+    kind: survive
+    description: "Bring both jets back. The detachment has four serviceable."
+    primary: true
+    failure_flag: player_lost
+
+threats:
+  - id: quarry_aaa
+    role: aaa
+    area: quarry_rim
+    strength: medium
+    faction: npf
+    skill: Average
+    hidden_on_map: false               # briefed: ZU-23s on the rim
+    notes: "ZU-23 emplacements / ZU-23 technicals on the rim, covering the low approaches."
+  - id: quarry_technicals
+    role: technicals
+    area: quarry_rim
+    strength: light
+    faction: npf
+    skill: Average
+    hidden_on_map: true                # reported, positions unknown
+    notes: "DShK technicals on the tracks around the Quarry."
+  - id: quarry_guards
+    role: infantry
+    area: quarry
+    strength: light
+    faction: npf
+    skill: Average
+    hidden_on_map: true
+    notes: "Guard section in the pit. Their presence near a site is a TGP cue, not proof of stocks."
+  - id: command_post
+    role: hvt
+    area: command_compound
+    strength: light
+    faction: npf
+    skill: Average
+    hidden_on_map: false               # briefed: the command building is a known aimpoint
+    notes: "Vehicles parked at the command building (GAZ-66/UAZ). The objective target."
+
+support:
+  - id: magic
+    role: awacs
+    callsign: "Magic"
+    area: magic_orbit
+    composition: "E-3A"
+    speaker: awacs_magic
+    frequency_mhz: 251.0
+  - id: shell
+    role: tanker
+    callsign: "Shell"
+    area: shell_track
+    composition: "KC-135 (boom)"
+    frequency_mhz: 276.1
+  - id: jackal
+    role: jtac
+    callsign: "Jackal Two-Three"
+    area: jackal_village
+    composition: "Hummer, Soldier M4, Soldier M4"
+    speaker: jtac_ortiz
+    frequency_mhz: 41.5
+
+dynamic:
+  pools:
+    - id: full_bunkers
+      roles: [hvt]
+      areas: [bunker_a, bunker_b, bunker_c, bunker_d, bunker_e]
+      pick: [2, 2]
+      faction: npf_heavy
+      notes: >-
+        The stocks: Ural-375 cargo trucks and an ATMZ-5 bowser parked at the mouth of a storage
+        bunker. Lua picks which sites (shuffled each play); the others stay empty. Killing one
+        group = one full bunker destroyed (ammunition secondaries).
+    - id: hamlet_vehicles
+      roles: [civilian]
+      areas: [hamlet]
+      pick: [2, 3]
+      faction: plain_civilians
+      notes: "Parked family vehicles in the hamlet. Unarmed neutral types only."
+    - id: road_traffic
+      roles: [civilian]
+      areas: [hamlet_road, albab_north]
+      pick: [1, 3]
+      faction: plain_civilians
+      notes: "Farm and family traffic on the Quarry road; looks like technicals from altitude."
+    - id: igla_teams
+      roles: [manpads]
+      areas: [manpads_north, manpads_west, manpads_southeast]
+      pick: [1, 2]
+      faction: npf
+      notes: "Igla teams on the likely attack headings. Size tracks insurgent_supply."
+    - id: short_sam
+      roles: [sam_short]
+      areas: [sam_east, sam_south]
+      pick: [1, 1]
+      faction: npf_heavy
+      notes: "One SA-8 or SA-13 (or SA-9) from the Garrison stocks. Emits late."
+    - id: squirter
+      roles: [hvt]
+      areas: [quarry_exit, albab_north]
+      pick: [1, 1]
+      faction: npf
+      notes: "One truck (GAZ-66/UAZ) trying to get stock out of the Quarry toward Al Bab, on the civilian road."
+  encounters:
+    - id: stocks
+      kind: pool
+      pool: full_bunkers
+      trigger: {type: time, after_min: 0.5}
+      chance: 100
+      notes: "Always: the stocks exist. Which two sites hold them is random each play."
+    - id: hamlet_life
+      kind: pool
+      pool: hamlet_vehicles
+      trigger: {type: time, after_min: 0.5}
+      chance: 100
+      notes: "Civilians present in the hamlet every play."
+    - id: civ_traffic
+      kind: convoy
+      pool: road_traffic
+      trigger: {type: time, after_min: 2}
+      chance: 100
+      notes: "Civilian vehicles drive the Quarry road between the hamlet and Al Bab."
+    - id: manpads_ambush
+      kind: ambush_sam
+      pool: igla_teams
+      trigger: {type: proximity, area: quarry, radius_nm: 12}
+      chance: 70
+      telegraph_beat: manpads_warning
+      notes: "70 at insurgent_supply 2. Spawns 2+ NM from the Quarry when PYTHON is inside 12 NM; Jackal warns first."
+    - id: popup_sam
+      kind: ambush_sam
+      pool: short_sam
+      trigger: {type: beat, beat: sam_cue}
+      chance: 100
+      telegraph_beat: sam_warning
+      notes: "sam_cue fires on target_ring entry only if sam_threat >= 2. Spawns 3.5 NM beyond the target, dark, then goes hot."
+    - id: squirters
+      kind: convoy
+      pool: squirter
+      trigger: {type: proximity, area: quarry, radius_nm: 6}
+      chance: 50
+      telegraph_beat: squirter_warning
+      notes: "When jets are overhead, one truck runs for Al Bab on the civilian road. A temptation with collateral risk, not a requirement."
+  director:
+    enabled: true
+    intensity: moderate
+    adaptive: true
+  fog_of_war:
+    enabled: true
+    reveal_radius_km: 5
+    mark_refresh_sec: 15
+
+ambient:
+  enabled: true
+  density: low
+
+seed: null
+
+notes: >-
+  Director intent: the ramp flight gets the long quiet transit (cold start, Ground/Tower, Shell
+  optional); the air-start flight joins the same story ~2 minutes before check-in. Both meet the
+  spine at the check-in ring around IP SHALE: Magic check-in -> Jackal's ground report on the
+  compound and the hamlet -> Rook Ops' clearance on entering 10 NM of the Quarry. The work is the
+  peak: TGP search for the active sites among five (trucks, bowser, guards), LGB runs under ZU-23s,
+  a possible MANPADS team on the attack heading (telegraphed by Jackal) and an SA-8/SA-13 that
+  pops up 3.5 NM beyond the target (telegraphed by Rook Ops). A truck may run for Al Bab on the
+  civilian road: bombing it is legal but risky. Egress north to GATE (never on the ingress path)
+  brings the RTB call; the long transit home relaxes; the landing closes the mission. Guaranteed
+  spine: checkin_magic, jackal_report, cleared_engage, rtb_call, on_deck (plus player_lost on
+  death). Variation per play: which 2 of 5 sites are full, which SAM and where, MANPADS present or
+  not and on which heading, squirter or not, civilian vehicle count and placement, line variants.
+  Loadout per arc: 2x GBU-24 (pydcs F-16C_50 carries GBU-24A/B on pylons 3/4/6/7) plus 2x
+  AIM-120C, 2x AIM-9X, 2 tanks, ECM, TGP; written as the pydcs payload name.

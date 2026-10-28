@@ -5,10 +5,12 @@
 #   sam_threat 2 -> SA-8 pop-up chance 40 + 20*2 = 80 %; SA-6 battery present (radar + 3 launchers).
 #   intel 1      -> SA-6 position known only as three candidate sites; SA-8 positions unknown.
 #   insurgent_supply 2 -> 1-3 MANPADS teams and 2-4 technicals around Al Bab.
-# START CHOICE: two player flights, only one is flown.
-#   "Python" #1 (group "Python 1"): ramp/cold start at Incirlik.
-#   "Python" #2 (group "Python 2"): air start ~20 NM short of IP ARROW (Kilis) on the ingress axis.
-#   Both are PYTHON 1-1 on the radio (canon). The planner allocates distinct group names.
+# START CHOICE: two start variants of the same flight, built as separate .miz files.
+#   variant ramp -> out/m01-broken-umbrella-ramp.miz (group "Python 1"): cold start at Incirlik.
+#   variant air  -> out/m01-broken-umbrella-air.miz  (group "Python 2"): airborne 20 NM short of IP
+#   ARROW on the Incirlik-ARROW axis, 20,000 ft, 420 kts.
+#   slot player: lead = Player, #2 = AI wingman (Pike). Both variants are "Python 1-1" in the cockpit.
+#   Beats never filter on a group or unit name (they differ per variant).
 schema_version: 1
 id: m01-broken-umbrella
 title: "Broken Umbrella"
@@ -28,15 +30,11 @@ cast: [ops_lindqvist, wingman_pike, awacs_magic, tower_incirlik]
 areas:
   # ---- home, start and recovery --------------------------------------------------------------
   - id: incirlik
-    description: "Incirlik air base, Rook's home. Ramp start for Python #1; recovery for both options."
+    description: "Incirlik air base, Rook's home. Ramp start (ramp variant), origin of the air-start axis, recovery for both variants."
     where: {kind: near_airbase, airbase: Incirlik, radius_nm: 1}
   - id: incirlik_approach
     description: "10 NM circle around Incirlik; entering it on the way home brings the tower call."
     where: {kind: near_airbase, airbase: Incirlik, radius_nm: 10}
-  - id: air_start
-    description: "Air-start point for Python #2: on the Incirlik-Kilis ingress axis, about 20 NM short of IP ARROW, over Turkey."
-    where: {kind: near_named_place, place: Kilis, radius_nm: 1, bearing_deg: 284, distance_nm: 20}
-    terrain: high_ground
   # ---- push and the area of operations -------------------------------------------------------
   - id: ip_arrow
     description: "IP ARROW: 5 NM circle around Kilis on the Turkish side of the border. Check-in with Magic and push point for both start options."
@@ -103,29 +101,34 @@ player_flights:
     country: USA
     start_area: incirlik
     start_type: parking_cold
-    loadout: >-
-      SEAD/DEAD, F-16C Block 50: 2x AGM-88C HARM (stations 3/7), 2x GBU-12 (4/6), ALQ-184 (5),
-      AN/ASQ-213 HTS (left intake), Litening (right intake), 2x AIM-120C (2/8), 2x AIM-9X (1/9).
+    variant: ramp
+    slot: player
+    loadout: auto
     tasking: >-
-      RAMP START (group 'Python 1'). Cold start at Incirlik, depart runway 05, climb on the ingress
-      axis to IP ARROW (Kilis). Tank on Shell if needed. Check in with Magic at ARROW, push on Rook
-      Ops' call, provide SEAD over Al Bab for the 10-minute ISR window, then hunt what emitted
-      (HARM, GBU-12 self-lase) until vul end. RTB Incirlik.
+      RAMP START. Cold start at Incirlik, depart runway 05, climb on the ingress axis to IP ARROW
+      (Kilis). Tank on Shell if needed. Check in with Magic at ARROW, push on Rook Ops' call,
+      provide SEAD over Al Bab for the 10-minute ISR window, then hunt what emitted (HARM, GBU-12
+      self-lase) until vul end. RTB Incirlik.
   - callsign: Python
     aircraft: F-16C_50
     count: 2
     coalition: blue
     country: USA
-    start_area: air_start
+    start_area: incirlik
     start_type: air
-    loadout: >-
-      SEAD/DEAD, F-16C Block 50: 2x AGM-88C HARM (stations 3/7), 2x GBU-12 (4/6), ALQ-184 (5),
-      AN/ASQ-213 HTS (left intake), Litening (right intake), 2x AIM-120C (2/8), 2x AIM-9X (1/9).
+    variant: air
+    slot: player
+    air_start:
+      altitude_ft: 20000
+      speed_kts: 420
+      distance_nm_before_first_wp: 20
+      toward: ip_arrow
+    loadout: auto
     tasking: >-
-      AIR START (group 'Python 2'). Already airborne about 20 NM west-north-west of IP ARROW, on the
-      ingress axis. Continue to ARROW (Kilis), check in with Magic, push on Rook Ops' call, provide
-      SEAD over Al Bab for the 10-minute ISR window, then hunt what emitted until vul end. RTB
-      Incirlik (or divert Gaziantep).
+      AIR START. Airborne 20 NM short of IP ARROW on the Incirlik-ARROW axis, 20,000 ft, 420 kts.
+      Continue to ARROW (Kilis), check in with Magic, push on Rook Ops' call, provide SEAD over Al
+      Bab for the 10-minute ISR window, then hunt what emitted until vul end. RTB Incirlik (or
+      divert Gaziantep).
 
 objectives:
   - id: hold_window
@@ -175,6 +178,7 @@ support:
     callsign: "Magic"
     area: magic_orbit
     composition: "1x E-3A"
+    faction: usaf_rook
     speaker: awacs_magic
     frequency_mhz: 251.0
   - id: shell
@@ -182,7 +186,8 @@ support:
     callsign: "Shell"
     area: shell_track
     composition: "1x KC-135 (boom)"
-    frequency_mhz: 276.0
+    faction: usaf_rook
+    frequency_mhz: 251.0             # the builder puts AWACS and tanker on 251.0 (support frequency not carried into the plan yet)
 
 dynamic:
   pools:
@@ -197,7 +202,7 @@ dynamic:
       areas: [sa8_west, sa8_south, sa8_north]
       pick: [1, 1]
       faction: npf_heavy
-      notes: "One short-range SAM vehicle or pair. The planner weights SA-9/SA-13 above SA-8; all are briefed as 'pop-up SHORAD, SA-8 assessed'. Outcome key stays sa8_destroyed (arc)."
+      notes: "One short-range SAM vehicle or pair. Intent: SA-8 (HARM-able). Pools cannot pin templates yet (PoolIntent has no templates field), so the planner still weights SA-9/SA-13/Strela above SA-8; all are briefed as 'pop-up SHORAD, SA-8 assessed'. Outcome key stays sa8_destroyed (arc)."
     - id: manpads_teams
       roles: [manpads]
       areas: [al_bab_edges]

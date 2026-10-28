@@ -1,7 +1,7 @@
 # m03 Troops in Contact — voice lines. Schema: schemas/voice-lines.schema.json (VoiceLineSet).
 # One entry per variant (<line>_vN); beats pick one at random without immediate repeats.
 # Subtitles only for now (no ElevenLabs render). Style: callsign first, brevity-correct, nobody
-# cheers. Every line addresses "Python" so it fits either player flight (ramp PYTHON 1, air PYTHON 2).
+# cheers. Every line addresses "Python" so it fits either start variant (-ramp.miz, -air.miz).
 # Jackal (normal brevity) runs the fight; 9-lines are deliberately abbreviated (no elevation, no IP:
 # Type 2 from the CP) and positions are relative, because the runtime re-rolls exact points.
 mission_id: m03-troops-in-contact
@@ -26,7 +26,7 @@ lines:
     beat: mission_start
     text: "Python, Rook Ops. Jackal is in contact and asking for air. CP Tusk, check in with Magic. PID on everything."
 
-  # --- Incirlik Ground / Tower (ramp flight only) -------------------------------------------------
+  # --- Incirlik Ground / Tower (ramp variant only) --------------------------------------------------
   - id: ground_taxi_v1
     speaker: tower_incirlik
     beat: ground_taxi

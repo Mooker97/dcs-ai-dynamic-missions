@@ -9,7 +9,8 @@
 #   assault_broken_call (3 fortified positions, or 2 + the armor) or nbb_withdraw_* (hold-time limit).
 # Both set fight_over, which drives the check-out. Hold time = 20 + 5 * partner_morale minutes after
 # Jackal's check-in, in three tiers keyed on the campaign quality (<= -1: 15, 0: 20, >= 1: 25 min).
-# Landing/tower beats are optional (the air-start flight may never land).
+# Landing/tower beats are optional (the air-start variant may never land). Built as two variants
+# (-ramp.miz, -air.miz); no beat filters on a player group name, so every beat resolves in both.
 mission_id: m03-troops-in-contact
 beats:
   # ---- Guaranteed spine -----------------------------------------------------------------------
@@ -221,17 +222,28 @@ beats:
     text: "Python, Jackal. Lantern is falling back north. Check fire on the village. We're moving."
     effects: {set_flag: [nbb_withdrew, fight_over], outcome: {position_held: false}}
 
-  # ---- Optional: departure (ramp flight PYTHON 1) and air start (PYTHON 2) ----------------------
+  # ---- Optional: departure (ramp variant) and air start (air variant) --------------------------
+  # No beat names a player group: the variants are told apart by where the lead spawns. The ramp
+  # lead spawns inside the incirlik zone, so the first zone poll emits zone.entered and sets
+  # ramp_start; the air lead spawns 20 NM short of TUSK and never does before check-in.
+  - id: ramp_start_detect          # silent: ramp variant only
+    when: {event: zone.entered, zone: incirlik, players_only: true}
+    requires: {flags_not: [checked_in, ramp_start]}
+    priority: 50
+    once: true
+    effects: {set_flag: ramp_start}
+
   - id: ground_taxi
-    when: {event: player.spawned, group: "Python 1", players_only: true}
+    when: {event: flag, flag: ramp_start}
     delay_sec: 60
+    requires: {flags_not: [checked_in]}
     priority: 40
     once: true
     speaker: tower_incirlik
     lines: [ground_taxi_v1, ground_taxi_v2, ground_taxi_v3]
     text: "Python One, Incirlik Ground. Scramble copied. Runway two-three, wind two-five-zero at one-five. Taxi when ready."
 
-  - id: tower_departure
+  - id: tower_departure            # only a ramp start ever takes off before check-in
     when: {event: unit.takeoff, players_only: true}
     requires: {flags_not: [checked_in]}
     priority: 60
@@ -240,10 +252,10 @@ beats:
     lines: [tower_departure_v1, tower_departure_v2, tower_departure_v3]
     text: "Python One, Incirlik Tower. Airborne. Contact Magic. Good day."
 
-  - id: air_start_greeting
-    when: {event: player.spawned, group: "Python 2", players_only: true}
+  - id: air_start_greeting         # air variant only: no ramp_start 40 s after spawn
+    when: {event: player.spawned, players_only: true}
     delay_sec: 40
-    requires: {flags_not: [checked_in]}
+    requires: {flags_not: [checked_in, ramp_start]}
     priority: 45
     once: true
     speaker: awacs_magic

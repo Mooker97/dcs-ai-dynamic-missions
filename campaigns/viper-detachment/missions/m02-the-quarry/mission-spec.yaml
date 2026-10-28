@@ -308,7 +308,7 @@ dynamic:
       areas: [sam_east, sam_south]
       pick: [1, 1]
       faction: npf_heavy
-      notes: "One SA-8 or SA-13 (or SA-9) from the Garrison stocks. Emits late."
+      notes: "One short-range SAM from the Garrison stocks (pool: any sam_short template for the era; lines stay generic). Emits late."
     - id: squirter
       roles: [hvt]
       areas: [quarry_exit, albab_north]

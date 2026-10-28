@@ -1,6 +1,7 @@
 # KNEEBOARD - BROKEN UMBRELLA
 
-**PYTHON 1-1** F-16C · 0700L · Slot **Python 1** = Incirlik ramp cold · **Python 2** = air start 20 NM WNW ARROW
+**PYTHON 1-1** F-16C (Pike = 1-2, AI) · 0700L · **-ramp.miz** = Incirlik ramp cold, RWY 05 · **-air.miz** = 20,000 ft / 420 kts, 20 NM W of ARROW, hdg 103
+**Stores:** 2x AGM-88C · 2x GBU-12 (code 1688) · ALQ-184 · HTS · LITENING · 2x AIM-120C · 2x AIM-9X · full internal
 
 | # | Phase | Action |
 |---|---|---|
@@ -18,7 +19,7 @@
 
 | Agency | Callsign | Freq |
 |---|---|---|
-| Flight / Ops | Python / Rook Ops | 305.0 |
-| AWACS | Magic | 251.0 |
-| Tanker | Shell | 251.0 · TCN 10X |
-| Twr / Gnd | Incirlik | 360.0 |
+| Flight / Ops | Python 1-1 / Rook Ops | 305.0 AM |
+| AWACS | Magic (Overlord 1-1) | 251.0 AM |
+| Tanker | Shell (Texaco 1-1) | 251.0 AM · TCN 10X TKR |
+| Twr / Gnd | Incirlik | 360.1 AM |

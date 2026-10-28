@@ -2,7 +2,7 @@
 
 **Fictional scenario** · **08 NOV, 1500L** · **PYTHON, 2x F-16C Block 50** · **Incirlik** · **Bullseye: Minakh**
 
-**Fly one flight.** **PYTHON 1** (slots Python 1-1/1-2): ramp start, cold, Incirlik. **PYTHON 2** (slots Python 2-1/2-2): air start 20 NM west of CP TUSK. Both are "Python" on the radio; the story starts at TUSK.
+**Pick your start.** Copy `m03-troops-in-contact-ramp.miz` for a cold start on the ramp at Incirlik, or `m03-troops-in-contact-air.miz` for an air start: 20,000 ft, 420 kt, 20 NM short of CP TUSK (the IP) on the Incirlik-TUSK axis, heading about 110. Either way you are **Python 1-1** in the cockpit and Pike flies **Python 1-2** as your AI wingman. The story starts at TUSK.
 
 ## Intelligence narrative — Rook S2
 
@@ -25,7 +25,7 @@ From 1500L, PYTHON provides close air support to Jackal Two-Three north of Tell 
 ## 3. Execution
 
 - **Commander's intent.** Break the assault without hurting the people we are here to protect. Work Jackal's targets in his order, starting with the Mill. End state: assault broken, LANTERN in the village, no friendly or civilian casualties from our weapons.
-- **Concept.** (1) PYTHON 1 departs runway 23; PYTHON 2 starts airborne. (2) CP TUSK: Magic hands you to Jackal. (3) Type 2: 9-line, talk-on, cleared hot. Jackal's marks show on the F10 map. (4) Off station on his release, RTB Incirlik.
+- **Concept.** (1) Ramp start: depart runway 23. Air start: you are already on the ingress axis. (2) CP TUSK: Magic hands you to Jackal. (3) Type 2: 9-line, talk-on, cleared hot. Jackal's marks show on the F10 map. (4) Off station on his release, RTB Incirlik.
 - **Coordinating instructions.**
   - ROE: PID required. Release only on Jackal's "cleared hot". The village is a **no-fire area**.
   - Danger close (the Orchard, about 500 m from LANTERN): pass initials. GBU-12 only, attack heading 270, parallel to the friendly line.
@@ -36,20 +36,20 @@ From 1500L, PYTHON provides close air support to Jackal Two-Three north of Tell 
 
 ## 4. Administration & logistics
 
-- **Loadout (per jet):** 2x GBU-12 (TER-9A), 1x AGM-65D, 2x AIM-120C, 2x AIM-9X, 2x 370 gal, ALQ-184, Litening, 510 rds. **Check stores before taxi:** this build does not load F-16 weapons yet. PYTHON 1 rearms via ground crew; PYTHON 2 may start unarmed.
-- **Fuel:** PYTHON 1 full, Shell available. PYTHON 2 about 80%.
+- **Loadout (per jet, both starts, CAS preset):** 2x GBU-12 (TER-9/A, sta 3), 2x AGM-65D (LAU-88, sta 7), 2x AIM-120C (sta 2/8), 2x AIM-9X (sta 1/9), 2x 370 gal tanks (sta 4/6), ALQ-184 (sta 5), LITENING (sta 11), full gun.
+- **Fuel:** full internal plus tanks on both starts. Shell available on the AR track.
 - **Divert:** Gaziantep, Adana Sakirpasa, Hatay. **CSAR:** none north of Tell Rifaat; eject north over the NBB.
 
 ## 5. Command & signal
 
 | Agency | Callsign | Freq |
 |---|---|---|
-| Ops / squadron | Rook Ops | 305.000 AM |
-| Flight | PYTHON 1 / PYTHON 2 | 305.000 AM |
+| Ops / squadron | Rook Ops | 305.000 AM (flight freq) |
+| Flight | Python 1-1 / 1-2 | 305.000 AM |
 | AWACS | Magic | 251.000 AM |
 | JTAC | Jackal Two-Three | 41.500 FM |
-| Tanker | Shell | not set in plan |
-| Ground / Tower | Incirlik | 360.100 / 122.100 |
+| Tanker | Shell (KC-135) | not set in plan |
+| Ground / Tower | Incirlik | DCS airfield frequencies (F10 airbase info) |
 
 - Check fire, check fire: all weapons stop at once.
 - Lost comms: no release without Jackal's clearance. Hold at TUSK, then RTB.

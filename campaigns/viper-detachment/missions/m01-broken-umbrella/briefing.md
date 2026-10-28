@@ -42,9 +42,12 @@ way to do that. Killing launchers is a bonus. End state: Cyclops completes its o
 come home.
 
 **Concept.**
-1. *Start (choose one slot).* **Python 1** = ramp start at Incirlik, cold, runway 05, about 83 NM to
-   ARROW. **Python 2** = air start about 20 NM WNW of ARROW, already on the axis. Both are PYTHON 1-1
-   on the radio.
+1. *Start (choose one file).* Copy **m01-broken-umbrella-ramp.miz** for a cold start on the ramp at
+   Incirlik (runway 05, about 83 NM to ARROW, no steerpoints loaded beyond the ramp: navigate to
+   ARROW from the kneeboard/F10 map), or **m01-broken-umbrella-air.miz** for an air start: airborne
+   at 20,000 ft and 420 kts, 20 NM short of IP ARROW on the Incirlik-ARROW axis (heading about
+   103), with ARROW as the next steerpoint. Either way you are **Python 1-1** in the cockpit and on
+   the radio, and Pike flies **Python 1-2** as an AI wingman.
 2. *Push.* Check in with Magic at IP ARROW (Kilis). Rook Ops opens the window about 20 s later.
 3. *Window (push to +10 min).* Fence in at 16 NM from Al Bab. HTS for the SA-6, HARM on emission.
 4. *Hunt (+10 to +15 min).* Cleared DEAD on anything that emitted. GBU-12 self-lase on a located
@@ -60,18 +63,19 @@ come home.
 
 ## 4. Administration and logistics
 
-Both jets: 2x AGM-88C HARM, 2x GBU-12 (code 1688), ALQ-184, HTS, Litening, 2x AIM-120C,
-2x AIM-9X. Check your stores on the ground: the generator may load a different payload. Diverts:
-Gaziantep, Adana Sakirpasa, Hatay. No CSAR asset is on station.
+Both jets, both start options (generator preset `sead`): 2x AGM-88C HARM (3/7), 2x GBU-12 (4/6),
+ALQ-184 (5), AN/ASQ-213 HTS, AN/AAQ-28 LITENING, 2x AIM-120C (2/8), 2x AIM-9X (1/9), full internal
+fuel, gun 100 %. Set the GBU-12 laser code to 1688 in the jet. Diverts: Gaziantep, Adana Sakirpasa,
+Hatay. No CSAR asset is on station.
 
 ## 5. Command and signal
 
 | Agency | Callsign | Frequency |
 |---|---|---|
-| Flight / squadron discrete | Python / Rook Ops | 305.0 AM |
-| AWACS | Magic | 251.0 AM |
-| Tanker | Shell | 251.0 AM, TACAN 10X |
-| Ground / Tower | Incirlik | 360.0 AM |
+| Flight / squadron discrete | Python 1-1 / Rook Ops | 305.0 AM |
+| AWACS | Magic (F10 comms: Overlord 1-1) | 251.0 AM |
+| Tanker | Shell (F10 comms: Texaco 1-1) | 251.0 AM, TACAN 10X (TKR) |
+| Ground / Tower | Incirlik | 360.1 AM |
 
 Bullseye: Minakh. Lost comms: continue the window, egress via ARROW at vul end, RTB.
 

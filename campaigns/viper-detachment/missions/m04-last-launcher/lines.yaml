@@ -281,29 +281,29 @@ lines:
     beat: pike_pid_decoy
     text: "Python, Two. Check your track. Westbound trucks are civil. Ours is eastbound."
 
-  # --- Rook Ops / Pike: overwatch SA-8 -------------------------------------------------------------
+  # --- Rook Ops / Pike: overwatch SA-8 (static, pinned template sa8) -------------------------------------------------------------
   - id: ops_overwatch_warning_v1
     speaker: ops_lindqvist
     beat: overwatch_warning
     delivery: "Pace unchanged, sentences shorter."
-    text: "Python, Rook Ops. Overwatch is moving up beside the road. Expect a shot within a minute."
+    text: "Python, Rook Ops. SA-8 overwatch beside the road, close to you. Expect a shot within a minute."
   - id: ops_overwatch_warning_v2
     speaker: ops_lindqvist
     beat: overwatch_warning
-    text: "Python, Rook Ops. Observers report the overwatch setting up near the road. If it's the eight, HARM it."
+    text: "Python, Rook Ops. The overwatch is an SA-8, set up near the road. When it emits, HARM it."
   - id: ops_overwatch_warning_v3
     speaker: ops_lindqvist
     beat: overwatch_warning
-    text: "Python, Rook Ops. Air defence vehicles stopping beside the road ahead of you. Watch your RWR and flares."
+    text: "Python, Rook Ops. SA-8 on the high ground ahead of you. Watch your RWR, have a HARM ready."
   - id: ops_overwatch_warning_v4
     speaker: ops_lindqvist
     beat: overwatch_warning
-    text: "Python, Rook Ops. Overwatch near the road, dark for now. He'll come up when you're close."
+    text: "Python, Rook Ops. SA-8 near the road. He'll come up when you're close."
   - id: pike_overwatch_hot_v1
     speaker: wingman_pike
     beat: overwatch_hot
     delivery: "Fast, not loud."
-    text: "Python, Two. Overwatch is up, near the road. Defending."
+    text: "Python, Two. SA-8 is up, near the road. Defending."
   - id: pike_overwatch_hot_v2
     speaker: wingman_pike
     beat: overwatch_hot
@@ -311,16 +311,16 @@ lines:
   - id: pike_overwatch_hot_v3
     speaker: wingman_pike
     beat: overwatch_hot
-    text: "Python, Two. Overwatch active. If you get mud, it's the eight."
+    text: "Python, Two. Eight is active, mud spike. Magnum when you have him."
   - id: pike_overwatch_hot_v4
     speaker: wingman_pike
     beat: overwatch_hot
-    text: "Python, Two. Air defence up beside the road. Check RWR."
+    text: "Python, Two. SA-8 up beside the road. Check RWR."
   - id: pike_overwatch_dead_v1
     speaker: wingman_pike
     beat: overwatch_destroyed
     delivery: "Flat, the relief is in the breath."
-    text: "Python, Two. Good effect. Overwatch destroyed."
+    text: "Python, Two. Good effect. SA-8 destroyed."
   - id: pike_overwatch_dead_v2
     speaker: wingman_pike
     beat: overwatch_destroyed

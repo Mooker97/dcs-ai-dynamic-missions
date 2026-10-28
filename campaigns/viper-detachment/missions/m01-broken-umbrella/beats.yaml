@@ -3,7 +3,9 @@
 # Guaranteed spine (guaranteed: true; reachable from BOTH start options, never depends on takeoff):
 #   mission_start -> magic_checkin (IP ARROW) -> window_open (+20 s) -> fence_in (16 NM of Al Bab)
 #   -> window_closed (push + 10 min) -> rtb_call (window close + 5 min, vul end) -> on_deck
-# Ground/Tower beats are optional extras that only the ramp-start flight ('Python 1') will hear.
+# Two start variants (ramp -> group 'Python 1', air -> group 'Python 2'): no beat filters on a group
+# or unit name. Ground/Tower departure beats are ramp-only because they are gated on the Incirlik
+# zone at spawn (before check-in) and on takeoff, which the air start never does.
 # The MQ-9 'Cyclops Two' is narrative: its fate is decided by whether the SA-6 launches during the
 # window and whether its radar is dead 45 s later (telegraphed by Magic's 'Cyclops defending').
 mission_id: m01-broken-umbrella
@@ -95,11 +97,12 @@ beats:
     text: "Python, Rook Ops. Copy on deck. Debrief in the vault."
     effects: {set_flag: landed, outcome: {landed: true}, end_mission: success}
 
-  # ---- Optional: ramp-start extras (Python 1 only) -------------------------------------------
-  - id: ground_taxi
-    when: {event: player.spawned, group: "Python 1"}
+  # ---- Optional: ramp-start extras (ramp variant only) ---------------------------------------
+  - id: ground_taxi                 # ramp only: the player spawns inside the Incirlik zone; the air
+    # start first enters it on recovery, after check-in, so checked_in/window_open block it
+    when: {event: zone.entered, zone: incirlik_approach}
     delay_sec: 420
-    requires: {flags_not: [airborne]}
+    requires: {flags_not: [airborne, checked_in, window_open, rtb_called]}
     priority: 50
     once: true
     speaker: tower_incirlik
@@ -311,14 +314,10 @@ beats:
     once: true
     effects: {quality_deltas: {collateral: 1}}
 
-  - id: wingman_lost_ramp           # silent
-    when: {event: unit.dead, unit: "Python 1-2"}
-    priority: 99
-    once: true
-    effects: {outcome: {wingman_lost: true}}
-
-  - id: wingman_lost_air            # silent
-    when: {event: unit.dead, unit: "Python 2-2"}
+  - id: wingman_lost                # silent: any Python jet dies (both variants). If it was the
+    # lead, player_lost (priority 100) fires first in the same pump and flags_not blocks this one.
+    when: {event: unit.dead, group_prefix: Python}
+    requires: {flags_not: [player_lost]}
     priority: 99
     once: true
     effects: {outcome: {wingman_lost: true}}

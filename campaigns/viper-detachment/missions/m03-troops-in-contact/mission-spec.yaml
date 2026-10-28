@@ -27,15 +27,12 @@ cast: [ops_lindqvist, wingman_pike, jtac_ortiz, awacs_magic, tower_incirlik]
 areas:
   # --- home -------------------------------------------------------------------------------
   - id: incirlik
-    description: "Incirlik, home base. Ramp-start flight PYTHON 1 parks here."
+    description: "Incirlik, home base. The ramp variant parks here; entering it at spawn marks a ramp start."
     where: {kind: near_airbase, airbase: Incirlik, radius_nm: 1}
   - id: incirlik_approach
     description: "10 NM circle around Incirlik; entering it after the fight triggers the tower call."
     where: {kind: near_airbase, airbase: Incirlik, radius_nm: 10}
   # --- ingress ------------------------------------------------------------------------------
-  - id: air_start
-    description: "Air-start point for PYTHON 2: on the Incirlik-CP TUSK axis, 20 NM short of the CP."
-    where: {kind: latlon, lat: 36.729, lon: 36.493, radius_nm: 1}
   - id: cp_tusk
     description: "Contact point TUSK, 12 NM north-west of the village over NBB-held ground. Check-in with Magic, hand-off to Jackal."
     where: {kind: latlon, lat: 36.628, lon: 36.889, radius_nm: 4}
@@ -100,12 +97,10 @@ areas:
     where: {kind: latlon, lat: 36.565, lon: 37.080, radius_nm: 0.3}
     terrain: road
 
-# Two player flights, one is flown. Both callsign PYTHON so every radio line fits either; the
-# planner names the groups "Python 1" (ramp) and "Python 2" (air) and the slots Python 1-1/1-2 and
-# Python 2-1/2-2. Loadout per jet (pydcs F_16C_50 names): 1/9 AIM_9X_Sidewinder_IR_AAM,
-# 2/8 AIM_120C_AMRAAM___Active_Radar_AAM, 3 TER_9_A___2_x_GBU_12___500lb_Laser_Guided_Bomb,
-# 4/6 Fuel_tank_370_gal, 5 ALQ_184, 7 LAU_117___AGM_65D___Maverick_D__IIR_ASM_,
-# 11 AN_AAQ_28_LITENING___Targeting_Pod_.
+# Two start variants of the same flight; build writes out/m03-troops-in-contact-ramp.miz and
+# out/m03-troops-in-contact-air.miz. Both are "Python 1-1" in the cockpit (slot: player = lead is
+# the SP Player, #2 is Pike as an AI wingman). Group names: "Python 1" (ramp), "Python 2" (air);
+# beats never filter on them. loadout: auto -> F-16C_50 preset 'cas' (mission_type CAS).
 player_flights:
   - callsign: Python
     aircraft: F-16C_50
@@ -114,7 +109,9 @@ player_flights:
     country: USA
     start_area: incirlik
     start_type: parking_cold
-    loadout: "CAS: 2x GBU-12 (TER-9A, sta 3), 1x AGM-65D (LAU-117, sta 7), 2x AIM-120C, 2x AIM-9X, 2x 370 gal, ALQ-184, Litening, 510 rds 20 mm"
+    variant: ramp
+    slot: player
+    loadout: auto
     frequency_mhz: 305.0
     tasking: >-
       RAMP START (alert scramble). Cold start Incirlik, taxi runway 23, depart east, tank on SHELL
@@ -125,13 +122,21 @@ player_flights:
     count: 2
     coalition: blue
     country: USA
-    start_area: air_start
+    start_area: incirlik
     start_type: air
-    loadout: "CAS: 2x GBU-12 (TER-9A, sta 3), 1x AGM-65D (LAU-117, sta 7), 2x AIM-120C, 2x AIM-9X, 2x 370 gal, ALQ-184, Litening, 510 rds 20 mm"
+    variant: air
+    slot: player
+    air_start:
+      altitude_ft: 20000
+      speed_kts: 420
+      distance_nm_before_first_wp: 20
+      toward: cp_tusk
+    loadout: auto
     frequency_mhz: 305.0
     tasking: >-
-      AIR START, 20 NM west-north-west of CP TUSK, already on the ingress axis. Proceed CP TUSK,
-      check in with Magic, contact Jackal Two-Three. Type 2 CAS north of Tell Rifaat. RTB Incirlik.
+      AIR START, 20,000 ft, 420 kt, 20 NM short of CP TUSK on the Incirlik-TUSK axis. Proceed CP
+      TUSK, check in with Magic, contact Jackal Two-Three. Type 2 CAS north of Tell Rifaat. RTB
+      Incirlik.
 
 objectives:
   - id: break_assault
@@ -207,6 +212,7 @@ support:
     callsign: "Lantern"
     area: village_lantern
     composition: "4x Soldier M4, 2x Soldier M249, 1x M1043 HMMWV Armament, 1x M-113"
+    faction: partner_nbb
   - id: jackal
     role: jtac
     callsign: "Jackal Two-Three"
@@ -257,7 +263,7 @@ dynamic:
       areas: [sa13_hide]
       pick: [1, 1]
       faction: npf_heavy
-      notes: "SA-13 class (whatever short-range SAM the Garrison stocks provide). Present only at sam_threat >= 2."
+      notes: "SA-13 class wanted (catalog has sa13_gopher_section, but pools cannot pin templates yet; the planner draws from all era sam_short templates). Lines stay generic 'SA-9 or SA-13 class'. Present only at sam_threat >= 2."
     - id: civ_traffic
       roles: [civilian]
       areas: [road_south, road_north]
@@ -317,8 +323,8 @@ dynamic:
 seed: null
 
 notes: >-
-  Director intent: the scramble and transit are calm (the ramp flight gets Ground/Tower; the air
-  start flight is at the CP in about three minutes). Tension starts at the CP with Magic's hand-off
+  Director intent: the scramble and transit are calm (the ramp variant gets Ground/Tower; the air
+  start variant is at the CP in about three minutes). Tension starts at the CP with Magic's hand-off
   and Jackal's breathless sitrep, builds through the first 9-line and talk-on onto the Mill, and
   peaks at the danger-close Orchard attack while the first assault wave arrives and the SA-13
   comes up. The armor 9-line is the second peak. Relax only after the assault breaks (3 fortified

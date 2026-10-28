@@ -1,6 +1,8 @@
 # KNEEBOARD - TROOPS IN CONTACT
 
-**PYTHON 1** ramp cold Incirlik RWY 23 · **PYTHON 2** air start 20 NM W of TUSK · 1500L · BE Minakh
+**Python 1-1** (Pike = 1-2, AI) · `-ramp.miz` cold Incirlik RWY 23 · `-air.miz` 20,000 ft / 420 kt, 20 NM short of TUSK hdg ~110 · 1500L · BE Minakh
+
+**Stores (CAS):** 2x GBU-12 · 2x AGM-65D · 2x AIM-120C · 2x AIM-9X · 2x 370 gal · ALQ-184 · LITENING
 
 | # | Phase | Action |
 |---|---|---|
@@ -18,8 +20,8 @@
 
 | Agency | Callsign | Freq |
 |---|---|---|
-| Ops / flight | Rook Ops / PYTHON | 305.000 AM |
+| Ops / flight | Rook Ops / Python 1 | 305.000 AM |
 | AWACS | Magic | 251.000 AM |
 | JTAC | Jackal Two-Three | 41.500 FM |
 | Tanker | Shell (AR track E of Incirlik) | not set in plan |
-| Ground / Tower | Incirlik | 360.100 / 122.100 |
+| Ground / Tower | Incirlik | DCS airfield freqs (F10) |

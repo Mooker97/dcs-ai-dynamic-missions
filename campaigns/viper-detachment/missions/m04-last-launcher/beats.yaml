@@ -1,6 +1,11 @@
 # m04 The Last Launcher — beats. Schema: schemas/beats.schema.json (BeatSheet). Compiled into DMS_CONFIG.beats.
 # group_prefix values are pool ids (runtime spawns are named <pool id>...): sam_carrier_*, escort_*,
-# overwatch_*, civ_decoy_* / civ_traffic (prefix civ_), river_manpads.
+# civ_decoy_* / civ_traffic (prefix civ_), river_manpads; plus the static SA-8 threats overwatch_n_1 /
+# overwatch_c_1 / overwatch_s_1 (prefix overwatch).
+# Variants: ramp (Python 1, cold at Incirlik) and air (Python 2, 20 NM short of HAMMER). No beat
+# filters on a group or unit name: player beats use players_only (the lead only; the AI wingman
+# Pike never counts). Ramp-only beats (ground_taxi, tower_departure) are gated by the incirlik
+# zone and unit.takeoff, which the air variant never produces.
 #
 # Guaranteed spine (guaranteed: true; reachable from BOTH start options, never from takeoff):
 #   mission_start -> checkin_magic (zone push_hammer) -> retask (flag checked_in) -> on_station (zone
@@ -159,7 +164,7 @@ beats:
     once: true
     effects:
       set_flag: [route_set, route_n_set]
-      start_encounter: [convoy_n, escort_run_n, overwatch_sam_n, decoy_n]
+      start_encounter: [convoy_n, escort_run_n, decoy_n]
 
   - id: route_c_known
     when: {event: beat.fired, beat: retask}
@@ -168,7 +173,7 @@ beats:
     once: true
     effects:
       set_flag: [route_set, route_c_set]
-      start_encounter: [convoy_c, escort_run_c, overwatch_sam_c, decoy_c]
+      start_encounter: [convoy_c, escort_run_c, decoy_c]
 
   # ==== Silent: candidate-road marks for the F10 map =============================================
   - id: mark_route_n
@@ -305,25 +310,25 @@ beats:
     text: "Python, Two. Trucks westbound on the same road. No weapons. Those look civilian."
     effects: {set_flag: decoy_called}
 
-  # ==== Optional: overwatch SA-8 (telegraph -> hot -> dead) =======================================
-  # Telegraph for overwatch_sam_n/_c/_s: each encounter requests this beat by id (beat.request) 30-60 s
-  # before going hot, so the `when` below only documents one of the three sources.
+  # ==== Optional: overwatch SA-8 (revealed -> shooting -> dead) ===================================
+  # The SA-8s are static hidden threats (pinned template sa8). Fog of war reveals one when PYTHON is
+  # within 8 km, inside its envelope edge: that is the warning.
   - id: overwatch_warning
-    when: {event: encounter.telegraph, encounter: overwatch_sam_n}
+    when: {event: intel.revealed, group_prefix: overwatch}
     priority: 92
     once: true
     speaker: ops_lindqvist
     lines: [ops_overwatch_warning_v1, ops_overwatch_warning_v2, ops_overwatch_warning_v3, ops_overwatch_warning_v4]
-    text: "Python, Rook Ops. Overwatch is moving up beside the road. Expect a shot within a minute."
+    text: "Python, Rook Ops. SA-8 overwatch beside the road, close to you. Expect a shot within a minute."
     effects: {set_flag: overwatch_warned}
 
   - id: overwatch_hot
-    when: {event: encounter.sam_hot, group_prefix: overwatch}
+    when: {event: unit.shot, group_prefix: overwatch}
     priority: 93
     once: true
     speaker: wingman_pike
     lines: [pike_overwatch_hot_v1, pike_overwatch_hot_v2, pike_overwatch_hot_v3, pike_overwatch_hot_v4]
-    text: "Python, Two. Overwatch is up, near the road. Defending."
+    text: "Python, Two. SA-8 is up, near the road. Defending."
     effects: {set_flag: overwatch_hot}
 
   - id: overwatch_destroyed
@@ -332,7 +337,7 @@ beats:
     once: true
     speaker: wingman_pike
     lines: [pike_overwatch_dead_v1, pike_overwatch_dead_v2, pike_overwatch_dead_v3]
-    text: "Python, Two. Good effect. Overwatch destroyed."
+    text: "Python, Two. Good effect. SA-8 destroyed."
     effects: {set_flag: overwatch_sam_destroyed, outcome: {overwatch_sam_destroyed: true}}
 
   - id: manpads_warning             # telegraph for crossing_manpads

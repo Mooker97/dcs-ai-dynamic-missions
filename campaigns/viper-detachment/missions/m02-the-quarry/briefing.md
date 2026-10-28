@@ -1,6 +1,6 @@
 # THE QUARRY
 
-**Classification:** fictional training material · **Date/Time:** 05 NOV, 1030L · **Callsign:** PYTHON 1-1 (Pike 1-2) · **Two start options, see para 4**
+**Classification:** fictional training material · **Date/Time:** 05 NOV, 1030L · **Callsign:** PYTHON 1-1 (Pike 1-2, AI wingman) · **Two start options, see para 4**
 
 ## Intelligence narrative (S2)
 
@@ -22,7 +22,7 @@ ELINT is watching east of Al Bab.
 - **Enemy (known).** ZU-23 emplacements and a ZU-23 technical on the Quarry rim (light AAA,
   effective below ~5,000 ft AGL). Command building and its vehicles on the west lip.
 - **Enemy (reported, not located).** DShK technicals on the tracks around the Quarry; a guard
-  section in the pit; Igla MANPADS teams on likely attack headings; possibly one SA-8 or SA-13
+  section in the pit; Igla MANPADS teams on likely attack headings; possibly one short-range SAM
   3-4 NM beyond the target. *Most likely:* guns fire barrage, a truck runs for Al Bab. *Most
   dangerous:* a MANPADS team under a repeated attack heading while a SAM emits late from the east.
 - **Friendly.** Magic (E-3) controls the area. Jackal Two-Three (TSgt Ortiz, USAF JTAC) is with the
@@ -42,11 +42,11 @@ Al Bab, with laser-guided bombs to destroy the insurgents' stocks without harmin
   NPF before its next push on the Brigade. Key tasks: find the active sites on the pod, destroy
   them, destroy the command building, no civilian harm. End state: two sites with secondaries, the
   command building down, PYTHON home with both jets.
-- **Concept.** (1) Ramp flight: depart Incirlik, transit ESE. Air-start flight: begin at step 2.
+- **Concept.** (1) Ramp start: depart Incirlik, transit ESE. Air start: begin 20 NM short of IP SHALE, then step 2.
   (2) Check in with Magic inside 10 NM of IP SHALE (12 NM NW of the target). (3) Rook Ops clears
   you to engage inside 10 NM of the Quarry. (4) TGP search, self-lase LGB runs. (5) Egress north
   to GATE (11 NM N of the target), call Rook Ops, RTB Incirlik.
-- **Tasks.** PYTHON 1-1: GBU-24 on the active sites, then the command building. PYTHON 1-2:
+- **Tasks.** PYTHON 1-1: GBU-12 on the active sites, then the command building. PYTHON 1-2:
   wingman, buddy-lase backup, BDA calls.
 - **Coordinating instructions.**
   - ROE: PID every aimpoint on the TGP. **No weapons east of the Quarry's east wall** (hamlet is
@@ -60,12 +60,13 @@ Al Bab, with laser-guided bombs to destroy the insurgents' stocks without harmin
 
 ## 4. Administration & logistics
 
-- **Two start options, same sortie, same callsign on the radio (PYTHON 1).** Choose one slot:
-  - **Python Ramp 1** - cold start on the Incirlik ramp. Full transit (about 100 NM), Shell
-    available.
-  - **Python Air 2** - air start, about 20 NM WNW of IP SHALE on the ingress axis, master arm safe.
-    The "2" is the DCS group index, not your flight number.
-- **Loadout (both).** 2x GBU-24A/B, 2x AIM-120C, 2x AIM-9X, 2x 370 gal, ALQ-184, Litening.
+- **Two start options, same sortie, same callsign (PYTHON 1-1, Pike 1-2 as AI wingman).** Pick the file:
+  - copy **m02-the-quarry-ramp.miz** for a cold start on the Incirlik ramp. Full transit (about
+    100 NM), Shell available.
+  - copy **m02-the-quarry-air.miz** for an air start: 20,000 ft, 420 kts, 20 NM before IP SHALE
+    on the line from Incirlik, heading for the IP, master arm safe, full internal fuel.
+- **Loadout (both, generator preset `lgb_strike`).** 4x GBU-12 (2x TER-9/A on stations 3/7),
+  2x AIM-120C, 2x AIM-9X, 2x 370 gal tanks, ALQ-184, AN/AAQ-28 LITENING.
 - **Divert:** Gaziantep, Adana Sakirpasa, Hatay. **CSAR:** none dedicated; NBB lines west of Al Bab.
 
 ## 5. Command & signal
@@ -74,10 +75,10 @@ Al Bab, with laser-guided bombs to destroy the insurgents' stocks without harmin
 |---|---|---|
 | Squadron / ops | Rook Ops (PYTHON 1 flight freq) | 305.0 AM |
 | AWACS | Magic | 251.0 AM |
-| JTAC | Jackal Two-Three | 41.5 FM |
-| Tanker | Shell | 251.0 AM (shared with Magic) |
+| JTAC (with NBB, CJTF Blue) | Jackal Two-Three | 41.5 FM |
+| Tanker | Shell | 276.1 AM (briefed; not set on the tanker by the generator yet) |
 | Incirlik Ground/Tower | Incirlik | 360.0 AM / 122.0 AM |
 
-- Frequencies from the mission plan. Incirlik from the airfield data. On the radio you are PYTHON 1-1 whichever slot you take; the DCS comms menu may show a default callsign.
+- Frequencies from the mission plan (out/plan.json: flight 305.0, Magic 251.0, Jackal 41.5 FM). Incirlik from the airfield data. The cockpit callsign is PYTHON 1-1 in both files.
 - Bullseye: Minakh. Codeword for stocks destroyed: none; call BDA in plain text on egress.
 - Lost comms: complete the attack only with PID, egress via GATE, recover Incirlik.

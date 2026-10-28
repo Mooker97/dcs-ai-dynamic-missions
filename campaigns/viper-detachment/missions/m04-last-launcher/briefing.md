@@ -1,6 +1,6 @@
 # THE LAST LAUNCHER
 
-**Classification:** fictional training material · **Date/Time:** 14 NOV, 0630L · **Callsign:** PYTHON 1-1 (2-ship, F-16C Block 50) · Incirlik
+**Classification:** fictional training material · **Date/Time:** 14 NOV, 0630L · **Callsign:** PYTHON 1-1 (2-ship, F-16C Block 50; #2 Pike = AI wingman) · Incirlik
 
 ## Intelligence narrative (Rook S2)
 
@@ -8,7 +8,8 @@ Two weeks into the tasking, the Garrison's air defences are thinner but not gone
 the SA-6 battery, the radar vehicle the Engineer kept running and its launchers, left Kuweires
 before dawn under a technical escort. NPF radio traffic overnight talked about "the river". We
 assess they are moving it east to the Euphrates crossings, out of our reach on the far bank.
-Reported, not confirmed: one short-range SAM group travelling ahead as overwatch.
+The Garrison also lost track of two or three SA-8s; we assess one sits on the high ground above
+each road east as overwatch.
 
 There are three roads east: north through Manbij to the northern bridge, the centre road to the
 Tishrin dam, and south past Deir Hafer to Maskanah on the lake. We do not know which one they
@@ -20,8 +21,8 @@ first light, and from 15,000 ft a lorry looks like a launcher.
 - **Enemy.** *Known:* ZU-23 guns on the Kuweires perimeter (marked). *Convoy:* SA-6 element (one
   1S91 Straight Flush radar, three 2P25 launchers, self-propelled) with DShK technicals,
   eastbound at about 35 km/h. Radar stowed while moving; it can still stop and emit. *Overwatch:*
-  one short-range SAM group beside the convoy's road, SA-8 (radar) or SA-9/SA-13 (IR), dark until
-  you are close. *Possible:* Igla teams at the crossings. *Most likely:* the convoy keeps moving and
+  one SA-8 Gecko (radar, HARM target) on the high ground above each candidate road, unlocated
+  until you are close. *Possible:* Igla teams at the crossings. *Most likely:* the convoy keeps moving and
   hides in traffic. *Most dangerous:* the overwatch or the SA-6 radar comes up while you are low and
   slow on a lasing run.
 - **Friendly.** Magic (E-3) has the air picture. Rook Ops (Maj. Lindqvist) on the squadron
@@ -39,12 +40,13 @@ Euphrates crossings, suppressing its overwatch, to remove the NPF's last radar S
 - **Commander's intent.** The radar is the target: without it the launchers are scrap. Key tasks:
   check in at HAMMER, take the retask, find the convoy, suppress the overwatch, put a GBU-12 on the
   1S91. End state: radar destroyed, no civilian casualties, both jets home.
-- **Start options (choose one slot).** **Python-Ramp 1**: ramp start, cold, Incirlik. **Python-Air
-  2**: air start, ~10,000 ft, 20 NM short of HAMMER, heading east. Both are PYTHON 1-1 / 1-2 on
-  the radio; the story starts at HAMMER either way.
+- **Start options (choose one file).** Copy `m04-last-launcher-ramp.miz` for a cold start on the
+  Incirlik ramp, or `m04-last-launcher-air.miz` for an air start at 20,000 ft, 420 kt, 20 NM
+  short of HAMMER (the IP), heading east-south-east. Either way you fly PYTHON 1-1 with Pike as
+  PYTHON 1-2 (AI wingman); the story starts at HAMMER.
 - **Concept.** (1) Ramp: start, taxi, depart Incirlik, tank on Shell if needed. (2) Push HAMMER,
   check in with Magic. (3) Rook Ops retasks; the 40-minute window starts. Candidate roads are marked
-  on F10. (4) Search with the pod, north to south unless cued. (5) HARM the overwatch when it
+  on F10. (4) Search with the pod, north to south unless cued. (5) HARM the SA-8 when it
   emits, then lase the radar vehicle (moving target). (6) RTB on Rook Ops' call.
 - **Coordinating instructions.**
   - ROE: PID before release. Westbound traffic is not the convoy. Nothing inside towns.
@@ -55,8 +57,9 @@ Euphrates crossings, suppressing its overwatch, to remove the NPF's last radar S
 
 ## 4. Administration & logistics
 
-- **Loadout (both jets):** 2x AGM-88C, 2x GBU-12, 2x AIM-120C, 2x AIM-9X, 300-gal centreline,
-  HTS, Litening. Laser code 1688.
+- **Loadout (both jets, both start options; F-16C_50 preset `sead`):** 2x AGM-88C HARM (3/7),
+  2x GBU-12 (4/6), 2x AIM-120C (2/8), 2x AIM-9X (1/9), ALQ-184 ECM pod (5), AN/ASQ-213 HTS (10),
+  AN/AAQ-28 LITENING (11). No external tanks; full internal fuel. Laser code 1688.
 - **Fuel:** Joker 4,000 lb, Bingo 3,000 lb in the box for Incirlik. Shell on request.
 - **Diverts:** Gaziantep, Adana Sakirpasa, Hatay. **CSAR:** none on alert; Magic coordinates.
 
@@ -64,11 +67,11 @@ Euphrates crossings, suppressing its overwatch, to remove the NPF's last radar S
 
 | Agency | Callsign | Freq |
 |---|---|---|
-| Flight / squadron discrete | Python / Rook Ops | 305.000 AM |
+| Flight / squadron discrete | Python 1-1 / Rook Ops | 305.000 AM |
 | AWACS | Magic | 251.000 AM |
-| JTAC | Jackal Two-Three | 41.500 FM |
+| JTAC | Jackal Two-Three | 41.500 AM (as built) |
 | Tanker | Shell | 251.000 AM |
-| Incirlik Ground / Tower | Incirlik | 360.000 AM |
+| Incirlik Ground / Tower | Incirlik | 360.100 AM |
 
 - Codewords: HAMMER = push point; "endex" = window closed, weapons hold on the convoy.
 - Lost comms: complete the search if the window is open, then RTB via HAMMER.

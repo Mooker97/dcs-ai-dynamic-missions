@@ -1,0 +1,185 @@
+// DMS "Village Sweep" - Malden 2035. Solo player leading a US rifle squad with an attached Bradley.
+// Required mods: CBA_A3, ACE3, LAMBS Danger, RHS AFRF, RHS USAF, RHS GREF (checked at start).
+author = "DMS";
+onLoadName = "Village Sweep";
+onLoadMission = "Clear an insurgent-held village with your squad and a Bradley, then hold it.";
+briefingName = "DMS - Village Sweep";
+overviewText = "Lead a US Army rifle squad and an attached M2A3 Bradley to clear a village on Malden held by ChDKZ insurgents, then hold it against their counterattack. Needs CBA, ACE, LAMBS and RHS AFRF/USAF/GREF.";
+
+respawn = 0;
+respawnDialog = 0;
+disabledAI = 1;
+enableDebugConsole = 1;
+corpseManagerMode = 0;
+wreckManagerMode = 0;
+
+class Header
+{
+	gameType = "Coop";
+	minPlayers = 1;
+	maxPlayers = 1;
+};
+
+class Params
+{
+	class DMS_seed
+	{
+		title = "Random seed (0 = random, logged)";
+		values[] = {0, 1, 2, 3, 7, 42, 1337, 4242};
+		texts[] = {"Random", "1", "2", "3", "7", "42", "1337", "4242"};
+		default = 0;
+	};
+	class DMS_village
+	{
+		title = "Village";
+		values[] = {0, 1, 2, 3};
+		texts[] = {"From seed", "Arudy", "Houdan", "Goisse"};
+		default = 0;
+	};
+	class DMS_debug
+	{
+		title = "Debug (log to screen, enemy markers)";
+		values[] = {0, 1};
+		texts[] = {"Off", "On"};
+		default = 0;
+	};
+	class DMS_testMode
+	{
+		title = "Test mode (AI squad plays unattended)";
+		values[] = {0, 1};
+		texts[] = {"Off", "On"};
+		default = 0;
+	};
+	class DMS_testMinutes
+	{
+		title = "Test mode time limit (minutes)";
+		values[] = {15, 20, 30, 45, 60, 90};
+		texts[] = {"15", "20", "30", "45", "60", "90"};
+		default = 45;
+	};
+	class DMS_testTimeScale
+	{
+		title = "Test mode time scale for mission delays (percent)";
+		values[] = {100, 50, 25, 15, 10};
+		texts[] = {"100% (real)", "50%", "25%", "15%", "10%"};
+		default = 100;
+	};
+	class DMS_testStartDist
+	{
+		title = "Test mode squad start distance (m, 0 = normal)";
+		values[] = {0, 300, 500};
+		texts[] = {"Normal", "300", "500"};
+		default = 0;
+	};
+	class DMS_testAssist
+	{
+		title = "Test mode assist (s near the village / after the counterattack dismounts; 0 = off)";
+		values[] = {0, 120, 180, 300};
+		texts[] = {"Off", "120", "180", "300"};
+		default = 0;
+	};
+	class DMS_testForce
+	{
+		title = "Test mode forced outcome";
+		values[] = {0, 1, 2};
+		texts[] = {"None", "Bradley destroyed after the clear (partial win)", "Squad wiped out after the clear"};
+		default = 0;
+	};
+};
+
+class CfgFunctions
+{
+	class DMS
+	{
+		tag = "DMS";
+		class mission
+		{
+			file = "functions";
+			class config {};
+			class log {};
+			class rng {};
+			class t {};
+			class findPos {};
+			class village {};
+			class ifv {};
+			class counter {};
+			class end {};
+			class testMode {};
+		};
+	};
+};
+
+// Bradley orders. The items stay in the menu; the server answers with a hint.
+class CfgCommunicationMenu
+{
+	class DMS_IfvMove
+	{
+		text = "Bradley: move up to my position";
+		submenu = "";
+		expression = "['MOVE', [_this select 0]] remoteExecCall ['DMS_fnc_ifv', 2];";
+		icon = "\a3\Ui_f\data\GUI\Cfg\CommunicationMenu\transport_ca.paa";
+		cursor = "";
+		enable = "1";
+		removeAfterExpressionCall = 0;
+	};
+	class DMS_IfvHold
+	{
+		text = "Bradley: hold here, overwatch";
+		submenu = "";
+		expression = "['HOLD', [_this select 0]] remoteExecCall ['DMS_fnc_ifv', 2];";
+		icon = "\a3\Ui_f\data\GUI\Cfg\CommunicationMenu\defend_ca.paa";
+		cursor = "";
+		enable = "1";
+		removeAfterExpressionCall = 0;
+	};
+	class DMS_IfvSuppress
+	{
+		text = "Bradley: suppress marked position";
+		submenu = "";
+		expression = "['SUPPRESS', [_this select 0, _this select 1]] remoteExecCall ['DMS_fnc_ifv', 2];";
+		icon = "\a3\Ui_f\data\GUI\Cfg\CommunicationMenu\attack_ca.paa";
+		cursor = "\a3\Ui_f\data\IGUI\Cfg\Cursors\iconCursorSupport_ca.paa";
+		enable = "1";
+		removeAfterExpressionCall = 0;
+	};
+};
+
+class CfgDebriefing
+{
+	class DMS_Win
+	{
+		title = "Mission complete";
+		subtitle = "Village held";
+		description = "The village is clear and the counterattack was beaten off. The Bradley came through.";
+	};
+	class DMS_WinPartial
+	{
+		title = "Mission complete";
+		subtitle = "Village held, Bradley lost";
+		description = "The village is held, but the attached Bradley was knocked out.";
+	};
+	class DMS_FailDead
+	{
+		title = "Mission failed";
+		subtitle = "Squad lost";
+		description = "You were killed or the squad was wiped out.";
+	};
+	class DMS_FailMods
+	{
+		title = "Cannot start";
+		subtitle = "Required mods missing";
+		description = "Village Sweep needs CBA_A3, ACE3, LAMBS Danger and RHS AFRF, RHS USAF and RHS GREF. Load them and restart. The log line '[DMS] Mods:' lists what is missing.";
+	};
+	class DMS_FailSetup
+	{
+		title = "Cannot start";
+		subtitle = "No usable village";
+		description = "No village with a usable number of houses was found. See the '[DMS] Village' log lines.";
+	};
+	class DMS_TestEnd
+	{
+		title = "Test run ended";
+		subtitle = "Time limit";
+		description = "The unattended test run reached its time limit.";
+	};
+};

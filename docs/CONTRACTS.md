@@ -101,6 +101,7 @@ DMS.Director.spawnBudget() -> spawns/min   tick(dt)   -- tick is driven by start
 DMS.Encounters.trigger(id, opts) -> bool   -- opts: boolean force | {force=bool, beat=id}; ignores chance,
                                            --       respects once unless force
 DMS.Encounters.get(id) groups(id) add(def)
+DMS.Encounters.capStation(def) capOrbitTask(station, n?) capEngageTask(station, targetTypes?, n?)  -- cap task tables
 --   event trigger: {type="event", event=<bus event>}; `name` is accepted as an alias for `event`
 -- narrative.lua
 DMS.Narrative.trigger(id, source) setFlag(name, value) getFlag(name) isFlagSet(name)
@@ -158,6 +159,7 @@ All payload names are strings; `pos` is vec3; coalition is 0 neutral / 1 red / 2
 | `encounter.sam_hot` | `{id, encounter, group}` | encounters |
 | `encounter.wave` | `{id, encounter, wave, of, groups}` | encounters |
 | `encounter.cleared` | `{id, encounter}` | encounters |
+| `encounter.cap_on_station` / `cap_rtb` / `cap_despawned` / `cap_lost` | `{id, encounter, group}` | encounters (cap) |
 | `encounter.proximity` | `{id, encounter, zone, group, unit}` | encounters proximity trigger (NOT `zone.entered`) |
 | `convoy.halted` / `convoy.resumed` | `{group, by?}` | ground.haltOnHit |
 | `ground.stuck` | `{group}` | ground.watch |
@@ -197,6 +199,14 @@ DMS_CONFIG = {
       waves = nil --[[number or {min,max}]], gapSec = {120, 240},
       destination = "kirikhan_road" --[[zone id or {x,y}]], resumeAfterSec = {60, 120}, escortRadiusM = 500,
       speed = 10, action = "On Road" },
+    -- kind = "cap": one air group per launch on station over zone|point (details: reference/lua-api-notes.md)
+    { id = "mig_cap", kind = "cap", pool = "migs" --[[or template]], spawnZone = "north_af",
+      zone = "cap_box" --[[or point = {x,y}]], engageRadiusM = 40000, targetTypes = {"Air"},
+      orbit = { pattern = "Race-Track" --[[|Circle]], legM = 30000, headingDeg = nil, altM = {6000, 8000}, speed = {200, 230} },
+      roe = "OPEN_FIRE", reaction = "EVADE_FIRE", radar = nil, timeOnStationSec = nil --[[Range]],
+      maxSpawns = 1, replaceOnDead = true, replaceOnRtb = true, replaceDelaySec = {60, 180}, arriveM = 10000,
+      stationTimeoutSec = 1200, rtbDespawnSec = 600, despawnMinPlayerM = 37000, checkSec = 10, maxDeferSec = 900 },
+    -- cap launches are strictly director-gated: still refused after maxDeferSec -> dropped (logged), never forced.
   },
   beats = { --[[ see "Beats" ]] },
   voice = { ops_cleared_v1 = { file = "ops_cleared_v1.ogg" --[[optional: nil/"" = subtitle only]], text = "Dusty, Hatay Ops...", durSec = 7.5,

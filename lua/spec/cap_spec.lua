@@ -10,8 +10,12 @@ local function baseConfig()
     director = { enabled = true, peak = 70, relaxSec = { 40, 90 }, decayPerSec = 1.5, adapt = { min = -1, max = 1 } },
     intel = { fogOfWar = true },
     templates = {
-      mig29 = { country = "RUSSIA", category = "airplane", skill = "High",
-        units = { { type = "MiG-29S" }, { type = "MiG-29S", dx = -200, dy = 200 } } },
+      mig29 = {
+        country = "RUSSIA",
+        category = "airplane",
+        skill = "High",
+        units = { { type = "MiG-29S" }, { type = "MiG-29S", dx = -200, dy = 200 } },
+      },
       su27 = { country = "RUSSIA", category = "airplane", units = { { type = "Su-27" } } },
     },
     zones = {
@@ -19,7 +23,11 @@ local function baseConfig()
       airfield = { kind = "circle", x = 200000, y = 50000, radius = 5000 },
     },
     pools = {
-      fighters = { members = { { tpl = "mig29", w = 2 }, { tpl = "su27", w = 1 } }, pick = { 1, 2 }, zones = { "airfield" } },
+      fighters = {
+        members = { { tpl = "mig29", w = 2 }, { tpl = "su27", w = 1 } },
+        pick = { 1, 2 },
+        zones = { "airfield" },
+      },
     },
     encounters = {},
   }
@@ -28,7 +36,9 @@ end
 local function boot(encounters, mutate)
   DMS_CONFIG = baseConfig()
   DMS_CONFIG.encounters = encounters or {}
-  if mutate then mutate(DMS_CONFIG) end
+  if mutate then
+    mutate(DMS_CONFIG)
+  end
   DMS.Rng.seed(DMS_CONFIG.seed)
   DMS.Ground.reset()
   DMS.Director.reset()
@@ -38,31 +48,51 @@ end
 
 local function capture(evName)
   local list = {}
-  DMS.Bus.on(evName, function(ev) list[#list + 1] = ev end)
+  DMS.Bus.on(evName, function(ev)
+    list[#list + 1] = ev
+  end)
   return list
 end
 
-local function ctrl(g) return Group.getByName(g):getController() end
+local function ctrl(g)
+  return Group.getByName(g):getController()
+end
 
 local function findTask(tasks, id)
-  for _, t in ipairs(tasks or {}) do if t.id == id then return t end end
+  for _, t in ipairs(tasks or {}) do
+    if t.id == id then
+      return t
+    end
+  end
   return nil
 end
 
 -- move every unit of a group to (x, y)
 local function moveGroup(g, x, y)
   for i, un in ipairs(MOCK.groups[g].units) do
-    if not MOCK.units[un].dead then MOCK.moveUnit(un, x + i * 100, y) end
+    if not MOCK.units[un].dead then
+      MOCK.moveUnit(un, x + i * 100, y)
+    end
   end
 end
 
-local function dist(a, b) return math.sqrt((a.x - b.x) ^ 2 + (a.y - b.y) ^ 2) end
+local function dist(a, b)
+  return math.sqrt((a.x - b.x) ^ 2 + (a.y - b.y) ^ 2)
+end
 
 local function capDef(extra)
-  local d = { id = "cap", kind = "cap", template = "mig29", spawnZone = "airfield", zone = "station",
+  local d = {
+    id = "cap",
+    kind = "cap",
+    template = "mig29",
+    spawnZone = "airfield",
+    zone = "station",
     orbit = { pattern = "Race-Track", legM = 30000, headingDeg = 90, altM = 8000, speed = 230 },
-    trigger = { type = "time", afterSec = 5 } }
-  for k, v in pairs(extra or {}) do d[k] = v end
+    trigger = { type = "time", afterSec = 5 },
+  }
+  for k, v in pairs(extra or {}) do
+    d[k] = v
+  end
   return d
 end
 
@@ -104,7 +134,15 @@ describe("Encounters CAP", function()
   end)
 
   it("circle pattern, custom ROE/reaction, unknown enum falls back with a warning", function()
-    boot({ capDef({ orbit = { pattern = "Circle" }, roe = "WEAPON_FREE", reaction = "NOPE", point = { x = 50000, y = 9000 }, zone = nil }) })
+    boot({
+      capDef({
+        orbit = { pattern = "Circle" },
+        roe = "WEAPON_FREE",
+        reaction = "NOPE",
+        point = { x = 50000, y = 9000 },
+        zone = nil,
+      }),
+    })
     local spawned = capture("encounter.spawned")
     MOCK.advance(8)
     local g = spawned[1].groups[1]
@@ -120,8 +158,11 @@ describe("Encounters CAP", function()
 
   it("on station -> time on station -> RTB home -> despawn, then one relief up to maxSpawns", function()
     boot({ capDef({ timeOnStationSec = 300, maxSpawns = 2, replaceDelaySec = 30, rtbDespawnSec = 200 }) })
-    local spawned, onSt, rtb, gone = capture("encounter.spawned"), capture("encounter.cap_on_station"),
-      capture("encounter.cap_rtb"), capture("encounter.cap_despawned")
+    local spawned, onSt, rtb, gone =
+      capture("encounter.spawned"),
+      capture("encounter.cap_on_station"),
+      capture("encounter.cap_rtb"),
+      capture("encounter.cap_despawned")
     MOCK.advance(8)
     local g = spawned[1].groups[1]
     local home = { x = MOCK.units[g .. "-1"].x, y = MOCK.units[g .. "-1"].z }
@@ -170,12 +211,15 @@ describe("Encounters CAP", function()
 
   it("replaces losses up to maxSpawns, then clears", function()
     boot({ capDef({ maxSpawns = 3, replaceDelaySec = { 20, 40 } }) })
-    local spawned, lost, cleared = capture("encounter.spawned"), capture("encounter.cap_lost"), capture("encounter.cleared")
+    local spawned, lost, cleared =
+      capture("encounter.spawned"), capture("encounter.cap_lost"), capture("encounter.cleared")
     MOCK.advance(8)
     for i = 1, 3 do
       assert.are.equal(i, #spawned)
       MOCK.killGroup(spawned[i].groups[1])
-      if i < 3 then assert.are.equal(0, #cleared) end
+      if i < 3 then
+        assert.are.equal(0, #cleared)
+      end
       MOCK.advance(80)
     end
     assert.are.equal(3, #lost)
@@ -186,7 +230,9 @@ describe("Encounters CAP", function()
   end)
 
   it("pool CAP: initial pick is clamped to maxSpawns", function()
-    boot({ capDef({ template = false, pool = "fighters", maxSpawns = 1 }) }, function(c) c.pools.fighters.pick = 4 end)
+    boot({ capDef({ template = false, pool = "fighters", maxSpawns = 1 }) }, function(c)
+      c.pools.fighters.pick = 4
+    end)
     DMS_CONFIG.encounters[1].template = nil
     local spawned = capture("spawner.spawned")
     MOCK.advance(8)
@@ -196,7 +242,9 @@ describe("Encounters CAP", function()
   it("director refusal past maxDeferSec drops the launch (budget never forced)", function()
     boot({ capDef({ maxDeferSec = 60 }) })
     local real = DMS.Director.canSpawn
-    DMS.Director.canSpawn = function() return false, "PEAK" end
+    DMS.Director.canSpawn = function()
+      return false, "PEAK"
+    end
     local spawned, cleared = capture("encounter.spawned"), capture("encounter.cleared")
     MOCK.advance(120)
     DMS.Director.canSpawn = real
@@ -225,11 +273,26 @@ describe("Encounters CAP", function()
       DMS.Registry._groups, DMS.Registry._counters, DMS.Registry._allocated, DMS.Registry._spawnTimes = {}, {}, {}, {}
       local maxSpawns = 2 + seed % 4
       local encs = {
-        capDef({ id = "capA", maxSpawns = maxSpawns, timeOnStationSec = { 150, 400 }, replaceDelaySec = { 20, 90 },
-          orbit = { pattern = (seed % 2 == 0) and "Race-Track" or "Circle", legM = { 20000, 40000 }, altM = { 5000, 9000 } },
-          trigger = { type = "time", afterSec = { 1, 60 } } }),
-        capDef({ id = "capB", template = nil, pool = "fighters", maxSpawns = 3, chance = 70,
-          trigger = { type = "director", state = "RELAX" } }),
+        capDef({
+          id = "capA",
+          maxSpawns = maxSpawns,
+          timeOnStationSec = { 150, 400 },
+          replaceDelaySec = { 20, 90 },
+          orbit = {
+            pattern = (seed % 2 == 0) and "Race-Track" or "Circle",
+            legM = { 20000, 40000 },
+            altM = { 5000, 9000 },
+          },
+          trigger = { type = "time", afterSec = { 1, 60 } },
+        }),
+        capDef({
+          id = "capB",
+          template = nil,
+          pool = "fighters",
+          maxSpawns = 3,
+          chance = 70,
+          trigger = { type = "director", state = "RELAX" },
+        }),
       }
       boot(encs, function(c)
         c.seed = seed
@@ -242,13 +305,23 @@ describe("Encounters CAP", function()
         local now = DMS.Clock.now()
         costs[#costs + 1] = { t = now, cost = ev.cost or 1 }
         local sum = 0
-        for _, s in ipairs(costs) do if now - s.t < 60 then sum = sum + s.cost end end
+        for _, s in ipairs(costs) do
+          if now - s.t < 60 then
+            sum = sum + s.cost
+          end
+        end
         if sum > DMS.Director.spawnBudget() + 1e-9 then
           violations[#violations + 1] = string.format("t=%.0f sum=%d budget=%.2f", now, sum, DMS.Director.spawnBudget())
         end
       end)
       MOCK.spawnPlayer({ name = "Viper1-1", group = "Viper1", x = 0, y = 0, alt = 3000 })
-      MOCK.addGroup({ name = "shooter", coalition = 1, category = "ground", units = { { name = "shooter-1", x = 0, y = -90000 } }, silent = true })
+      MOCK.addGroup({
+        name = "shooter",
+        coalition = 1,
+        category = "ground",
+        units = { { name = "shooter-1", x = 0, y = -90000 } },
+        silent = true,
+      })
       for step = 1, 100 do
         -- fly every transiting CAP to its station; randomly shoot some down
         for _, id in ipairs({ "capA", "capB" }) do
@@ -256,18 +329,28 @@ describe("Encounters CAP", function()
           for _, g in ipairs(st.capOrder or {}) do
             local rec = st.cap[g]
             if DMS.Registry.isAlive(g) then
-              if rec.state == "transit" and step % 3 == 0 then moveGroup(g, st.capStation.center.x, st.capStation.center.y) end
-              if DMS.Rng.random() < 0.01 then MOCK.killGroup(g) end
+              if rec.state == "transit" and step % 3 == 0 then
+                moveGroup(g, st.capStation.center.x, st.capStation.center.y)
+              end
+              if DMS.Rng.random() < 0.01 then
+                MOCK.killGroup(g)
+              end
             end
           end
         end
         if step % 17 == 0 then
-          for _ = 1, 3 do MOCK.hitUnit("Viper1-1", { initiator = "shooter-1", damage = 0 }) end
+          for _ = 1, 3 do
+            MOCK.hitUnit("Viper1-1", { initiator = "shooter-1", damage = 0 })
+          end
         end
         MOCK.advance(10)
       end
       DMS.Bus.off(tok)
-      assert.are.equal(0, #violations, "seed " .. seed .. " director budget exceeded: " .. table.concat(violations, "; "))
+      assert.are.equal(
+        0,
+        #violations,
+        "seed " .. seed .. " director budget exceeded: " .. table.concat(violations, "; ")
+      )
       for _, l in ipairs(MOCK.log) do
         assert.truthy(l.level ~= "error", "seed " .. seed .. ": " .. tostring(l.msg))
       end
@@ -281,7 +364,9 @@ describe("Encounters CAP", function()
         for _, g in ipairs(st.capOrder or {}) do
           totalGroups = totalGroups + 1
           local rec = st.cap[g]
-          if rec.rtbAt then totalRtb = totalRtb + 1 end
+          if rec.rtbAt then
+            totalRtb = totalRtb + 1
+          end
           assert.truthy(rec.tasked or rec.state == "dead", "seed " .. seed .. " untasked " .. g)
           if rec.tasked and rec.state ~= "dead" and rec.state ~= "gone" then
             local c = ctrl(g)

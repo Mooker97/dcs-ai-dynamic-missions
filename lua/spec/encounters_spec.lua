@@ -13,7 +13,15 @@ local function baseConfig()
     },
     zones = {
       ridge = { kind = "circle", x = 40000, y = 0, radius = 2000 },
-      valley = { kind = "polygon", points = { { x = 20000, y = 20000 }, { x = 24000, y = 20000 }, { x = 24000, y = 24000 }, { x = 20000, y = 24000 } } },
+      valley = {
+        kind = "polygon",
+        points = {
+          { x = 20000, y = 20000 },
+          { x = 24000, y = 20000 },
+          { x = 24000, y = 24000 },
+          { x = 20000, y = 24000 },
+        },
+      },
     },
     pools = {
       aaa = { members = { { tpl = "sa8" } }, pick = 1, zones = { "ridge" } },
@@ -26,7 +34,9 @@ end
 local function boot(encounters, mutate)
   DMS_CONFIG = baseConfig()
   DMS_CONFIG.encounters = encounters or {}
-  if mutate then mutate(DMS_CONFIG) end
+  if mutate then
+    mutate(DMS_CONFIG)
+  end
   DMS.Rng.seed(DMS_CONFIG.seed)
   DMS.Ground.reset()
   DMS.Director.reset()
@@ -37,27 +47,51 @@ end
 -- returns a mover: mv(x, y) relocates the player unit
 local function player(name, x, y)
   MOCK.spawnPlayer({ name = name .. "-1", group = name, x = x, y = y, alt = 3000 })
-  return function(nx, ny) MOCK.moveUnit(name .. "-1", nx, ny) end
+  return function(nx, ny)
+    MOCK.moveUnit(name .. "-1", nx, ny)
+  end
 end
 
 local G = AI.Option.Ground
-local function opt(g, id) return Group.getByName(g):getController().options[id] end
+local function opt(g, id)
+  return Group.getByName(g):getController().options[id]
+end
 local function hitPlayer(name)
-  MOCK.addGroup({ name = "shooter", coalition = 1, category = "ground", units = { { name = "shooter-1", x = 0, y = -90000 } }, silent = true })
+  MOCK.addGroup({
+    name = "shooter",
+    coalition = 1,
+    category = "ground",
+    units = { { name = "shooter-1", x = 0, y = -90000 } },
+    silent = true,
+  })
   MOCK.hitUnit(name .. "-1", { initiator = "shooter-1", damage = 0 })
 end
 
 local function capture(evName)
   local list = {}
-  DMS.Bus.on(evName, function(ev) list[#list + 1] = ev end)
+  DMS.Bus.on(evName, function(ev)
+    list[#list + 1] = ev
+  end)
   return list
 end
 
 describe("Encounters", function()
   it("ambush_sam: spawns dark on proximity, telegraphs, then goes hot", function()
-    boot({ { id = "popup", kind = "ambush_sam", pool = "aaa", engageRadiusM = 15000, telegraph = "beat:sam_spike",
-      trigger = { type = "proximity", point = { x = 40000, y = 0 }, radiusM = 30000 } } })
-    local spawned, tele, hot, req = capture("encounter.spawned"), capture("encounter.telegraph"), capture("encounter.sam_hot"), capture("beat.request")
+    boot({
+      {
+        id = "popup",
+        kind = "ambush_sam",
+        pool = "aaa",
+        engageRadiusM = 15000,
+        telegraph = "beat:sam_spike",
+        trigger = { type = "proximity", point = { x = 40000, y = 0 }, radiusM = 30000 },
+      },
+    })
+    local spawned, tele, hot, req =
+      capture("encounter.spawned"),
+      capture("encounter.telegraph"),
+      capture("encounter.sam_hot"),
+      capture("beat.request")
     local mv = player("Viper1", 0, 0)
     MOCK.advance(10)
     assert.are.equal(0, #spawned)
@@ -81,8 +115,15 @@ describe("Encounters", function()
   end)
 
   it("ambush_sam: chance 0 never spawns, once", function()
-    boot({ { id = "popup", kind = "ambush_sam", pool = "aaa", chance = 0,
-      trigger = { type = "proximity", point = { x = 0, y = 0 }, radiusM = 5000 } } })
+    boot({
+      {
+        id = "popup",
+        kind = "ambush_sam",
+        pool = "aaa",
+        chance = 0,
+        trigger = { type = "proximity", point = { x = 0, y = 0 }, radiusM = 5000 },
+      },
+    })
     local spawned = capture("encounter.spawned")
     player("Viper1", 0, 0)
     MOCK.advance(60)
@@ -91,12 +132,22 @@ describe("Encounters", function()
   end)
 
   it("waves respect the director and keep their gaps", function()
-    boot({ { id = "qrf", kind = "waves", pool = "btr", waves = 3, gapSec = { 120, 120 },
-      trigger = { type = "beat", beat = "convoy_hit" } } })
+    boot({
+      {
+        id = "qrf",
+        kind = "waves",
+        pool = "btr",
+        waves = 3,
+        gapSec = { 120, 120 },
+        trigger = { type = "beat", beat = "convoy_hit" },
+      },
+    })
     local waves = capture("encounter.wave")
     player("Viper1", -50000, 0)
     -- push the flight into PEAK: director must defer the first wave
-    for _ = 1, 3 do hitPlayer("Viper1") end
+    for _ = 1, 3 do
+      hitPlayer("Viper1")
+    end
     assert.are.equal("PEAK", DMS.Director.state())
     DMS.Bus.emit("beat.fired", { id = "convoy_hit" })
     assert.are.equal(0, #waves)
@@ -115,10 +166,21 @@ describe("Encounters", function()
   end)
 
   it("director-deferred waves eventually spawn after maxDeferSec", function()
-    boot({ { id = "qrf", kind = "waves", pool = "btr", waves = 1, maxDeferSec = 60, trigger = { type = "time", afterSec = 5 } } })
+    boot({
+      {
+        id = "qrf",
+        kind = "waves",
+        pool = "btr",
+        waves = 1,
+        maxDeferSec = 60,
+        trigger = { type = "time", afterSec = 5 },
+      },
+    })
     local waves = capture("encounter.wave")
     local real = DMS.Director.canSpawn
-    DMS.Director.canSpawn = function() return false, "PEAK" end
+    DMS.Director.canSpawn = function()
+      return false, "PEAK"
+    end
     MOCK.advance(50)
     local before = #waves
     MOCK.advance(30)
@@ -128,7 +190,9 @@ describe("Encounters", function()
   end)
 
   it("hunt: spawned groups hunt the nearest player with valid routes", function()
-    boot({ { id = "hunters", kind = "hunt", pool = "btr", huntIntervalSec = 10, trigger = { type = "time", afterSec = 2 } } })
+    boot({
+      { id = "hunters", kind = "hunt", pool = "btr", huntIntervalSec = 10, trigger = { type = "time", afterSec = 2 } },
+    })
     local spawned = capture("encounter.spawned")
     player("Viper1", 0, 0)
     MOCK.advance(20)
@@ -144,7 +208,13 @@ describe("Encounters", function()
 
   it("event trigger matches payload fields; director trigger fires on state", function()
     boot({
-      { id = "e1", kind = "pool", pool = "btr", gated = false, trigger = { type = "event", name = "group.dead", group = "HVT" } },
+      {
+        id = "e1",
+        kind = "pool",
+        pool = "btr",
+        gated = false,
+        trigger = { type = "event", name = "group.dead", group = "HVT" },
+      },
       { id = "d1", kind = "pool", pool = "btr", gated = false, trigger = { type = "director", state = "RELAX" } },
     })
     local spawned = capture("encounter.spawned")
@@ -177,9 +247,27 @@ describe("Encounters", function()
   end)
 
   it("convoy: named convoy halts when hit and gets escorts", function()
-    boot({ { id = "cv", kind = "convoy", group = "Convoy1", pool = "btr", resumeAfterSec = 30,
-      trigger = { type = "time", afterSec = 1 } } }, function(c) c.intel.fogOfWar = false end)
-    MOCK.addGroup({ name = "Convoy1", coalition = 1, category = "ground", units = { { name = "cv-1", x = 60000, y = 60000 } } })
+    boot(
+      {
+        {
+          id = "cv",
+          kind = "convoy",
+          group = "Convoy1",
+          pool = "btr",
+          resumeAfterSec = 30,
+          trigger = { type = "time", afterSec = 1 },
+        },
+      },
+      function(c)
+        c.intel.fogOfWar = false
+      end
+    )
+    MOCK.addGroup({
+      name = "Convoy1",
+      coalition = 1,
+      category = "ground",
+      units = { { name = "cv-1", x = 60000, y = 60000 } },
+    })
     local halted = capture("convoy.halted")
     MOCK.advance(2)
     assert.truthy(#DMS.Encounters.groups("cv") >= 2)
@@ -194,10 +282,23 @@ describe("Encounters", function()
 
   it("runs 200 random seeds of a full scenario without errors", function()
     local encs = {
-      { id = "popup", kind = "ambush_sam", pool = "aaa", chance = 60, telegraph = "event:rwr_spike",
-        trigger = { type = "proximity", zone = "ridge", radiusM = 30000 } },
-      { id = "qrf", kind = "waves", pool = "btr", waves = { 2, 3 }, gapSec = { 60, 120 }, hunt = true,
-        trigger = { type = "beat", beat = "go" } },
+      {
+        id = "popup",
+        kind = "ambush_sam",
+        pool = "aaa",
+        chance = 60,
+        telegraph = "event:rwr_spike",
+        trigger = { type = "proximity", zone = "ridge", radiusM = 30000 },
+      },
+      {
+        id = "qrf",
+        kind = "waves",
+        pool = "btr",
+        waves = { 2, 3 },
+        gapSec = { 60, 120 },
+        hunt = true,
+        trigger = { type = "beat", beat = "go" },
+      },
       { id = "late", kind = "hunt", pool = "btr", trigger = { type = "time", afterSec = { 100, 300 } } },
       { id = "react", kind = "pool", pool = "aaa", trigger = { type = "director", state = "RELAX" }, chance = 50 },
     }
@@ -212,14 +313,24 @@ describe("Encounters", function()
       end)
       MOCK.waterAreas = {}
       for x = -10000, 70000, 1000 do
-        MOCK.waterAreas[#MOCK.waterAreas + 1] = { points = { { x = x, y = -40000 }, { x = x + 150, y = -40000 },
-          { x = x + 150, y = 40000 }, { x = x, y = 40000 } } }
+        MOCK.waterAreas[#MOCK.waterAreas + 1] = {
+          points = {
+            { x = x, y = -40000 },
+            { x = x + 150, y = -40000 },
+            { x = x + 150, y = 40000 },
+            { x = x, y = 40000 },
+          },
+        }
       end
       local mv = player("Viper1", 0, 0)
       for step = 1, 60 do
         mv(step * 800, (seed * 13 % 9) * 1000)
-        if step == 10 then DMS.Bus.emit("beat.fired", { id = "go" }) end
-        if step % 7 == 0 then hitPlayer("Viper1") end
+        if step == 10 then
+          DMS.Bus.emit("beat.fired", { id = "go" })
+        end
+        if step % 7 == 0 then
+          hitPlayer("Viper1")
+        end
         MOCK.advance(10)
       end
       for _, l in ipairs(MOCK.log) do

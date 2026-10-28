@@ -5,16 +5,33 @@ local function config()
     seed = 1,
     budgets = { maxActiveGround = 40, maxActiveAir = 8, spawnsPerMin = 100 },
     templates = {
-      sa8 = { country = "RUSSIA", category = "ground", skill = "High",
-        units = { { type = "Osa 9A33 ln", dx = 0, dy = 0 }, { type = "Ural-375", dx = 50, dy = 0 } } },
-      zsu = { country = "RUSSIA", category = "ground", skill = "Average",
-        units = { { type = "ZSU-23-4 Shilka", dx = 0, dy = 0 } } },
+      sa8 = {
+        country = "RUSSIA",
+        category = "ground",
+        skill = "High",
+        units = { { type = "Osa 9A33 ln", dx = 0, dy = 0 }, { type = "Ural-375", dx = 50, dy = 0 } },
+      },
+      zsu = {
+        country = "RUSSIA",
+        category = "ground",
+        skill = "Average",
+        units = { { type = "ZSU-23-4 Shilka", dx = 0, dy = 0 } },
+      },
     },
     zones = {
       town = { kind = "circle", x = 0, y = 0, radius = 3000 },
-      ridge = { kind = "polygon", points = { { x = 10000, y = 0 }, { x = 14000, y = 0 }, { x = 14000, y = 4000 }, { x = 10000, y = 4000 } } },
+      ridge = {
+        kind = "polygon",
+        points = { { x = 10000, y = 0 }, { x = 14000, y = 0 }, { x = 14000, y = 4000 }, { x = 10000, y = 4000 } },
+      },
     },
-    pools = { aaa = { members = { { tpl = "zsu", w = 3 }, { tpl = "sa8", w = 1 } }, pick = { 2, 4 }, zones = { "town", "ridge" } } },
+    pools = {
+      aaa = {
+        members = { { tpl = "zsu", w = 3 }, { tpl = "sa8", w = 1 } },
+        pick = { 2, 4 },
+        zones = { "town", "ridge" },
+      },
+    },
     intel = { fogOfWar = true },
     players = { coalition = 2 },
   }
@@ -42,12 +59,20 @@ end
 local function stripes()
   MOCK.waterAreas = {}
   for x = -21000, 21000, 700 do
-    MOCK.waterAreas[#MOCK.waterAreas + 1] = { points = { { x = x, y = -30000 }, { x = x + 200, y = -30000 },
-      { x = x + 200, y = 30000 }, { x = x, y = 30000 } } }
+    MOCK.waterAreas[#MOCK.waterAreas + 1] = {
+      points = {
+        { x = x, y = -30000 },
+        { x = x + 200, y = -30000 },
+        { x = x + 200, y = 30000 },
+        { x = x, y = 30000 },
+      },
+    }
   end
 end
 
-local function inStripe(x) return (x + 21000) % 700 < 200 and x >= -21000 and x <= 21200 end
+local function inStripe(x)
+  return (x + 21000) % 700 < 200 and x >= -21000 and x <= 21200
+end
 
 describe("Spawner", function()
   before_each(reset)
@@ -86,7 +111,10 @@ describe("Spawner", function()
   end)
 
   it("resolves mission-editor quad zones", function()
-    MOCK.addZone({ name = "QuadZ", points = { { x = 50000, y = 0 }, { x = 51000, y = 0 }, { x = 51000, y = 1000 }, { x = 50000, y = 1000 } } })
+    MOCK.addZone({
+      name = "QuadZ",
+      points = { { x = 50000, y = 0 }, { x = 51000, y = 0 }, { x = 51000, y = 1000 }, { x = 50000, y = 1000 } },
+    })
     local name = DMS.Spawner.spawn("zsu", "QuadZ")
     local p = unitPositions(name)[1]
     assert.truthy(p.x >= 50000 and p.x <= 51000 and p.z >= 0 and p.z <= 1000)
@@ -94,8 +122,13 @@ describe("Spawner", function()
 
   it("never spawns in water or shallow water", function()
     MOCK.waterAreas = {
-      { points = { { x = -10000, y = -10000 }, { x = 0, y = -10000 }, { x = 0, y = 10000 }, { x = -10000, y = 10000 } } },
-      { shallow = true, points = { { x = -10000, y = -10000 }, { x = 10000, y = -10000 }, { x = 10000, y = 0 }, { x = -10000, y = 0 } } },
+      {
+        points = { { x = -10000, y = -10000 }, { x = 0, y = -10000 }, { x = 0, y = 10000 }, { x = -10000, y = 10000 } },
+      },
+      {
+        shallow = true,
+        points = { { x = -10000, y = -10000 }, { x = 10000, y = -10000 }, { x = 10000, y = 0 }, { x = -10000, y = 0 } },
+      },
     }
     local n = 0
     for _ = 1, 40 do
@@ -137,21 +170,30 @@ describe("Spawner", function()
 
   it("rejects points in line of sight when outOfLOS is set", function()
     player("Viper1", 50000, 50000)
-    MOCK.losFn = function(a) return a.x > 0 end
+    MOCK.losFn = function(a)
+      return a.x > 0
+    end
     for _ = 1, 20 do
       local name = DMS.Spawner.spawn("zsu", "town", { outOfLOS = true })
-      if name then assert.truthy(unitPositions(name)[1].x <= 0) end
+      if name then
+        assert.truthy(unitPositions(name)[1].x <= 0)
+      end
     end
   end)
 
   it("avoids buildings when buildingRadius is set", function()
     world.searchObjects = function(cat, vol, cb)
-      if cat == Object.Category.SCENERY and vol.params.point.z > 0 then cb({}) return 1 end
+      if cat == Object.Category.SCENERY and vol.params.point.z > 0 then
+        cb({})
+        return 1
+      end
       return 0
     end
     for _ = 1, 20 do
       local name = DMS.Spawner.spawn("zsu", "town", { buildingRadius = 50 })
-      if name then assert.truthy(unitPositions(name)[1].z <= 0) end
+      if name then
+        assert.truthy(unitPositions(name)[1].z <= 0)
+      end
     end
   end)
 
@@ -179,8 +221,14 @@ describe("Spawner", function()
 
   it("emits spawner.spawned and calls onReady after ~1s", function()
     local seen, ready
-    DMS.Bus.on("spawner.spawned", function(ev) seen = ev end)
-    local name = DMS.Spawner.spawn("zsu", "town", { onReady = function(g) ready = g end })
+    DMS.Bus.on("spawner.spawned", function(ev)
+      seen = ev
+    end)
+    local name = DMS.Spawner.spawn("zsu", "town", {
+      onReady = function(g)
+        ready = g
+      end,
+    })
     assert.are.equal(name, seen.group)
     assert.is_nil(ready)
     MOCK.advance(1.5)
@@ -191,7 +239,9 @@ describe("Spawner", function()
     for _ = 1, 20 do
       local groups = DMS.Spawner.spawnPool("aaa")
       assert.truthy(#groups >= 2 and #groups <= 4, "count " .. #groups)
-      for _, g in ipairs(groups) do Group.getByName(g):destroy() end
+      for _, g in ipairs(groups) do
+        Group.getByName(g):destroy()
+      end
     end
   end)
 
@@ -209,7 +259,9 @@ describe("Spawner", function()
       DMS.Rng.seed(seed)
       local groups = DMS.Spawner.spawnPool("aaa", { minPlayerDistM = 0 })
       for _, g in ipairs(groups) do
-        for _, p in ipairs(unitPositions(g)) do assert.falsy(inStripe(p.x), "water spawn seed " .. seed) end
+        for _, p in ipairs(unitPositions(g)) do
+          assert.falsy(inStripe(p.x), "water spawn seed " .. seed)
+        end
         Group.getByName(g):destroy()
       end
     end

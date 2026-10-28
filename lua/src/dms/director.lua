@@ -17,12 +17,12 @@ Director.defaults = {
   peakHoldSec = 15,
   decayPerSec = 1.5,
   maxIntensity = 100,
-  nearM = 10000,          -- "near a player" for shots/kills
+  nearM = 10000, -- "near a player" for shots/kills
   spawnsPerMin = 3,
   adapt = { min = -1, max = 1 },
   gain = { hit = 25, nearShot = 5, samLaunch = 15, nearKill = 8, playerDead = 40 },
   adaptStep = { playerDead = -0.5, playerHit = -0.05, enemyKill = 0.04, calmBonus = 0.25 },
-  calmSec = 300,          -- seconds without player damage that earns calmBonus
+  calmSec = 300, -- seconds without player damage that earns calmBonus
 }
 
 local SKILLS = { "Average", "Good", "High", "Excellent" }
@@ -31,15 +31,21 @@ local function settings()
   local c = (DMS_CONFIG and DMS_CONFIG.director) or {}
   local d = Director.defaults
   local s = {}
-  for k, v in pairs(d) do s[k] = v end
-  for k, v in pairs(c) do s[k] = v end
+  for k, v in pairs(d) do
+    s[k] = v
+  end
+  for k, v in pairs(c) do
+    s[k] = v
+  end
   local b = DMS_CONFIG and DMS_CONFIG.budgets
   s.spawnsPerMin = (b and b.spawnsPerMin) or s.spawnsPerMin
   s.adapt = c.adapt or d.adapt
   s.gain = d.gain
   if c.gain then
     s.gain = {}
-    for k, v in pairs(d.gain) do s.gain[k] = c.gain[k] or v end
+    for k, v in pairs(d.gain) do
+      s.gain[k] = c.gain[k] or v
+    end
   end
   return s
 end
@@ -49,19 +55,25 @@ local function playersCoalition()
 end
 
 function Director.reset()
-  if Director._tick then DMS.Clock.cancel(Director._tick) end
-  for _, t in ipairs(Director._tokens or {}) do DMS.Bus.off(t) end
+  if Director._tick then
+    DMS.Clock.cancel(Director._tick)
+  end
+  for _, t in ipairs(Director._tokens or {}) do
+    DMS.Bus.off(t)
+  end
   Director._tick = nil
   Director._tokens = {}
-  Director._flights = {}     -- flight(group) -> state record
-  Director._unitFlight = {}  -- player unit name -> flight group
-  Director._spawns = {}      -- timestamps (with cost) of recent spawns
+  Director._flights = {} -- flight(group) -> state record
+  Director._unitFlight = {} -- player unit name -> flight group
+  Director._spawns = {} -- timestamps (with cost) of recent spawns
   Director._level = 0
   Director._lastDamage = nil
   Director._started = false
   Director._cfg = settings()
 end
-if not Director._flights then Director.reset() end
+if not Director._flights then
+  Director.reset()
+end
 
 -- ---------------------------------------------------------------- flights
 
@@ -70,7 +82,9 @@ local function newFlight(name)
 end
 
 local function flight(name)
-  if not name then return nil end
+  if not name then
+    return nil
+  end
   local f = Director._flights[name]
   if not f then
     f = newFlight(name)
@@ -89,27 +103,39 @@ function Director.removePlayer(unitName)
   local g = Director._unitFlight[unitName]
   Director._unitFlight[unitName] = nil
   if g then
-    for _, gg in pairs(Director._unitFlight) do if gg == g then return end end
+    for _, gg in pairs(Director._unitFlight) do
+      if gg == g then
+        return
+      end
+    end
     Director._flights[g] = nil
   end
 end
 
 local function setState(f, st)
-  if f.state == st then return end
+  if f.state == st then
+    return
+  end
   f.state = st
   f.since = DMS.Clock.now()
-  if st == Director.RELAX then f.relaxFor = DMS.Rng.range(Director._cfg.relaxSec) end
+  if st == Director.RELAX then
+    f.relaxFor = DMS.Rng.range(Director._cfg.relaxSec)
+  end
   DMS.Log.debug(P, "Flight '%s' state -> %s (intensity %.0f)", f.name, st, f.intensity)
   DMS.Bus.emit("director.state", { flight = f.name, state = st, intensity = f.intensity })
 end
 
 function Director.addIntensity(flightName, amount, why)
   local f = flight(flightName)
-  if not f then return end
+  if not f then
+    return
+  end
   local c = Director._cfg
   f.intensity = math.max(0, math.min(c.maxIntensity, f.intensity + amount))
   DMS.Log.debug(P, "Flight '%s' +%.0f intensity (%s) = %.0f", f.name, amount, tostring(why), f.intensity)
-  if f.state == Director.BUILD_UP and f.intensity >= c.peak then setState(f, Director.PEAK) end
+  if f.state == Director.BUILD_UP and f.intensity >= c.peak then
+    setState(f, Director.PEAK)
+  end
 end
 
 local function unitPos(unitName)
@@ -123,12 +149,16 @@ end
 -- flights with a unit within radius of pos (vec3)
 local function flightsNear(pos, radius)
   local out = {}
-  if not pos then return out end
+  if not pos then
+    return out
+  end
   for unitName, g in pairs(Director._unitFlight) do
     local p = unitPos(unitName)
     if p then
       local dx, dz = p.x - pos.x, p.z - pos.z
-      if dx * dx + dz * dz <= radius * radius then out[g] = true end
+      if dx * dx + dz * dz <= radius * radius then
+        out[g] = true
+      end
     end
   end
   return out
@@ -150,27 +180,41 @@ function Director.adapt(delta, why)
   return Director._level
 end
 
-function Director.level() return Director._level end
+function Director.level()
+  return Director._level
+end
 
 local function tier()
   local l = Director._level
-  if l >= 0 then return math.floor(l + 0.5) end
+  if l >= 0 then
+    return math.floor(l + 0.5)
+  end
   return -math.floor(-l + 0.5)
 end
 
 -- Skill of NEW spawns, shifted by the rounded difficulty level.
 function Director.skillFor(skill)
-  if skill == "Random" or skill == "Player" or skill == "Client" then return skill end
+  if skill == "Random" or skill == "Player" or skill == "Client" then
+    return skill
+  end
   local idx
-  for i, s in ipairs(SKILLS) do if s == skill then idx = i end end
-  if not idx then return skill end
+  for i, s in ipairs(SKILLS) do
+    if s == skill then
+      idx = i
+    end
+  end
+  if not idx then
+    return skill
+  end
   idx = math.max(1, math.min(#SKILLS, idx + tier()))
   return SKILLS[idx]
 end
 
 -- Pool size scaling: +/-25% per level (at least 1 if base >= 1).
 function Director.scaleCount(n)
-  if not n or n <= 0 then return n end
+  if not n or n <= 0 then
+    return n
+  end
   local scaled = math.floor(n * (1 + 0.25 * Director._level) + 0.5)
   return math.max(1, scaled)
 end
@@ -190,7 +234,9 @@ function Director.state(flightName)
   -- aggregate: state of the most intense flight
   local best
   for _, f in pairs(Director._flights) do
-    if not best or f.intensity > best.intensity then best = f end
+    if not best or f.intensity > best.intensity then
+      best = f
+    end
   end
   return best and best.state or Director.BUILD_UP
 end
@@ -201,13 +247,17 @@ function Director.intensity(flightName)
     return f and f.intensity or 0
   end
   local m = 0
-  for _, f in pairs(Director._flights) do m = math.max(m, f.intensity) end
+  for _, f in pairs(Director._flights) do
+    m = math.max(m, f.intensity)
+  end
   return m
 end
 
 function Director.flights()
   local out = {}
-  for name in pairs(Director._flights) do out[#out + 1] = name end
+  for name in pairs(Director._flights) do
+    out[#out + 1] = name
+  end
   table.sort(out)
   return out
 end
@@ -233,10 +283,16 @@ end
 function Director.canSpawn(cost, flightName)
   cost = cost or 1
   local c = Director._cfg
-  if spawnsInLastMinute() + cost > Director.spawnBudget() then return false, "budget" end
-  if c.enabled == false then return true end
+  if spawnsInLastMinute() + cost > Director.spawnBudget() then
+    return false, "budget"
+  end
+  if c.enabled == false then
+    return true
+  end
   local st = Director.state(flightName)
-  if st == Director.PEAK or st == Director.RELAX then return false, st end
+  if st == Director.PEAK or st == Director.RELAX then
+    return false, st
+  end
   return true
 end
 
@@ -253,11 +309,17 @@ function Director.tick(dt)
   for _, f in pairs(Director._flights) do
     f.intensity = math.max(0, f.intensity - c.decayPerSec * dt)
     if f.state == Director.BUILD_UP then
-      if f.intensity >= c.peak then setState(f, Director.PEAK) end
+      if f.intensity >= c.peak then
+        setState(f, Director.PEAK)
+      end
     elseif f.state == Director.PEAK then
-      if now - f.since >= (c.peakHoldSec or 15) then setState(f, Director.RELAX) end
+      if now - f.since >= (c.peakHoldSec or 15) then
+        setState(f, Director.RELAX)
+      end
     elseif f.state == Director.RELAX then
-      if now - f.since >= f.relaxFor and f.intensity < c.peak * 0.5 then setState(f, Director.BUILD_UP) end
+      if now - f.since >= f.relaxFor and f.intensity < c.peak * 0.5 then
+        setState(f, Director.BUILD_UP)
+      end
     end
   end
   -- calm bonus: long stretch without player damage nudges difficulty up
@@ -272,12 +334,16 @@ end
 
 local function on(name, fn)
   Director._tokens[#Director._tokens + 1] = DMS.Bus.on(name, function(ev)
-    if ev then fn(ev) end
+    if ev then
+      fn(ev)
+    end
   end)
 end
 
 function Director.start()
-  if Director._started then return end
+  if Director._started then
+    return
+  end
   Director.reset()
   Director._started = true
   Director._startT = DMS.Clock.now()
@@ -285,9 +351,15 @@ function Director.start()
   local pc = playersCoalition()
   local step = Director.defaults.adaptStep
 
-  on("player.spawned", function(ev) Director.addPlayer(ev.unit, ev.group) end)
-  on("player.left", function(ev) Director.removePlayer(ev.unit) end)
-  on("spawner.spawned", function(ev) Director.noteSpawn(ev.cost) end)
+  on("player.spawned", function(ev)
+    Director.addPlayer(ev.unit, ev.group)
+  end)
+  on("player.left", function(ev)
+    Director.removePlayer(ev.unit)
+  end)
+  on("spawner.spawned", function(ev)
+    Director.noteSpawn(ev.cost)
+  end)
 
   on("unit.hit", function(ev)
     local g = Director._unitFlight[ev.target]
@@ -299,7 +371,9 @@ function Director.start()
   end)
 
   on("unit.shot", function(ev)
-    if ev.coalition == pc or not ev.initiator then return end
+    if ev.coalition == pc or not ev.initiator then
+      return
+    end
     local pos = unitPos(ev.initiator)
     local isSam = false
     pcall(function()
@@ -322,10 +396,22 @@ function Director.start()
       Director.removePlayer(ev.unit)
       return
     end
-    for fg in pairs(flightsNear(ev.pos, c.nearM)) do Director.addIntensity(fg, c.gain.nearKill, "nearby kill") end
-    if ev.coalition and ev.coalition ~= pc and ev.coalition ~= 0 then Director.adapt(step.enemyKill, "enemy kill") end
+    for fg in pairs(flightsNear(ev.pos, c.nearM)) do
+      Director.addIntensity(fg, c.gain.nearKill, "nearby kill")
+    end
+    if ev.coalition and ev.coalition ~= pc and ev.coalition ~= 0 then
+      Director.adapt(step.enemyKill, "enemy kill")
+    end
   end)
 
-  Director._tick = DMS.Clock.every(1, function() Director.tick(1) end)
-  DMS.Log.info(P, "Started (enabled=%s peak=%s spawnsPerMin=%s)", tostring(c.enabled ~= false), tostring(c.peak), tostring(c.spawnsPerMin))
+  Director._tick = DMS.Clock.every(1, function()
+    Director.tick(1)
+  end)
+  DMS.Log.info(
+    P,
+    "Started (enabled=%s peak=%s spawnsPerMin=%s)",
+    tostring(c.enabled ~= false),
+    tostring(c.peak),
+    tostring(c.spawnsPerMin)
+  )
 end

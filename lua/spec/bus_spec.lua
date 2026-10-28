@@ -1,14 +1,18 @@
 --# modules: core, clock, rng, bus, registry
 local function collect(name)
   local got = {}
-  DMS.Bus.on(name, function(p) got[#got + 1] = p end)
+  DMS.Bus.on(name, function(p)
+    got[#got + 1] = p
+  end)
   return got
 end
 
 describe("DMS.Bus pub/sub", function()
   it("on/emit/off with tokens", function()
     local got = {}
-    local tok = DMS.Bus.on("x.y", function(p, n) got[#got + 1] = n .. ":" .. p.v end)
+    local tok = DMS.Bus.on("x.y", function(p, n)
+      got[#got + 1] = n .. ":" .. p.v
+    end)
     DMS.Bus.emit("x.y", { v = 1 })
     assert.is_true(DMS.Bus.off(tok))
     DMS.Bus.emit("x.y", { v = 2 })
@@ -18,9 +22,13 @@ describe("DMS.Bus pub/sub", function()
 
   it("isolates handler errors and supports '*'", function()
     local all = {}
-    DMS.Bus.on("e", function() error("handler broke") end)
+    DMS.Bus.on("e", function()
+      error("handler broke")
+    end)
     local after = collect("e")
-    DMS.Bus.on("*", function(_, n) all[#all + 1] = n end)
+    DMS.Bus.on("*", function(_, n)
+      all[#all + 1] = n
+    end)
     DMS.Bus.emit("e", {})
     assert.equals(1, #after)
     assert.same({ "e" }, all)
@@ -163,7 +171,14 @@ describe("DMS.Bus DCS events", function()
     local p = MOCK.spawnPlayer({ name = "P-1", group = "P" })
     MOCK.fireEvent({ id = "TAKEOFF", initiator = p, place = MOCK.makeAirbase("Batumi") })
     MOCK.fireEvent({ id = "LAND", initiator = p })
-    MOCK.fireEvent({ id = "MARK_ADDED", idx = 7, text = "tgt", pos = { x = 1, y = 0, z = 2 }, coalition = 2, groupID = 5 })
+    MOCK.fireEvent({
+      id = "MARK_ADDED",
+      idx = 7,
+      text = "tgt",
+      pos = { x = 1, y = 0, z = 2 },
+      coalition = 2,
+      groupID = 5,
+    })
     assert.equals("Batumi", to[1].place)
     assert.equals("P", to[1].group)
     assert.equals("P-1", la[1].unit)

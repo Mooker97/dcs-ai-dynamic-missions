@@ -1,6 +1,9 @@
 --# modules: core
 describe("DMS.Log", function()
-  before_each(function() DMS.Log._debug = nil; DMS_CONFIG = nil end)
+  before_each(function()
+    DMS.Log._debug = nil
+    DMS_CONFIG = nil
+  end)
 
   it("formats with prefix via env.info/warning/error", function()
     DMS.Log.info("Test", "hello %s %d", "world", 3)
@@ -32,17 +35,26 @@ end)
 
 describe("DMS.safeCall", function()
   it("returns results on success", function()
-    local ok, a, b = DMS.safeCall(function(x, y) return x + y, "z" end, 1, 2)
-    assert.is_true(ok); assert.equals(3, a); assert.equals("z", b)
+    local ok, a, b = DMS.safeCall(function(x, y)
+      return x + y, "z"
+    end, 1, 2)
+    assert.is_true(ok)
+    assert.equals(3, a)
+    assert.equals("z", b)
   end)
 
   it("passes nil arguments through", function()
-    local ok, n = DMS.safeCall(function(...) return select("#", ...) end, nil, nil, 3)
-    assert.is_true(ok); assert.equals(3, n)
+    local ok, n = DMS.safeCall(function(...)
+      return select("#", ...)
+    end, nil, nil, 3)
+    assert.is_true(ok)
+    assert.equals(3, n)
   end)
 
   it("catches errors, logs with traceback under prefix safeCall", function()
-    local ok, err = DMS.safeCall(function() error("kaboom") end)
+    local ok, err = DMS.safeCall(function()
+      error("kaboom")
+    end)
     assert.is_false(ok)
     assert.matches("kaboom", err)
     assert.matches("stack traceback", err)
@@ -72,7 +84,9 @@ describe("DMS.Json / outcome", function()
   it("errors on cycles; outcome logs instead of throwing", function()
     local t = {}
     t.self = t
-    assert.has_error(function() DMS.Json.encode(t) end)
+    assert.has_error(function()
+      DMS.Json.encode(t)
+    end)
     assert.is_nil(DMS.Log.outcome(t))
     local line = DMS.Log.outcome({ hvtKilled = true, losses = 1 })
     assert.equals('[DMS.OUTCOME] {"hvtKilled":true,"losses":1}', line)

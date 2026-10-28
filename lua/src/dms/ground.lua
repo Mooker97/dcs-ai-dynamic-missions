@@ -9,7 +9,7 @@ local Ground = DMS.Ground
 local P = "Ground"
 
 Ground.defaults = {
-  speed = 8,            -- m/s
+  speed = 8, -- m/s
   huntIntervalSec = 30,
   huntStandoffM = 300,
   huntMaxLeadSec = 90,
@@ -20,10 +20,10 @@ Ground.defaults = {
   stuckMaxRetries = 3,
 }
 
-Ground._dest = Ground._dest or {}     -- groupName -> {point, opts}
+Ground._dest = Ground._dest or {} -- groupName -> {point, opts}
 Ground._halted = Ground._halted or {} -- groupName -> true
-Ground._hunts = Ground._hunts or {}   -- groupName -> clock id
-Ground._watch = Ground._watch or {}   -- groupName -> clock id
+Ground._hunts = Ground._hunts or {} -- groupName -> clock id
+Ground._watch = Ground._watch or {} -- groupName -> clock id
 
 -- ---------------------------------------------------------------- helpers
 
@@ -31,7 +31,9 @@ local function getGroup(name)
   local ok, g = pcall(Group.getByName, name)
   if ok and g then
     local ok2, ex = pcall(g.isExist, g)
-    if ok2 and ex then return g end
+    if ok2 and ex then
+      return g
+    end
   end
   return nil
 end
@@ -40,12 +42,20 @@ Ground.getGroup = getGroup
 function Ground.aliveUnits(name)
   local g = getGroup(name)
   local out = {}
-  if not g then return out end
+  if not g then
+    return out
+  end
   local ok, units = pcall(g.getUnits, g)
-  if not ok or not units then return out end
+  if not ok or not units then
+    return out
+  end
   for _, u in ipairs(units) do
-    local ok2, alive = pcall(function() return u:isExist() and (u:getLife() or 1) >= 1 end)
-    if ok2 and alive then out[#out + 1] = u end
+    local ok2, alive = pcall(function()
+      return u:isExist() and (u:getLife() or 1) >= 1
+    end)
+    if ok2 and alive then
+      out[#out + 1] = u
+    end
   end
   return out
 end
@@ -53,38 +63,54 @@ end
 -- lead unit position (vec3) or nil
 function Ground.leadPos(name)
   local u = Ground.aliveUnits(name)[1]
-  if not u then return nil end
+  if not u then
+    return nil
+  end
   local ok, p = pcall(u.getPoint, u)
   return ok and p or nil
 end
 
 function Ground.leadVel(name)
   local u = Ground.aliveUnits(name)[1]
-  if not u then return { x = 0, y = 0, z = 0 } end
+  if not u then
+    return { x = 0, y = 0, z = 0 }
+  end
   local ok, v = pcall(u.getVelocity, u)
   return (ok and v) or { x = 0, y = 0, z = 0 }
 end
 
 local function controller(name)
   local g = getGroup(name)
-  if not g then return nil end
+  if not g then
+    return nil
+  end
   local ok, c = pcall(g.getController, g)
   return ok and c or nil
 end
 
 local function domain(name)
   local g = getGroup(name)
-  if not g then return nil end
+  if not g then
+    return nil
+  end
   local ok, cat = pcall(g.getCategory, g)
-  if not ok then return "ground" end
-  if cat == Group.Category.SHIP then return "naval" end
-  if cat == Group.Category.AIRPLANE or cat == Group.Category.HELICOPTER then return "air" end
+  if not ok then
+    return "ground"
+  end
+  if cat == Group.Category.SHIP then
+    return "naval"
+  end
+  if cat == Group.Category.AIRPLANE or cat == Group.Category.HELICOPTER then
+    return "air"
+  end
   return "ground"
 end
 Ground.domain = domain
 
 local function v2(p)
-  if p.z ~= nil then return { x = p.x, y = p.z } end
+  if p.z ~= nil then
+    return { x = p.x, y = p.z }
+  end
   return { x = p.x, y = p.y }
 end
 
@@ -95,8 +121,14 @@ end
 
 function Ground.makePoint(p, speed, action)
   return {
-    x = p.x, y = p.y, type = "Turning Point", action = action or "Off Road",
-    speed = speed or Ground.defaults.speed, ETA = 0, ETA_locked = false, speed_locked = true,
+    x = p.x,
+    y = p.y,
+    type = "Turning Point",
+    action = action or "Off Road",
+    speed = speed or Ground.defaults.speed,
+    ETA = 0,
+    ETA_locked = false,
+    speed_locked = true,
     task = { id = "ComboTask", params = { tasks = {} } },
   }
 end
@@ -108,7 +140,9 @@ function Ground.routeTo(name, point, opts)
   opts = opts or {}
   local c = controller(name)
   local here = Ground.leadPos(name)
-  if not c or not here or not point then return false end
+  if not c or not here or not point then
+    return false
+  end
   local from = v2(here)
   local to = v2(point)
   local stop = opts.stopShortM or 0
@@ -123,8 +157,12 @@ function Ground.routeTo(name, point, opts)
   local speed = opts.speed or Ground.defaults.speed
   local action = opts.action or "Off Road"
   local pts = { Ground.makePoint(from, speed, action) }
-  for _, vp in ipairs(opts.via or {}) do pts[#pts + 1] = Ground.makePoint(v2(vp), speed, action) end
-  if d2(to, from) < 1 then to = { x = from.x + 1, y = from.y + 1 } end -- keep 2 distinct points
+  for _, vp in ipairs(opts.via or {}) do
+    pts[#pts + 1] = Ground.makePoint(v2(vp), speed, action)
+  end
+  if d2(to, from) < 1 then
+    to = { x = from.x + 1, y = from.y + 1 }
+  end -- keep 2 distinct points
   pts[#pts + 1] = Ground.makePoint(to, speed, action)
   local ok, err = pcall(c.setTask, c, { id = "Mission", params = { route = { points = pts } } })
   if not ok then
@@ -139,7 +177,9 @@ end
 
 local function stopRoute(name, value)
   local c = controller(name)
-  if not c then return false end
+  if not c then
+    return false
+  end
   local ok = pcall(c.setCommand, c, { id = "StopRoute", params = { value = value } })
   return ok
 end
@@ -166,7 +206,9 @@ end
 
 local function setROE(name, which)
   local c = controller(name)
-  if not c then return false end
+  if not c then
+    return false
+  end
   local dom = domain(name)
   local id, val
   if dom == "air" then
@@ -182,24 +224,40 @@ local function setROE(name, which)
     local map = { open = "OPEN_FIRE", ret = "RETURN_FIRE", hold = "WEAPON_HOLD" }
     val = AI.Option.Ground.val.ROE[map[which]]
   end
-  if id == nil or val == nil then return false end
+  if id == nil or val == nil then
+    return false
+  end
   local ok, err = pcall(c.setOption, c, id, val)
-  if not ok then DMS.Log.warn(P, "ROE on '%s' failed: %s", name, tostring(err)) end
+  if not ok then
+    DMS.Log.warn(P, "ROE on '%s' failed: %s", name, tostring(err))
+  end
   DMS.Log.debug(P, "'%s' ROE -> %s (%s)", name, which, dom)
   return ok
 end
 
-function Ground.holdFire(name) return setROE(name, "hold") end
-function Ground.openFire(name) return setROE(name, "open") end
-function Ground.returnFire(name) return setROE(name, "ret") end
+function Ground.holdFire(name)
+  return setROE(name, "hold")
+end
+function Ground.openFire(name)
+  return setROE(name, "open")
+end
+function Ground.returnFire(name)
+  return setROE(name, "ret")
+end
 
 -- alarm(groupName, "GREEN"|"RED"|"AUTO") -- ground only
 function Ground.alarm(name, state)
-  if domain(name) ~= "ground" then return false end
+  if domain(name) ~= "ground" then
+    return false
+  end
   local c = controller(name)
-  if not c then return false end
+  if not c then
+    return false
+  end
   state = state or "AUTO"
-  if state ~= "AUTO" and state ~= "GREEN" and state ~= "RED" then return false end
+  if state ~= "AUTO" and state ~= "GREEN" and state ~= "RED" then
+    return false
+  end
   local val = AI.Option.Ground.val.ALARM_STATE[state]
   local ok = pcall(c.setOption, c, AI.Option.Ground.id.ALARM_STATE, val)
   DMS.Log.debug(P, "'%s' alarm -> %s", name, tostring(state))
@@ -210,7 +268,9 @@ end
 function Ground.fireAtPoint(name, point, opts)
   opts = opts or {}
   local c = controller(name)
-  if not c or not point then return false end
+  if not c or not point then
+    return false
+  end
   local p = v2(point)
   local params = { point = { x = p.x, y = p.y }, radius = opts.radius or 100 }
   if opts.expendQty then
@@ -246,28 +306,38 @@ function Ground.hunt(name, target, opts)
     if not DMS.Registry.isAlive(name) and not getGroup(name) then
       Ground._hunts[name] = nil
       DMS.Log.debug(P, "Hunter '%s' gone - hunt ended", name)
-      if opts.onEnd then opts.onEnd("dead") end
+      if opts.onEnd then
+        opts.onEnd("dead")
+      end
       return false
     end
     local hp = Ground.leadPos(name)
     if not hp then
       Ground._hunts[name] = nil
-      if opts.onEnd then opts.onEnd("dead") end
+      if opts.onEnd then
+        opts.onEnd("dead")
+      end
       return false
     end
     local tgt = target
-    if type(target) == "function" then tgt = target(name) end
+    if type(target) == "function" then
+      tgt = target(name)
+    end
     local tp = tgt and Ground.leadPos(tgt)
     if not tp then
       if type(target) ~= "function" then
         Ground._hunts[name] = nil
         DMS.Log.debug(P, "Hunter '%s': target '%s' gone - hunt ended", name, tostring(tgt))
-        if opts.onEnd then opts.onEnd("target") end
+        if opts.onEnd then
+          opts.onEnd("target")
+        end
         return false
       end
       return true -- wait for a target to appear
     end
-    if opts.radiusM and d2(v2(hp), v2(tp)) > opts.radiusM then return true end
+    if opts.radiusM and d2(v2(hp), v2(tp)) > opts.radiusM then
+      return true
+    end
     if not engaged then
       engaged = true
       Ground.alarm(name, "RED")
@@ -275,8 +345,15 @@ function Ground.hunt(name, target, opts)
       DMS.Log.debug(P, "'%s' hunting '%s'", name, tgt)
     end
     local ip = Ground.interceptPoint(hp, tp, Ground.leadVel(tgt), speed, opts.maxLeadSec)
-    Ground.routeTo(name, ip, { speed = speed, action = opts.action or "Off Road",
-      stopShortM = opts.standoffM or Ground.defaults.huntStandoffM })
+    Ground.routeTo(
+      name,
+      ip,
+      {
+        speed = speed,
+        action = opts.action or "Off Road",
+        stopShortM = opts.standoffM or Ground.defaults.huntStandoffM,
+      }
+    )
     return true
   end
   Ground._hunts[name] = DMS.Clock.every(interval, tick, { firstDelay = opts.firstDelay or 0.5, jitter = opts.jitter })
@@ -291,7 +368,9 @@ function Ground.stopHunt(name)
   end
 end
 
-function Ground.isHunting(name) return Ground._hunts[name] ~= nil end
+function Ground.isHunting(name)
+  return Ground._hunts[name] ~= nil
+end
 
 -- ---------------------------------------------------------------- stuck watchdog
 
@@ -305,7 +384,10 @@ function Ground.watch(name, opts)
   local lastPos, lastMoveT, retries = nil, DMS.Clock.now(), 0
   local function tick()
     local p = Ground.leadPos(name)
-    if not p then Ground._watch[name] = nil return false end
+    if not p then
+      Ground._watch[name] = nil
+      return false
+    end
     local now = DMS.Clock.now()
     p = v2(p)
     if not lastPos or d2(p, lastPos) >= minMove then
@@ -325,7 +407,9 @@ function Ground.watch(name, opts)
         local a = DMS.Rng.random() * 2 * math.pi
         local via = { x = p.x + 200 * math.cos(a), y = p.y + 200 * math.sin(a) }
         local o = {}
-        for k, v in pairs(dest.opts or {}) do o[k] = v end
+        for k, v in pairs(dest.opts or {}) do
+          o[k] = v
+        end
         o.via = { via }
         o.stopShortM = nil
         DMS.Log.info(P, "'%s' stuck for %ds - re-routing (%d/%d)", name, stuckSec, retries, maxRetries)
@@ -333,7 +417,9 @@ function Ground.watch(name, opts)
       else
         DMS.Log.warn(P, "'%s' stuck - giving up after %d retries", name, maxRetries)
         DMS.Bus.emit("ground.stuck", { group = name })
-        if opts.onStuck then opts.onStuck(name) end
+        if opts.onStuck then
+          opts.onStuck(name)
+        end
         Ground._watch[name] = nil
         return false
       end
@@ -346,7 +432,10 @@ end
 
 function Ground.unwatch(name)
   local id = Ground._watch[name]
-  if id then DMS.Clock.cancel(id) Ground._watch[name] = nil end
+  if id then
+    DMS.Clock.cancel(id)
+    Ground._watch[name] = nil
+  end
 end
 
 -- ---------------------------------------------------------------- convoy reaction
@@ -359,9 +448,16 @@ function Ground.haltOnHit(convoy, resumeAfterSec)
   local resumeId
   local token
   token = DMS.Bus.on("unit.hit", function(ev)
-    if not ev or ev.targetGroup ~= convoy then return end
-    if not getGroup(convoy) then return end
-    if resumeId then DMS.Clock.cancel(resumeId) resumeId = nil end
+    if not ev or ev.targetGroup ~= convoy then
+      return
+    end
+    if not getGroup(convoy) then
+      return
+    end
+    if resumeId then
+      DMS.Clock.cancel(resumeId)
+      resumeId = nil
+    end
     if not Ground._halted[convoy] then
       Ground.halt(convoy)
       Ground.alarm(convoy, "RED")
@@ -382,14 +478,20 @@ function Ground.haltOnHit(convoy, resumeAfterSec)
   return {
     stop = function()
       DMS.Bus.off(token)
-      if resumeId then DMS.Clock.cancel(resumeId) end
+      if resumeId then
+        DMS.Clock.cancel(resumeId)
+      end
     end,
   }
 end
 
 function Ground.reset()
-  for _, id in pairs(Ground._hunts) do DMS.Clock.cancel(id) end
-  for _, id in pairs(Ground._watch) do DMS.Clock.cancel(id) end
+  for _, id in pairs(Ground._hunts) do
+    DMS.Clock.cancel(id)
+  end
+  for _, id in pairs(Ground._watch) do
+    DMS.Clock.cancel(id)
+  end
   Ground._dest, Ground._halted, Ground._hunts, Ground._watch = {}, {}, {}, {}
 end
 

@@ -7,7 +7,9 @@ describe("DMS.Clock", function()
 
   it("after() runs once with arguments", function()
     local got = {}
-    DMS.Clock.after(5, function(a, b) got[#got + 1] = { a, b } end, "x", nil)
+    DMS.Clock.after(5, function(a, b)
+      got[#got + 1] = { a, b }
+    end, "x", nil)
     MOCK.advance(4.9)
     assert.equals(0, #got)
     MOCK.advance(0.2)
@@ -18,7 +20,9 @@ describe("DMS.Clock", function()
   end)
 
   it("after() guards errors so nothing escapes to DCS", function()
-    DMS.Clock.after(1, function() error("bad") end)
+    DMS.Clock.after(1, function()
+      error("bad")
+    end)
     MOCK.advance(2)
     assert.equals(0, #MOCK.rawErrors)
     assert.is_true((MOCK.logContains("bad", "error")))
@@ -26,7 +30,9 @@ describe("DMS.Clock", function()
 
   it("every() repeats at the interval, honoring firstDelay", function()
     local times = {}
-    DMS.Clock.every(10, function() times[#times + 1] = DMS.Clock.now() end, { firstDelay = 1 })
+    DMS.Clock.every(10, function()
+      times[#times + 1] = DMS.Clock.now()
+    end, { firstDelay = 1 })
     MOCK.advance(35)
     assert.same({ 1, 11, 21, 31 }, times)
   end)
@@ -35,7 +41,9 @@ describe("DMS.Clock", function()
     local n = 0
     DMS.Clock.every(5, function()
       n = n + 1
-      if n <= 2 then error("flaky") end
+      if n <= 2 then
+        error("flaky")
+      end
     end)
     MOCK.advance(30)
     assert.equals(6, n)
@@ -47,7 +55,9 @@ describe("DMS.Clock", function()
     local n = 0
     DMS.Clock.every(1, function()
       n = n + 1
-      if n == 3 then return false end
+      if n == 3 then
+        return false
+      end
     end)
     MOCK.advance(10)
     assert.equals(3, n)
@@ -56,8 +66,12 @@ describe("DMS.Clock", function()
 
   it("cancel() stops one-shots and repeats, also from inside fn", function()
     local a, b, c = 0, 0, 0
-    local id1 = DMS.Clock.after(5, function() a = a + 1 end)
-    local id2 = DMS.Clock.every(1, function() b = b + 1 end)
+    local id1 = DMS.Clock.after(5, function()
+      a = a + 1
+    end)
+    local id2 = DMS.Clock.every(1, function()
+      b = b + 1
+    end)
     local id3
     id3 = DMS.Clock.every(1, function()
       c = c + 1
@@ -77,7 +91,9 @@ describe("DMS.Clock", function()
   it("every() jitter stays within bounds", function()
     DMS.Rng.seed(7)
     local times = {}
-    DMS.Clock.every(10, function() times[#times + 1] = DMS.Clock.now() end, { jitter = 2 })
+    DMS.Clock.every(10, function()
+      times[#times + 1] = DMS.Clock.now()
+    end, { jitter = 2 })
     MOCK.advance(500)
     assert.truthy(#times > 30)
     for i = 2, #times do

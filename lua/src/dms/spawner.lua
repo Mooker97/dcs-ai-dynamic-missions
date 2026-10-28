@@ -9,28 +9,44 @@ local Spawner = DMS.Spawner
 local P = "Spawner"
 
 Spawner.defaults = {
-  tries = 40,                 -- candidate points per spawn
+  tries = 40, -- candidate points per spawn
   minPlayerDistGround = 5000, -- m (research notes: ~5 km ground, out of LOS)
-  minPlayerDistAir = 37000,   -- m (~20 nm)
-  readyDelaySec = 1,          -- delay before touching a new group's controller
-  buildingRadius = 0,         -- m; 0 = no building check
+  minPlayerDistAir = 37000, -- m (~20 nm)
+  readyDelaySec = 1, -- delay before touching a new group's controller
+  buildingRadius = 0, -- m; 0 = no building check
   airAltM = 3000,
   airSpeed = 180,
 }
 
 local CATEGORY = {
-  ground = function() return Group.Category.GROUND end,
-  air = function() return Group.Category.AIRPLANE end,
-  airplane = function() return Group.Category.AIRPLANE end,
-  helicopter = function() return Group.Category.HELICOPTER end,
-  ship = function() return Group.Category.SHIP end,
+  ground = function()
+    return Group.Category.GROUND
+  end,
+  air = function()
+    return Group.Category.AIRPLANE
+  end,
+  airplane = function()
+    return Group.Category.AIRPLANE
+  end,
+  helicopter = function()
+    return Group.Category.HELICOPTER
+  end,
+  ship = function()
+    return Group.Category.SHIP
+  end,
 }
 
-local function cfg() return DMS_CONFIG or {} end
+local function cfg()
+  return DMS_CONFIG or {}
+end
 
 local function registryCategory(cat)
-  if cat == "air" or cat == "airplane" or cat == "helicopter" then return "air" end
-  if cat == "ship" then return "ship" end
+  if cat == "air" or cat == "airplane" or cat == "helicopter" then
+    return "air"
+  end
+  if cat == "ship" then
+    return "ship"
+  end
   return "ground"
 end
 
@@ -53,8 +69,12 @@ end
 
 -- Normalise a point-ish table to a 2D map point {x, y} (map y == vec3 z).
 function Spawner.toVec2(p)
-  if not p then return nil end
-  if p.z ~= nil then return { x = p.x, y = p.z } end
+  if not p then
+    return nil
+  end
+  if p.z ~= nil then
+    return { x = p.x, y = p.z }
+  end
   return { x = p.x, y = p.y }
 end
 
@@ -66,23 +86,31 @@ Spawner.dist2D = dist2
 
 -- Resolve a zone id: DMS_CONFIG.zones first, then mission editor quad zones, then trigger zones.
 function Spawner.getZone(zoneId)
-  if type(zoneId) == "table" then return zoneId end
+  if type(zoneId) == "table" then
+    return zoneId
+  end
   local zones = cfg().zones
-  if zones and zones[zoneId] then return zones[zoneId] end
+  if zones and zones[zoneId] then
+    return zones[zoneId]
+  end
   local ok, z = pcall(function()
     local tz = env and env.mission and env.mission.triggers and env.mission.triggers.zones
     if tz then
       for _, zz in pairs(tz) do
         if zz.name == zoneId and zz.type == 2 and zz.verticies and #zz.verticies >= 3 then
           local pts = {}
-          for i, v in ipairs(zz.verticies) do pts[i] = { x = v.x, y = v.y } end
+          for i, v in ipairs(zz.verticies) do
+            pts[i] = { x = v.x, y = v.y }
+          end
           return { kind = "polygon", points = pts }
         end
       end
     end
     return nil
   end)
-  if ok and z then return z end
+  if ok and z then
+    return z
+  end
   local ok2, mz = pcall(trigger.misc.getZone, zoneId)
   if ok2 and mz and mz.point then
     return { kind = "circle", x = mz.point.x, y = mz.point.z, radius = mz.radius }
@@ -91,27 +119,37 @@ function Spawner.getZone(zoneId)
 end
 
 function Spawner.zoneCenter(zone)
-  if not zone then return nil end
+  if not zone then
+    return nil
+  end
   if zone.kind == "polygon" and zone.points then
     local sx, sy, n = 0, 0, #zone.points
-    for _, p in ipairs(zone.points) do sx, sy = sx + p.x, sy + p.y end
+    for _, p in ipairs(zone.points) do
+      sx, sy = sx + p.x, sy + p.y
+    end
     return { x = sx / n, y = sy / n }
   end
   return { x = zone.x, y = zone.y }
 end
 
 function Spawner.zoneRadius(zone)
-  if not zone then return 0 end
+  if not zone then
+    return 0
+  end
   if zone.kind == "polygon" and zone.points then
     local c, r = Spawner.zoneCenter(zone), 0
-    for _, p in ipairs(zone.points) do r = math.max(r, dist2(c, p)) end
+    for _, p in ipairs(zone.points) do
+      r = math.max(r, dist2(c, p))
+    end
     return r
   end
   return zone.radius or 0
 end
 
 function Spawner.inZone(zone, p)
-  if not zone or not p then return false end
+  if not zone or not p then
+    return false
+  end
   p = Spawner.toVec2(p)
   if zone.kind == "polygon" and zone.points then
     return Spawner.pointInPolygon(p.x, p.y, zone.points)
@@ -129,7 +167,9 @@ function Spawner.randomPointInZone(zone)
     for _ = 1, 50 do
       local x = minx + DMS.Rng.random() * (maxx - minx)
       local y = miny + DMS.Rng.random() * (maxy - miny)
-      if Spawner.pointInPolygon(x, y, zone.points) then return { x = x, y = y } end
+      if Spawner.pointInPolygon(x, y, zone.points) then
+        return { x = x, y = y }
+      end
     end
     return Spawner.zoneCenter(zone)
   end
@@ -142,20 +182,26 @@ end
 
 function Spawner.isLand(p)
   local ok, st = pcall(land.getSurfaceType, { x = p.x, y = p.y })
-  if not ok or st == nil then return true end
+  if not ok or st == nil then
+    return true
+  end
   local S = land.SurfaceType
   return st ~= S.WATER and st ~= S.SHALLOW_WATER
 end
 
 function Spawner.isWater(p)
   local ok, st = pcall(land.getSurfaceType, { x = p.x, y = p.y })
-  if not ok or st == nil then return false end
+  if not ok or st == nil then
+    return false
+  end
   return st == land.SurfaceType.WATER
 end
 
 function Spawner.groundHeight(p)
   local ok, h = pcall(land.getHeight, { x = p.x, y = p.y })
-  if ok and type(h) == "number" then return h end
+  if ok and type(h) == "number" then
+    return h
+  end
   return 0
 end
 
@@ -169,12 +215,16 @@ function Spawner.playerUnits()
     if ok and players then
       for _, u in ipairs(players) do
         local ok2, pos, name = pcall(function()
-          if u:isExist() then return u:getPoint(), u:getName() end
+          if u:isExist() then
+            return u:getPoint(), u:getName()
+          end
           return nil
         end)
         if ok2 and pos then
           out[#out + 1] = { unit = u, pos = pos, coalition = side }
-          if name then seen[name] = true end
+          if name then
+            seen[name] = true
+          end
         end
       end
     end
@@ -182,26 +232,38 @@ function Spawner.playerUnits()
   local bp = DMS.Bus and DMS.Bus._players
   if type(bp) == "table" and Unit and Unit.getByName then
     local names = {}
-    for name in pairs(bp) do if not seen[name] then names[#names + 1] = name end end
+    for name in pairs(bp) do
+      if not seen[name] then
+        names[#names + 1] = name
+      end
+    end
     table.sort(names)
     for _, name in ipairs(names) do
       local ok2, u, pos, side = pcall(function()
         local un = Unit.getByName(name)
-        if un and un:isExist() then return un, un:getPoint(), un:getCoalition() end
+        if un and un:isExist() then
+          return un, un:getPoint(), un:getCoalition()
+        end
         return nil
       end)
-      if ok2 and u and pos then out[#out + 1] = { unit = u, pos = pos, coalition = side or bp[name].coalition } end
+      if ok2 and u and pos then
+        out[#out + 1] = { unit = u, pos = pos, coalition = side or bp[name].coalition }
+      end
     end
   end
   return out
 end
 
 local function buildingsNear(p, radius)
-  if not radius or radius <= 0 then return false end
+  if not radius or radius <= 0 then
+    return false
+  end
   local found = false
   pcall(function()
-    local vol = { id = world.VolumeType.SPHERE,
-      params = { point = { x = p.x, y = Spawner.groundHeight(p), z = p.y }, radius = radius } }
+    local vol = {
+      id = world.VolumeType.SPHERE,
+      params = { point = { x = p.x, y = Spawner.groundHeight(p), z = p.y }, radius = radius },
+    }
     world.searchObjects(Object.Category.SCENERY, vol, function()
       found = true
       return false
@@ -214,19 +276,29 @@ end
 function Spawner.validPoint(p, opts, players)
   opts = opts or {}
   if opts.category == "ship" then
-    if not Spawner.isWater(p) then return false, "not water" end
+    if not Spawner.isWater(p) then
+      return false, "not water"
+    end
   elseif not (opts.category == "air" or opts.category == "airplane" or opts.category == "helicopter") then
-    if not Spawner.isLand(p) then return false, "water" end
-    if buildingsNear(p, opts.buildingRadius or Spawner.defaults.buildingRadius) then return false, "building" end
+    if not Spawner.isLand(p) then
+      return false, "water"
+    end
+    if buildingsNear(p, opts.buildingRadius or Spawner.defaults.buildingRadius) then
+      return false, "building"
+    end
   end
   local minD = opts.minPlayerDistM
   for _, pl in ipairs(players or {}) do
     local pp = { x = pl.pos.x, y = pl.pos.z }
-    if minD and minD > 0 and dist2(p, pp) < minD then return false, "near player" end
+    if minD and minD > 0 and dist2(p, pp) < minD then
+      return false, "near player"
+    end
     if opts.outOfLOS then
       local eye = { x = p.x, y = Spawner.groundHeight(p) + (opts.losHeightM or 3), z = p.y }
       local ok, vis = pcall(land.isVisible, eye, pl.pos)
-      if ok and vis then return false, "in LOS" end
+      if ok and vis then
+        return false, "in LOS"
+      end
     end
   end
   return true
@@ -238,25 +310,42 @@ local SKILLS = { "Average", "Good", "High", "Excellent" }
 local function adjustSkill(skill)
   if DMS.Director and DMS.Director.skillFor then
     local ok, s = pcall(DMS.Director.skillFor, skill)
-    if ok and s then return s end
+    if ok and s then
+      return s
+    end
   end
   return skill
 end
 Spawner.SKILLS = SKILLS
 
 local function resolveCountry(name)
-  if type(name) == "number" then return name end
-  if type(name) ~= "string" then return nil end
-  local ok, id = pcall(function() return country.id[name] end) -- country.id may be strict
-  if ok and type(id) == "number" then return id end
+  if type(name) == "number" then
+    return name
+  end
+  if type(name) ~= "string" then
+    return nil
+  end
+  local ok, id = pcall(function()
+    return country.id[name]
+  end) -- country.id may be strict
+  if ok and type(id) == "number" then
+    return id
+  end
   return nil
 end
 
 local function routePoint(x, y, speed, action, alt)
   return {
-    x = x, y = y, alt = alt or 0, alt_type = alt and "BARO" or nil,
-    type = "Turning Point", action = action or "Off Road",
-    speed = speed or 0, ETA = 0, ETA_locked = false, speed_locked = true,
+    x = x,
+    y = y,
+    alt = alt or 0,
+    alt_type = alt and "BARO" or nil,
+    type = "Turning Point",
+    action = action or "Off Road",
+    speed = speed or 0,
+    ETA = 0,
+    ETA_locked = false,
+    speed_locked = true,
     task = { id = "ComboTask", params = { tasks = {} } },
   }
 end
@@ -275,11 +364,13 @@ function Spawner.buildGroupData(name, tpl, pos, headingRad, opts)
     units[i] = {
       type = u.type,
       name = name .. "-" .. i,
-      x = ux, y = uy,
+      x = ux,
+      y = uy,
       heading = headingRad + math.rad(u.heading or 0),
       skill = adjustSkill(opts.skill or u.skill or tpl.skill or "Average"),
       playerCanDrive = false,
-      alt = alt, alt_type = alt and "BARO" or nil,
+      alt = alt,
+      alt_type = alt and "BARO" or nil,
       speed = isAir and (opts.speed or Spawner.defaults.airSpeed) or nil,
       payload = u.payload,
       livery_id = u.livery,
@@ -288,10 +379,12 @@ function Spawner.buildGroupData(name, tpl, pos, headingRad, opts)
   local route
   if isAir then
     local sp = opts.speed or Spawner.defaults.airSpeed
-    route = { points = {
-      routePoint(pos.x, pos.y, sp, "Turning Point", alt),
-      routePoint(pos.x + 1000 * cosH, pos.y + 1000 * sinH, sp, "Turning Point", alt),
-    } }
+    route = {
+      points = {
+        routePoint(pos.x, pos.y, sp, "Turning Point", alt),
+        routePoint(pos.x + 1000 * cosH, pos.y + 1000 * sinH, sp, "Turning Point", alt),
+      },
+    }
   else
     -- 2-point hold route at the spawn position (single-point routes misbehave)
     route = { points = { routePoint(pos.x, pos.y, 0), routePoint(pos.x + 1, pos.y + 1, 0) } }
@@ -299,7 +392,8 @@ function Spawner.buildGroupData(name, tpl, pos, headingRad, opts)
   local data = {
     name = name,
     task = tpl.task or (isAir and "CAP" or "Ground Nothing"),
-    x = pos.x, y = pos.y,
+    x = pos.x,
+    y = pos.y,
     units = units,
     route = route,
     visible = false,
@@ -323,11 +417,17 @@ local function resolveWhere(where, opts)
     return z, nil
   end
   if type(where) == "table" then
-    if where.zone then return Spawner.getZone(where.zone), nil end
-    if where.kind then return where, nil end
+    if where.zone then
+      return Spawner.getZone(where.zone), nil
+    end
+    if where.kind then
+      return where, nil
+    end
     local p = Spawner.toVec2(where.point or where)
     local r = where.radiusM or opts.radiusM
-    if r and r > 0 then return { kind = "circle", x = p.x, y = p.y, radius = r }, nil end
+    if r and r > 0 then
+      return { kind = "circle", x = p.x, y = p.y, radius = r }, nil
+    end
     return nil, p
   end
   return nil, nil
@@ -353,17 +453,29 @@ function Spawner.spawn(templateId, where, opts)
   end
   local cid = resolveCountry(opts.country or tpl.country)
   if not cid then
-    DMS.Log.warn(P, "Unknown country '%s' for template '%s'", tostring(opts.country or tpl.country), tostring(templateId))
+    DMS.Log.warn(
+      P,
+      "Unknown country '%s' for template '%s'",
+      tostring(opts.country or tpl.country),
+      tostring(templateId)
+    )
     return nil, "bad country"
   end
   local coal = 0
-  pcall(function() coal = coalition.getCountryCoalition(cid) end)
+  pcall(function()
+    coal = coalition.getCountryCoalition(cid)
+  end)
   local nUnits = #(tpl.units or {})
-  if nUnits == 0 then return nil, "empty template" end
+  if nUnits == 0 then
+    return nil, "empty template"
+  end
 
   local rcat = registryCategory(cat)
-  if not opts.ignoreBudget and DMS.Registry.budgetAvailable
-    and not DMS.Registry.budgetAvailable(rcat, coal, nUnits) then
+  if
+    not opts.ignoreBudget
+    and DMS.Registry.budgetAvailable
+    and not DMS.Registry.budgetAvailable(rcat, coal, nUnits)
+  then
     DMS.Log.debug(P, "Skipped '%s': %s budget exhausted (coalition %d)", tostring(templateId), rcat, coal)
     return nil, "budget"
   end
@@ -382,12 +494,15 @@ function Spawner.spawn(templateId, where, opts)
     minPlayerDistM = opts.minPlayerDistM,
   }
   if checkOpts.minPlayerDistM == nil then
-    checkOpts.minPlayerDistM = (rcat == "air") and Spawner.defaults.minPlayerDistAir or Spawner.defaults.minPlayerDistGround
+    checkOpts.minPlayerDistM = (rcat == "air") and Spawner.defaults.minPlayerDistAir
+      or Spawner.defaults.minPlayerDistGround
   end
   -- never check distance from own-side players
   local players = {}
   for _, pl in ipairs(Spawner.playerUnits()) do
-    if pl.coalition ~= coal then players[#players + 1] = pl end
+    if pl.coalition ~= coal then
+      players[#players + 1] = pl
+    end
   end
 
   local heading = opts.heading and math.rad(opts.heading) or DMS.Rng.random() * 2 * math.pi
@@ -403,14 +518,26 @@ function Spawner.spawn(templateId, where, opts)
         local dx, dy = u.dx or 0, u.dy or 0
         local up = { x = cand.x + dx * cosH - dy * sinH, y = cand.y + dx * sinH + dy * cosH }
         local uok, ur = Spawner.validPoint(up, { category = cat }, nil)
-        if not uok then ok, reason = false, "unit " .. ur break end
+        if not uok then
+          ok, reason = false, "unit " .. ur
+          break
+        end
       end
     end
-    if ok then pos = cand break end
+    if ok then
+      pos = cand
+      break
+    end
     lastReason = reason
   end
   if not pos then
-    DMS.Log.info(P, "No valid spawn point for '%s' after %d tries (last: %s)", tostring(templateId), tries, tostring(lastReason))
+    DMS.Log.info(
+      P,
+      "No valid spawn point for '%s' after %d tries (last: %s)",
+      tostring(templateId),
+      tries,
+      tostring(lastReason)
+    )
     return nil, "no point"
   end
 
@@ -423,8 +550,11 @@ function Spawner.spawn(templateId, where, opts)
 
   local name = DMS.Registry.allocName(opts.prefix or (type(templateId) == "string" and templateId or "grp"))
   local data = Spawner.buildGroupData(name, tpl, pos, heading, {
-    hidden = hidden, skill = opts.skill, lateActivation = opts.lateActivation,
-    altM = opts.altM, speed = opts.speed,
+    hidden = hidden,
+    skill = opts.skill,
+    lateActivation = opts.lateActivation,
+    altM = opts.altM,
+    speed = opts.speed,
   })
 
   local ok, grp = pcall(coalition.addGroup, cid, gcatFn(), data)
@@ -434,19 +564,37 @@ function Spawner.spawn(templateId, where, opts)
   end
 
   DMS.Registry.track(name, {
-    category = rcat, coalition = coal, encounter = opts.encounter, units = nUnits,
+    category = rcat,
+    coalition = coal,
+    encounter = opts.encounter,
+    units = nUnits,
     template = type(templateId) == "string" and templateId or nil,
   })
-  DMS.Log.debug(P, "Spawned '%s' from '%s' at (%.0f, %.0f) hidden=%s", name, tostring(templateId), pos.x, pos.y, tostring(hidden))
+  DMS.Log.debug(
+    P,
+    "Spawned '%s' from '%s' at (%.0f, %.0f) hidden=%s",
+    name,
+    tostring(templateId),
+    pos.x,
+    pos.y,
+    tostring(hidden)
+  )
   DMS.Bus.emit("spawner.spawned", {
-    group = name, template = type(templateId) == "string" and templateId or nil,
-    coalition = coal, category = rcat, units = nUnits, encounter = opts.encounter,
-    pos = { x = pos.x, y = Spawner.groundHeight(pos), z = pos.y }, cost = opts.cost or 1,
+    group = name,
+    template = type(templateId) == "string" and templateId or nil,
+    coalition = coal,
+    category = rcat,
+    units = nUnits,
+    encounter = opts.encounter,
+    pos = { x = pos.x, y = Spawner.groundHeight(pos), z = pos.y },
+    cost = opts.cost or 1,
   })
 
   if opts.onReady then
     DMS.Clock.after(opts.readyDelaySec or Spawner.defaults.readyDelaySec, function()
-      if DMS.Registry.isAlive(name) then opts.onReady(name) end
+      if DMS.Registry.isAlive(name) then
+        opts.onReady(name)
+      end
     end)
   end
   return name
@@ -480,20 +628,32 @@ function Spawner.spawnPool(poolId, opts)
       where = zones[DMS.Rng.int(1, #zones)]
     end
     local sopts = {}
-    for k, v in pairs(opts) do sopts[k] = v end
+    for k, v in pairs(opts) do
+      sopts[k] = v
+    end
     sopts.zone, sopts.point, sopts.count = nil, nil, nil
-    if sopts.prefix == nil and type(poolId) == "string" then sopts.prefix = poolId end
+    if sopts.prefix == nil and type(poolId) == "string" then
+      sopts.prefix = poolId
+    end
     local name = Spawner.spawn(member.tpl, where, sopts)
-    if name then out[#out + 1] = name end
+    if name then
+      out[#out + 1] = name
+    end
   end
   DMS.Log.debug(P, "Pool '%s': spawned %d/%d groups", tostring(poolId), #out, count)
   return out
 end
 
 function Spawner.start()
-  DMS.Log.debug(P, "Started (%d templates)", (function()
-    local n = 0
-    for _ in pairs(cfg().templates or {}) do n = n + 1 end
-    return n
-  end)())
+  DMS.Log.debug(
+    P,
+    "Started (%d templates)",
+    (function()
+      local n = 0
+      for _ in pairs(cfg().templates or {}) do
+        n = n + 1
+      end
+      return n
+    end)()
+  )
 end

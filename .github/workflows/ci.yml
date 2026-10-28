@@ -72,10 +72,9 @@ jobs:
             echo "tools/bundle_lua.py not present yet; skipping"
           fi
 
-      # Advisory until first formatted with stylua (~245 one-line statements violate
-      # collapse_simple_statement = "Never"); flip to blocking by removing continue-on-error.
+      # Blocking. To reformat without a local stylua: push to the stylua-fix branch, then apply the
+      # stylua.patch artifact (see .github/workflows/stylua-fix.yml).
       - name: StyLua
-        continue-on-error: true
         uses: JohnnyMorganz/stylua-action@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}

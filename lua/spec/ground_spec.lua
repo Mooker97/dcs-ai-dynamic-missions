@@ -7,11 +7,17 @@ local function reset()
 end
 
 local function redGroup(name, x, y)
-  return MOCK.addGroup({ name = name, coalition = 1, category = "ground",
-    units = { { name = name .. "-1", x = x, y = y }, { name = name .. "-2", x = x + 20, y = y } } })
+  return MOCK.addGroup({
+    name = name,
+    coalition = 1,
+    category = "ground",
+    units = { { name = name .. "-1", x = x, y = y }, { name = name .. "-2", x = x + 20, y = y } },
+  })
 end
 
-local function ctrl(name) return Group.getByName(name):getController() end
+local function ctrl(name)
+  return Group.getByName(name):getController()
+end
 
 local function lastRoute(name)
   local t = ctrl(name).task
@@ -23,7 +29,9 @@ local function lastCommand(name)
   return c[#c]
 end
 
-local function setTasks(name) return MOCK.countCalls("Controller.setTask", name) end
+local function setTasks(name)
+  return MOCK.countCalls("Controller.setTask", name)
+end
 
 local G = AI.Option.Ground
 
@@ -80,7 +88,12 @@ describe("Ground", function()
   end)
 
   it("uses the air ROE enum for air groups and skips alarm", function()
-    MOCK.addGroup({ name = "air1", coalition = 1, category = "airplane", units = { { name = "air1-1", x = 0, y = 0, alt = 3000 } } })
+    MOCK.addGroup({
+      name = "air1",
+      coalition = 1,
+      category = "airplane",
+      units = { { name = "air1-1", x = 0, y = 0, alt = 3000 } },
+    })
     assert.is_true(DMS.Ground.openFire("air1"))
     assert.are.equal(AI.Option.Air.val.ROE.OPEN_FIRE, ctrl("air1").options[AI.Option.Air.id.ROE])
     assert.is_false(DMS.Ground.alarm("air1", "RED"))
@@ -115,8 +128,18 @@ describe("Ground", function()
     redGroup("hunter2", 0, 0)
     MOCK.addGroup({ name = "convoy", coalition = 2, category = "ground", units = { { name = "c1", x = 5000, y = 0 } } })
     local ended = {}
-    DMS.Ground.hunt("hunter", "convoy", { intervalSec = 5, onEnd = function(r) ended.h1 = r end })
-    DMS.Ground.hunt("hunter2", "convoy", { intervalSec = 5, onEnd = function(r) ended.h2 = r end })
+    DMS.Ground.hunt("hunter", "convoy", {
+      intervalSec = 5,
+      onEnd = function(r)
+        ended.h1 = r
+      end,
+    })
+    DMS.Ground.hunt("hunter2", "convoy", {
+      intervalSec = 5,
+      onEnd = function(r)
+        ended.h2 = r
+      end,
+    })
     MOCK.advance(6)
     MOCK.killGroup("hunter2")
     MOCK.advance(6)
@@ -130,7 +153,9 @@ describe("Ground", function()
   it("hunt with a target function waits until a target appears", function()
     redGroup("hunter", 0, 0)
     local tgt
-    DMS.Ground.hunt("hunter", function() return tgt end, { intervalSec = 5 })
+    DMS.Ground.hunt("hunter", function()
+      return tgt
+    end, { intervalSec = 5 })
     MOCK.advance(6)
     assert.are.equal(0, setTasks("hunter"))
     MOCK.spawnPlayer({ name = "Viper1-1", group = "Viper1", x = 3000, y = 3000 })
@@ -143,7 +168,9 @@ describe("Ground", function()
     redGroup("g1", 0, 0)
     DMS.Ground.routeTo("g1", { x = 5000, y = 0 })
     local stuck
-    DMS.Bus.on("ground.stuck", function(ev) stuck = ev.group end)
+    DMS.Bus.on("ground.stuck", function(ev)
+      stuck = ev.group
+    end)
     DMS.Ground.watch("g1", { checkSec = 5, stuckSec = 20, maxRetries = 2 })
     MOCK.advance(200)
     assert.are.equal(3, setTasks("g1"))
@@ -157,7 +184,9 @@ describe("Ground", function()
     DMS.Ground.routeTo("g2", { x = 5000, y = 0 })
     DMS.Ground.halt("g2")
     local stuck = {}
-    DMS.Bus.on("ground.stuck", function(ev) stuck[#stuck + 1] = ev.group end)
+    DMS.Bus.on("ground.stuck", function(ev)
+      stuck[#stuck + 1] = ev.group
+    end)
     DMS.Ground.watch("g1", { checkSec = 5, stuckSec = 20 })
     DMS.Ground.watch("g2", { checkSec = 5, stuckSec = 20 })
     for i = 1, 40 do
@@ -203,15 +232,26 @@ describe("Ground", function()
     assert.is_false(DMS.Ground.fireAtPoint("nope", { x = 0, y = 0 }))
   end)
   it("200 seeds: routes, hunts, watchdogs and convoy halts stay valid", function()
-    local ACTIONS = { ["Off Road"] = true, ["On Road"] = true, Cone = true, Rank = true, Diamond = true, Vee = true,
-      EchelonL = true, EchelonR = true }
+    local ACTIONS = {
+      ["Off Road"] = true,
+      ["On Road"] = true,
+      Cone = true,
+      Rank = true,
+      Diamond = true,
+      Vee = true,
+      EchelonL = true,
+      EchelonR = true,
+    }
     local ROE_OK = { [G.val.ROE.OPEN_FIRE] = true, [G.val.ROE.RETURN_FIRE] = true, [G.val.ROE.WEAPON_HOLD] = true }
-    local ALARM_OK = { [G.val.ALARM_STATE.AUTO] = true, [G.val.ALARM_STATE.GREEN] = true, [G.val.ALARM_STATE.RED] = true }
+    local ALARM_OK =
+      { [G.val.ALARM_STATE.AUTO] = true, [G.val.ALARM_STATE.GREEN] = true, [G.val.ALARM_STATE.RED] = true }
     local actionList = { "Off Road", "On Road", "Cone", "Rank", "Diamond", "Vee", "EchelonL", "EchelonR" }
     local routes = 0
     local function checkRoute(seed, name)
       local t = ctrl(name).task
-      if not t or t.id ~= "Mission" then return end
+      if not t or t.id ~= "Mission" then
+        return
+      end
       local pts = t.params.route.points
       assert.truthy(#pts >= 2, "seed " .. seed .. " " .. name .. " short route")
       for i, p in ipairs(pts) do
@@ -240,20 +280,34 @@ describe("Ground", function()
       end
       for i = 1, 2 do
         local n = "blue" .. i
-        MOCK.addGroup({ name = n, coalition = 2, category = "ground",
-          units = { { name = n .. "-1", x = R.int(-20000, 20000), y = R.int(-20000, 20000) } } })
+        MOCK.addGroup({
+          name = n,
+          coalition = 2,
+          category = "ground",
+          units = { { name = n .. "-1", x = R.int(-20000, 20000), y = R.int(-20000, 20000) } },
+        })
         MOCK.units[n .. "-1"].velocity = { x = R.int(-15, 15), y = 0, z = R.int(-15, 15) }
         targets[#targets + 1] = n
       end
       -- red1: plain route; red2: hunter; red3: watched route; red4: convoy with haltOnHit
       local stop = R.int(0, 1) == 1 and R.int(0, 2000) or nil
       local p = { x = R.int(-30000, 30000), y = R.int(-30000, 30000) }
-      if R.int(0, 1) == 1 then p = { x = p.x, y = 0, z = p.y } end
-      assert.is_true(DMS.Ground.routeTo("red1", p, { speed = R.range({ 3, 20 }), stopShortM = stop,
-        action = actionList[R.int(1, #actionList)] }))
+      if R.int(0, 1) == 1 then
+        p = { x = p.x, y = 0, z = p.y }
+      end
+      assert.is_true(
+        DMS.Ground.routeTo(
+          "red1",
+          p,
+          { speed = R.range({ 3, 20 }), stopShortM = stop, action = actionList[R.int(1, #actionList)] }
+        )
+      )
       checkRoute(seed, "red1")
-      DMS.Ground.hunt("red2", targets[R.int(1, 2)], { intervalSec = R.int(5, 20), speed = R.range({ 5, 15 }),
-        standoffM = R.int(0, 800), jitter = 2 })
+      DMS.Ground.hunt(
+        "red2",
+        targets[R.int(1, 2)],
+        { intervalSec = R.int(5, 20), speed = R.range({ 5, 15 }), standoffM = R.int(0, 800), jitter = 2 }
+      )
       DMS.Ground.routeTo("red3", { x = R.int(-30000, 30000), y = R.int(-30000, 30000) })
       local maxRetries = R.int(0, 3)
       DMS.Ground.watch("red3", { checkSec = 5, stuckSec = R.int(15, 40), maxRetries = maxRetries })
@@ -263,20 +317,34 @@ describe("Ground", function()
       for step = 1, 60 do
         for _, tn in ipairs(targets) do
           local u = MOCK.units[tn .. "-1"]
-          if not u.dead then MOCK.moveUnit(tn .. "-1", u.x + u.velocity.x * 5, u.z + u.velocity.z * 5) end
+          if not u.dead then
+            MOCK.moveUnit(tn .. "-1", u.x + u.velocity.x * 5, u.z + u.velocity.z * 5)
+          end
         end
-        if step % 11 == 0 then DMS.Bus.emit("unit.hit", { target = "red4-1", targetGroup = "red4" }) end
-        if killTarget and step == 40 then for _, tn in ipairs(targets) do MOCK.killGroup(tn) end end
+        if step % 11 == 0 then
+          DMS.Bus.emit("unit.hit", { target = "red4-1", targetGroup = "red4" })
+        end
+        if killTarget and step == 40 then
+          for _, tn in ipairs(targets) do
+            MOCK.killGroup(tn)
+          end
+        end
         MOCK.advance(5)
         for _, n in ipairs(names) do
           checkRoute(seed, n)
           local o = ctrl(n).options
-          if o[G.id.ROE] ~= nil then assert.truthy(ROE_OK[o[G.id.ROE]], "seed " .. seed .. " bad ROE") end
-          if o[G.id.ALARM_STATE] ~= nil then assert.truthy(ALARM_OK[o[G.id.ALARM_STATE]], "seed " .. seed .. " bad alarm") end
+          if o[G.id.ROE] ~= nil then
+            assert.truthy(ROE_OK[o[G.id.ROE]], "seed " .. seed .. " bad ROE")
+          end
+          if o[G.id.ALARM_STATE] ~= nil then
+            assert.truthy(ALARM_OK[o[G.id.ALARM_STATE]], "seed " .. seed .. " bad alarm")
+          end
         end
       end
       assert.truthy(setTasks("red3") <= 1 + maxRetries, "seed " .. seed .. " watchdog re-routed too often")
-      if killTarget then assert.is_false(DMS.Ground.isHunting("red2"), "seed " .. seed .. " hunt outlived target") end
+      if killTarget then
+        assert.is_false(DMS.Ground.isHunting("red2"), "seed " .. seed .. " hunt outlived target")
+      end
       for _, c in ipairs(ctrl("red4").commands) do
         assert.are.equal("StopRoute", c.id)
         assert.are.equal("boolean", type(c.params.value))

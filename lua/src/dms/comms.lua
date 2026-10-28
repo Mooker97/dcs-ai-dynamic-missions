@@ -8,27 +8,35 @@ local Comms = DMS.Comms
 local P = "Comms"
 
 Comms.SOUND_PREFIX = "l10n/DEFAULT/"
-Comms.GAP_SEC = 0.75          -- silence between queued transmissions
-Comms.MAX_QUEUE = 12          -- oldest low-priority items dropped beyond this
+Comms.GAP_SEC = 0.75 -- silence between queued transmissions
+Comms.MAX_QUEUE = 12 -- oldest low-priority items dropped beyond this
 Comms.ROOT_MENU = "DMS"
 
 -- ---------------------------------------------------------------------------
 -- helpers
 -- ---------------------------------------------------------------------------
 
-local function cfg() return DMS_CONFIG or {} end
+local function cfg()
+  return DMS_CONFIG or {}
+end
 
 local function now()
-  if DMS.Clock and DMS.Clock.now then return DMS.Clock.now() end
+  if DMS.Clock and DMS.Clock.now then
+    return DMS.Clock.now()
+  end
   return 0
 end
 
 local function log(level, fmt, ...)
-  if DMS.Log and DMS.Log[level] then DMS.Log[level](P, fmt, ...) end
+  if DMS.Log and DMS.Log[level] then
+    DMS.Log[level](P, fmt, ...)
+  end
 end
 
 local function call(fn, ...)
-  if DMS.safeCall then return DMS.safeCall(fn, ...) end
+  if DMS.safeCall then
+    return DMS.safeCall(fn, ...)
+  end
   return pcall(fn, ...)
 end
 
@@ -39,22 +47,32 @@ end
 
 local function estimateDur(text)
   local words = 0
-  for _ in string.gmatch(text or "", "%S+") do words = words + 1 end
+  for _ in string.gmatch(text or "", "%S+") do
+    words = words + 1
+  end
   local d = words * 0.4 + 1
-  if d < 2 then d = 2 end
+  if d < 2 then
+    d = 2
+  end
   return d
 end
 
 local function speakerCfg(speaker)
   local sp = cfg().speakers
-  if type(sp) == "table" and speaker ~= nil and type(sp[speaker]) == "table" then return sp[speaker] end
+  if type(sp) == "table" and speaker ~= nil and type(sp[speaker]) == "table" then
+    return sp[speaker]
+  end
   return nil
 end
 
 local function speakerCallsign(speaker, opts)
-  if opts and opts.callsign then return opts.callsign end
+  if opts and opts.callsign then
+    return opts.callsign
+  end
   local sc = speakerCfg(speaker)
-  if sc and sc.callsign then return sc.callsign end
+  if sc and sc.callsign then
+    return sc.callsign
+  end
   return speaker
 end
 
@@ -67,7 +85,9 @@ local function turnsText(turns)
       out[#out + 1] = cs and (tostring(cs) .. ": " .. t.text) or t.text
     end
   end
-  if #out == 0 then return nil end
+  if #out == 0 then
+    return nil
+  end
   return table.concat(out, "\n")
 end
 
@@ -77,17 +97,23 @@ end
 
 local function freshState()
   return {
-    queue = {}, seq = 0, busyUntil = -1, pumpId = nil,
-    bags = {}, cooldowns = {},
-    lastByCoalition = {}, lastByGroup = {},
-    groups = {},           -- groupId -> {root, ctx, submenus = {pathKey -> handle}}
-    tokens = {}, started = false,
-    played = {},           -- history (bounded) for tests / debugging
+    queue = {},
+    seq = 0,
+    busyUntil = -1,
+    pumpId = nil,
+    bags = {},
+    cooldowns = {},
+    lastByCoalition = {},
+    lastByGroup = {},
+    groups = {}, -- groupId -> {root, ctx, submenus = {pathKey -> handle}}
+    tokens = {},
+    started = false,
+    played = {}, -- history (bounded) for tests / debugging
   }
 end
 
 Comms._s = Comms._s or freshState()
-Comms._commands = Comms._commands or {}   -- registered menu commands (persist across restarts)
+Comms._commands = Comms._commands or {} -- registered menu commands (persist across restarts)
 Comms._statusProviders = Comms._statusProviders or {}
 
 -- ---------------------------------------------------------------------------
@@ -95,7 +121,9 @@ Comms._statusProviders = Comms._statusProviders or {}
 -- ---------------------------------------------------------------------------
 
 local function outText(target, msg, dur)
-  if not (trigger and trigger.action) then return end
+  if not (trigger and trigger.action) then
+    return
+  end
   if target.groupId and trigger.action.outTextForGroup then
     trigger.action.outTextForGroup(target.groupId, msg, dur, false)
   elseif trigger.action.outTextForCoalition then
@@ -104,15 +132,16 @@ local function outText(target, msg, dur)
 end
 
 local function outSound(target, path)
-  if not (trigger and trigger.action) then return end
+  if not (trigger and trigger.action) then
+    return
+  end
   if target.frequency and trigger.action.radioTransmission then
     local f = target.frequency
-    local hz = (f < 1000) and math.floor(f * 1000000 + 0.5) or f   -- MHz or Hz accepted
-    local mod = target.modulation or 0                              -- 0 = AM, 1 = FM
+    local hz = (f < 1000) and math.floor(f * 1000000 + 0.5) or f -- MHz or Hz accepted
+    local mod = target.modulation or 0 -- 0 = AM, 1 = FM
     local pos = target.pos or { x = 0, y = 0, z = 0 }
     Comms._s.txSeq = (Comms._s.txSeq or 0) + 1
-    trigger.action.radioTransmission(path, pos, mod, false, hz, target.power or 1000,
-      "DMS_TX_" .. Comms._s.txSeq)
+    trigger.action.radioTransmission(path, pos, mod, false, hz, target.power or 1000, "DMS_TX_" .. Comms._s.txSeq)
   elseif target.groupId and trigger.action.outSoundForGroup then
     trigger.action.outSoundForGroup(target.groupId, path)
   elseif trigger.action.outSoundForCoalition then
@@ -138,7 +167,9 @@ local pump
 local function play(item)
   local s = Comms._s
   local t = now()
-  if item.file then outSound(item, Comms.SOUND_PREFIX .. item.file) end
+  if item.file then
+    outSound(item, Comms.SOUND_PREFIX .. item.file)
+  end
   local msg
   if item.turnsText then
     msg = item.turnsText
@@ -147,13 +178,17 @@ local function play(item)
   end
   if item.text and item.text ~= "" then
     local showFor = item.dur + 2
-    if showFor < 5 then showFor = 5 end
+    if showFor < 5 then
+      showFor = 5
+    end
     outText(item, msg, showFor)
     remember(item, msg, showFor)
   end
-  s.played[#s.played + 1] = { t = t, dur = item.dur, line = item.line, speaker = item.speaker,
-    file = item.file, text = msg }
-  if #s.played > 200 then table.remove(s.played, 1) end
+  s.played[#s.played + 1] =
+    { t = t, dur = item.dur, line = item.line, speaker = item.speaker, file = item.file, text = msg }
+  if #s.played > 200 then
+    table.remove(s.played, 1)
+  end
   s.busyUntil = t + item.dur
   log("debug", "TX %s line=%s dur=%.1f '%s'", tostring(item.speaker), tostring(item.line), item.dur, msg)
 end
@@ -161,22 +196,30 @@ end
 pump = function()
   local s = Comms._s
   s.pumpId = nil
-  if #s.queue == 0 then return end
+  if #s.queue == 0 then
+    return
+  end
   local t = now()
   local readyAt = s.busyUntil + Comms.GAP_SEC
   if s.busyUntil >= 0 and t < readyAt then
-    if DMS.Clock then s.pumpId = DMS.Clock.after(readyAt - t, pump) end
+    if DMS.Clock then
+      s.pumpId = DMS.Clock.after(readyAt - t, pump)
+    end
     return
   end
   -- highest priority first, FIFO among equals
   local bi = 1
   for i = 2, #s.queue do
     local a, b = s.queue[i], s.queue[bi]
-    if a.priority > b.priority or (a.priority == b.priority and a.seq < b.seq) then bi = i end
+    if a.priority > b.priority or (a.priority == b.priority and a.seq < b.seq) then
+      bi = i
+    end
   end
   local item = table.remove(s.queue, bi)
   local ok, err = call(play, item)
-  if not ok then log("error", "playback failed: %s", tostring(err)) end
+  if not ok then
+    log("error", "playback failed: %s", tostring(err))
+  end
   if #s.queue > 0 and DMS.Clock then
     s.pumpId = DMS.Clock.after(item.dur + Comms.GAP_SEC, pump)
   end
@@ -194,20 +237,32 @@ local function enqueue(item)
       local a = s.queue[i]
       if not a.keep then
         local b = wi and s.queue[wi]
-        if not b or a.priority < b.priority or (a.priority == b.priority and a.seq < b.seq) then wi = i end
+        if not b or a.priority < b.priority or (a.priority == b.priority and a.seq < b.seq) then
+          wi = i
+        end
       end
     end
-    if not wi then break end   -- everything queued must be kept (guaranteed beats)
+    if not wi then
+      break
+    end -- everything queued must be kept (guaranteed beats)
     local dropped = table.remove(s.queue, wi)
     log("warn", "queue full, dropped line %s", tostring(dropped.line))
   end
-  if not s.pumpId then pump() end
+  if not s.pumpId then
+    pump()
+  end
 end
 
 local function pickLine(speaker, lineIds)
-  if type(lineIds) == "string" then return lineIds end
-  if type(lineIds) ~= "table" or #lineIds == 0 then return nil end
-  if #lineIds == 1 then return lineIds[1] end
+  if type(lineIds) == "string" then
+    return lineIds
+  end
+  if type(lineIds) ~= "table" or #lineIds == 0 then
+    return nil
+  end
+  if #lineIds == 1 then
+    return lineIds[1]
+  end
   local key = tostring(speaker) .. "|" .. table.concat(lineIds, ",")
   local bag = Comms._s.bags[key]
   if not bag then
@@ -238,26 +293,39 @@ function Comms.say(speaker, lineIds, text, opts)
       return false
     end
   end
-  if cdKey then s.cooldowns[cdKey] = t end
+  if cdKey then
+    s.cooldowns[cdKey] = t
+  end
 
   local line = pickLine(speaker, lineIds)
   local v = line and cfg().voice and cfg().voice[line] or nil
-  if line and not v then log("debug", "no voice entry for line '%s' (subtitle only)", line) end
+  if line and not v then
+    log("debug", "no voice entry for line '%s' (subtitle only)", line)
+  end
   local who = (v and v.speaker) or speaker
   local sc = speakerCfg(who) or speakerCfg(speaker) or {}
   local item = {
-    speaker = who, line = line,
-    file = (v and type(v.file) == "string" and v.file ~= "") and v.file or nil,   -- no file = subtitle only
+    speaker = who,
+    line = line,
+    file = (v and type(v.file) == "string" and v.file ~= "") and v.file or nil, -- no file = subtitle only
     text = (v and v.text) or text,
-    coalition = opts.coalition, groupId = opts.groupId,
-    frequency = opts.frequency or sc.frequency, modulation = opts.modulation or sc.modulation,
-    pos = opts.pos, power = opts.power,
-    priority = opts.priority, keep = opts.keep and true or nil,
+    coalition = opts.coalition,
+    groupId = opts.groupId,
+    frequency = opts.frequency or sc.frequency,
+    modulation = opts.modulation or sc.modulation,
+    pos = opts.pos,
+    power = opts.power,
+    priority = opts.priority,
+    keep = opts.keep and true or nil,
   }
   item.callsign = speakerCallsign(item.speaker, opts)
-  if v and type(v.turns) == "table" then item.turnsText = turnsText(v.turns) end
+  if v and type(v.turns) == "table" then
+    item.turnsText = turnsText(v.turns)
+  end
   item.dur = opts.durSec or (v and v.durSec) or estimateDur(item.text or item.turnsText)
-  if not item.file and not item.turnsText and (not item.text or item.text == "") then return false end
+  if not item.file and not item.turnsText and (not item.text or item.text == "") then
+    return false
+  end
   enqueue(item)
   return line or true
 end
@@ -265,7 +333,9 @@ end
 --- Immediate text message (not queued). opts: {coalition, groupId, durSec, callsign}
 function Comms.text(msg, opts)
   opts = opts or {}
-  if opts.callsign then msg = opts.callsign .. ": " .. msg end
+  if opts.callsign then
+    msg = opts.callsign .. ": " .. msg
+  end
   local dur = opts.durSec or 10
   local target = { coalition = opts.coalition, groupId = opts.groupId }
   outText(target, msg, dur)
@@ -279,7 +349,9 @@ function Comms.repeatLast(groupId, coalitionId)
   local g = groupId and s.lastByGroup[groupId]
   local c = s.lastByCoalition[coalitionId or playerCoalition()]
   local rec = g
-  if c and (not rec or c.t > rec.t) then rec = c end
+  if c and (not rec or c.t > rec.t) then
+    rec = c
+  end
   local target = { groupId = groupId, coalition = coalitionId }
   if rec then
     outText(target, rec.msg, rec.dur)
@@ -294,30 +366,44 @@ function Comms.isBusy()
   return #s.queue > 0 or now() < s.busyUntil + Comms.GAP_SEC
 end
 
-function Comms.history() return Comms._s.played end
+function Comms.history()
+  return Comms._s.played
+end
 
 -- ---------------------------------------------------------------------------
 -- status
 -- ---------------------------------------------------------------------------
 
 --- Register an extra provider: fn() -> string|list of strings
-function Comms.addStatusProvider(fn) Comms._statusProviders[#Comms._statusProviders + 1] = fn end
+function Comms.addStatusProvider(fn)
+  Comms._statusProviders[#Comms._statusProviders + 1] = fn
+end
 
 function Comms.statusText()
   local lines = {}
   local mid = cfg().missionId
-  lines[#lines + 1] = string.format("Mission %s  T+%d:%02d", tostring(mid or "DMS"),
-    math.floor(now() / 60), math.floor(now() % 60))
+  lines[#lines + 1] =
+    string.format("Mission %s  T+%d:%02d", tostring(mid or "DMS"), math.floor(now() / 60), math.floor(now() % 60))
   local function add(fn)
     local ok, r = call(fn)
-    if ok and type(r) == "string" then lines[#lines + 1] = r end
-    if ok and type(r) == "table" then for _, l in ipairs(r) do lines[#lines + 1] = l end end
+    if ok and type(r) == "string" then
+      lines[#lines + 1] = r
+    end
+    if ok and type(r) == "table" then
+      for _, l in ipairs(r) do
+        lines[#lines + 1] = l
+      end
+    end
   end
   for _, name in ipairs({ "Narrative", "Intel", "Director", "Encounters" }) do
     local m = DMS[name]
-    if m and type(m.statusLines) == "function" then add(m.statusLines) end
+    if m and type(m.statusLines) == "function" then
+      add(m.statusLines)
+    end
   end
-  for _, fn in ipairs(Comms._statusProviders) do add(fn) end
+  for _, fn in ipairs(Comms._statusProviders) do
+    add(fn)
+  end
   return table.concat(lines, "\n")
 end
 
@@ -326,10 +412,16 @@ end
 -- ---------------------------------------------------------------------------
 
 local function pathList(path)
-  if path == nil or path == "" then return {} end
-  if type(path) == "table" then return path end
+  if path == nil or path == "" then
+    return {}
+  end
+  if type(path) == "table" then
+    return path
+  end
   local out = {}
-  for part in string.gmatch(path, "[^/]+") do out[#out + 1] = part end
+  for part in string.gmatch(path, "[^/]+") do
+    out[#out + 1] = part
+  end
   return out
 end
 
@@ -351,31 +443,50 @@ end
 local function runCommand(arg)
   local g = Comms._s.groups[arg.groupId]
   local cmd = Comms._commands[arg.index]
-  if not g or not cmd then return end
-  log("debug", "menu '%s' pressed by group %s (%s)", cmd.label, tostring(g.ctx.groupName),
-    tostring(g.ctx.playerName))
+  if not g or not cmd then
+    return
+  end
+  log("debug", "menu '%s' pressed by group %s (%s)", cmd.label, tostring(g.ctx.groupName), tostring(g.ctx.playerName))
   local ok, err = call(cmd.fn, g.ctx)
-  if not ok then log("error", "menu command '%s' failed: %s", cmd.label, tostring(err)) end
+  if not ok then
+    log("error", "menu command '%s' failed: %s", cmd.label, tostring(err))
+  end
 end
 
 local function addCommandToGroup(g, index)
   local cmd = Comms._commands[index]
   local parent = ensureSubmenu(g, cmd.path)
-  missionCommands.addCommandForGroup(g.ctx.groupId, cmd.label, parent, runCommand,
-    { groupId = g.ctx.groupId, index = index })
+  missionCommands.addCommandForGroup(
+    g.ctx.groupId,
+    cmd.label,
+    parent,
+    runCommand,
+    { groupId = g.ctx.groupId, index = index }
+  )
 end
 
 local function buildGroupMenu(ctx)
-  if not missionCommands then return end
+  if not missionCommands then
+    return
+  end
   local s = Comms._s
   local old = s.groups[ctx.groupId]
-  if old and old.root then pcall(missionCommands.removeItemForGroup, ctx.groupId, old.root) end
+  if old and old.root then
+    pcall(missionCommands.removeItemForGroup, ctx.groupId, old.root)
+  end
   local g = { ctx = ctx, submenus = {} }
   g.root = missionCommands.addSubMenuForGroup(ctx.groupId, Comms.ROOT_MENU)
   s.groups[ctx.groupId] = g
-  for i = 1, #Comms._commands do addCommandToGroup(g, i) end
-  log("debug", "built menu for group %s (id %s, %d commands)", tostring(ctx.groupName),
-    tostring(ctx.groupId), #Comms._commands)
+  for i = 1, #Comms._commands do
+    addCommandToGroup(g, i)
+  end
+  log(
+    "debug",
+    "built menu for group %s (id %s, %d commands)",
+    tostring(ctx.groupName),
+    tostring(ctx.groupId),
+    #Comms._commands
+  )
 end
 
 --- Register an F10 command for every player group (existing and future).
@@ -387,7 +498,7 @@ function Comms.addMenuCommand(path, label, fn)
   local key = table.concat(parts, "/") .. "|" .. label
   for i, c in ipairs(Comms._commands) do
     if c.key == key then
-      c.fn = fn            -- re-registration replaces the handler, no duplicate entry
+      c.fn = fn -- re-registration replaces the handler, no duplicate entry
       return i
     end
   end
@@ -396,20 +507,33 @@ function Comms.addMenuCommand(path, label, fn)
   if missionCommands then
     for _, g in pairs(Comms._s.groups) do
       local ok, err = pcall(addCommandToGroup, g, idx)
-      if not ok then log("error", "addMenuCommand: %s", tostring(err)) end
+      if not ok then
+        log("error", "addMenuCommand: %s", tostring(err))
+      end
     end
   end
   return idx
 end
 
-function Comms.menuFor(groupId) return Comms._s.groups[groupId] end
+function Comms.menuFor(groupId)
+  return Comms._s.groups[groupId]
+end
 
 local function onPlayerSpawned(e)
-  if not e or e.groupId == nil then return end
-  local ctx = { groupId = e.groupId, groupName = e.group, unitName = e.unit,
-    playerName = e.playerName, coalition = e.coalition }
+  if not e or e.groupId == nil then
+    return
+  end
+  local ctx = {
+    groupId = e.groupId,
+    groupName = e.group,
+    unitName = e.unit,
+    playerName = e.playerName,
+    coalition = e.coalition,
+  }
   local ok, err = call(buildGroupMenu, ctx)
-  if not ok then log("error", "menu build failed for %s: %s", tostring(e.group), tostring(err)) end
+  if not ok then
+    log("error", "menu build failed for %s: %s", tostring(e.group), tostring(err))
+  end
 end
 
 -- ---------------------------------------------------------------------------
@@ -434,16 +558,34 @@ function Comms.start()
   if DMS.Bus then
     s.tokens[#s.tokens + 1] = DMS.Bus.on("player.spawned", onPlayerSpawned)
   end
-  log("info", "started (%d menu commands, %d voice lines)", #Comms._commands,
-    (function() local n = 0 for _ in pairs(cfg().voice or {}) do n = n + 1 end return n end)())
+  log(
+    "info",
+    "started (%d menu commands, %d voice lines)",
+    #Comms._commands,
+    (function()
+      local n = 0
+      for _ in pairs(cfg().voice or {}) do
+        n = n + 1
+      end
+      return n
+    end)()
+  )
 end
 
 function Comms.stop()
   local s = Comms._s
-  if not s then return end
-  if DMS.Bus then for _, t in ipairs(s.tokens) do DMS.Bus.off(t) end end
+  if not s then
+    return
+  end
+  if DMS.Bus then
+    for _, t in ipairs(s.tokens) do
+      DMS.Bus.off(t)
+    end
+  end
   s.tokens = {}
-  if s.pumpId and DMS.Clock then DMS.Clock.cancel(s.pumpId) end
+  if s.pumpId and DMS.Clock then
+    DMS.Clock.cancel(s.pumpId)
+  end
   s.pumpId = nil
   s.started = false
 end

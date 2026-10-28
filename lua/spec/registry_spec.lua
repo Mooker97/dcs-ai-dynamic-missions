@@ -22,7 +22,12 @@ describe("DMS.Registry", function()
     DMS.Registry.track("H")
     assert.equals("air", DMS.Registry.get("H").category)
     assert.same({ "A", "H" }, DMS.Registry.list())
-    assert.same({ "A" }, DMS.Registry.list(function(_, meta) return meta.encounter == "e1" end))
+    assert.same(
+      { "A" },
+      DMS.Registry.list(function(_, meta)
+        return meta.encounter == "e1"
+      end)
+    )
     DMS.Registry.untrack("A")
     assert.is_nil(DMS.Registry.get("A"))
   end)

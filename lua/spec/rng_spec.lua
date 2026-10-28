@@ -52,7 +52,9 @@ describe("DMS.Rng", function()
     DMS.Rng.seed(3)
     local hits = 0
     for _ = 1, 1000 do
-      if DMS.Rng.chance(30) then hits = hits + 1 end
+      if DMS.Rng.chance(30) then
+        hits = hits + 1
+      end
     end
     assert.truthy(hits > 250 and hits < 350, "hits " .. hits)
     assert.is_false(DMS.Rng.chance(0))

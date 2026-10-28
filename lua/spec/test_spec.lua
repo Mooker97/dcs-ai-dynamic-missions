@@ -4,19 +4,27 @@ local function tests(level)
   local out = {}
   for _, l in ipairs(MOCK.log) do
     local st, name, detail = string.match(l.msg, "^%[DMS%.TEST%] (%u+) (%S+) ?(.*)$")
-    if st and (level == nil or st == level) then out[#out + 1] = { status = st, name = name, detail = detail } end
+    if st and (level == nil or st == level) then
+      out[#out + 1] = { status = st, name = name, detail = detail }
+    end
   end
   return out
 end
 
 local function byName(name)
-  for _, t in ipairs(tests()) do if t.name == name and t.status ~= "INFO" then return t end end
+  for _, t in ipairs(tests()) do
+    if t.name == name and t.status ~= "INFO" then
+      return t
+    end
+  end
   return nil
 end
 
 local function config(checks, extra)
   local c = {
-    seed = 7, missionId = "t01", players = { coalition = 2 },
+    seed = 7,
+    missionId = "t01",
+    players = { coalition = 2 },
     budgets = { maxActiveGround = 100, maxActiveAir = 10, spawnsPerMin = 60 },
     director = { enabled = false },
     templates = { truck = { country = "RUSSIA", category = "ground", units = { { type = "Ural-375" } } } },
@@ -26,25 +34,48 @@ local function config(checks, extra)
     },
     pools = { trucks = { members = { { tpl = "truck" } }, pick = 1, zones = { "box" } } },
     encounters = {
-      { id = "near_box", kind = "pool", pool = "trucks", chance = 100, gated = false,
-        trigger = { type = "proximity", zone = "box", radiusM = 12000, checkSec = 1 } },
+      {
+        id = "near_box",
+        kind = "pool",
+        pool = "trucks",
+        chance = 100,
+        gated = false,
+        trigger = { type = "proximity", zone = "box", radiusM = 12000, checkSec = 1 },
+      },
     },
     beats = {
       { id = "start", when = { event = "player.spawned", playersOnly = true }, text = "go", speaker = "ops" },
-      { id = "at_gate", when = { event = "zone.entered", zone = "gate", playersOnly = true }, text = "gate", speaker = "ops" },
-      { id = "home", when = { event = "unit.landed", playersOnly = true }, text = "home", speaker = "ops",
-        effects = { endMission = "success" } },
+      {
+        id = "at_gate",
+        when = { event = "zone.entered", zone = "gate", playersOnly = true },
+        text = "gate",
+        speaker = "ops",
+      },
+      {
+        id = "home",
+        when = { event = "unit.landed", playersOnly = true },
+        text = "home",
+        speaker = "ops",
+        effects = { endMission = "success" },
+      },
     },
     narrative = { minGapSec = 1, zonePollSec = 1 },
     test = { enabled = true, playerProxy = "Proxy Dusty 1", minutes = 10, checks = checks },
   }
-  for k, v in pairs(extra or {}) do c[k] = v end
+  for k, v in pairs(extra or {}) do
+    c[k] = v
+  end
   return c
 end
 
 local function proxy(x, y)
-  MOCK.addGroup({ name = "Proxy Dusty 1", coalition = 2, country = "USA", category = "helicopter",
-    units = { { name = "Proxy Dusty 1-1", type = "AH-64D_BLK_II", x = x or 0, y = y or 0, alt = 100 } } })
+  MOCK.addGroup({
+    name = "Proxy Dusty 1",
+    coalition = 2,
+    country = "USA",
+    category = "helicopter",
+    units = { { name = "Proxy Dusty 1-1", type = "AH-64D_BLK_II", x = x or 0, y = y or 0, alt = 100 } },
+  })
 end
 
 describe("DMS.Test player proxy", function()
@@ -52,7 +83,9 @@ describe("DMS.Test player proxy", function()
     proxy(0, 0)
     DMS_CONFIG = config({})
     local spawned = {}
-    DMS.Bus.on("player.spawned", function(ev) spawned[#spawned + 1] = ev end)
+    DMS.Bus.on("player.spawned", function(ev)
+      spawned[#spawned + 1] = ev
+    end)
     DMS.boot()
     MOCK.advance(2)
     assert.are.equal(1, #spawned)
@@ -116,8 +149,15 @@ describe("DMS.Test checks", function()
     MOCK.advance(10)
     MOCK.fireEvent({ id = world.event.S_EVENT_LAND, initiator = Unit.getByName("Proxy Dusty 1-1") })
     MOCK.advance(30)
-    for _, n in ipairs({ "runtime_booted", "spawns_on_land", "spine", "comms_queued", "encounter_near_box",
-                         "convoy_halt_on_hit", "outcome_end" }) do
+    for _, n in ipairs({
+      "runtime_booted",
+      "spawns_on_land",
+      "spine",
+      "comms_queued",
+      "encounter_near_box",
+      "convoy_halt_on_hit",
+      "outcome_end",
+    }) do
       local t = byName(n)
       assert.is_truthy(t, "missing " .. n)
       assert.are.equal("PASS", t.status, n .. ": " .. tostring(t and t.detail))
@@ -160,7 +200,12 @@ describe("DMS.Test checks", function()
     proxy(0, 0)
     DMS_CONFIG = config({ { kind = "convoy_halt", name = "convoy_halt_on_hit" } })
     DMS_CONFIG.encounters = { { id = "conv", kind = "convoy", group = "Conv", trigger = { type = "manual" } } }
-    MOCK.addGroup({ name = "Conv", coalition = 1, category = "ground", units = { { name = "Conv-1", x = 5000, y = 0 } } })
+    MOCK.addGroup({
+      name = "Conv",
+      coalition = 1,
+      category = "ground",
+      units = { { name = "Conv-1", x = 5000, y = 0 } },
+    })
     DMS.boot()
     DMS.Encounters.trigger("conv", true)
     DMS.Ground.haltOnHit = DMS.Ground.haltOnHit -- real reaction in place

@@ -2,18 +2,24 @@
 -- Canonical DMS_CONFIG shapes as emitted by RuntimeConfig.to_lua_source(), plus the Lua aliases.
 
 local function eq(a, b, msg)
-  if a ~= b then error((msg or "values differ") .. ": expected " .. tostring(b) .. ", got " .. tostring(a), 2) end
+  if a ~= b then
+    error((msg or "values differ") .. ": expected " .. tostring(b) .. ", got " .. tostring(a), 2)
+  end
 end
 
 local function capture(evName)
   local got = {}
-  DMS.Bus.on(evName, function(p) got[#got + 1] = p or {} end)
+  DMS.Bus.on(evName, function(p)
+    got[#got + 1] = p or {}
+  end)
   return got
 end
 
 local function noErrors()
   local errs = MOCK.logLines and MOCK.logLines("error") or {}
-  if #errs > 0 then error("error log: " .. tostring(errs[1].msg or errs[1]), 2) end
+  if #errs > 0 then
+    error("error log: " .. tostring(errs[1].msg or errs[1]), 2)
+  end
 end
 
 local function startNarrative(cfg)
@@ -24,12 +30,16 @@ local function startNarrative(cfg)
   DMS.Narrative.start()
 end
 
-local function fired(id) return DMS.Narrative.firedCount(id) end
+local function fired(id)
+  return DMS.Narrative.firedCount(id)
+end
 
 local function outcomes()
   local out = {}
   for _, l in ipairs(MOCK.log) do
-    if string.find(l.msg, "[DMS.OUTCOME]", 1, true) then out[#out + 1] = l.msg end
+    if string.find(l.msg, "[DMS.OUTCOME]", 1, true) then
+      out[#out + 1] = l.msg
+    end
   end
   return out
 end
@@ -47,8 +57,11 @@ describe("bus + init contract", function()
   end)
 
   it("DMS.boot emits mission.start, which canonical beats can use", function()
-    DMS_CONFIG = { missionId = "m", narrative = { minGapSec = 0 },
-      beats = { { id = "go", when = { event = "mission.start" }, text = "Go" } } }
+    DMS_CONFIG = {
+      missionId = "m",
+      narrative = { minGapSec = 0 },
+      beats = { { id = "go", when = { event = "mission.start" }, text = "Go" } },
+    }
     local starts = capture("mission.start")
     assert.is_true(DMS.boot())
     eq(#starts, 1)
@@ -61,7 +74,12 @@ describe("bus + init contract", function()
       DMS_CONFIG = cfg
       assert.is_true(DMS.boot())
       MOCK.spawnPlayer({ name = "P-1", group = "P", playerName = "Mav", x = 0, y = 0, alt = 500 })
-      MOCK.addGroup({ name = "E", coalition = 1, category = "ground", units = { { name = "E-1", type = "T-72B", x = 3000, y = 0 } } })
+      MOCK.addGroup({
+        name = "E",
+        coalition = 1,
+        category = "ground",
+        units = { { name = "E-1", type = "T-72B", x = 3000, y = 0 } },
+      })
       MOCK.advance(30)
       MOCK.hitUnit("P-1", { initiator = "E-1", damage = 0 })
       MOCK.killUnit("E-1", { killer = "P-1" })
@@ -75,11 +93,13 @@ end)
 
 describe("narrative canonical when/requires/effects", function()
   it("timer and flag events are state triggers", function()
-    startNarrative({ beats = {
-      { id = "t", when = { event = "timer", afterSec = 5 } },
-      { id = "f", when = { event = "flag", flag = "x", value = 2 } },
-      { id = "fs", when = { event = "flag", flag = "y" } },
-    } })
+    startNarrative({
+      beats = {
+        { id = "t", when = { event = "timer", afterSec = 5 } },
+        { id = "f", when = { event = "flag", flag = "x", value = 2 } },
+        { id = "fs", when = { event = "flag", flag = "y" } },
+      },
+    })
     MOCK.advance(3)
     eq(fired("t"), 0)
     MOCK.advance(3)
@@ -95,15 +115,17 @@ describe("narrative canonical when/requires/effects", function()
   end)
 
   it("event filters: beat/encounter ids, director state+flight, zone, coalition, typeName", function()
-    startNarrative({ beats = {
-      { id = "src", when = { event = "mission.start" } },
-      { id = "after", when = { event = "beat.fired", beat = "src" } },
-      { id = "enc", when = { event = "encounter.spawned", encounter = "popup" } },
-      { id = "relax", when = { event = "director.state", state = "RELAX", flight = "P" } },
-      { id = "zone", when = { event = "zone.entered", zone = "box" } },
-      { id = "red_hit", when = { event = "unit.hit", coalition = 1 } },
-      { id = "shilka", when = { event = "unit.dead", typeName = "ZSU-23-4 Shilka" } },
-    } })
+    startNarrative({
+      beats = {
+        { id = "src", when = { event = "mission.start" } },
+        { id = "after", when = { event = "beat.fired", beat = "src" } },
+        { id = "enc", when = { event = "encounter.spawned", encounter = "popup" } },
+        { id = "relax", when = { event = "director.state", state = "RELAX", flight = "P" } },
+        { id = "zone", when = { event = "zone.entered", zone = "box" } },
+        { id = "red_hit", when = { event = "unit.hit", coalition = 1 } },
+        { id = "shilka", when = { event = "unit.dead", typeName = "ZSU-23-4 Shilka" } },
+      },
+    })
     DMS.Bus.emit("mission.start", {})
     eq(fired("src"), 1)
     eq(fired("after"), 1)
@@ -126,13 +148,15 @@ describe("narrative canonical when/requires/effects", function()
   end)
 
   it("playersOnly uses the subject unit; groupPrefix matches DMS_-prefixed spawns", function()
-    startNarrative({ beats = {
-      { id = "spawned", when = { event = "player.spawned", playersOnly = true } },
-      { id = "phit", when = { event = "unit.hit", playersOnly = true }, once = false },
-      { id = "pshot", when = { event = "unit.shot", playersOnly = true } },
-      { id = "aa_dead", when = { event = "group.dead", groupPrefix = "hidden_aa" } },
-      { id = "civ", when = { event = "unit.dead", groupPrefix = "civilians" } },
-    } })
+    startNarrative({
+      beats = {
+        { id = "spawned", when = { event = "player.spawned", playersOnly = true } },
+        { id = "phit", when = { event = "unit.hit", playersOnly = true }, once = false },
+        { id = "pshot", when = { event = "unit.shot", playersOnly = true } },
+        { id = "aa_dead", when = { event = "group.dead", groupPrefix = "hidden_aa" } },
+        { id = "civ", when = { event = "unit.dead", groupPrefix = "civilians" } },
+      },
+    })
     MOCK.spawnPlayer({ name = "P-1", group = "P", playerName = "Mav", x = 0, y = 0 })
     eq(fired("spawned"), 1)
     DMS.Bus.emit("unit.hit", { target = "AI-1", initiator = "P-1" })
@@ -150,10 +174,12 @@ describe("narrative canonical when/requires/effects", function()
   end)
 
   it("beat-level delaySec wins over when.delaySec", function()
-    startNarrative({ beats = {
-      { id = "d", when = { event = "mission.start", delaySec = 2 }, delaySec = 10 },
-      { id = "w", when = { event = "mission.start", delaySec = 3 } },
-    } })
+    startNarrative({
+      beats = {
+        { id = "d", when = { event = "mission.start", delaySec = 2 }, delaySec = 10 },
+        { id = "w", when = { event = "mission.start", delaySec = 3 } },
+      },
+    })
     DMS.Bus.emit("mission.start", {})
     MOCK.advance(4)
     eq(fired("w"), 1)
@@ -163,13 +189,31 @@ describe("narrative canonical when/requires/effects", function()
   end)
 
   it("requires: flags, flagsNot, quality list and map forms", function()
-    startNarrative({ qualities = { trust = 2, aa = 1 }, beats = {
-      { id = "ok", when = { event = "x" }, requires = { flags = { "a" }, flagsNot = { "b" },
-        qualities = { { quality = "trust", op = ">=", value = 2 }, { quality = "aa", op = "<", value = 2 } } } },
-      { id = "notq", when = { event = "x" }, requires = { qualities = { { quality = "trust", op = ">", value = 2 } } } },
-      { id = "map", when = { event = "x" }, requires = { notFlags = { "zz" }, qualities = { trust = ">=2", aa = { min = 0, max = 1 } } } },
-      { id = "blocked", when = { event = "x" }, requires = { flagsNot = { "a" } } },
-    } })
+    startNarrative({
+      qualities = { trust = 2, aa = 1 },
+      beats = {
+        {
+          id = "ok",
+          when = { event = "x" },
+          requires = {
+            flags = { "a" },
+            flagsNot = { "b" },
+            qualities = { { quality = "trust", op = ">=", value = 2 }, { quality = "aa", op = "<", value = 2 } },
+          },
+        },
+        {
+          id = "notq",
+          when = { event = "x" },
+          requires = { qualities = { { quality = "trust", op = ">", value = 2 } } },
+        },
+        {
+          id = "map",
+          when = { event = "x" },
+          requires = { notFlags = { "zz" }, qualities = { trust = ">=2", aa = { min = 0, max = 1 } } },
+        },
+        { id = "blocked", when = { event = "x" }, requires = { flagsNot = { "a" } } },
+      },
+    })
     DMS.Narrative.setFlag("a")
     DMS.Bus.emit("x", {})
     eq(fired("ok"), 1)
@@ -180,15 +224,33 @@ describe("narrative canonical when/requires/effects", function()
 
   it("effects: flag lists, flagValue, qualityDeltas live + outcome, spawnPool, endMission", function()
     local spawned = {}
-    DMS.Spawner.spawnPool = function(id, opts) spawned[#spawned + 1] = id return { "g1" } end
-    startNarrative({ qualities = { trust = 0 }, beats = {
-      { id = "e", when = { event = "go" }, effects = {
-        setFlag = { "f1", "f2" }, flagValue = 3, clearFlag = { "old" },
-        qualityDeltas = { trust = 1, harm = -1 }, outcome = { done = true }, spawnPool = "patrols" } },
-      { id = "later", when = { event = "beat.fired", beat = "e" },
-        requires = { qualities = { { quality = "trust", op = ">=", value = 1 } } },
-        effects = { endMission = "success" } },
-    } })
+    DMS.Spawner.spawnPool = function(id, opts)
+      spawned[#spawned + 1] = id
+      return { "g1" }
+    end
+    startNarrative({
+      qualities = { trust = 0 },
+      beats = {
+        {
+          id = "e",
+          when = { event = "go" },
+          effects = {
+            setFlag = { "f1", "f2" },
+            flagValue = 3,
+            clearFlag = { "old" },
+            qualityDeltas = { trust = 1, harm = -1 },
+            outcome = { done = true },
+            spawnPool = "patrols",
+          },
+        },
+        {
+          id = "later",
+          when = { event = "beat.fired", beat = "e" },
+          requires = { qualities = { { quality = "trust", op = ">=", value = 1 } } },
+          effects = { endMission = "success" },
+        },
+      },
+    })
     DMS.Narrative.setFlag("old")
     DMS.Bus.emit("go", {})
     eq(DMS.Narrative.getFlag("f1"), 3)
@@ -210,7 +272,10 @@ describe("narrative canonical when/requires/effects", function()
 
   it("startEncounter list calls DMS.Encounters.trigger(id, {beat = id})", function()
     local calls = {}
-    DMS.Encounters.trigger = function(id, opts) calls[#calls + 1] = { id = id, opts = opts } return true end
+    DMS.Encounters.trigger = function(id, opts)
+      calls[#calls + 1] = { id = id, opts = opts }
+      return true
+    end
     startNarrative({ beats = { { id = "b", when = { event = "go" }, effects = { startEncounter = { "e1", "e2" } } } } })
     DMS.Bus.emit("go", {})
     eq(#calls, 2)
@@ -219,16 +284,25 @@ describe("narrative canonical when/requires/effects", function()
   end)
 
   it("guaranteed beats ignore chance and outlive the pending TTL while requires hold", function()
-    startNarrative({ narrative = { minGapSec = 60, pendingTtlSec = 5 }, beats = {
-      { id = "first", text = "first", priority = 99, when = { event = "go" } },
-      { id = "g", text = "g", guaranteed = true, when = { event = "go" }, requires = { chance = 0, flagsNot = { "stop" } } },
-      { id = "g2", text = "g2", guaranteed = true, when = { event = "go" }, requires = { flagsNot = { "stop2" } } },
-      { id = "n", text = "n", when = { event = "go" } },
-    } })
+    startNarrative({
+      narrative = { minGapSec = 60, pendingTtlSec = 5 },
+      beats = {
+        { id = "first", text = "first", priority = 99, when = { event = "go" } },
+        {
+          id = "g",
+          text = "g",
+          guaranteed = true,
+          when = { event = "go" },
+          requires = { chance = 0, flagsNot = { "stop" } },
+        },
+        { id = "g2", text = "g2", guaranteed = true, when = { event = "go" }, requires = { flagsNot = { "stop2" } } },
+        { id = "n", text = "n", when = { event = "go" } },
+      },
+    })
     DMS.Bus.emit("go", {})
     eq(fired("first"), 1)
     MOCK.advance(10)
-    DMS.Narrative.setFlag("stop2")   -- g2 no longer eligible -> drops on the normal TTL
+    DMS.Narrative.setFlag("stop2") -- g2 no longer eligible -> drops on the normal TTL
     MOCK.advance(55)
     eq(fired("g"), 1, "guaranteed beat waited out the min gap past its TTL")
     eq(fired("n"), 0, "normal beat expired")
@@ -238,9 +312,11 @@ describe("narrative canonical when/requires/effects", function()
   end)
 
   it("requires are checked when the trigger occurs, not only at fire time", function()
-    startNarrative({ beats = {
-      { id = "late", when = { event = "gate" }, requires = { flags = { "on_station" } } },
-    } })
+    startNarrative({
+      beats = {
+        { id = "late", when = { event = "gate" }, requires = { flags = { "on_station" } } },
+      },
+    })
     DMS.Bus.emit("gate", {})
     DMS.Narrative.setFlag("on_station")
     MOCK.advance(5)
@@ -251,12 +327,15 @@ describe("narrative canonical when/requires/effects", function()
   end)
 
   it("silent beats bypass the min gap and do not delay radio beats", function()
-    startNarrative({ narrative = { minGapSec = 30 }, beats = {
-      { id = "talk", text = "Contact", priority = 10, when = { event = "kill" } },
-      { id = "quiet", priority = 90, when = { event = "kill" }, effects = { outcome = { killed = true } } },
-      { id = "quiet2", priority = 90, when = { event = "kill2" }, effects = { outcome = { killed2 = true } } },
-      { id = "talk2", text = "Again", when = { event = "kill2" } },
-    } })
+    startNarrative({
+      narrative = { minGapSec = 30 },
+      beats = {
+        { id = "talk", text = "Contact", priority = 10, when = { event = "kill" } },
+        { id = "quiet", priority = 90, when = { event = "kill" }, effects = { outcome = { killed = true } } },
+        { id = "quiet2", priority = 90, when = { event = "kill2" }, effects = { outcome = { killed2 = true } } },
+        { id = "talk2", text = "Again", when = { event = "kill2" } },
+      },
+    })
     DMS.Bus.emit("kill", {})
     eq(fired("quiet"), 1)
     eq(fired("talk"), 1, "silent beat did not consume the gap")
@@ -268,10 +347,12 @@ describe("narrative canonical when/requires/effects", function()
   end)
 
   it("beat.request from an encounter telegraph triggers the beat with normal eligibility", function()
-    startNarrative({ beats = {
-      { id = "warn", when = { event = "encounter.spawned", encounter = "popup" } },
-      { id = "gated", requires = { flags = { "never" } } },
-    } })
+    startNarrative({
+      beats = {
+        { id = "warn", when = { event = "encounter.spawned", encounter = "popup" } },
+        { id = "gated", requires = { flags = { "never" } } },
+      },
+    })
     DMS.Bus.emit("beat.request", { id = "warn", encounter = "popup" })
     eq(fired("warn"), 1)
     DMS.Bus.emit("beat.request", { id = "warn", encounter = "popup" })
@@ -285,9 +366,12 @@ end)
 describe("encounters contract", function()
   local function cfg(encounters)
     return {
-      seed = 3, players = { coalition = 2 },
+      seed = 3,
+      players = { coalition = 2 },
       budgets = { maxActiveGround = 200, spawnsPerMin = 50 },
-      templates = { zu = { country = "RUSSIA", category = "ground", units = { { type = "ZU-23 Emplacement", heading = 90 } } } },
+      templates = {
+        zu = { country = "RUSSIA", category = "ground", units = { { type = "ZU-23 Emplacement", heading = 90 } } },
+      },
       zones = { box = { kind = "circle", x = 40000, y = 0, radius = 2000 } },
       pools = { aa = { members = { { tpl = "zu" } }, pick = 1, zones = { "box" } } },
       encounters = encounters,
@@ -309,8 +393,15 @@ describe("encounters contract", function()
   end)
 
   it("proximity emits encounter.proximity, never zone.entered", function()
-    DMS_CONFIG = cfg({ { id = "p", kind = "pool", pool = "aa", gated = false,
-      trigger = { type = "proximity", zone = "box", radiusM = 10000 } } })
+    DMS_CONFIG = cfg({
+      {
+        id = "p",
+        kind = "pool",
+        pool = "aa",
+        gated = false,
+        trigger = { type = "proximity", zone = "box", radiusM = 10000 },
+      },
+    })
     DMS.Encounters.start()
     local prox, zones = capture("encounter.proximity"), capture("zone.entered")
     MOCK.spawnPlayer({ name = "P-1", group = "P", x = 32000, y = 0, alt = 300 })
@@ -323,8 +414,15 @@ describe("encounters contract", function()
   end)
 
   it("event trigger ignores configuration keys when filtering", function()
-    DMS_CONFIG = cfg({ { id = "ev", kind = "pool", pool = "aa", gated = false,
-      trigger = { type = "event", event = "convoy.halted", checkSec = 5, group = "C1" } } })
+    DMS_CONFIG = cfg({
+      {
+        id = "ev",
+        kind = "pool",
+        pool = "aa",
+        gated = false,
+        trigger = { type = "event", event = "convoy.halted", checkSec = 5, group = "C1" },
+      },
+    })
     DMS.Encounters.start()
     local spawned = capture("encounter.spawned")
     DMS.Bus.emit("convoy.halted", { group = "C2" })
@@ -339,8 +437,16 @@ describe("comms contract", function()
     DMS_CONFIG = {
       speakers = { ops = { callsign = "Hatay Ops", frequency = 251.0, modulation = 0 }, kes = { callsign = "Kestrel" } },
       voice = {
-        x_v1 = { file = "x_v1.ogg", text = "Kestrel, Ops. Copy.", durSec = 3, speaker = "ops",
-          turns = { { speaker = "kes", text = "Ops, Kestrel. Routine." }, { speaker = "ops", text = "Kestrel, Ops. Copy." } } },
+        x_v1 = {
+          file = "x_v1.ogg",
+          text = "Kestrel, Ops. Copy.",
+          durSec = 3,
+          speaker = "ops",
+          turns = {
+            { speaker = "kes", text = "Ops, Kestrel. Routine." },
+            { speaker = "ops", text = "Kestrel, Ops. Copy." },
+          },
+        },
       },
     }
     DMS.Comms.start()
@@ -352,18 +458,26 @@ describe("comms contract", function()
     eq(h[1].text, "Kestrel: Ops, Kestrel. Routine.\nHatay Ops: Kestrel, Ops. Copy.")
     -- overflow: keep items survive
     DMS.Comms.say("kes", nil, "keep me", { priority = 0, keep = true })
-    for i = 1, DMS.Comms.MAX_QUEUE + 3 do DMS.Comms.say("kes", nil, "filler " .. i, { priority = 50 }) end
+    for i = 1, DMS.Comms.MAX_QUEUE + 3 do
+      DMS.Comms.say("kes", nil, "filler " .. i, { priority = 50 })
+    end
     MOCK.advance(600)
     local found = false
-    for _, p in ipairs(DMS.Comms.history()) do if string.find(p.text, "keep me", 1, true) then found = true end end
+    for _, p in ipairs(DMS.Comms.history()) do
+      if string.find(p.text, "keep me", 1, true) then
+        found = true
+      end
+    end
     assert(found, "keep item played despite overflow")
   end)
 
   it("voice entries without a file (nil or empty) are subtitle-only", function()
-    DMS_CONFIG = { voice = {
-      a = { text = "Subtitle A", durSec = 2, speaker = "ops" },
-      b = { file = "", text = "Subtitle B", durSec = 2, speaker = "ops" },
-    } }
+    DMS_CONFIG = {
+      voice = {
+        a = { text = "Subtitle A", durSec = 2, speaker = "ops" },
+        b = { file = "", text = "Subtitle B", durSec = 2, speaker = "ops" },
+      },
+    }
     DMS.Comms.start()
     assert(DMS.Comms.say("ops", { "a" }, nil, { coalition = 2 }))
     MOCK.advance(5)
@@ -382,9 +496,21 @@ describe("intel.mark contract", function()
   it("text/point marks have no circle; radiusM, unit:, point:x,y and group prefixes resolve", function()
     DMS_CONFIG = { zones = { box = { kind = "circle", x = 1000, y = 2000, radius = 500 } } }
     DMS.Intel.start()
-    MOCK.addGroup({ name = "DMS_hidden_aa_2", coalition = 1, category = "ground", units = { { name = "aa-1", type = "ZU-23 Emplacement", x = 5000, y = 5000 } } })
-    MOCK.addGroup({ name = "Kestrel", coalition = 2, category = "ground", units = { { name = "kes-1", type = "Soldier M4", x = 7000, y = 100 } } })
-    local nCircle = function() return #MOCK.callsTo("trigger.action.circleToAll") end
+    MOCK.addGroup({
+      name = "DMS_hidden_aa_2",
+      coalition = 1,
+      category = "ground",
+      units = { { name = "aa-1", type = "ZU-23 Emplacement", x = 5000, y = 5000 } },
+    })
+    MOCK.addGroup({
+      name = "Kestrel",
+      coalition = 2,
+      category = "ground",
+      units = { { name = "kes-1", type = "Soldier M4", x = 7000, y = 100 } },
+    })
+    local nCircle = function()
+      return #MOCK.callsTo("trigger.action.circleToAll")
+    end
     assert(DMS.Intel.mark({ type = "text", at = "zone:box", text = "BOX" }))
     eq(nCircle(), 0, "text mark has no circle")
     assert(DMS.Intel.mark({ type = "circle", at = "zone:box", radiusM = 1234 }))

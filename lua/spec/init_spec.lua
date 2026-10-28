@@ -7,10 +7,26 @@ describe("DMS.boot", function()
 
   it("starts present modules in order, isolating failures, and logs a banner", function()
     local order = {}
-    DMS.Director = { start = function() order[#order + 1] = "Director" end }
-    DMS.Spawner = { start = function() order[#order + 1] = "Spawner" end }
-    DMS.Comms = { start = function() error("comms broke") end }
-    DMS.Intel = { start = function(self) order[#order + 1] = (self == DMS.Intel) and "Intel(self)" or "Intel" end }
+    DMS.Director = {
+      start = function()
+        order[#order + 1] = "Director"
+      end,
+    }
+    DMS.Spawner = {
+      start = function()
+        order[#order + 1] = "Spawner"
+      end,
+    }
+    DMS.Comms = {
+      start = function()
+        error("comms broke")
+      end,
+    }
+    DMS.Intel = {
+      start = function(self)
+        order[#order + 1] = (self == DMS.Intel) and "Intel(self)" or "Intel"
+      end,
+    }
     DMS_CONFIG = { seed = 99, debug = true, missionId = "m01", budgets = { maxActiveGround = 150 } }
     assert.is_true(DMS.boot())
     assert.same({ "Spawner", "Director", "Intel(self)" }, order)
@@ -26,7 +42,11 @@ end)
 describe("DMS.boot load order", function()
   local function banners()
     local n = 0
-    for _, l in ipairs(MOCK.log) do if string.find(l.msg, "started: mission=", 1, true) then n = n + 1 end end
+    for _, l in ipairs(MOCK.log) do
+      if string.find(l.msg, "started: mission=", 1, true) then
+        n = n + 1
+      end
+    end
     return n
   end
 
@@ -46,7 +66,11 @@ describe("DMS.boot load order", function()
     MOCK.advance(20)
     assert.is_nil(DMS._booted)
     local n = 0
-    for _, l in ipairs(MOCK.log) do if string.find(l.msg, "never appeared", 1, true) then n = n + 1 end end
+    for _, l in ipairs(MOCK.log) do
+      if string.find(l.msg, "never appeared", 1, true) then
+        n = n + 1
+      end
+    end
     assert.are.equal(1, n)
     assert.is_true((MOCK.logContains("never appeared", "warning")))
   end)

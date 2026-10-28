@@ -255,6 +255,40 @@ when the mission ends (`kind = "end"`, from `endMission`, `mission.end` or `DMS.
 Parsed by `dms_core.schemas.outcome.parse_dcs_log` into `MissionOutcome` (`outcome` -> `outcomes`,
 `t` -> `time`, `event` -> `kind` for older lines).
 
+### Debrief (`dms_core.outcomes`, `dms debrief`)
+
+Deterministic dcs.log -> campaign state. No schema changes: debrief metadata lives in
+`MissionOutcome.extra`.
+
+- **Logs searched** (no `--log`): `<home>/Saved Games/DCS/Logs/dcs.log` and
+  `.../DCS.openbeta/Logs/dcs.log`, newest mtime first, each followed by its rotated `dcs.log.old`.
+  `--log PATH` (file or Logs dir) searches PATH then its sibling `.old`. First file with a matching
+  session wins.
+- **Sessions**: a new session starts at each `=== Log opened` line, at each Init banner
+  `[DMS][Init] DMS <ver> started: mission=<id> ...`, and when an outcome line for the same mission
+  has a smaller `t` than the previous one (restart without a banner). The **latest** session for the
+  mission wins. Mission match: exact id, else the same `mNN` prefix (`m01` matches `m01-first-light`).
+- **Issues**: `[DMS]` lines at WARNING/ERROR level (or `[DMS][safeCall]`) in that session go to
+  `extra.log_warnings` / `extra.log_errors`. Malformed `[DMS.OUTCOME]` JSON is skipped and counted
+  (`extra.malformed_lines`), never fatal. No outcome line for the mission -> error (exit 1).
+- **state/outcomes/<mNN>.yaml**: merged `MissionOutcome` with `kind: summary`; `extra` holds
+  `source: dcs_log`, `log_file`, `session_start` (log timestamp), `ended` (an `end` line exists),
+  `beats_fired`, `quality_changes [{quality, from, to, delta, reason}]`, `flags_set`,
+  `next_mission`, `next_reason`, log issues. `mNN` = first `-` segment of the mission id.
+- **state/qualities.yaml** (pure `apply_outcome(state, outcome, arc)`): `qualityDeltas` (cumulative,
+  last record wins) are rounded to int, added, and clamped to the arc `QualityDef` min/max; a quality
+  missing from `values` starts at its `initial`; deltas for qualities the arc does not declare are
+  skipped with a warning. Flags: each outcome key becomes `<mNN>_<key>` (bool as-is, number `> 0`,
+  string `true`), plus `<mNN>_<result>`; other result flags of the same mission
+  (`success|failure|partial|aborted|ended`) are set false. `outcomes[<mission id>]` = outcome
+  facts, `updated_after` = mission id, `next_mission` = branch choice. Arc free-text
+  `quality_effects` are **not** applied by code (the debriefer skill proposes them).
+- **Next mission**: the flown mission's `branches` in order; `when` (`Requires`) is checked against
+  campaign `flags`/`values` (`beats_fired`/`beats_not_fired` against this flight's beats; `chance`
+  rolled with `--seed`). First match wins, else the next non-optional arc mission, else none (end).
+- **Re-debrief guard**: if `state/outcomes/<mNN>.yaml` already records the same `log_file` +
+  `session_start`, `dms debrief` refuses (exit 1) unless `--force`, so deltas are not applied twice.
+
 ## Python schemas (packages/dms-core/src/dms_core/schemas/)
 
 | Module | Models | Written by |
@@ -283,7 +317,8 @@ writes JSON Schema files to `schemas/` at the repo root for skills and editors.
 - **YAML** for authored files. **JSON** for machine intermediates (`plan.json`).
 - **Voice cache:** `~/.dms/tts-cache/<sha256>.ogg`, where the key is `sha256(voice_id|model|text|fx_preset)`.
 - **CLI:** `dms validate <spec>`, `dms plan <spec> -o plan.json`, `dms voice <lines.yaml>`,
-  `dms build <plan.json> -o out.miz`, `dms check <miz>`, `dms schema`, `dms bundle-lua`.
+  `dms build <plan.json> -o out.miz`, `dms check <miz>`, `dms schema`, `dms bundle-lua`,
+  `dms debrief <campaign_dir> --mission mNN [--log PATH] [--dry-run] [--force] [--seed N] [--json]`.
 
 ## MCP server (`packages/dms-mcp`, v0.8)
 

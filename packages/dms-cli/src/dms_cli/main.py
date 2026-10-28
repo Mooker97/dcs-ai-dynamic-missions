@@ -946,6 +946,122 @@ def outcome(
     _echo(f"{len(recs)} record(s)")
 
 
+@app.command()
+@_guard
+def debrief(
+    campaign_dir: Annotated[Path, typer.Argument(help="campaigns/<slug> folder.")],
+    mission: Annotated[
+        str, typer.Option("--mission", "-m", help="Mission id or prefix, e.g. m01.")
+    ],
+    log: Annotated[
+        Path | None,
+        typer.Option(help="dcs.log (or its Logs dir). Default: newest stable/openbeta log."),
+    ] = None,
+    dry_run: Annotated[bool, typer.Option("--dry-run", help="Print, write nothing.")] = False,
+    force: Annotated[
+        bool, typer.Option("--force", help="Re-apply even if this flight was already debriefed.")
+    ] = False,
+    seed: Annotated[int | None, typer.Option(help="Seed for branch `chance` rolls.")] = None,
+    as_json: JsonOpt = False,
+) -> None:
+    """dcs.log [DMS.OUTCOME] -> state/outcomes/<mNN>.yaml + state/qualities.yaml + next mission."""
+    import random
+
+    from dms_core import outcomes as oc
+
+    camp = campaign_dir.resolve()
+    if not camp.is_dir():
+        raise CliError(f"not a campaign folder: {campaign_dir}")
+    try:
+        arc, state = oc.load_debrief_inputs(camp)
+    except (ValidationError, OSError) as exc:
+        raise CliError(f"cannot load campaign state: {exc}") from None
+    mission_id = mission
+    if arc is not None:
+        resolved = oc.resolve_arc_mission(arc, mission)
+        if resolved is None:
+            ids = ", ".join(m.id for m in arc.all_missions())
+            raise CliError(f"mission '{mission}' not found in arc.yaml (missions: {ids})")
+        mission_id = resolved
+
+    paths = oc.explicit_log_paths(log.resolve()) if log is not None else oc.default_log_paths()
+    if log is not None and not paths:
+        raise CliError(f"not found: {log}")
+    try:
+        log_path, session = oc.find_mission_session(paths, mission_id)
+        outcome_obj = oc.build_outcome(session, mission_id, log_path)
+    except oc.DebriefError as exc:
+        raise CliError(str(exc), 1) from None
+    if not force and not dry_run and oc.already_debriefed(camp, mission_id, outcome_obj):
+        raise CliError(
+            f"this flight ({log_path}, session {outcome_obj.extra.get('session_start')}) is "
+            f"already in {oc.outcome_path(camp, mission_id)}; use --force to re-apply",
+            1,
+        )
+    rng = random.Random(seed) if seed is not None else None
+    update = oc.apply_outcome(state, outcome_obj, mission_id, arc, rng)
+    outcome_obj = outcome_obj.model_copy(
+        update={
+            "extra": {
+                **outcome_obj.extra,
+                "quality_changes": [c.to_dict() for c in update.changes],
+                "flags_set": update.flags_set,
+                "next_mission": update.next_mission,
+                "next_reason": update.next_reason,
+                "warnings": update.warnings,
+            }
+        }
+    )
+    written: list[Path] = []
+    if not dry_run:
+        written = oc.write_debrief(camp, mission_id, outcome_obj, update)
+
+    if as_json:
+        _echo(
+            dumps(
+                {
+                    "mission_id": mission_id,
+                    "log_file": str(log_path),
+                    "outcome": outcome_obj.model_dump(mode="json", exclude_none=True),
+                    "qualities": update.state.model_dump(mode="json"),
+                    "next_mission": update.next_mission,
+                    "next_reason": update.next_reason,
+                    "warnings": update.warnings,
+                    "written": [str(p) for p in written],
+                    "dry_run": dry_run,
+                }
+            )
+        )
+        return
+    ex = outcome_obj.extra
+    _echo(f"log: {log_path} (session line {session.start_line}, {ex.get('session_start')})")
+    _echo(
+        f"mission: {mission_id}  result: {outcome_obj.result or 'unknown'}  "
+        f"ended: {'yes' if ex.get('ended') else 'NO'}  records: {ex.get('records')}  "
+        f"t={outcome_obj.time or 0:.0f}s"
+    )
+    _echo(f"outcomes: {json.dumps(outcome_obj.outcomes, ensure_ascii=False)}")
+    _echo(f"beats fired ({len(ex.get('beats_fired', []))}): {', '.join(ex.get('beats_fired', []))}")
+    for c in update.changes:
+        _echo(f"quality {c.quality}: {c.before} -> {c.after} ({c.reason})")
+    if not update.changes:
+        _echo("quality: no changes")
+    _echo("flags: " + (", ".join(f"{k}={v}" for k, v in update.flags_set.items()) or "none"))
+    for issue in ex.get("log_errors", []):
+        _echo(f"LOG ERROR line {issue['line']} [{issue['module']}] {issue['message']}")
+    for issue in ex.get("log_warnings", []):
+        _echo(f"log warning line {issue['line']} [{issue['module']}] {issue['message']}")
+    for m in ex.get("malformed_lines", []):
+        _echo(f"skipped malformed [DMS.OUTCOME] line {m['line']}: {m['reason']}")
+    for w in update.warnings:
+        _echo(f"warning: {w}")
+    _echo(f"next mission: {update.next_mission or '(none)'} ({update.next_reason})")
+    if dry_run:
+        _echo("dry run: nothing written")
+    for p in written:
+        _echo(f"wrote {p}")
+
+
 _SLUG = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 

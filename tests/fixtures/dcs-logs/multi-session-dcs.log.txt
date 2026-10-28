@@ -1,0 +1,16 @@
+2026-10-27 19:00:00.001 INFO    EDCORE (Main): === Log opened UTC 2026-10-27 18:00:00
+2026-10-27 19:00:05.100 INFO    APP (Main): Command line: "C:\Program Files\Eagle Dynamics\DCS World\bin\DCS.exe"
+2026-10-27 19:02:10.000 INFO    SCRIPTING (Main): [DMS][Init] DMS 0.3.0 started: mission=m01-first-light seed=11 debug=false budgets(ground=40 air=8 spm=6) templates=4 pools=3 zones=5 encounters=2 beats=9 modules=[Spawner,Ground,Director,Encounters,Narrative,Comms,Intel]
+2026-10-27 19:02:11.000 INFO    SCRIPTING (Main): [DMS.OUTCOME] {"beats":["mission_start"],"flags":{},"kind":"update","missionId":"m01-first-light","outcome":{"player_lost":true},"qualities":{"intel":0,"trust":0},"qualityDeltas":{},"t":12.0}
+2026-10-27 19:10:00.000 INFO    SCRIPTING (Main): [DMS.OUTCOME] {"beats":["mission_start","shot_down"],"flags":{},"kind":"end","missionId":"m01-first-light","outcome":{"player_lost":true},"qualities":{"intel":0,"trust":0},"qualityDeltas":{},"result":"failure","t":470.0}
+2026-10-27 19:15:00.000 INFO    SCRIPTING (Main): [DMS][Init] DMS 0.3.0 started: mission=m01-first-light seed=12 debug=false budgets(ground=40 air=8 spm=6) templates=4 pools=3 zones=5 encounters=2 beats=9 modules=[Spawner,Ground,Director,Encounters,Narrative,Comms,Intel]
+2026-10-27 19:15:01.000 INFO    SCRIPTING (Main): [DMS.OUTCOME] {"beats":["mission_start"],"flags":{},"kind":"update","missionId":"m01-first-light","outcome":{"on_station":true},"qualities":{"intel":0,"trust":0},"qualityDeltas":{},"t":5.0}
+2026-10-27 19:20:00.000 WARNING SCRIPTING (Main): [DMS][Spawner] pool hidden_aa: no free slot, skipped
+2026-10-27 19:21:00.000 ERROR   SCRIPTING (Main): [DMS][safeCall] [string "dms.lua"]:120: attempt to index nil
+stack traceback:
+	[string "dms.lua"]:120: in function 'spawn'
+2026-10-27 19:22:00.000 INFO    SCRIPTING (Main): [DMS.OUTCOME] {"beats":["mission_start","on_station","hidden_aa_found"],"kind":"update","missionId":"m01-first-light","outcome":{"on_station":true,"hidden_aa_found":tru
+2026-10-27 19:23:00.000 INFO    SCRIPTING (Main): [DMS.OUTCOME] ["not", "an", "object"]
+2026-10-27 19:40:00.000 INFO    SCRIPTING (Main): [DMS.OUTCOME] {"beats":["mission_start","on_station","hidden_aa_found","patrol_complete"],"flags":{"landed":true},"kind":"end","missionId":"m01-first-light","outcome":{"hidden_aa_found":true,"kills":3,"on_station":true,"patrol_complete":true},"qualities":{"intel":2,"trust":1},"qualityDeltas":{"civilian_harm":0,"intel":2,"trust":1},"result":"success","t":1500.5}
+2026-10-27 19:41:00.000 INFO    SCRIPTING (Main): [DMS][Init] DMS 0.3.0 started: mission=m02-cracking-kirikhan seed=5 debug=false budgets(ground=40 air=8 spm=6) templates=4 pools=3 zones=5 encounters=2 beats=9 modules=[Spawner]
+2026-10-27 19:41:05.000 INFO    SCRIPTING (Main): [DMS.OUTCOME] {"kind":"update","missionId":"m02-cracking-kirikhan","outcome":{"started":true},"t":5}

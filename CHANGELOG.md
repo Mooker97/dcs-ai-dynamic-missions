@@ -19,6 +19,10 @@ tagged **(flown)** once it has been verified in DCS. Everything else is "impleme
   - `.stylua.toml`, `.luacheckrc` and `.pre-commit-config.yaml`.
   - A Claude Code hook that checks edited Lua files against Lua 5.1 syntax.
 - `.env.example` for `ELEVENLABS_API_KEY`.
+- `dms debrief <campaign> --mission mNN`: `dms_core.outcomes` parses dcs.log sessions
+  (stable/openbeta, `dcs.log.old`, latest run wins), writes `state/outcomes/<mNN>.yaml`, applies
+  quality deltas and `<mNN>_<key>` flags to `state/qualities.yaml` and picks the next mission from
+  arc branches. The debriefer skill calls it first. Implemented, not flown (synthetic logs only).
 
 ### Changed
 - **Restructure (da799f7):**

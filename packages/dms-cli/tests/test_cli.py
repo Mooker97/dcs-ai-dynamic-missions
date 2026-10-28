@@ -424,6 +424,55 @@ def test_outcome(tmp_path: Path) -> None:
     assert len(data["records"]) == 1 and data["summary"]["m01"]["outcomes"] == {"hvtKilled": True}
 
 
+DCS_LOG = ROOT / "tests" / "fixtures" / "dcs-logs" / "multi-session-dcs.log.txt"
+
+
+@pytest.fixture
+def campaign(tmp_path: Path) -> Path:
+    camp = tmp_path / "dustoff-valley"
+    (camp / "state").mkdir(parents=True)
+    shutil.copy(CAMPAIGN / "arc.yaml", camp / "arc.yaml")
+    shutil.copy(CAMPAIGN / "state" / "qualities.yaml", camp / "state" / "qualities.yaml")
+    return camp
+
+
+def test_debrief(campaign: Path) -> None:
+    import yaml
+
+    args = ["debrief", str(campaign), "--mission", "m01", "--log", str(DCS_LOG)]
+    res = invoke(*args, "--dry-run")
+    assert res.exit_code == 0, res.output
+    assert "result: success" in res.output and "dry run" in res.output
+    assert "next mission: m02-cracking-kirikhan" in res.output
+    assert "LOG ERROR" in res.output and "skipped malformed" in res.output
+    assert not (campaign / "state" / "outcomes").exists()
+
+    res = invoke(*args)
+    assert res.exit_code == 0, res.output
+    out = yaml.safe_load((campaign / "state" / "outcomes" / "m01.yaml").read_text("utf-8"))
+    assert out["kind"] == "summary" and out["extra"]["source"] == "dcs_log"
+    assert out["extra"]["next_mission"] == "m02-cracking-kirikhan"
+    q = yaml.safe_load((campaign / "state" / "qualities.yaml").read_text("utf-8"))
+    assert q["values"]["intel"] == 2 and q["values"]["trust"] == 1
+    assert q["flags"]["m01_patrol_complete"] is True and q["updated_after"] == "m01-first-light"
+
+    again = invoke(*args)
+    assert again.exit_code == 1 and "already" in again.output
+    forced = invoke(*args, "--force", "--json")
+    assert forced.exit_code == 0, forced.output
+    data = json.loads(forced.output)
+    assert data["qualities"]["values"]["intel"] == 4  # applied twice on purpose with --force
+
+
+def test_debrief_errors(campaign: Path, tmp_path: Path) -> None:
+    res = invoke("debrief", str(campaign), "--mission", "m04", "--log", str(DCS_LOG))
+    assert res.exit_code == 1 and "no [DMS.OUTCOME] lines for mission" in res.output
+    res = invoke("debrief", str(campaign), "--mission", "m99", "--log", str(DCS_LOG))
+    assert res.exit_code == 2 and "not found in arc.yaml" in res.output
+    res = invoke("debrief", str(campaign), "-m", "m01", "--log", str(tmp_path / "nope.log"))
+    assert res.exit_code == 2 and "not found" in res.output
+
+
 def test_new_campaign(tmp_path: Path) -> None:
     (tmp_path / "pyproject.toml").write_text(
         "[tool.uv.workspace]\nmembers = []\n", encoding="utf-8"

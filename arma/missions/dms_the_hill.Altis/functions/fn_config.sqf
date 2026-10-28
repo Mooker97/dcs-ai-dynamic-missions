@@ -129,7 +129,8 @@ createHashMapFromArray [
 	["exfilSpawnDistance", 4000],
 	["exfilHoldDistance", 1500],
 	["exfilFlyHeight", 60],
-	["exfilHotRadius", 300],
+	["exfilHotRadius", 200],
+	["exfilHotMaxHold", 300], // s the heli holds off a hot LZ before returning to base (request again)
 	["exfilHotCount", 3],
 	["exfilWaitOnGround", 150],
 	["exfilBoardRadius", 400],

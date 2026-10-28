@@ -144,6 +144,13 @@ switch (_mode) do {
 			private _w2 = _inf addWaypoint [_target, 30];
 			_w2 setWaypointType "SAD";
 			_w2 setWaypointBehaviour "COMBAT";
+			// The vehicle crew joins the attack instead of parking at the dismount point for good.
+			private _cg = group (effectiveCommander _veh);
+			if (!isNull _cg && {alive _veh} && {canMove _veh}) then {
+				private _cw = _cg addWaypoint [_target, 50];
+				_cw setWaypointType "SAD";
+				_cg setCurrentWaypoint _cw;
+			};
 			[format ["QRF wave %1 dismounted (%2 alive), flanking", _n, {alive _x} count (units _inf)]] call DMS_fnc_log;
 
 			waitUntil { sleep 5; DMS_over || {({alive _x} count (units _inf)) <= 1} };

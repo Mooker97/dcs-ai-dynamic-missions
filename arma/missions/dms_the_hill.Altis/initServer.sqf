@@ -14,7 +14,7 @@ private _lzDist = DMS_cfg get "lzDistance";
 DMS_testAssist = 0;
 if (DMS_testMode) then {
 	private _sd = ["DMS_testStartDist", 0] call BIS_fnc_getParamValue;
-	if (_sd > 0) then { _startDist = _sd; _lzDist = (_lzDist min (_sd * 0.5)) max 120; };
+	if (_sd > 0) then { _startDist = _sd; };
 	DMS_testAssist = ["DMS_testAssist", 0] call BIS_fnc_getParamValue;
 };
 DMS_testForce = ["DMS_testForce", 0] call BIS_fnc_getParamValue; // 1 = destroy the exfil heli, 2 = wipe the squad
@@ -32,6 +32,7 @@ DMS_exfilActive = false;
 DMS_exfilLanded = false;
 DMS_exfilBoarded = false;
 DMS_exfilHeli = objNull;
+DMS_exfilHoldSince = -1;
 DMS_player = objNull;
 DMS_enemyGroups = [];
 DMS_patrolGroup = grpNull;

@@ -148,6 +148,23 @@ switch (_mode) do {
 			};
 		};
 
+		// Optional exfil assist (test only): if the heli has held off a hot LZ for DMS_testAssist s,
+		// remove the enemies near the LZ so the run can reach the boarding and win checks.
+		if (DMS_testAssist > 0) then {
+			[] spawn {
+				while {!DMS_over} do {
+					sleep 5;
+					if (DMS_exfilHoldSince >= 0 && {time - DMS_exfilHoldSince > DMS_testAssist}) then {
+						private _r = DMS_cfg get "exfilHotRadius";
+						private _near = allUnits select {alive _x && {side (group _x) == east} && {_x distance2D DMS_lz < _r}};
+						{ _x setDamage 1; } forEach _near;
+						[format ["Test: exfil assist after %1 s holding, removing %2 enemies near the LZ", DMS_testAssist, count _near]] call DMS_fnc_log;
+						DMS_exfilHoldSince = time;
+					};
+				};
+			};
+		};
+
 		// Extraction: stop the assault, request the heli, re-request if it leaves without us.
 		for "_i" from (count (waypoints _grp) - 1) to 0 step -1 do { deleteWaypoint [_grp, _i]; };
 		private _tries = 0;
@@ -160,6 +177,10 @@ switch (_mode) do {
 			if (DMS_exfilActive) then {
 				private _lzMove = _grp addWaypoint [DMS_lz, 15];
 				_lzMove setWaypointType "MOVE";
+				_lzMove setWaypointBehaviour "AWARE";
+				_lzMove setWaypointSpeed "FULL";
+				_grp setBehaviour "AWARE";
+				_grp setSpeedMode "FULL";
 				_grp setCurrentWaypoint _lzMove;
 				waitUntil { sleep 5; DMS_over || {!DMS_exfilActive} };
 			};

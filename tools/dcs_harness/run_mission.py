@@ -469,6 +469,26 @@ def parse_log(log_path: Path, rep: Report) -> None:
             rep.other_errors.append(f"{e['ts']} {sub}: {msg[:500]}")
 
 
+CRASH_MARKERS = ("Out of memory in ed_malloc", "fatal_out_of_memory", "Minidump created")
+
+
+def scan_for_crash(log_path: Path, pos: int) -> tuple[str | None, int]:
+    """Return (first crash line since byte pos, new pos). The log is reset on each DCS start."""
+    try:
+        size = log_path.stat().st_size
+        if size < pos:
+            pos = 0
+        with log_path.open("rb") as f:
+            f.seek(pos)
+            chunk = f.read()
+    except OSError:
+        return None, pos
+    for line in chunk.decode("utf-8", errors="replace").splitlines():
+        if any(m in line for m in CRASH_MARKERS):
+            return line.strip()[:300], pos + len(chunk)
+    return None, pos + len(chunk)
+
+
 def verdict(rep: Report) -> int:
     if not rep.reached_simulation:
         rep.verdict = "infra_error"
@@ -534,8 +554,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument(
         "--min-free-gb",
         type=float,
-        default=6.0,
-        help="wait (up to --ram-wait-sec) until this much physical RAM is free before launching",
+        default=12.0,
+        help="wait (up to --ram-wait-sec) until this much physical RAM is free before launching "
+        "(Syria ran out of memory at 9 GB free)",
     )
     ap.add_argument("--ram-wait-sec", type=int, default=900, help="max wait for free RAM")
     ap.add_argument(
@@ -621,6 +642,10 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     rep.notes.append(f"free_ram_gb_at_launch={gb:.1f} priority={a.priority}")
 
+    old_log = write_dir / "Logs" / "dcs.log"
+    if old_log.is_file():  # so the crash scan never reads the previous run's log
+        old_log.replace(old_log.with_name("dcs.log.prev"))
+
     t0 = time.monotonic()
     env = dict(os.environ)
     if "steamapps" in str(inst.exe).lower():
@@ -638,10 +663,18 @@ def main(argv: list[str] | None = None) -> int:
     seen_ours = False
     prioritised: set[str] = set()
     log_path = write_dir / "Logs" / "dcs.log"
+    log_pos = 0
     print(f"[harness] launched {' '.join(args)}; wall timeout {wall}s; log {log_path}", flush=True)
     while True:
         time.sleep(5)
         elapsed = time.monotonic() - t0
+        # A crashed DCS hangs on its crash reporter instead of exiting: stop as soon as we see it.
+        crash, log_pos = scan_for_crash(log_path, log_pos)
+        if crash:
+            rep.exit_reason = "dcs_crashed"
+            rep.notes.append(f"DCS crashed: {crash}")
+            rep.notes.append(f"killed pids {kill_ours(a.write_dir_name)}")
+            break
         procs = [p for p in list_dcs_processes() if ours(p, a.write_dir_name)]
         if procs:
             seen_ours = True

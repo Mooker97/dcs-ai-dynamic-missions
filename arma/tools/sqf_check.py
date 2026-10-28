@@ -54,6 +54,8 @@ KNOWN_BIS = {
     "BIS_fnc_holdActionAdd",
     "BIS_fnc_taskCreate",
     "BIS_fnc_taskSetState",
+    "BIS_fnc_taskExists",
+    "BIS_fnc_taskCompleted",
     "BIS_fnc_addCommMenuItem",
     "BIS_fnc_endMission",
     "BIS_fnc_getParamValue",

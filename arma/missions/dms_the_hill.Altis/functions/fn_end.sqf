@@ -8,6 +8,9 @@ if (missionNamespace getVariable ["DMS_over", false]) exitWith {};
 DMS_over = true;
 publicVariable "DMS_over";
 
+if (!_win) then {
+	{ if ([_x] call BIS_fnc_taskExists && {!([_x] call BIS_fnc_taskCompleted)}) then { [_x, "FAILED"] call BIS_fnc_taskSetState; }; } forEach ["DMS_t_intel", "DMS_t_exfil"];
+};
 diag_log text format ["[DMS.OUTCOME] result=%1 end=%2 reason=%3 seed=%4 site=%5 t=%6",
 	["FAIL", "WIN"] select _win, _end, _reason, DMS_seed, DMS_siteName, round time];
 if (DMS_testMode) then {

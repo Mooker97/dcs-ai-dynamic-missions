@@ -1020,9 +1020,10 @@ local function maintain(st)
         local layer = layers.departures or {}
         if rec.state == "parked" and A.runwayGateOpen() and t >= (rec.startAt or 0) then
           local g = groupObj(name)
-          local ok = g and pcall(function()
-            g:getController():setCommand({ id = "Start", params = {} })
-          end)
+          local ok = g
+            and pcall(function()
+              g:getController():setCommand({ id = "Start", params = {} })
+            end)
           rec.state = "started"
           rec.startedAt = t
           DMS.Log.info(P, "Site '%s': departure '%s' starting up (%s)", st.id, name, tostring(ok and "ok" or "failed"))

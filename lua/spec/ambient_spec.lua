@@ -347,7 +347,7 @@ describe("DMS.Ambient", function()
       MOCK.waterAreas = { { x = 0, y = -700, radius = 350 + (seed % 3) * 100 } }
       local base = land.getSurfaceType
       MOCK.surface = function(x, y)
-        local dx, dy = x - 0, y - (-700)
+        local dx, dy = x - 0, y - -700
         if dx * dx + dy * dy <= (350 + (seed % 3) * 100) ^ 2 then
           return land.SurfaceType.WATER
         end

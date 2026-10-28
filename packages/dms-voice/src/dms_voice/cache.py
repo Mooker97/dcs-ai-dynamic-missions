@@ -1,6 +1,8 @@
 """On-disk TTS cache: ``<root>/<sha256>.ogg`` plus a ``<sha256>.json`` sidecar.
 
-Key = ``sha256(voice_id|model|text|fx_preset)`` (docs/CONTRACTS.md).
+Single-voice key = ``sha256(voice_id|model|text|fx_preset)`` (docs/CONTRACTS.md).
+Dialogue key (multi-speaker ``turns``) = sha256 of the canonical JSON of the full
+Text-to-Dialogue request: ``{"kind": "dialogue", "model", "fx", "inputs": [{voice_id, text}]}``.
 """
 
 from __future__ import annotations
@@ -21,6 +23,18 @@ def default_root() -> Path:
 
 def cache_key(voice_id: str, model: str, text: str, fx_preset: str) -> str:
     return hashlib.sha256(f"{voice_id}|{model}|{text}|{fx_preset}".encode()).hexdigest()
+
+
+def dialogue_cache_key(inputs: list[tuple[str, str]], model: str, fx_preset: str) -> str:
+    """Key for a Text-to-Dialogue render; ``inputs`` is ``[(voice_id, text), ...]`` in order."""
+    request = {
+        "kind": "dialogue",
+        "model": model,
+        "fx": fx_preset,
+        "inputs": [{"voice_id": v, "text": t} for v, t in inputs],
+    }
+    blob = json.dumps(request, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(blob.encode()).hexdigest()
 
 
 class TTSCache:

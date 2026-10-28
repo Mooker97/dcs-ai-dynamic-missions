@@ -1,4 +1,9 @@
-"""``dms voice <lines.yaml> [--out DIR] [--dry-run]`` entry point (wired into dms-cli later)."""
+"""``dms voice <lines.yaml> [--out DIR] [--dry-run]`` entry point (called by ``dms_cli``).
+
+Model: ``--model`` if given, else ``VoiceLineSet.model`` from lines.yaml.
+Voices: the campaign bible (two levels above the mission folder) first, then ``--voices`` or the
+discovered ``data/voice/voices.json`` as fallback.
+"""
 
 from __future__ import annotations
 
@@ -10,27 +15,45 @@ from typing import Any
 
 import yaml  # type: ignore[import-untyped,unused-ignore]
 
-from .client import DEFAULT_MODEL, MissingApiKeyError, VoiceApiError
+from .client import MissingApiKeyError, VoiceApiError
 from .fx import PRESETS
 from .models import VoiceLineSet
-from .render import DEFAULT_FX, load_voices, render_lines
+from .render import (
+    DEFAULT_FX,
+    find_bible,
+    load_bible_voices,
+    load_voices,
+    merge_voices,
+    render_lines,
+)
+
+
+def load_line_set(path: Path) -> VoiceLineSet:
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict | list):
+        raise ValueError(f"{path}: expected a mapping with 'lines' or a list of lines")
+    return VoiceLineSet.model_validate(data)
 
 
 def load_lines(path: Path) -> list[Any]:
-    data = yaml.safe_load(path.read_text(encoding="utf-8"))
-    if isinstance(data, list):
-        data = {"lines": data}
-    if not isinstance(data, dict):
-        raise ValueError(f"{path}: expected a mapping with 'lines' or a list of lines")
-    return list(VoiceLineSet.model_validate(data).lines)
+    return list(load_line_set(path).lines)
+
+
+def resolve_voices(lines_path: Path, voices_path: Path | None = None) -> dict[str, Any]:
+    """Bible VoiceProfiles first, voices.json (explicit or discovered) as fallback."""
+    fallback = load_voices(voices_path)
+    bible = find_bible(lines_path)
+    if bible is None:
+        return fallback
+    return merge_voices(load_bible_voices(bible), fallback)
 
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="dms voice", description="Render lines.yaml to radio .ogg")
     p.add_argument("lines", type=Path, help="lines.yaml")
     p.add_argument("--out", type=Path, default=None, help="output dir (default: <lines>/../voice)")
-    p.add_argument("--voices", type=Path, default=None, help="speaker->voice json")
-    p.add_argument("--model", default=DEFAULT_MODEL)
+    p.add_argument("--voices", type=Path, default=None, help="fallback speaker->voice json")
+    p.add_argument("--model", default=None, help="TTS model (default: lines.yaml `model`)")
     p.add_argument("--fx", default=DEFAULT_FX, choices=sorted(PRESETS))
     p.add_argument("--dry-run", action="store_true", help="estimate characters; no API calls")
     return p
@@ -39,11 +62,12 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
-        lines = load_lines(args.lines)
-        voices = load_voices(args.voices)
+        line_set = load_line_set(args.lines)
+        voices = resolve_voices(args.lines, args.voices)
+        model = args.model or line_set.model
         out = args.out or args.lines.parent / "voice"
         manifest = render_lines(
-            lines, voices, out, dry_run=args.dry_run, model=args.model, fx_preset=args.fx
+            line_set.lines, voices, out, dry_run=args.dry_run, model=model, fx_preset=args.fx
         )
     except (MissingApiKeyError, VoiceApiError, KeyError, ValueError, OSError) as exc:
         print(f"error: {exc}", file=sys.stderr)

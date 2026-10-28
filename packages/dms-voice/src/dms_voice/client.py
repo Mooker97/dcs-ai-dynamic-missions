@@ -172,8 +172,8 @@ def synthesize(
     return default_client().synthesize(text, voice_id, model, output_format, settings)
 
 
-def dialogue(turns: list[dict[str, str]]) -> bytes:
-    return default_client().dialogue(turns)
+def dialogue(turns: list[dict[str, str]], model: str = DEFAULT_MODEL) -> bytes:
+    return default_client().dialogue(turns, model)
 
 
 def design_voice(prompt: str, text: str | None = None) -> list[dict[str, Any]]:

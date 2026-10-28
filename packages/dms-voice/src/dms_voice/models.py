@@ -1,8 +1,8 @@
-"""Voice data models.
+"""Voice data models and duck-typed accessors.
 
-Prefers the canonical schemas from ``dms_core.schemas`` (``voice.VoiceLine``/``VoiceLineSet`` and
-``story.VoiceProfile``). Until those exist, minimal compatible local fallbacks are defined here.
-The render pipeline itself is duck-typed (see :func:`line_fields`), so either works.
+The canonical schemas live in ``dms_core.schemas`` (``voice.VoiceLine``/``VoiceLineSet`` and
+``story.VoiceProfile``) and are re-exported here. The render pipeline reads lines through
+:func:`line_fields`/:func:`line_turns`, so plain mappings (tests, ad hoc scripts) work too.
 """
 
 from __future__ import annotations
@@ -10,43 +10,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
-
-try:  # pragma: no cover - depends on dms-core progress
-    from dms_core.schemas.voice import VoiceLine, VoiceLineSet  # type: ignore[import-not-found,import-untyped,unused-ignore]
-except ImportError:
-
-    class VoiceLine(BaseModel):  # type: ignore[no-redef]
-        """One spoken radio line (local fallback for dms_core.schemas.voice.VoiceLine)."""
-
-        model_config = ConfigDict(extra="forbid")
-
-        id: str = Field(
-            description="Stable line id; becomes <id>.ogg and the DMS_CONFIG.voice key."
-        )
-        speaker: str = Field(description="Character id resolved to an ElevenLabs voice id.")
-        text: str = Field(description="Text to speak. Eleven v3 audio tags like [shouts] allowed.")
-        fx: str | None = Field(default=None, description="Radio FX preset override.")
-
-    class VoiceLineSet(BaseModel):  # type: ignore[no-redef]
-        """A lines.yaml document (local fallback for dms_core.schemas.voice.VoiceLineSet)."""
-
-        model_config = ConfigDict(extra="forbid")
-
-        lines: list[VoiceLine] = Field(default_factory=list, description="All lines.")
-
-
-try:  # pragma: no cover - depends on dms-core progress
-    from dms_core.schemas.story import VoiceProfile  # type: ignore[import-not-found,import-untyped,unused-ignore]
-except ImportError:
-
-    class VoiceProfile(BaseModel):  # type: ignore[no-redef]
-        """Character voice (local fallback for dms_core.schemas.story.VoiceProfile)."""
-
-        model_config = ConfigDict(extra="forbid")
-
-        eleven_voice_id: str | None = Field(default=None, description="ElevenLabs voice id.")
-        design_prompt: str | None = Field(default=None, description="Voice Design prompt.")
+from dms_core.schemas.story import StoryBible, VoiceProfile
+from dms_core.schemas.voice import DialogueTurn, VoiceLine, VoiceLineSet
 
 
 def _get(obj: Any, *names: str) -> Any:
@@ -62,14 +27,29 @@ def _get(obj: Any, *names: str) -> Any:
 
 
 def line_fields(line: Any) -> tuple[str, str, str, str | None]:
-    """Return ``(line_id, speaker, text, fx_preset_or_None)`` from a model or mapping."""
+    """Return ``(line_id, speaker, text, radio_fx_or_None)`` from a model or mapping."""
     line_id = _get(line, "id", "line_id")
     speaker = _get(line, "speaker")
     text = _get(line, "text")
     if not line_id or not speaker or not text:
         raise ValueError(f"voice line needs id, speaker and text: {line!r}")
-    fx = _get(line, "fx", "fx_preset")
+    fx = _get(line, "radio_fx")
     return str(line_id), str(speaker), str(text), (str(fx) if fx else None)
+
+
+def line_turns(line: Any) -> list[tuple[str, str]] | None:
+    """Return ``[(speaker, text), ...]`` for a multi-speaker line, or None for a single voice."""
+    turns = _get(line, "turns")
+    if not turns:
+        return None
+    out: list[tuple[str, str]] = []
+    for turn in turns:
+        speaker = _get(turn, "speaker")
+        text = _get(turn, "text")
+        if not speaker or not text:
+            raise ValueError(f"dialogue turn needs speaker and text: {turn!r}")
+        out.append((str(speaker), str(text)))
+    return out
 
 
 def voice_id_of(entry: Any) -> str | None:
@@ -92,4 +72,20 @@ def voice_fx_of(entry: Any) -> str | None:
     return str(fx) if fx else None
 
 
-__all__ = ["VoiceLine", "VoiceLineSet", "VoiceProfile", "line_fields", "voice_fx_of", "voice_id_of"]
+def bible_voices(bible: StoryBible) -> dict[str, VoiceProfile]:
+    """Map character id -> VoiceProfile for every bible character that has a voice."""
+    return {c.id: c.voice for c in bible.characters if c.voice is not None}
+
+
+__all__ = [
+    "DialogueTurn",
+    "StoryBible",
+    "VoiceLine",
+    "VoiceLineSet",
+    "VoiceProfile",
+    "bible_voices",
+    "line_fields",
+    "line_turns",
+    "voice_fx_of",
+    "voice_id_of",
+]

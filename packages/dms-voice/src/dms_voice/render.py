@@ -1,6 +1,10 @@
 """Render a set of voice lines to ``<line_id>.ogg`` + ``manifest.json``.
 
 The manifest ``{line_id: {file, dur_sec, text, speaker}}`` feeds ``DMS_CONFIG.voice`` (durSec).
+Lines with ``turns`` are rendered as one clip with ElevenLabs Text-to-Dialogue.
+
+Voice ids resolve per speaker from the campaign bible (``characters[].voice``, a
+``VoiceProfile``) first and ``data/voice/voices.json`` (or ``--voices``) second.
 """
 
 from __future__ import annotations
@@ -12,17 +16,37 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
 
-from .cache import TTSCache, cache_key
+import yaml  # type: ignore[import-untyped,unused-ignore]
+
+from .cache import TTSCache, cache_key, dialogue_cache_key
 from .client import DEFAULT_MODEL
 from .fx import PRESETS, apply_fx, duration_seconds
-from .models import line_fields, voice_fx_of, voice_id_of
+from .models import (
+    StoryBible,
+    VoiceProfile,
+    bible_voices,
+    line_fields,
+    line_turns,
+    voice_fx_of,
+    voice_id_of,
+)
 
 DEFAULT_FX = "uhf_clean"
 VOICES_JSON = Path("data") / "voice" / "voices.json"
+BIBLE_FILE = "bible.yaml"
 
 
 class Synthesizer(Protocol):
     def synthesize(self, text: str, voice_id: str, model: str = ...) -> bytes: ...
+
+    def dialogue(self, turns: list[dict[str, str]], model: str = ...) -> bytes: ...
+
+
+@dataclass
+class PlannedTurn:
+    speaker: str
+    voice_id: str
+    text: str
 
 
 @dataclass
@@ -34,6 +58,14 @@ class PlannedLine:
     fx: str
     key: str
     cached: bool
+    turns: list[PlannedTurn] | None = None
+
+    @property
+    def characters(self) -> int:
+        """Billable characters: the turn texts for dialogue, else the line text."""
+        if self.turns:
+            return sum(len(t.text) for t in self.turns)
+        return len(self.text)
 
 
 @dataclass
@@ -74,13 +106,46 @@ def load_voices(path: Path | str | None = None) -> dict[str, Any]:
     return data
 
 
+def find_bible(lines_path: Path | str) -> Path | None:
+    """``campaigns/<slug>/bible.yaml`` for ``campaigns/<slug>/missions/<id>/lines.yaml``:
+    the bible sits two levels above the mission folder."""
+    mission_dir = Path(lines_path).resolve().parent
+    parents = mission_dir.parents
+    if len(parents) < 2:
+        return None
+    cand = parents[1] / BIBLE_FILE
+    return cand if cand.is_file() else None
+
+
+def load_bible_voices(path: Path | str) -> dict[str, VoiceProfile]:
+    """Load and validate a story bible; return character id -> VoiceProfile."""
+    data = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
+    return bible_voices(StoryBible.model_validate(data))
+
+
+def merge_voices(bible: Mapping[str, VoiceProfile], fallback: Mapping[str, Any]) -> dict[str, Any]:
+    """Bible ``VoiceProfile.eleven_voice_id`` wins; ``fallback`` (voices.json) fills missing ids.
+    The bible's ``radio_fx`` is kept even when the id comes from the fallback."""
+    merged: dict[str, Any] = dict(fallback)
+    for speaker, prof in bible.items():
+        if prof.eleven_voice_id:
+            merged[speaker] = prof
+            continue
+        fb_id = voice_id_of(fallback.get(speaker)) if speaker in fallback else None
+        if fb_id:
+            merged[speaker] = {"eleven_voice_id": fb_id, "radio_fx": prof.radio_fx}
+        else:
+            merged[speaker] = prof
+    return merged
+
+
 def resolve_voice(speaker: str, voices: Mapping[str, Any]) -> str:
     entry = voices.get(speaker)
     vid = voice_id_of(entry) if entry is not None else None
     if not vid:
         raise KeyError(
-            f"no ElevenLabs voice id for speaker {speaker!r}; add it to data/voice/voices.json "
-            "or the character's VoiceProfile.eleven_voice_id"
+            f"no ElevenLabs voice id for speaker {speaker!r}; set the character's "
+            "VoiceProfile.eleven_voice_id in bible.yaml or add it to data/voice/voices.json"
         )
     return vid
 
@@ -104,13 +169,27 @@ def plan_lines(
         fx = fx or voice_fx_of(voices.get(speaker)) or fx_preset
         if fx not in PRESETS:
             raise ValueError(f"line {line_id!r}: unknown fx preset {fx!r}")
-        vid = resolve_voice(speaker, voices)
-        key = cache_key(vid, model, text, fx)
+        raw_turns = line_turns(line)
+        turns: list[PlannedTurn] | None = None
+        if raw_turns:
+            turns = [PlannedTurn(s, resolve_voice(s, voices), t) for s, t in raw_turns]
+            vid = turns[0].voice_id
+            key = dialogue_cache_key([(t.voice_id, t.text) for t in turns], model, fx)
+        else:
+            vid = resolve_voice(speaker, voices)
+            key = cache_key(vid, model, text, fx)
         planned.append(
-            PlannedLine(line_id, speaker, text, vid, fx, key, cache.get(key) is not None)
+            PlannedLine(line_id, speaker, text, vid, fx, key, cache.get(key) is not None, turns)
         )
     todo = [p for p in planned if not p.cached]
-    return CostEstimate(len(planned), len(todo), sum(len(p.text) for p in todo), planned)
+    return CostEstimate(len(planned), len(todo), sum(p.characters for p in todo), planned)
+
+
+def _synthesize(p: PlannedLine, client: Synthesizer, model: str) -> bytes:
+    if p.turns:
+        inputs = [{"text": t.text, "voice_id": t.voice_id} for t in p.turns]
+        return client.dialogue(inputs, model=model)
+    return client.synthesize(p.text, p.voice_id, model=model)
 
 
 def render_lines(
@@ -135,10 +214,10 @@ def render_lines(
     if dry_run:
         print(f"[dry-run] {est.summary()}")
         for p in est.lines:
-            meta = cache.meta(p.key) if p.cached else None
+            hit = cache.meta(p.key) if p.cached else None
             manifest[p.line_id] = {
                 "file": f"{p.line_id}.ogg",
-                "dur_sec": meta.get("duration") if meta else None,
+                "dur_sec": hit.get("duration") if hit else None,
                 "text": p.text,
                 "speaker": p.speaker,
                 "cached": p.cached,
@@ -154,24 +233,25 @@ def render_lines(
         cached_path = cache.get(p.key)
         if cached_path is None:
             assert client is not None
-            raw = client.synthesize(p.text, p.voice_id, model=model)
+            raw = _synthesize(p, client, model)
             ogg = apply_fx(raw, p.fx)
             dur = round(duration_seconds(ogg), 2)
-            cached_path = cache.put(
-                p.key,
-                ogg,
-                {
-                    "text": p.text,
-                    "voice": p.voice_id,
-                    "speaker": p.speaker,
-                    "model": model,
-                    "fx": p.fx,
-                    "duration": dur,
-                },
-            )
+            meta: dict[str, Any] = {
+                "text": p.text,
+                "voice": p.voice_id,
+                "speaker": p.speaker,
+                "model": model,
+                "fx": p.fx,
+                "duration": dur,
+            }
+            if p.turns:
+                meta["turns"] = [
+                    {"speaker": t.speaker, "voice": t.voice_id, "text": t.text} for t in p.turns
+                ]
+            cached_path = cache.put(p.key, ogg, meta)
         else:
-            meta = cache.meta(p.key) or {}
-            cached_dur = meta.get("duration")
+            cached_meta = cache.meta(p.key) or {}
+            cached_dur = cached_meta.get("duration")
             if isinstance(cached_dur, int | float):
                 dur = float(cached_dur)
             else:

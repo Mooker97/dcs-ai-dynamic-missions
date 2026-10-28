@@ -17,17 +17,28 @@ before spending anything**, and listen-check the result.
 - `campaigns/<slug>/missions/<id>/beats.yaml`, to find exchanges (beats chained with
   `when: {event: beat.fired}` and a short `delay_sec`).
 - `campaigns/<slug>/bible.yaml` → `characters[].voice` (`VoiceProfile`: eleven_voice_id,
-  design_prompt, accent, age, gender, cadence, brevity, radio_fx, notes).
+  design_prompt, accent, age, gender, cadence, brevity, radio_fx, notes). `dms voice` reads the
+  bible two levels above the mission folder and uses `eleven_voice_id` first; speakers without
+  one fall back to `data/voice/voices.json` (or `--voices FILE`), keeping the bible's `radio_fx`.
+- Multi-speaker lines: a line with `turns: [{speaker, text}, ...]` (2+ turns) renders to ONE
+  clip with ElevenLabs Text-to-Dialogue, each turn in its speaker's voice. Every turn speaker
+  needs a voice id. Credits = sum of the turn texts.
 - `ELEVENLABS_API_KEY` in the environment. Never print it or write it to a file.
 
 ## Outputs
 
 - Edited `lines.yaml`: audio tags inline in `text` where they help, `subtitle` set whenever the
   spoken text differs from the on-screen text (tags are stripped automatically otherwise), and
-  optional per-line `radio_fx` overrides. `file` and `dur_sec` are filled in by `dms voice`.
+  optional per-line `radio_fx` overrides. `dms voice` does **not** edit `lines.yaml`: leave
+  `file` and `dur_sec` empty there.
+- `missions/<id>/voice/manifest.json`, written by `dms voice`:
+  `{line_id: {file, dur_sec, text, speaker}}`. `dms plan`/`dms build` read it for
+  `DMS_CONFIG.voice` (file + durSec); lines missing from it play as subtitles only.
 - Updated `bible.yaml`: `eleven_voice_id` for newly created voices, logged in continuity.md.
-- Rendered audio in `missions/<id>/voice/`, cached at `~/.dms/tts-cache/<sha256>.ogg` with the key
-  `sha256(voice_id|model|text|fx_preset)`, so unchanged lines cost nothing to re-run.
+- Rendered audio in `missions/<id>/voice/<line_id>.ogg`, cached at
+  `~/.dms/tts-cache/<sha256>.ogg` with the key `sha256(voice_id|model|text|fx_preset)` (dialogue
+  lines: sha256 of the full request, i.e. model, fx and every turn's voice id + text), so
+  unchanged lines cost nothing to re-run.
 
 ## Steps
 
@@ -43,7 +54,8 @@ before spending anything**, and listen-check the result.
    - Don't change the wording beyond tags and punctuation. If wording must change, agree it with
      the mission-designer, and keep the line inside the speaker's `brevity`.
    - Use `delivery` notes and the speaker's `cadence` and `notes` as direction.
-   - Set the set-level `model`. Use `eleven_v3` for finals. Use `eleven_flash_v2_5` for cheap
+   - Set the set-level `model` (`dms voice` uses it; `--model` on the CLI overrides it). Use
+     `eleven_v3` for finals. Use `eleven_flash_v2_5` for cheap
      drafts; it has no tags, so strip them or expect them to be ignored.
 4. **Estimate first. Always.**
    ```

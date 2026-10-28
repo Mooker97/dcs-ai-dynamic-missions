@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import yaml  # type: ignore[import-untyped,unused-ignore]
 from dms_voice import cli
 from dms_voice.cache import TTSCache, cache_key, default_root
 from dms_voice.client import (
@@ -21,17 +22,23 @@ from dms_voice.render import render_lines
 VOICES = {"ops_mustang": "vid_mustang", "dusty": {"eleven_voice_id": "vid_dusty"}}
 LINES = [
     {"id": "l1", "speaker": "ops_mustang", "text": "Dusty, Mustang. Radio check, over."},
-    {"id": "l2", "speaker": "dusty", "text": "Loud and clear.", "fx": "vhf_noisy"},
+    {"id": "l2", "speaker": "dusty", "text": "Loud and clear.", "radio_fx": "vhf_noisy"},
 ]
+REPO = Path(__file__).resolve().parents[3]
 
 
 class FakeClient:
     def __init__(self) -> None:
         self.calls: list[tuple[str, str, str]] = []
+        self.dialogue_calls: list[tuple[list[dict[str, str]], str]] = []
         self._wav = tone(0.5, 440)
 
     def synthesize(self, text: str, voice_id: str, model: str = "eleven_v3") -> bytes:
         self.calls.append((text, voice_id, model))
+        return self._wav
+
+    def dialogue(self, turns: list[dict[str, str]], model: str = "eleven_v3") -> bytes:
+        self.dialogue_calls.append((turns, model))
         return self._wav
 
 
@@ -209,3 +216,188 @@ def test_voice_profile_fx_default(tmp_path: Path, cache: TTSCache) -> None:
     prof = VoiceProfile(eleven_voice_id="vp", design_prompt="calm male", radio_fx="intercom")
     est = plan_lines([{"id": "a", "speaker": "p", "text": "hi"}], {"p": prof}, cache=cache)
     assert est.lines[0].voice_id == "vp" and est.lines[0].fx == "intercom"
+
+
+# ---- audit fixes: radio_fx, dialogue, model, bible voices ----------------
+
+
+def test_line_radio_fx_overrides_speaker_and_default(cache: TTSCache) -> None:
+    from dms_voice.models import VoiceLine, VoiceProfile
+    from dms_voice.render import plan_lines
+
+    prof = VoiceProfile(eleven_voice_id="vp", design_prompt="x", radio_fx="intercom")
+    lines: list[Any] = [
+        VoiceLine(id="a", speaker="p", text="hi", radio_fx="vhf_noisy"),
+        VoiceLine(id="b", speaker="p", text="hi"),
+        {"id": "c", "speaker": "q", "text": "hi", "radio_fx": "none"},
+    ]
+    est = plan_lines(lines, {"p": prof, "q": "vq"}, cache=cache)
+    assert [p.fx for p in est.lines] == ["vhf_noisy", "intercom", "none"]
+
+
+TURN_A = {"speaker": "dusty", "text": "Ops, Dusty, contact north."}
+TURN_B = {"speaker": "ops_mustang", "text": "Copy, cleared hot."}
+DIALOGUE: dict[str, Any] = {"id": "x1", "turns": [TURN_A, TURN_B]}
+
+
+def test_dialogue_line_uses_text_to_dialogue_and_caches(tmp_path: Path, cache: TTSCache) -> None:
+    from dms_voice.cache import dialogue_cache_key
+    from dms_voice.models import VoiceLine
+
+    line = VoiceLine.model_validate(DIALOGUE)
+    assert line.speaker == "dusty"
+    fake = FakeClient()
+    manifest = render_lines([line, LINES[0]], VOICES, tmp_path / "v", client=fake, cache=cache)
+    assert len(fake.dialogue_calls) == 1 and len(fake.calls) == 1
+    turns, model = fake.dialogue_calls[0]
+    assert model == "eleven_v3"
+    assert turns == [
+        {"text": TURN_A["text"], "voice_id": "vid_dusty"},
+        {"text": TURN_B["text"], "voice_id": "vid_mustang"},
+    ]
+    assert manifest["x1"]["file"] == "x1.ogg" and manifest["x1"]["speaker"] == "dusty"
+    key = dialogue_cache_key(
+        [("vid_dusty", TURN_A["text"]), ("vid_mustang", TURN_B["text"])], "eleven_v3", "uhf_clean"
+    )
+    assert cache.get(key) is not None
+    meta = cache.meta(key)
+    assert meta is not None and len(meta["turns"]) == 2
+
+    render_lines([line], VOICES, tmp_path / "v2", client=fake, cache=cache)
+    assert len(fake.dialogue_calls) == 1  # cache hit
+
+    changed = VoiceLine.model_validate(
+        {"id": "x1", "turns": [TURN_A, {"speaker": "ops_mustang", "text": "Copy."}]}
+    )
+    render_lines([changed], VOICES, tmp_path / "v3", client=fake, cache=cache)
+    assert len(fake.dialogue_calls) == 2
+
+
+def test_dialogue_cost_counts_turn_characters(cache: TTSCache) -> None:
+    from dms_voice.render import plan_lines
+
+    est = plan_lines([{**DIALOGUE, "speaker": "dusty", "text": "t"}], VOICES, cache=cache)
+    assert est.characters == len(TURN_A["text"]) + len(TURN_B["text"])
+
+
+def test_dialogue_unknown_turn_speaker(cache: TTSCache) -> None:
+    from dms_voice.render import plan_lines
+
+    bad = {
+        "id": "x",
+        "speaker": "dusty",
+        "text": "t",
+        "turns": [TURN_A, {"speaker": "ghost", "text": "b"}],
+    }
+    with pytest.raises(KeyError, match="ghost"):
+        plan_lines([bad], VOICES, cache=cache)
+
+
+def test_client_dialogue_uses_sdk_mock() -> None:
+    seen: dict[str, Any] = {}
+
+    class TTD:
+        def convert(self, **kw: Any) -> Any:
+            seen.update(kw)
+            return iter([b"ab", b"cd"])
+
+    class SDK:
+        text_to_dialogue = TTD()
+
+    turns = [{"text": "a", "voice_id": "v1"}, {"text": "b", "voice_id": "v2"}]
+    assert VoiceClient(sdk=SDK()).dialogue(turns, model="eleven_v3") == b"abcd"
+    assert seen["model_id"] == "eleven_v3"
+    assert [(i.text, i.voice_id) for i in seen["inputs"]] == [("a", "v1"), ("b", "v2")]
+
+
+def _capture_render(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
+    seen: dict[str, Any] = {}
+
+    def fake_render(lines: Any, voices: Any, out: Any, **kw: Any) -> dict[str, Any]:
+        seen.update(kw, voices=voices, lines=list(lines))
+        return {}
+
+    monkeypatch.setattr(cli, "render_lines", fake_render)
+    return seen
+
+
+def test_cli_model_from_lines_yaml_and_flag_override(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen = _capture_render(monkeypatch)
+    lines = tmp_path / "lines.yaml"
+    lines.write_text(
+        "model: eleven_flash_v2_5\nlines:\n  - {id: a, speaker: s, text: Hi.}\n", encoding="utf-8"
+    )
+    voices = tmp_path / "voices.json"
+    voices.write_text(json.dumps({"s": "v"}))
+    assert cli.main([str(lines), "--voices", str(voices), "--dry-run"]) == 0
+    assert seen["model"] == "eleven_flash_v2_5"
+    argv = [str(lines), "--voices", str(voices), "--dry-run", "--model", "eleven_v3"]
+    assert cli.main(argv) == 0
+    assert seen["model"] == "eleven_v3"
+
+
+def _campaign(tmp_path: Path) -> Path:
+    template = REPO / "campaigns" / "_template" / "bible.yaml"
+    bible = yaml.safe_load(template.read_text(encoding="utf-8"))
+    base = bible["characters"][0]
+    ops_voice = {**base["voice"], "eleven_voice_id": "bible_ops", "radio_fx": "vhf_noisy"}
+    wing_voice = {**base["voice"], "eleven_voice_id": None, "radio_fx": "intercom"}
+    bible["characters"] = [
+        {**base, "id": "ops_main", "voice": ops_voice},
+        {**base, "id": "wing", "voice": wing_voice},
+    ]
+    camp = tmp_path / "campaigns" / "demo"
+    mission = camp / "missions" / "m01-x"
+    mission.mkdir(parents=True)
+    (camp / "bible.yaml").write_text(yaml.safe_dump(bible), encoding="utf-8")
+    lines = mission / "lines.yaml"
+    lines.write_text(
+        "lines:\n"
+        "  - {id: a, speaker: ops_main, text: Cleared.}\n"
+        "  - {id: b, speaker: wing, text: Two.}\n"
+        "  - {id: c, speaker: extra, text: Three.}\n",
+        encoding="utf-8",
+    )
+    return lines
+
+
+def test_bible_voice_ids_with_voices_json_fallback(tmp_path: Path) -> None:
+    from dms_voice.render import find_bible, plan_lines
+
+    lines = _campaign(tmp_path)
+    assert find_bible(lines) == (tmp_path / "campaigns" / "demo" / "bible.yaml").resolve()
+    voices_json = tmp_path / "voices.json"
+    voices_json.write_text(
+        json.dumps({"ops_main": "json_ops", "wing": "json_wing", "extra": "json_extra"})
+    )
+    voices = cli.resolve_voices(lines, voices_json)
+    est = plan_lines(cli.load_lines(lines), voices, cache=TTSCache(tmp_path / "c"))
+    got = {p.line_id: (p.voice_id, p.fx) for p in est.lines}
+    assert got == {
+        "a": ("bible_ops", "vhf_noisy"),  # bible id wins over voices.json
+        "b": ("json_wing", "intercom"),  # no bible id: voices.json id, bible radio_fx
+        "c": ("json_extra", "uhf_clean"),  # not in bible
+    }
+
+
+def test_bible_voice_without_any_id_errors(tmp_path: Path) -> None:
+    from dms_voice.render import plan_lines
+
+    lines = _campaign(tmp_path)
+    empty = tmp_path / "empty.json"
+    empty.write_text("{}")
+    voices = cli.resolve_voices(lines, empty)
+    with pytest.raises(KeyError, match="wing"):
+        plan_lines(cli.load_lines(lines)[:2], voices, cache=TTSCache(tmp_path / "c"))
+
+
+def test_cli_uses_bible_voices(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    seen = _capture_render(monkeypatch)
+    lines = _campaign(tmp_path)
+    empty = tmp_path / "empty.json"
+    empty.write_text("{}")
+    assert cli.main([str(lines), "--voices", str(empty), "--dry-run"]) == 0
+    assert seen["voices"]["ops_main"].eleven_voice_id == "bible_ops"
+    assert seen["model"] == "eleven_v3"

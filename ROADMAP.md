@@ -25,14 +25,14 @@ A feature is done when all of the following are true:
 - [ ] Lua core: core, clock, rng, bus and registry, with mocks and a fake clock *(implemented + tested)*
 - [ ] Bundler `tools/bundle_lua.py` → `dist/dms.lua` (version-stamped, `luac -p` clean) *(implemented + tested)*
 - [ ] `dms` CLI scaffold: `validate`, `schema`, `bundle-lua`, `check` *(implemented + tested)*
-- [ ] Core bundle loads in DCS with no errors in `dcs.log` (flown) *(headless DCS 2026-10-28: boots clean, 0 script errors; cockpit check pending)*
+- [ ] Core bundle loads in DCS with no errors in `dcs.log` (flown) *(headless DCS 2026-10-28: m01 test build passes end to end, 0 errors; cockpit check pending)*
 
 ## v0.4: Vertical slice
 - [ ] Hand-written `mission-spec.yaml` → `dms plan` → `plan.json`
 - [ ] `dms build` (pydcs) → `.miz` with `dms.lua` and `DMS_CONFIG` injected
 - [ ] Runtime modules: spawner, ground, encounters and intel (fog of war via `hidden` + marks) *(tested on mocks; spawns verified headless in DCS)*
 - [ ] `dms check`: IDs, slots, resources, config schema and `luac -p` *(implemented + tested, incl. config schema and beat reachability)*
-- [ ] Slice mission flown in DCS: spawns, routes, an ambush and marks all verified (flown)
+- [ ] Slice mission flown in DCS: spawns, routes, an ambush and marks all verified (flown) *(headless pass: spawns, beats, encounters, comms, outcome; marks and cockpit unchecked)*
 
 ## v0.5: Story pillar
 - [ ] Skills: story-writer, campaign-planner and mission-designer
@@ -51,7 +51,7 @@ A feature is done when all of the following are true:
 ## v0.7: Director and the campaign loop
 - [ ] Director: per-flight intensity, BUILD_UP → PEAK → RELAX, spawn budget
 - [ ] Hidden difficulty adaptation, clamped to ±1 tier
-- [ ] Debriefer skill: `dcs.log` → outcomes, qualities and `continuity.md` *(`dms debrief` implemented; not run on a real log)*
+- [ ] Debriefer skill: `dcs.log` → outcomes, qualities and `continuity.md` *(`dms debrief` verified on a real headless DCS log, dry run)*
 - [ ] Next mission generated to fit the previous outcome (flown, 2 consecutive missions)
 
 ## v0.8: Reach and evals

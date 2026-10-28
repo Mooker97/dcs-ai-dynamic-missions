@@ -28,6 +28,10 @@ tagged **(flown)** once it has been verified in DCS. Everything else is "impleme
   `tools/dcs_harness` (single-player, `--norender`, x16). The bundle booted with no script or DMS
   errors; 9 of 10 spine beats fired in order, 3 encounters spawned on land and 9 comms lines
   played. The run timed out before the final landing beat (test budget too short, now fixed).
+  Rerun with the longer budget: **all 9 checks pass**, the full spine fires through `on_deck`, and
+  the outcome is `success` (47 model min in 4.7 real min). `dms debrief --dry-run` parses that real
+  log and picks m02.
+- CI is green on `rebuild` (first push); Lua is StyLua-formatted and StyLua is blocking.
   This is a headless smoke test, not a cockpit check.
 - `dms-mcp`: FastMCP stdio server with 6 tools (validate, plan, build, check, schema,
   campaign_status). Implemented, not flown.

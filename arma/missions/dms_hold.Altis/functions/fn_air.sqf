@@ -60,9 +60,9 @@ switch (_mode) do {
 		if (_idx < 0) exitWith { ["Air: no helicopter class exists, sortie cancelled.", "WARN"] call DMS_fnc_log; DMS_airBusy = false; };
 
 		private _home = DMS_opCenter getPos [_cfg get "airSpawnDistance", DMS_rearBearing];
-		private _heli = createVehicle [_list select _idx, [_home select 0, _home select 1, 150], [], 0, "FLY"];
+		private _heli = createVehicle [_list select _idx, [_home select 0, _home select 1, 300], [], 0, "FLY"];
 		_heli setDir (_home getDir _pos);
-		_heli setPosATL [_home select 0, _home select 1, 150];
+		_heli setPosATL [_home select 0, _home select 1, 300];
 		createVehicleCrew _heli;
 		private _grp = group (driver _heli);
 		_grp setBehaviour "AWARE";
@@ -77,13 +77,18 @@ switch (_mode) do {
 		[format ["Air: %1 airborne %2 m out, crew %3", typeOf _heli, round (_heli distance2D _pos), count (crew _heli)]] call DMS_fnc_log;
 		// Lost = destroyed, pilot dead or badly damaged (not canMove: unreliable for helicopters).
 		private _lost = { !alive _heli || {!alive (driver _heli)} || {damage _heli > 0.7} };
+		private _why = {
+			if (!alive _heli) exitWith { format ["destroyed at %1 m ATL", round ((getPosATL _heli) select 2)] };
+			if (!alive (driver _heli)) exitWith { format ["no live pilot (driver %1)", typeOf (driver _heli)] };
+			format ["damage %1", (round ((damage _heli) * 100)) / 100]
+		};
 
 		// Transit (AI flight time is real, never scaled).
 		_grp move _pos;
 		private _t = time;
 		waitUntil { sleep 2; DMS_over || {call _lost} || {_heli distance2D _pos < 1500} || {time - _t > (_cfg get "airTransitTimeout")} };
 		if (DMS_over) exitWith {};
-		if (call _lost) exitWith { ["Air: the AH-64D was lost on the way in."] call _tell; DMS_airBusy = false; };
+		if (call _lost) exitWith { [format ["Air: the AH-64D was lost on the way in (%1).", call _why]] call _tell; DMS_airBusy = false; };
 
 		// The JTAC talks the crew onto what is near the mark.
 		private _r = _cfg get "airSearchRadius";
@@ -105,7 +110,7 @@ switch (_mode) do {
 
 		waitUntil { sleep 2; DMS_over || {call _lost} || {_heli distance2D _pos < 800} || {time - _t > (_cfg get "airTransitTimeout") + 120} };
 		if (DMS_over) exitWith {};
-		if (call _lost) exitWith { ["Air: the AH-64D was lost before reaching the target area."] call _tell; DMS_airBusy = false; };
+		if (call _lost) exitWith { [format ["Air: the AH-64D was lost before reaching the target area (%1).", call _why]] call _tell; DMS_airBusy = false; };
 		DMS_airOnStation = true;
 		["Air: AH-64D on station, engaging."] call _tell;
 		if (DMS_testMode) then { ["CHECK", ["air_on_station", true, format ["%1 m from the mark, %2 targets", round (_heli distance2D _pos), _seen]]] call DMS_fnc_testMode; };
@@ -118,7 +123,7 @@ switch (_mode) do {
 		};
 		DMS_airOnStation = false;
 		if (DMS_over) exitWith {};
-		if (call _lost) exitWith { ["Air: the AH-64D was lost on station."] call _tell; DMS_airBusy = false; };
+		if (call _lost) exitWith { [format ["Air: the AH-64D was lost on station (%1).", call _why]] call _tell; DMS_airBusy = false; };
 
 		// RTB
 		["Air: AH-64D off station, returning to base. No more air support."] call _tell;

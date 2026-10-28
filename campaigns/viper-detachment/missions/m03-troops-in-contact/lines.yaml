@@ -1,0 +1,669 @@
+# m03 Troops in Contact — voice lines. Schema: schemas/voice-lines.schema.json (VoiceLineSet).
+# One entry per variant (<line>_vN); beats pick one at random without immediate repeats.
+# Subtitles only for now (no ElevenLabs render). Style: callsign first, brevity-correct, nobody
+# cheers. Every line addresses "Python" so it fits either player flight (ramp PYTHON 1, air PYTHON 2).
+# Jackal (normal brevity) runs the fight; 9-lines are deliberately abbreviated (no elevation, no IP:
+# Type 2 from the CP) and positions are relative, because the runtime re-rolls exact points.
+mission_id: m03-troops-in-contact
+model: eleven_v3
+lines:
+  # --- Rook Ops: scramble (mission_start) ---------------------------------------------------------
+  - id: ops_scramble_v1
+    speaker: ops_lindqvist
+    beat: mission_start
+    delivery: "Even, deliberate. A real TIC; she does not hurry it."
+    text: "Python, Rook Ops. Troops in contact north of Tell Rifaat. Jackal Two-Three requests CAS. Push CP Tusk, check in with Magic."
+  - id: ops_scramble_v2
+    speaker: ops_lindqvist
+    beat: mission_start
+    text: "Python, Rook Ops. You're the alert two-ship. Jackal's company is in contact south of the village. CP Tusk, then Magic."
+  - id: ops_scramble_v3
+    speaker: ops_lindqvist
+    beat: mission_start
+    text: "Python, Rook Ops. TIC, Jackal Two-Three, the village north of Tell Rifaat. Proceed Tusk. Magic has you from there."
+  - id: ops_scramble_v4
+    speaker: ops_lindqvist
+    beat: mission_start
+    text: "Python, Rook Ops. Jackal is in contact and asking for air. CP Tusk, check in with Magic. PID on everything."
+
+  # --- Incirlik Ground / Tower (ramp flight only) -------------------------------------------------
+  - id: ground_taxi_v1
+    speaker: tower_incirlik
+    beat: ground_taxi
+    delivery: "Standard phraseology, quick and flat."
+    text: "Python One, Incirlik Ground. Scramble copied. Runway two-three, wind two-five-zero at one-five. Taxi when ready."
+  - id: ground_taxi_v2
+    speaker: tower_incirlik
+    beat: ground_taxi
+    text: "Python One, Incirlik Ground. Priority scramble. Runway two-three, taxi via Alpha when ready."
+  - id: ground_taxi_v3
+    speaker: tower_incirlik
+    beat: ground_taxi
+    text: "Python One, Ground. Runway two-three, wind two-five-zero at one-five. No traffic. Taxi at your discretion."
+
+  - id: tower_departure_v1
+    speaker: tower_incirlik
+    beat: tower_departure
+    delivery: "Formula. Slightly bored."
+    text: "Python One, Incirlik Tower. Airborne. Contact Magic. Good day."
+  - id: tower_departure_v2
+    speaker: tower_incirlik
+    beat: tower_departure
+    text: "Python One, Tower. No reported traffic eastbound. Frequency change approved."
+  - id: tower_departure_v3
+    speaker: tower_incirlik
+    beat: tower_departure
+    text: "Python One, Incirlik Tower. Airborne at time. Switch Magic."
+
+  - id: tower_recovery_v1
+    speaker: tower_incirlik
+    beat: tower_recovery
+    delivery: "Formula."
+    text: "Python One, Incirlik Tower. Runway two-three, wind two-five-zero at one-five. Cleared to land."
+  - id: tower_recovery_v2
+    speaker: tower_incirlik
+    beat: tower_recovery
+    text: "Python One, Tower. Report initial runway two-three. Wind two-five-zero, one-five."
+  - id: tower_recovery_v3
+    speaker: tower_incirlik
+    beat: tower_recovery
+    text: "Python One, Incirlik Tower. No traffic. Runway two-three, cleared to land."
+
+  # --- Magic --------------------------------------------------------------------------------------
+  - id: magic_airstart_v1
+    speaker: awacs_magic
+    beat: air_start_greeting
+    delivery: "Cool, measured, exact."
+    text: "Python, Magic. Radar contact, twenty miles west of Tusk. Proceed Tusk."
+  - id: magic_airstart_v2
+    speaker: awacs_magic
+    beat: air_start_greeting
+    text: "Python, Magic. Radar contact. Tusk bears east, twenty miles. Picture clean."
+  - id: magic_airstart_v3
+    speaker: awacs_magic
+    beat: air_start_greeting
+    text: "Python, Magic. Identified. Continue Tusk, report on station."
+
+  - id: magic_handoff_v1
+    speaker: awacs_magic
+    beat: magic_handoff
+    delivery: "Same pace as always."
+    text: "Python, Magic. Radar contact, Tusk. Picture clean. Contact Jackal Two-Three."
+  - id: magic_handoff_v2
+    speaker: awacs_magic
+    beat: magic_handoff
+    text: "Python, Magic. Tusk, copy. No air threat. Jackal Two-Three, his push."
+  - id: magic_handoff_v3
+    speaker: awacs_magic
+    beat: magic_handoff
+    text: "Python, Magic. On station, Tusk. Picture clean. Switch Jackal."
+  - id: magic_handoff_v4
+    speaker: awacs_magic
+    beat: magic_handoff
+    text: "Python, Magic. Radar contact. Clean. Jackal Two-Three is waiting."
+
+  - id: magic_late_v1
+    speaker: awacs_magic
+    beat: magic_handoff_late
+    text: "Python, Magic. You're past Tusk. Contact Jackal Two-Three now."
+  - id: magic_late_v2
+    speaker: awacs_magic
+    beat: magic_handoff_late
+    text: "Python, Magic. Radar contact, north of Tell Rifaat. Switch Jackal."
+  - id: magic_late_v3
+    speaker: awacs_magic
+    beat: magic_handoff_late
+    text: "Python, Magic. Picture clean. Jackal Two-Three, his push, now."
+
+  - id: magic_picture_v1
+    speaker: awacs_magic
+    beat: magic_picture
+    text: "Python, Magic. Picture clean. Shell on station, track as fragged."
+  - id: magic_picture_v2
+    speaker: awacs_magic
+    beat: magic_picture
+    text: "Python, Magic. Picture clean. Tanker on track."
+  - id: magic_picture_v3
+    speaker: awacs_magic
+    beat: magic_picture
+    text: "Python, Magic. No change. Clean."
+
+  # --- Jackal: check-in -----------------------------------------------------------------------------
+  - id: jtac_checkin_v1
+    speaker: jtac_ortiz
+    beat: jtac_checkin
+    delivery: "Handheld, outdoors, small-arms fire behind him. Fast but every word clear."
+    text: "Python, Jackal Two-Three. Troops in contact. DShK and RPG fire from the compounds south of the village. Friendlies in the village only."
+  - id: jtac_checkin_v2
+    speaker: jtac_ortiz
+    beat: jtac_checkin
+    text: "Python, Jackal Two-Three, loud and clear. We're taking fire from the south, three or four compounds. All friendlies inside the village."
+  - id: jtac_checkin_v3
+    speaker: jtac_ortiz
+    beat: jtac_checkin
+    text: "Python, Jackal Two-Three. Glad you're here. Machine guns and RPGs from the farms south of us. Nobody friendly south of the village edge."
+  - id: jtac_checkin_v4
+    speaker: jtac_ortiz
+    beat: jtac_checkin
+    text: "Python, Jackal Two-Three. In contact, about an hour now. Fire from the south, technicals on the road. Friendlies inside the village, nowhere else."
+
+  # --- Jackal: first 9-line and talk-on -------------------------------------------------------------
+  - id: nine_line_1_v1
+    speaker: jtac_ortiz
+    beat: nine_line_1
+    delivery: "Steady, every number spoken clearly; he has done this many times."
+    text: "Python, Jackal. Type two, bomb on target. Target: two DShK technicals dug in inside the Mill compound, two point two kilometres south of the village. Mark: talk-on. Friendlies north, two thousand two hundred. Egress west."
+  - id: nine_line_1_v2
+    speaker: jtac_ortiz
+    beat: nine_line_1
+    text: "Python, Jackal. Type two, bomb on target. Walled compound we call the Mill, two kilometres south. Technicals with heavy machine guns inside. No mark, talk-on. Friendlies north two thousand. Egress west to Tusk."
+  - id: nine_line_1_v3
+    speaker: jtac_ortiz
+    beat: nine_line_1
+    text: "Python, Jackal. Ready to copy. Type two. Target, DShK trucks dug in at the Mill compound, south on the main road. Mark, talk-on. Friendlies two kilometres north. Egress west."
+  - id: nine_line_1_v4
+    speaker: jtac_ortiz
+    beat: nine_line_1
+    text: "Python, Jackal. Type two, bomb on target. The Mill, two point two kilometres south of us, two gun trucks inside the walls. Talk-on to follow. Friendlies north. Egress west, climbing."
+
+  - id: talk_on_1_v1
+    speaker: jtac_ortiz
+    beat: talk_on_1
+    delivery: "Patient, big to small."
+    text: "From the village, follow the main road south two kilometres to a tall grain silo. Walled compound west of the silo. Two trucks in the north-east corner."
+  - id: talk_on_1_v2
+    speaker: jtac_ortiz
+    beat: talk_on_1
+    text: "Find the village. Main road runs south from it. Two clicks down, grain silo on the west side. Compound behind the silo. Gun trucks against the east wall."
+  - id: talk_on_1_v3
+    speaker: jtac_ortiz
+    beat: talk_on_1
+    text: "Road south out of the village. First big structure is a silo. West of it, square compound, two buildings. Vehicles along the east wall."
+  - id: talk_on_1_v4
+    speaker: jtac_ortiz
+    beat: talk_on_1
+    text: "Big picture, village, road going south. Small picture, the silo two kilometres down. The compound hugging the silo's west side. That's the Mill."
+
+  - id: pike_tally_1_v1
+    speaker: wingman_pike
+    beat: pike_tally_1
+    delivery: "Clipped, calm. Better than in m01."
+    text: "Two, tally silo. Compound west of it."
+  - id: pike_tally_1_v2
+    speaker: wingman_pike
+    beat: pike_tally_1
+    text: "Two's contact the Mill. Two vehicles, east wall."
+  - id: pike_tally_1_v3
+    speaker: wingman_pike
+    beat: pike_tally_1
+    text: "Two, tally. Muzzle flashes, north-east corner."
+
+  - id: describe_first_v1
+    speaker: jtac_ortiz
+    beat: describe_first
+    text: "Python, Jackal. Before I clear you, describe what's in your pod. Everything in the compound."
+  - id: describe_first_v2
+    speaker: jtac_ortiz
+    beat: describe_first
+    text: "Python, Jackal. Talk me through the compound first. People, vehicles, anything that isn't a weapon."
+  - id: describe_first_v3
+    speaker: jtac_ortiz
+    beat: describe_first
+    text: "Python, Jackal. No clearance until you describe it. We can't afford another mistake out here."
+
+  - id: cleared_hot_1_v1
+    speaker: jtac_ortiz
+    beat: cleared_hot_1
+    delivery: "Crisp. The clearance is the point of the call."
+    text: "Python, Jackal. Final attack heading zero-niner-zero to one-two-zero. Nothing north of the silo. Cleared hot."
+  - id: cleared_hot_1_v2
+    speaker: jtac_ortiz
+    beat: cleared_hot_1
+    text: "Python, Jackal. Attack west to east. Keep your release south of the silo. Cleared hot."
+  - id: cleared_hot_1_v3
+    speaker: jtac_ortiz
+    beat: cleared_hot_1
+    text: "Python, Jackal. Restrictions, attack heading east, plus or minus fifteen. Cleared hot, the Mill."
+  - id: cleared_hot_1_v4
+    speaker: jtac_ortiz
+    beat: cleared_hot_1
+    text: "Python, Jackal. Copy in from the west. Cleared hot."
+
+  - id: mill_good_effects_v1
+    speaker: jtac_ortiz
+    beat: mill_good_effects
+    delivery: "Relief held down to two sentences."
+    text: "Python, Jackal. Good effects. Fire from the Mill has stopped."
+  - id: mill_good_effects_v2
+    speaker: jtac_ortiz
+    beat: mill_good_effects
+    text: "Python, Jackal. Good effects on the Mill. That gun is done."
+  - id: mill_good_effects_v3
+    speaker: jtac_ortiz
+    beat: mill_good_effects
+    text: "Python, Jackal. Direct hit. Nothing moving at the Mill."
+  - id: mill_good_effects_v4
+    speaker: jtac_ortiz
+    beat: mill_good_effects
+    text: "Python, Jackal. Good effects. The east wall is gone, and so are the trucks."
+
+  - id: jtac_retask_v1
+    speaker: jtac_ortiz
+    beat: jtac_retask
+    text: "Python, Jackal. Leave the Mill. Higher priority target. Stand by for nine-line."
+  - id: jtac_retask_v2
+    speaker: jtac_ortiz
+    beat: jtac_retask
+    text: "Python, Jackal. Change of plan. They're closer than the Mill now. New nine-line."
+  - id: jtac_retask_v3
+    speaker: jtac_ortiz
+    beat: jtac_retask
+    text: "Python, Jackal. Disregard the Mill for now. Something closer. Stand by."
+
+  # --- Jackal: danger close ------------------------------------------------------------------------
+  - id: nine_line_2_v1
+    speaker: jtac_ortiz
+    beat: nine_line_2
+    delivery: "Faster now, tighter, still clear. Rounds close by."
+    text: "Python, Jackal. Type two, bomb on target. Target: RPG and machine-gun team, the Orchard, five hundred metres south-south-east of the village. Friendlies north, five hundred. Danger close. I need your initials."
+  - id: nine_line_2_v2
+    speaker: jtac_ortiz
+    beat: nine_line_2
+    text: "Python, Jackal. Type two. They're in the olive grove, five hundred metres from my position. RPG team. Friendlies north, five hundred. This is danger close. Initials."
+  - id: nine_line_2_v3
+    speaker: jtac_ortiz
+    beat: nine_line_2
+    text: "Python, Jackal. New target, the Orchard compound, south edge of the village. Machine gun. Friendlies five hundred metres north. Danger close. Pass your initials."
+  - id: nine_line_2_v4
+    speaker: jtac_ortiz
+    beat: nine_line_2
+    text: "Python, Jackal. Type two, bomb on target. Fighters in the Orchard, close. Friendlies north at five hundred. Danger close, my request. Need initials."
+
+  - id: talk_on_2_v1
+    speaker: jtac_ortiz
+    beat: talk_on_2
+    delivery: "Patient again, but quick."
+    text: "From the Mill, back north up the road. Olive grove east of the road, just short of the village. Single building at the south edge of the grove."
+  - id: talk_on_2_v2
+    speaker: jtac_ortiz
+    beat: talk_on_2
+    text: "Village, then come south five hundred metres. Grove of olive trees east of the road. One building in the grove. That's them."
+  - id: talk_on_2_v3
+    speaker: jtac_ortiz
+    beat: talk_on_2
+    text: "South edge of the village, look east of the road. Rows of trees, small square building in the middle. Fire is coming from there."
+
+  - id: danger_close_cleared_v1
+    speaker: jtac_ortiz
+    beat: danger_close_cleared
+    delivery: "Deliberate. He is taking responsibility for it."
+    text: "Python, Jackal. Copy initials. Final attack heading two-seven-zero, east to west only. GBU-12 only. Cleared hot."
+  - id: danger_close_cleared_v2
+    speaker: jtac_ortiz
+    beat: danger_close_cleared
+    text: "Python, Jackal. Initials copied. Attack east to west, parallel to our line. One bomb. Cleared hot."
+  - id: danger_close_cleared_v3
+    speaker: jtac_ortiz
+    beat: danger_close_cleared
+    text: "Python, Jackal. Copy. Heading two-seven-zero, no long, no short. Friendlies are down. Cleared hot."
+
+  - id: orchard_good_effects_v1
+    speaker: jtac_ortiz
+    beat: orchard_good_effects
+    text: "Python, Jackal. Good effects. Orchard is quiet. Friendlies are okay."
+  - id: orchard_good_effects_v2
+    speaker: jtac_ortiz
+    beat: orchard_good_effects
+    text: "Python, Jackal. Good effects, good effects. No friendly casualties."
+  - id: orchard_good_effects_v3
+    speaker: jtac_ortiz
+    beat: orchard_good_effects
+    text: "Python, Jackal. Good hit. The grove is quiet. Everyone here is up."
+
+  - id: nine_line_3_v1
+    speaker: jtac_ortiz
+    beat: nine_line_3
+    text: "Python, Jackal. Type two, bomb on target. Next position, a farm compound south of the Mill. RPG team in the yard. Friendlies north two thousand five hundred."
+  - id: nine_line_3_v2
+    speaker: jtac_ortiz
+    beat: nine_line_3
+    text: "Python, Jackal. Next target. Another farm south of us, RPG team in the yard. Mark on your map. Friendlies north. Egress west."
+  - id: nine_line_3_v3
+    speaker: jtac_ortiz
+    beat: nine_line_3
+    text: "Python, Jackal. Type two. Fire from a farm compound further south. Same game plan. Friendlies north, two and a half kilometres."
+
+  # --- Jackal: armor ------------------------------------------------------------------------------
+  - id: armor_nine_line_v1
+    speaker: jtac_ortiz
+    beat: armor_nine_line
+    text: "Python, Jackal. Tracks firing on the village from the north edge of Tell Rifaat. Armour between the houses. Mavericks preferred. Watch the Shilka."
+  - id: armor_nine_line_v2
+    speaker: jtac_ortiz
+    beat: armor_nine_line
+    text: "Python, Jackal. Type two. Armour shelling us from the edge of town, four kilometres south. Three vehicles. Shilka reported with them."
+  - id: armor_nine_line_v3
+    speaker: jtac_ortiz
+    beat: armor_nine_line
+    text: "Python, Jackal. Main gun rounds into the village. Source is the north edge of Tell Rifaat. Armour. Friendlies north four thousand. Cleared to engage on PID."
+  - id: armor_nine_line_v4
+    speaker: jtac_ortiz
+    beat: armor_nine_line
+    text: "Python, Jackal. Priority target, tanks at the edge of Tell Rifaat. Mavericks if you have them. Stay high, they have a Shilka."
+
+  - id: pike_tracks_v1
+    speaker: wingman_pike
+    beat: pike_tracks
+    text: "Two, contact tracks, north edge of town."
+  - id: pike_tracks_v2
+    speaker: wingman_pike
+    beat: pike_tracks
+    text: "Two's tally armour. Vehicles between the houses."
+  - id: pike_tracks_v3
+    speaker: wingman_pike
+    beat: pike_tracks
+    text: "Two, contact. Tracked vehicle, south, next to a wall."
+
+  - id: armor_destroyed_v1
+    speaker: jtac_ortiz
+    beat: armor_destroyed
+    text: "Python, Jackal. Good hits on the armour. Shelling has stopped."
+  - id: armor_destroyed_v2
+    speaker: jtac_ortiz
+    beat: armor_destroyed
+    text: "Python, Jackal. Good effects. No more main gun rounds."
+  - id: armor_destroyed_v3
+    speaker: jtac_ortiz
+    beat: armor_destroyed
+    text: "Python, Jackal. Armour is burning. That changes things down here."
+
+  # --- Jackal: the assault ----------------------------------------------------------------------
+  - id: assault_wave_v1
+    speaker: jtac_ortiz
+    beat: assault_wave_report
+    text: "Python, Jackal. More technicals coming north up the road from Tell Rifaat."
+  - id: assault_wave_v2
+    speaker: jtac_ortiz
+    beat: assault_wave_report
+    text: "Python, Jackal. New group moving up from the south. Pickups with guns, maybe two."
+  - id: assault_wave_v3
+    speaker: jtac_ortiz
+    beat: assault_wave_report
+    text: "Python, Jackal. They're reinforcing. Vehicles coming out of Tell Rifaat, heading our way."
+  - id: assault_wave_v4
+    speaker: jtac_ortiz
+    beat: assault_wave_report
+    text: "Python, Jackal. Another push forming south. Technicals on the farm tracks."
+
+  - id: tech_good_effects_v1
+    speaker: jtac_ortiz
+    beat: tech_good_effects
+    text: "Python, Jackal. Good effects. Technical burning."
+  - id: tech_good_effects_v2
+    speaker: jtac_ortiz
+    beat: tech_good_effects
+    text: "Python, Jackal. Good hit. One less gun on the road."
+  - id: tech_good_effects_v3
+    speaker: jtac_ortiz
+    beat: tech_good_effects
+    text: "Python, Jackal. Vehicle destroyed. The others are scattering."
+
+  - id: civ_warning_v1
+    speaker: jtac_ortiz
+    beat: civ_warning
+    text: "Python, Jackal. Civilian cars on the road north, coming through the village. Confirm before you shoot anything on that road."
+  - id: civ_warning_v2
+    speaker: jtac_ortiz
+    beat: civ_warning
+    text: "Python, Jackal. Families leaving Tell Rifaat on the main road. White pickups. They look like technicals. They aren't."
+  - id: civ_warning_v3
+    speaker: jtac_ortiz
+    beat: civ_warning
+    text: "Python, Jackal. Heads up. Civilian traffic northbound, same road the technicals use. PID before anything on the road."
+
+  - id: nbb_status_v1
+    speaker: jtac_ortiz
+    beat: nbb_status_10
+    text: "Python, Jackal. Lantern is holding. Taking casualties. Keep it coming."
+  - id: nbb_status_v2
+    speaker: jtac_ortiz
+    beat: nbb_status_10
+    text: "Python, Jackal. Ten minutes in. They're holding, but ammunition is going fast."
+  - id: nbb_status_v3
+    speaker: jtac_ortiz
+    beat: nbb_status_10
+    text: "Python, Jackal. Still in contact. Two wounded. The line is holding for now."
+
+  - id: nbb_wavering_v1
+    speaker: jtac_ortiz
+    beat: nbb_wavering_mid
+    delivery: "Tight, fewer words."
+    text: "Python, Jackal. Lantern is almost out of ammunition. One minute, then they pull back."
+  - id: nbb_wavering_v2
+    speaker: jtac_ortiz
+    beat: nbb_wavering_mid
+    text: "Python, Jackal. They can't hold much longer. Sixty seconds."
+  - id: nbb_wavering_v3
+    speaker: jtac_ortiz
+    beat: nbb_wavering_mid
+    text: "Python, Jackal. Company commander wants to fall back. I've got one minute for you."
+
+  - id: nbb_withdraw_v1
+    speaker: jtac_ortiz
+    beat: nbb_withdraw_mid
+    delivery: "Terse. Moving, out of breath."
+    text: "Python, Jackal. Lantern is falling back north. Check fire on the village. We're moving."
+  - id: nbb_withdraw_v2
+    speaker: jtac_ortiz
+    beat: nbb_withdraw_mid
+    text: "Python, Jackal. We're pulling out. Village is no longer friendly-held. Check fire."
+  - id: nbb_withdraw_v3
+    speaker: jtac_ortiz
+    beat: nbb_withdraw_mid
+    text: "Python, Jackal. Company is withdrawing north. Hold all fires until I'm set again."
+  - id: nbb_withdraw_v4
+    speaker: jtac_ortiz
+    beat: nbb_withdraw_mid
+    text: "Python, Jackal. Breaking contact. Moving north to the road. Check fire, check fire."
+
+  - id: assault_broken_v1
+    speaker: jtac_ortiz
+    beat: assault_broken_call
+    delivery: "First breath he's taken in an hour. Still on procedure."
+    text: "Python, Jackal. They're pulling back south. Assault is broken. Good effects."
+  - id: assault_broken_v2
+    speaker: jtac_ortiz
+    beat: assault_broken_call
+    text: "Python, Jackal. Fire has stopped. They're leaving the compounds. Good effects."
+  - id: assault_broken_v3
+    speaker: jtac_ortiz
+    beat: assault_broken_call
+    text: "Python, Jackal. Contact broken. Vehicles heading south out of the farms. Lantern is holding."
+  - id: assault_broken_v4
+    speaker: jtac_ortiz
+    beat: assault_broken_call
+    text: "Python, Jackal. That did it. They're withdrawing. Village is still ours."
+
+  # --- Jackal: check-out ------------------------------------------------------------------------
+  - id: jtac_checkout_v1
+    speaker: jtac_ortiz
+    beat: jtac_checkout
+    delivery: "Professional, slower now."
+    text: "Python, Jackal Two-Three. Copy BDA. Nothing further. Cleared off station, contact Magic."
+  - id: jtac_checkout_v2
+    speaker: jtac_ortiz
+    beat: jtac_checkout
+    text: "Python, Jackal Two-Three. BDA copied. No further tasking. Push Magic."
+  - id: jtac_checkout_v3
+    speaker: jtac_ortiz
+    beat: jtac_checkout
+    text: "Python, Jackal Two-Three. That's all I have. Cleared off station."
+  - id: jtac_checkout_v4
+    speaker: jtac_ortiz
+    beat: jtac_checkout
+    text: "Python, Jackal Two-Three. Copy your BDA. Off station when able. Jackal out."
+
+  # --- Rook Ops: RTB, early return, on deck ---------------------------------------------------
+  - id: ops_rtb_v1
+    speaker: ops_lindqvist
+    beat: rook_rtb
+    text: "Python, Rook Ops. Copy off station. RTB. Debrief at the ops desk."
+  - id: ops_rtb_v2
+    speaker: ops_lindqvist
+    beat: rook_rtb
+    text: "Python, Rook Ops. Copy. Bring them home. Debrief when you're down."
+  - id: ops_rtb_v3
+    speaker: ops_lindqvist
+    beat: rook_rtb
+    text: "Python, Rook Ops. RTB. Jackal's report will be on my desk before you are."
+  - id: ops_rtb_v4
+    speaker: ops_lindqvist
+    beat: rook_rtb
+    text: "Python, Rook Ops. Copy off station. Recover Incirlik."
+
+  - id: ops_early_rtb_v1
+    speaker: ops_lindqvist
+    beat: early_rtb
+    text: "Python, Rook Ops. Copy early return. Jackal is still in contact. Say reason on deck."
+  - id: ops_early_rtb_v2
+    speaker: ops_lindqvist
+    beat: early_rtb
+    text: "Python, Rook Ops. You're inbound early. Jackal hasn't released you."
+  - id: ops_early_rtb_v3
+    speaker: ops_lindqvist
+    beat: early_rtb
+    text: "Python, Rook Ops. Copy RTB. I'll find someone else for Jackal."
+
+  - id: ops_on_deck_v1
+    speaker: ops_lindqvist
+    beat: on_deck
+    text: "Python, Rook Ops. Copy on deck. Bring the tapes."
+  - id: ops_on_deck_v2
+    speaker: ops_lindqvist
+    beat: on_deck
+    text: "Python, Rook Ops. On deck, copy. Debrief in twenty."
+  - id: ops_on_deck_v3
+    speaker: ops_lindqvist
+    beat: on_deck
+    text: "Python, Rook Ops. Copy. Two jets back. Debrief at the desk."
+
+  # --- Threat calls -----------------------------------------------------------------------------
+  - id: sa13_warning_v1
+    speaker: jtac_ortiz
+    beat: sa13_warning
+    delivery: "Urgent, but controlled."
+    text: "Python, Jackal. Missile vehicle, launch rails up, moving north out of Tell Rifaat. SA-9 or SA-13 class."
+  - id: sa13_warning_v2
+    speaker: jtac_ortiz
+    beat: sa13_warning
+    text: "Python, Jackal. My observers have a missile vehicle south of Tell Rifaat. Treat it as a short-range SAM."
+  - id: sa13_warning_v3
+    speaker: jtac_ortiz
+    beat: sa13_warning
+    text: "Python, Jackal. Heads up. SAM launcher south of town, coming north."
+  - id: sa13_warning_v4
+    speaker: jtac_ortiz
+    beat: sa13_warning
+    text: "Python, Jackal. Report from the Brigade, SAM vehicle moving in the orchards south of Tell Rifaat."
+
+  - id: pike_sam_launch_v1
+    speaker: wingman_pike
+    beat: sam_launch
+    delivery: "Fast, not loud."
+    text: "One, Two. SAM launch, south. Flares."
+  - id: pike_sam_launch_v2
+    speaker: wingman_pike
+    beat: sam_launch
+    text: "Python, launch, south. Defend."
+  - id: pike_sam_launch_v3
+    speaker: wingman_pike
+    beat: sam_launch
+    text: "Two, SAM launch, Tell Rifaat. Flares, flares."
+
+  - id: pike_manpads_v1
+    speaker: wingman_pike
+    beat: manpads_launch
+    text: "One, Two. Launch, low, behind you. Flares."
+  - id: pike_manpads_v2
+    speaker: wingman_pike
+    beat: manpads_launch
+    text: "Python, MANPADS launch. Flares."
+  - id: pike_manpads_v3
+    speaker: wingman_pike
+    beat: manpads_launch
+    text: "Two, smoke trail off the farms. Missile in the air."
+
+  - id: pike_sam_dead_v1
+    speaker: wingman_pike
+    beat: sam_destroyed
+    text: "Two, good hits on the SAM vehicle. It's burning."
+  - id: pike_sam_dead_v2
+    speaker: wingman_pike
+    beat: sam_destroyed
+    text: "Two, SAM vehicle destroyed."
+  - id: pike_sam_dead_v3
+    speaker: wingman_pike
+    beat: sam_destroyed
+    text: "Two, launcher is down. Secondaries."
+
+  - id: pike_say_status_v1
+    speaker: wingman_pike
+    beat: player_hit
+    text: "One, Two. You took a hit. Say status."
+  - id: pike_say_status_v2
+    speaker: wingman_pike
+    beat: player_hit
+    text: "One, Two. Something hit you. Status."
+  - id: pike_say_status_v3
+    speaker: wingman_pike
+    beat: player_hit
+    text: "Two's visual. You're trailing something. Say status."
+
+  # --- Consequences -----------------------------------------------------------------------------
+  - id: fratricide_v1
+    speaker: jtac_ortiz
+    beat: fratricide
+    delivery: "Repetition, not volume."
+    text: "Check fire, check fire, check fire. Friendlies hit in the village."
+  - id: fratricide_v2
+    speaker: jtac_ortiz
+    beat: fratricide
+    text: "Python, check fire. That landed on friendlies."
+  - id: fratricide_v3
+    speaker: jtac_ortiz
+    beat: fratricide
+    text: "Check fire, check fire. Blue casualties. Hold all fires."
+  - id: fratricide_v4
+    speaker: jtac_ortiz
+    beat: fratricide
+    text: "Python, Jackal. Check fire. You hit Lantern."
+
+  - id: nbb_casualty_v1
+    speaker: jtac_ortiz
+    beat: nbb_casualty
+    text: "Python, Jackal. Lantern has a casualty. Fire from the south."
+  - id: nbb_casualty_v2
+    speaker: jtac_ortiz
+    beat: nbb_casualty
+    text: "Python, Jackal. We just lost one. RPG from the south."
+  - id: nbb_casualty_v3
+    speaker: jtac_ortiz
+    beat: nbb_casualty
+    text: "Python, Jackal. Man down on the south wall. They're getting closer."
+
+  - id: civ_check_fire_v1
+    speaker: jtac_ortiz
+    beat: civilian_hit
+    text: "Check fire, check fire. That was a civilian car on the north road."
+  - id: civ_check_fire_v2
+    speaker: jtac_ortiz
+    beat: civilian_hit
+    text: "Python, check fire. Civilian vehicle hit."
+  - id: civ_check_fire_v3
+    speaker: jtac_ortiz
+    beat: civilian_hit
+    text: "Check fire. That car was a family. Hold fires on the road."
+  - id: civ_check_fire_v4
+    speaker: jtac_ortiz
+    beat: civilian_hit
+    text: "Python, Jackal. Check fire. Civilians on the road, not technicals."

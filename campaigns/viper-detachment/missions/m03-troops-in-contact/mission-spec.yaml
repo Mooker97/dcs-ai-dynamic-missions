@@ -1,0 +1,330 @@
+# m03 Troops in Contact — CAS for Jackal Two-Three and an NBB company north of Tell Rifaat.
+# Schema: schemas/mission-spec.schema.json (MissionSpec). Validate: uv run dms validate <this file>
+# State read at design time (state/qualities.yaml, no outcomes yet): sam_threat 2, intel 1,
+# insurgent_supply 2, partner_morale 0, collateral 0.
+#   sam_threat 2        -> SA-13-class pop-up present (ambush_sam, chance 100)
+#   insurgent_supply 2  -> MANPADS 1-2 teams, fortified pool 1-2, 3 assault waves of 1-2 groups
+#   partner_morale 0    -> the NBB holds 20 min after Jackal's check-in (beats.yaml tiers by morale)
+#   collateral 0        -> standard ROE (Jackal's "describe first" beat stays dormant)
+# Real towns and airfields are terrain only. The village, its compounds and their nicknames are
+# invented; all target areas are explicit lat/lon because the gazetteer has no Tell Rifaat.
+schema_version: 1
+id: m03-troops-in-contact
+title: "Troops in Contact"
+campaign: viper-detachment
+content_mode: fictional
+theater: Syria
+era: 2016
+date: 2016-11-08
+start_time: "15:00"
+weather_preset: scattered          # arc: scattered cumulus 7-9,000 ft, dust haze, wind 250/15
+mission_type: CAS
+duration_min: 75
+blue_countries: [USA, Combined Joint Task Forces Blue]
+red_countries: [Insurgents, Combined Joint Task Forces Red]
+cast: [ops_lindqvist, wingman_pike, jtac_ortiz, awacs_magic, tower_incirlik]
+
+areas:
+  # --- home -------------------------------------------------------------------------------
+  - id: incirlik
+    description: "Incirlik, home base. Ramp-start flight PYTHON 1 parks here."
+    where: {kind: near_airbase, airbase: Incirlik, radius_nm: 1}
+  - id: incirlik_approach
+    description: "10 NM circle around Incirlik; entering it after the fight triggers the tower call."
+    where: {kind: near_airbase, airbase: Incirlik, radius_nm: 10}
+  # --- ingress ------------------------------------------------------------------------------
+  - id: air_start
+    description: "Air-start point for PYTHON 2: on the Incirlik-CP TUSK axis, 20 NM short of the CP."
+    where: {kind: latlon, lat: 36.729, lon: 36.493, radius_nm: 1}
+  - id: cp_tusk
+    description: "Contact point TUSK, 12 NM north-west of the village over NBB-held ground. Check-in with Magic, hand-off to Jackal."
+    where: {kind: latlon, lat: 36.628, lon: 36.889, radius_nm: 4}
+  - id: fight_box
+    description: "The fight: the village, the compounds south of it and the north edge of Tell Rifaat."
+    where: {kind: latlon, lat: 36.508, lon: 37.105, radius_nm: 4}
+  - id: ar_track
+    description: "Tanker track SHELL over southern Turkey, between Incirlik and the CP."
+    where: {kind: near_airbase, airbase: Incirlik, radius_nm: 8, bearing_deg: 95, distance_nm: 40}
+  - id: awacs_orbit
+    description: "Magic's E-3 orbit north of Gaziantep."
+    where: {kind: near_airbase, airbase: Gaziantep, radius_nm: 10, bearing_deg: 340, distance_nm: 25}
+  # --- friendly -----------------------------------------------------------------------------
+  - id: village_lantern
+    description: "The village (codename LANTERN), 6 km north of Tell Rifaat. NBB company and Jackal Two-Three. No-fire area."
+    where: {kind: latlon, lat: 36.528, lon: 37.105, radius_nm: 0.15}
+    terrain: urban
+  # --- enemy compounds (Jackal's nicknames) ---------------------------------------------------
+  - id: mill_compound
+    description: "'The Mill': walled farm compound with a grain silo, 2.2 km south of the village. NPF strongpoint, first 9-line."
+    where: {kind: latlon, lat: 36.508, lon: 37.100, radius_nm: 0.1}
+    terrain: open
+  - id: orchard_compound
+    description: "'The Orchard': compound in the olive grove 500 m south-south-east of the village. Danger close."
+    where: {kind: latlon, lat: 36.5235, lon: 37.1075, radius_nm: 0.08}
+    terrain: open
+  - id: pumphouse_compound
+    description: "'The Pumphouse': compound on the irrigation canal, 3.3 km south-south-east of the village."
+    where: {kind: latlon, lat: 36.500, lon: 37.121, radius_nm: 0.12}
+    terrain: open
+  - id: ridge_farm
+    description: "'Ridge Farm': farm on the low rise 3.6 km south-south-west of the village."
+    where: {kind: latlon, lat: 36.496, lon: 37.088, radius_nm: 0.12}
+    terrain: open
+  - id: canal_farm
+    description: "'Canal Farm': farm buildings west of the Mill, 2.2 km south-west of the village."
+    where: {kind: latlon, lat: 36.512, lon: 37.086, radius_nm: 0.12}
+    terrain: open
+  - id: armor_hide
+    description: "North edge of Tell Rifaat: tanks and BMPs fire from between the houses at the village."
+    where: {kind: latlon, lat: 36.487, lon: 37.106, radius_nm: 0.3}
+    terrain: open
+  - id: assault_sw
+    description: "Assault staging south-west of Tell Rifaat; technicals push north from here."
+    where: {kind: latlon, lat: 36.468, lon: 37.068, radius_nm: 0.4}
+    terrain: open
+  - id: assault_se
+    description: "Assault staging south-east of Tell Rifaat; technicals push north from here."
+    where: {kind: latlon, lat: 36.470, lon: 37.145, radius_nm: 0.4}
+    terrain: open
+  - id: sa13_hide
+    description: "Orchards south of Tell Rifaat where a short-range SAM vehicle can hide."
+    where: {kind: latlon, lat: 36.452, lon: 37.112, radius_nm: 0.5}
+    terrain: open
+  # --- civilian road ------------------------------------------------------------------------
+  - id: road_south
+    description: "Farm road north of Tell Rifaat; civilian cars leave from here, on the technicals' road."
+    where: {kind: latlon, lat: 36.493, lon: 37.099, radius_nm: 0.2}
+    terrain: road
+  - id: road_north
+    description: "The same road north of the village toward Azaz; where the civilians are heading."
+    where: {kind: latlon, lat: 36.565, lon: 37.080, radius_nm: 0.3}
+    terrain: road
+
+# Two player flights, one is flown. Both callsign PYTHON so every radio line fits either; the
+# planner names the groups "Python 1" (ramp) and "Python 2" (air) and the slots Python 1-1/1-2 and
+# Python 2-1/2-2. Loadout per jet (pydcs F_16C_50 names): 1/9 AIM_9X_Sidewinder_IR_AAM,
+# 2/8 AIM_120C_AMRAAM___Active_Radar_AAM, 3 TER_9_A___2_x_GBU_12___500lb_Laser_Guided_Bomb,
+# 4/6 Fuel_tank_370_gal, 5 ALQ_184, 7 LAU_117___AGM_65D___Maverick_D__IIR_ASM_,
+# 11 AN_AAQ_28_LITENING___Targeting_Pod_.
+player_flights:
+  - callsign: Python
+    aircraft: F-16C_50
+    count: 2
+    coalition: blue
+    country: USA
+    start_area: incirlik
+    start_type: parking_cold
+    loadout: "CAS: 2x GBU-12 (TER-9A, sta 3), 1x AGM-65D (LAU-117, sta 7), 2x AIM-120C, 2x AIM-9X, 2x 370 gal, ALQ-184, Litening, 510 rds 20 mm"
+    frequency_mhz: 305.0
+    tasking: >-
+      RAMP START (alert scramble). Cold start Incirlik, taxi runway 23, depart east, tank on SHELL
+      if needed, CP TUSK, check in with Magic, contact Jackal Two-Three. Type 2 CAS north of Tell
+      Rifaat. RTB Incirlik.
+  - callsign: Python
+    aircraft: F-16C_50
+    count: 2
+    coalition: blue
+    country: USA
+    start_area: air_start
+    start_type: air
+    loadout: "CAS: 2x GBU-12 (TER-9A, sta 3), 1x AGM-65D (LAU-117, sta 7), 2x AIM-120C, 2x AIM-9X, 2x 370 gal, ALQ-184, Litening, 510 rds 20 mm"
+    frequency_mhz: 305.0
+    tasking: >-
+      AIR START, 20 NM west-north-west of CP TUSK, already on the ingress axis. Proceed CP TUSK,
+      check in with Magic, contact Jackal Two-Three. Type 2 CAS north of Tell Rifaat. RTB Incirlik.
+
+objectives:
+  - id: break_assault
+    kind: protect
+    description: "Break the NPF assault on the village before the NBB company has to fall back."
+    primary: true
+    area: village_lantern
+    target: nbb_company
+    success_flag: assault_broken
+    failure_flag: nbb_withdrew
+  - id: mill
+    kind: destroy
+    description: "Destroy the NPF strongpoint in the Mill compound (Jackal's first 9-line)."
+    primary: true
+    area: mill_compound
+    target: fort_mill
+    success_flag: mill_destroyed
+  - id: orchard
+    kind: destroy
+    description: "Destroy the position in the Orchard, danger close to the NBB (Jackal's clearance only)."
+    primary: false
+    area: orchard_compound
+    target: fort_orchard
+    success_flag: orchard_destroyed
+  - id: no_fratricide
+    kind: protect
+    description: "No friendly casualties from PYTHON's weapons. The village is a no-fire area."
+    primary: true
+    area: village_lantern
+    target: nbb_company
+    failure_flag: fratricide
+  - id: survive
+    kind: survive
+    description: "Bring both jets back."
+    primary: true
+    failure_flag: player_lost
+  - id: rtb
+    kind: land
+    description: "Recover to Incirlik."
+    primary: false
+    area: incirlik
+    success_flag: landed
+
+threats:
+  - id: fort_mill
+    role: technicals
+    area: mill_compound
+    strength: light
+    faction: npf
+    skill: Average
+    hidden_on_map: true             # reported by Jackal; he passes it by 9-line and talk-on
+    notes: "DShK technicals parked hull-down inside the Mill compound walls (one group)."
+  - id: fort_orchard
+    role: infantry
+    area: orchard_compound
+    strength: light
+    faction: npf
+    skill: Average
+    hidden_on_map: true
+    notes: "Forward team in the olive grove, 500 m from the NBB. Danger close."
+  - id: shilka
+    role: aaa
+    area: armor_hide
+    strength: light
+    faction: npf_heavy
+    skill: Good
+    hidden_on_map: true             # reported with the assault, location unknown
+    notes: "ZSU-23-4 covering the north edge of Tell Rifaat. Stay above 10,000 ft AGL south of the Mill."
+
+support:
+  - id: nbb_company
+    role: friendly_ground
+    callsign: "Lantern"
+    area: village_lantern
+    composition: "4x Soldier M4, 2x Soldier M249, 1x M1043 HMMWV Armament, 1x M-113"
+  - id: jackal
+    role: jtac
+    callsign: "Jackal Two-Three"
+    area: village_lantern
+    composition: "1x Hummer"
+    speaker: jtac_ortiz
+    frequency_mhz: 41.5
+  - id: magic
+    role: awacs
+    callsign: "Magic"
+    area: awacs_orbit
+    speaker: awacs_magic
+    frequency_mhz: 251.0
+  - id: shell
+    role: tanker
+    callsign: "Shell"
+    area: ar_track
+    frequency_mhz: 276.1
+
+dynamic:
+  pools:
+    - id: fort_pos
+      roles: [infantry]
+      areas: [pumphouse_compound, ridge_farm, canal_farm]
+      pick: [1, 2]
+      faction: npf
+      notes: "Fortified RPG teams in farm compounds. Which compounds are occupied re-rolls every play."
+    - id: assault
+      roles: [technicals]
+      areas: [assault_sw, assault_se]
+      pick: [1, 2]
+      faction: npf
+      notes: "DShK/ZU-23 technicals pushing north on the village. Sized by insurgent_supply 2. Technicals only, so unit deaths count technicals."
+    - id: armor
+      roles: [armor, ifv]
+      areas: [armor_hide]
+      pick: [1, 1]
+      faction: npf_heavy
+      notes: "Three T-55s or three BMP-1s (one group, re-rolled each play) used as mobile artillery from the edge of Tell Rifaat."
+    - id: manpads
+      roles: [manpads]
+      areas: [ridge_farm, pumphouse_compound, assault_sw, assault_se]
+      pick: [1, 2]
+      faction: npf
+      notes: "Igla teams on the likely attack headings. 1-2 at insurgent_supply 2."
+    - id: sam13
+      roles: [sam_short]
+      areas: [sa13_hide]
+      pick: [1, 1]
+      faction: npf_heavy
+      notes: "SA-13 class (whatever short-range SAM the Garrison stocks provide). Present only at sam_threat >= 2."
+    - id: civ_traffic
+      roles: [civilian]
+      areas: [road_south, road_north]
+      pick: [2, 3]
+      faction: plain_civilians
+      notes: "Families fleeing north on the technicals' road. Unarmed; pickups that look like technicals from altitude."
+  encounters:
+    - id: fort_positions
+      kind: pool
+      pool: fort_pos
+      trigger: {type: time, after_min: 0}
+      chance: 100
+      notes: "Placed at start, long before either flight is within 5 km."
+    - id: armor_line
+      kind: pool
+      pool: armor
+      trigger: {type: time, after_min: 0}
+      chance: 100
+      notes: "Placed at start; Jackal passes it by 9-line a few minutes after the danger-close attack."
+    - id: manpads_teams
+      kind: pool
+      pool: manpads
+      trigger: {type: time, after_min: 0.5}
+      chance: 100
+      notes: "Briefed as assessed; never marked."
+    - id: assault_push
+      kind: waves
+      pool: assault
+      trigger: {type: beat, beat: talk_on_1}
+      chance: 100
+      waves: 3
+      gap_min: [4, 6]
+      hunt: true
+      notes: "Technicals spawn 6+ km south and drive north toward the players' orbit, i.e. into the fight. Jackal reports each wave."
+    - id: sa13_ambush
+      kind: ambush_sam
+      pool: sam13
+      trigger: {type: proximity, area: fight_box, radius_nm: 14}
+      chance: 100
+      telegraph_beat: sa13_warning
+      notes: "sam_threat 2 => always. Spawns dark south of Tell Rifaat when PYTHON reaches the CP; Jackal's observers report it 30-60 s before it goes hot."
+    - id: civ_flee
+      kind: convoy
+      pool: civ_traffic
+      trigger: {type: time, after_min: 2}
+      chance: 100
+      notes: "Civilian cars drive road_south -> road_north through the fight, on the same road as the technicals."
+  director:
+    enabled: true
+    intensity: intense
+    adaptive: true
+  fog_of_war:
+    enabled: true
+    reveal_radius_km: 4
+    mark_refresh_sec: 15
+
+seed: null
+
+notes: >-
+  Director intent: the scramble and transit are calm (the ramp flight gets Ground/Tower; the air
+  start flight is at the CP in about three minutes). Tension starts at the CP with Magic's hand-off
+  and Jackal's breathless sitrep, builds through the first 9-line and talk-on onto the Mill, and
+  peaks at the danger-close Orchard attack while the first assault wave arrives and the SA-13
+  comes up. The armor 9-line is the second peak. Relax only after the assault breaks (3 fortified
+  positions, or 2 plus the armor) or the NBB falls back at the hold-time limit (20 min after
+  check-in at partner_morale 0; 15 at <= -1, 25 at >= 1). Long, quiet egress so the check-out and
+  Rook Ops' RTB call land. Guaranteed spine: mission_start, magic_handoff, jtac_checkin,
+  nine_line_1, talk_on_1, nine_line_2, jtac_checkout, rook_rtb. Everything hangs off check-in at
+  CP TUSK, reachable from both flights; nothing depends on takeoff. Replays differ in occupied
+  compounds, assault wave sizes and timing, SAM/MANPADS positions, armor mix and civilian traffic.

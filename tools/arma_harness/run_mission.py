@@ -338,6 +338,30 @@ def say(msg: str) -> None:
         print(msg, flush=True)
 
 
+WORKSHOP = Path("E:/SteamLibrary/steamapps/workshop/content/107410")
+# Named mod sets (Steam workshop ids).
+# "core" = CBA + ACE (sp repack: no medical/fatigue) + LAMBS Danger.
+MOD_PRESETS: dict[str, list[str]] = {
+    "core": ["450814997", "1744095754", "1858075458"],
+}
+
+
+def resolve_mods(spec: str, workshop: Path = WORKSHOP) -> list[Path]:
+    """'core' | 'core,1808238502' | ids | folder paths -> existing mod folders.
+
+    Raises SystemExit if a mod folder has no addons/ directory.
+    """
+    out: list[Path] = []
+    for item in [x.strip() for x in spec.split(",") if x.strip()]:
+        for one in MOD_PRESETS.get(item, [item]):
+            path = Path(one) if (":" in one or "/" in one or "\\" in one) else workshop / one
+            if not (path / "addons").is_dir():
+                raise SystemExit(f"mod not found (no addons folder): {path}")
+            if path not in out:
+                out.append(path)
+    return out
+
+
 def wait_for_ram(a: argparse.Namespace, tag: str) -> bool:
     """Block until --min-free-gb is available (or give up after --ram-wait seconds)."""
     t0 = time.time()
@@ -382,6 +406,8 @@ def run_one(a: argparse.Namespace, mission: Path, exe: Path, job: Job) -> tuple[
             "-noSound",
             "-world=empty",
         ]
+        if a.mod_paths:
+            cmd.append("-mod=" + ";".join(str(m) for m in a.mod_paths))
         if dest.exists():
             shutil.rmtree(dest)
         shutil.copytree(mission, dest)
@@ -486,6 +512,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--parallel", type=int, default=1, help="servers at once (capped at 2)")
     ap.add_argument("--param", action="append", default=[], help="extra mission param KEY=VALUE")
     ap.add_argument(
+        "--mods",
+        default="",
+        help="server mods, comma-separated: preset 'core' (CBA+ACE+LAMBS), workshop ids or folders",
+    )
+    ap.add_argument(
         "--time-scale",
         type=int,
         default=15,
@@ -535,6 +566,7 @@ def main(argv: list[str] | None = None) -> int:
         print("mission folder must be named <name>.<world>", file=sys.stderr)
         return 2
     tname = name if name.lower().startswith("dms_") else f"dms_{name}"
+    a.mod_paths = resolve_mods(a.mods) if a.mods else []
     exe = next((a.arma / e for e in SERVER_EXES if (a.arma / e).is_file()), None)
     if exe is None:
         print(f"arma3server_x64.exe not found in {a.arma}", file=sys.stderr)

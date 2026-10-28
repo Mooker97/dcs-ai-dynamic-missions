@@ -161,4 +161,8 @@ if (DMS_debug) then {
 };
 
 if (DMS_testMode) then { ["RUN"] spawn DMS_fnc_testMode; };
+// Optional mods (the mission uses vanilla classes and runs without them): log what is loaded.
+private _mods = [["CBA", "cba_main"], ["ACE", "ace_main"], ["ACE medical", "ace_medical"], ["LAMBS", "lambs_danger"]]
+	select {isClass (configFile >> "CfgPatches" >> (_x select 1))} apply {_x select 0};
+[format ["Mods: %1", [_mods joinString ", ", "none (vanilla)"] select (_mods isEqualTo [])]] call DMS_fnc_log;
 ["initServer done"] call DMS_fnc_log;

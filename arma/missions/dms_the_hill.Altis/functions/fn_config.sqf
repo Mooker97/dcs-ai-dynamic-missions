@@ -130,6 +130,9 @@ createHashMapFromArray [
 	["exfilHoldDistance", 1500],
 	["exfilFlyHeight", 60],
 	["exfilHotRadius", 200],
+	["exfilHotVehicleRadius", 600], // a known armed enemy vehicle this close also makes the LZ hot
+	["exfilReadyRadius", 75], // the heli comes in once the player (or, with no player, any squad member) is this close to the LZ
+	["exfilReadyMaxWait", 600], // s the heli waits at the hold point for the squad to reach the LZ
 	["exfilHotMaxHold", 300], // s the heli holds off a hot LZ before returning to base (request again)
 	["exfilHotCount", 3],
 	["exfilWaitOnGround", 150],

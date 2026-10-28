@@ -41,9 +41,17 @@ switch (_mode) do {
 			[_text] call DMS_fnc_log;
 		};
 		// Only enemies the friendly side knows about make the LZ hot (the pilot can't see the rest).
+		// Infantry counts within exfilHotRadius; any armed vehicle within exfilHotVehicleRadius.
 		private _hot = {
-			({alive _x && {side (group _x) == east} && {_x distance2D DMS_lz < (DMS_cfg get "exfilHotRadius")}
-				&& {(west knowsAbout _x) >= 1}} count allUnits) >= (DMS_cfg get "exfilHotCount")
+			(({alive _x && {side (group _x) == east} && {_x distance2D DMS_lz < (DMS_cfg get "exfilHotRadius")}
+				&& {(west knowsAbout _x) >= 1}} count allUnits) >= (DMS_cfg get "exfilHotCount"))
+			|| {(vehicles findIf {alive _x && {canFire _x} && {side (effectiveCommander _x) == east}
+				&& {_x distance2D DMS_lz < (DMS_cfg get "exfilHotVehicleRadius")} && {(west knowsAbout _x) >= 1}}) != -1}
+		};
+		// Like a real pickup, the heli only comes in once the ground team is at the LZ.
+		private _ready = {
+			(isNull DMS_player && {((units DMS_squad) findIf {alive _x && {_x distance2D DMS_lz < (DMS_cfg get "exfilReadyRadius")}}) != -1})
+			|| {!isNull DMS_player && {alive DMS_player} && {DMS_player distance2D DMS_lz < (DMS_cfg get "exfilReadyRadius")}}
 		};
 
 		private _spawn = _lz getPos [_cfg get "exfilSpawnDistance", _brg];
@@ -78,17 +86,30 @@ switch (_mode) do {
 		private _warned = false;
 		private _abort = false;
 		private _hotSince = time;
-		while {!(call _lost) && {!DMS_over} && {call _hot}} do {
-			if (!_warned) then {
-				_warned = true;
-				DMS_exfilHoldSince = time;
-				["Extraction: LZ is hot, holding off until it is clear."] call _tell;
+		private _waitedMsg = false;
+		private _readySince = time;
+		while {!_abort && {!(call _lost)} && {!DMS_over} && {(call _hot) || {!(call _ready)}}} do {
+			if (call _hot) then {
+				if (!_warned) then {
+					_warned = true;
+					_hotSince = time;
+					DMS_exfilHoldSince = time;
+					["Extraction: LZ is hot, holding off until it is clear."] call _tell;
+				};
+				if ((time - _hotSince) > ([_cfg get "exfilHotMaxHold", 120] call DMS_fnc_t)) then {
+					_abort = true;
+					["Extraction: LZ still hot, Ghost Hawk returning to base. Request again when the LZ is clear."] call _tell;
+				};
+			} else {
+				_warned = false;
+				DMS_exfilHoldSince = -1;
+				if (!_waitedMsg) then { _waitedMsg = true; ["Extraction: holding off, call us in when you are at the LZ."] call _tell; };
+				if ((time - _readySince) > ([_cfg get "exfilReadyMaxWait", 300] call DMS_fnc_t)) then {
+					_abort = true;
+					["Extraction: nobody at the LZ, Ghost Hawk returning to base. Request again from the LZ."] call _tell;
+				};
 			};
-			if ((time - _hotSince) > ([_cfg get "exfilHotMaxHold", 120] call DMS_fnc_t)) exitWith {
-				_abort = true;
-				["Extraction: LZ still hot, Ghost Hawk returning to base. Request again when the LZ is clear."] call _tell;
-			};
-			sleep ([15, 3] call DMS_fnc_t);
+			if (!_abort) then { sleep ([15, 3] call DMS_fnc_t); };
 		};
 		DMS_exfilHoldSince = -1;
 

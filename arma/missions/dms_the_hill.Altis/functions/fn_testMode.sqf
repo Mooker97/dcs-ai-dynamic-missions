@@ -157,6 +157,8 @@ switch (_mode) do {
 					if (DMS_exfilHoldSince >= 0 && {time - DMS_exfilHoldSince > DMS_testAssist}) then {
 						private _r = DMS_cfg get "exfilHotRadius";
 						private _near = allUnits select {alive _x && {side (group _x) == east} && {_x distance2D DMS_lz < _r}};
+						private _rv = DMS_cfg get "exfilHotVehicleRadius";
+						{ _near pushBackUnique _x; } forEach (vehicles select {alive _x && {side (effectiveCommander _x) == east} && {_x distance2D DMS_lz < _rv}});
 						{ _x setDamage 1; } forEach _near;
 						[format ["Test: exfil assist after %1 s holding, removing %2 enemies near the LZ", DMS_testAssist, count _near]] call DMS_fnc_log;
 						DMS_exfilHoldSince = time;

@@ -197,6 +197,7 @@ def _add_group(b: MissionBuilder, g: PlanGroup) -> None:
     if g.client:
         start: StartKind = _START_BY_ACTION.get(first.action, "air") if first else "air"
         air = start == "air"
+        landing = next((p for p in g.route[1:] if p.action == "Landing" and p.airbase), None)
         wing = next((u.skill for u in g.units[1:] if u.skill not in ("Client", "Player")), "High")
         group = b.add_player_flight(
             coal,
@@ -214,13 +215,16 @@ def _add_group(b: MissionBuilder, g: PlanGroup) -> None:
             speed_kmh=(first.speed_kmh or None) if (air and first) else None,
             heading_deg=u0.heading_deg if air else None,
             waypoints=[
-                AirWaypoint(p.x, p.y, p.alt_m or 150, p.speed_kmh or 220, p.alt_type)
+                AirWaypoint(p.x, p.y, p.alt_m or 150, p.speed_kmh or 220, p.alt_type, p.name)
                 for p in g.route[1:]
                 if p.action in ("Turning Point", "Fly Over Point")
             ],
             unit_positions=[(u.x, u.y) for u in g.units] if air else None,
             wingman_skill=wing,  # type: ignore[arg-type]
             callsign=_parse_callsign(g.radio_callsign),
+            land_at=landing.airbase if landing else None,
+            land_name=landing.name if landing else None,
+            modulation=g.modulation,
         )
     else:
         kind = _AI_TASKS.get(str(g.task or ""))
@@ -247,6 +251,9 @@ def _add_group(b: MissionBuilder, g: PlanGroup) -> None:
             altitude_m=u0.alt_m or 6000,
             payload=payload,
             frequency_mhz=g.frequency_mhz,
+            tacan=g.tacan,
+            callsign=_parse_callsign(g.radio_callsign),
+            modulation=g.modulation,
         )
     b.rename_units(group, [u.name for u in g.units])
     group.late_activation = g.late_activation
@@ -273,7 +280,7 @@ def _add_route_flight(
     start: StartKind = _START_BY_ACTION.get(first.action, "air") if first else "air"
     landing = next((p for p in g.route if p.action == "Landing"), None)
     legs = [
-        AirWaypoint(p.x, p.y, p.alt_m or 150, p.speed_kmh or 220, p.alt_type)
+        AirWaypoint(p.x, p.y, p.alt_m or 150, p.speed_kmh or 220, p.alt_type, p.name)
         for p in g.route
         if p.action in ("Turning Point", "Fly Over Point")
     ]

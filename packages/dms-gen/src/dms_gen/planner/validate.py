@@ -20,7 +20,12 @@ from dms_core.schemas.story import StoryBible
 from dms_core.schemas.validation import Issue, suggest, validate_mission_bundle
 from dms_core.schemas.voice import VoiceLineSet
 
-from ..builder.mission import aircraft_type, callsign_names, closest_callsign
+from ..builder.mission import (
+    aircraft_type,
+    callsign_names,
+    closest_callsign,
+    support_callsign_names,
+)
 from . import forces
 from .context import (
     canonical_country,
@@ -347,6 +352,27 @@ def validate(
                     pp + ".faction", f"unknown faction '{p.faction}'", suggest(p.faction, factions)
                 )
             )
+        if p.templates:
+            ok_ids = {x.id for role in p.roles for x in forces.pinned(role, era, p.templates)}
+            bad = [i for i in p.templates if i not in ok_ids]
+            role_ids = [x.id for role in p.roles for x in forces.candidates(role, era)]
+            if not ok_ids:
+                issues.append(
+                    _err(
+                        pp + ".templates",
+                        f"none of {p.templates} is a template of roles {list(p.roles)} "
+                        f"for era {era}",
+                        role_ids,
+                    )
+                )
+            elif bad:
+                issues.append(
+                    _warn(
+                        pp + ".templates",
+                        f"ignored (not a template of roles {list(p.roles)} for era {era}): {bad}",
+                        role_ids,
+                    )
+                )
         biggest = 0
         for j, role in enumerate(p.roles):
             ch = forces.candidates(role, era, factions.get(p.faction or ""), p.faction, "medium")
@@ -430,6 +456,27 @@ def validate(
                         "the first country of the players' side is used",
                     )
                 )
+        if s.role in ("awacs", "tanker") and s.callsign:
+            from .planning import _SUPPORT_AIR, split_callsign
+
+            tpl = c.templates.get(_SUPPORT_AIR[s.role][0])
+            if tpl is not None and tpl.units:
+                pf = spec.player_flights[0].country
+                country = canonical_country(pf) or pf
+                names = support_callsign_names(tpl.units[0].type, country)
+                wanted, _num = split_callsign(s.callsign)
+                got = closest_callsign(wanted, names)
+                if got is not None and got.lower() != wanted.lower():
+                    issues.append(
+                        _warn(
+                            sp + ".callsign",
+                            f"callsign {s.callsign} is not a DCS {s.role} callsign; "
+                            f"using {got} in DCS. Use one of the valid names",
+                            names,
+                        )
+                    )
+        if s.tacan and s.role != "tanker":
+            issues.append(_warn(sp + ".tacan", "tacan is only used for tankers; ignored"))
         if s.role in ("medevac", "farp"):
             issues.append(
                 _warn(sp + ".role", f"support role '{s.role}' is not built yet; it is skipped")

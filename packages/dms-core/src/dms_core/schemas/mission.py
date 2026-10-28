@@ -121,7 +121,7 @@ class AirStart(DMSModel):
     )
     toward: Ident | None = Field(
         default=None,
-        description="Area id of the first route point (IP). Null = the first objective with an area. The flight starts on the line from start_area to it, heading toward it.",
+        description="Area id of the first route point (IP). Null = the first area whose id names an IP (ip/ingress/push), else the first objective area. The flight starts on the line from start_area to it, heading toward it.",
     )
 
 
@@ -249,7 +249,20 @@ class Support(DMSModel):
     speaker: Ident | None = Field(
         default=None, description="Bible character who talks for this asset."
     )
-    frequency_mhz: float | None = Field(default=None, gt=0, description="Radio frequency in MHz.")
+    frequency_mhz: float | None = Field(
+        default=None,
+        gt=0,
+        description="Radio frequency in MHz (AWACS/tanker: their tuned frequency in DCS; JTAC/ground: the speaker's radio, e.g. 41.5 FM).",
+    )
+    modulation: Literal["AM", "FM"] | None = Field(
+        default=None,
+        description="Radio modulation. Null = automatic: FM below 87.995 MHz (VHF-FM band, e.g. JTAC 30-88 MHz), else AM.",
+    )
+    tacan: str | None = Field(
+        default=None,
+        pattern=r"^([1-9]|[1-9][0-9]|1[0-1][0-9]|12[0-6])[XY]$",
+        description="Tanker TACAN channel, e.g. '51Y'. Null = the builder default ('10X'). Ignored for other roles.",
+    )
 
 
 class Objective(DMSModel):
@@ -288,6 +301,10 @@ class PoolIntent(DMSModel):
         default=(1, 3), description="[min, max] groups drawn each time the pool is used."
     )
     faction: Ident | None = Field(default=None, description="Bible faction id.")
+    templates: list[str] | None = Field(
+        default=None,
+        description="Pin the pool to these catalog template ids (e.g. ['sa8', 'sa8_section'] to guarantee an SA-8); the runtime draws only among them. They must be templates for one of the pool's roles and the era (dms catalog templates --role). Null/empty = any template for the roles/era/faction.",
+    )
     notes: str | None = Field(
         default=None, description="Weighting hints, e.g. 'mostly ZU-23, rare SA-8'."
     )

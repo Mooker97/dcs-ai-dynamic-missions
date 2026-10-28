@@ -66,3 +66,5 @@ class AirWaypoint:
     alt_m: float = 150
     speed_kmh: float = 220
     alt_type: Literal["BARO", "RADIO"] = "BARO"
+    name: str | None = None
+    """Waypoint name shown on the F10 map / ME (e.g. 'IP', 'TGT', 'EGRESS')."""

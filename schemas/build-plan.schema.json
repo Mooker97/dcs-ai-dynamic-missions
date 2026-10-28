@@ -2489,6 +2489,19 @@
           "description": "Player-flight start variant; client groups of other variants are left out of that variant's .miz. Null = in every variant.",
           "title": "Variant"
         },
+        "tacan": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "TACAN channel of a tanker, e.g. '51Y'. Null = builder default ('10X').",
+          "title": "Tacan"
+        },
         "radio_callsign": {
           "anyOf": [
             {
@@ -2499,7 +2512,7 @@
             }
           ],
           "default": null,
-          "description": "DCS radio callsign of the lead applied by the builder, e.g. 'Python 1-1' (name flight-unit).",
+          "description": "DCS radio callsign of the lead applied by the builder, e.g. 'Python 1-1', 'Magic 1-1' (AWACS), 'Shell 1-1' (tanker) (name flight-unit).",
           "title": "Radio Callsign"
         }
       },

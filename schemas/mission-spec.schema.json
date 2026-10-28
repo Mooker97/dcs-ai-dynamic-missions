@@ -41,7 +41,7 @@
             }
           ],
           "default": null,
-          "description": "Area id of the first route point (IP). Null = the first objective with an area. The flight starts on the line from start_area to it, heading toward it.",
+          "description": "Area id of the first route point (IP). Null = the first area whose id names an IP (ip/ingress/push), else the first objective area. The flight starts on the line from start_area to it, heading toward it.",
           "title": "Toward"
         }
       },
@@ -992,6 +992,22 @@
           "description": "Bible faction id.",
           "title": "Faction"
         },
+        "templates": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Pin the pool to these catalog template ids (e.g. ['sa8', 'sa8_section'] to guarantee an SA-8); the runtime draws only among them. They must be templates for one of the pool's roles and the era (dms catalog templates --role). Null/empty = any template for the roles/era/faction.",
+          "title": "Templates"
+        },
         "notes": {
           "anyOf": [
             {
@@ -1138,8 +1154,39 @@
             }
           ],
           "default": null,
-          "description": "Radio frequency in MHz.",
+          "description": "Radio frequency in MHz (AWACS/tanker: their tuned frequency in DCS; JTAC/ground: the speaker's radio, e.g. 41.5 FM).",
           "title": "Frequency Mhz"
+        },
+        "modulation": {
+          "anyOf": [
+            {
+              "enum": [
+                "AM",
+                "FM"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Radio modulation. Null = automatic: FM below 87.995 MHz (VHF-FM band, e.g. JTAC 30-88 MHz), else AM.",
+          "title": "Modulation"
+        },
+        "tacan": {
+          "anyOf": [
+            {
+              "pattern": "^([1-9]|[1-9][0-9]|1[0-1][0-9]|12[0-6])[XY]$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Tanker TACAN channel, e.g. '51Y'. Null = the builder default ('10X'). Ignored for other roles.",
+          "title": "Tacan"
         }
       },
       "required": [

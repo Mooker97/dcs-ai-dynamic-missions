@@ -326,11 +326,15 @@ def test_each_variant_builds_and_checks(tmp_path: Path) -> None:
         assert units[0]["callsign"]["name"] == "Python11"
         assert units[0]["callsign"][1] == callsign_names("F-16C_50", "USA").index("Python") + 1
         assert float(units[0]["payload"]["fuel"]) == pytest.approx(3249, abs=1)
-        pts = list(players[0]["route"]["points"].values())
+        pts = [pt for _k, pt in sorted(players[0]["route"]["points"].items())]
+        # start -> IP (ip_arrow) -> TGT (al_bab) -> HOME (land Incirlik)
+        assert [pt.get("name", "") for pt in pts[1:]] == ["IP", "TGT", "HOME"]
+        assert pts[-1]["type"] == "Land"
+        assert [pt["alt"] for pt in pts[1:3]] == pytest.approx([6096, 6096], abs=1)
         if v == "air":
             assert units[0]["alt"] == pytest.approx(6096, abs=1)
             assert units[0]["speed"] == pytest.approx(420 * 1.852 / 3.6, abs=0.5)
-            assert len(pts) == 2
+            assert len(pts) == 4
             assert math.degrees(units[0]["heading"]) % 360 == pytest.approx(
                 vp.groups[[g.variant for g in vp.groups].index("air")].units[0].heading_deg,
                 abs=0.1,

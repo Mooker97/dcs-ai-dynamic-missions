@@ -25,7 +25,7 @@ player_flights:
       altitude_ft: 20000        # default 20000
       speed_kts: 420            # default 420
       distance_nm_before_first_wp: 20   # default 20
-      toward: ip_arrow          # area id of the IP; default = first objective with an area
+      toward: ip_arrow          # area id of the IP; default = an ip_* area, else the first objective area
     loadout: auto
     tasking: "AIR START. Airborne 20 NM short of IP ARROW, ... RTB Incirlik."
 ```
@@ -51,6 +51,12 @@ Rules:
 - **air_start**: only with `start_type: air`. The flight starts `distance_nm_before_first_wp`
   short of `toward` on the line from `start_area`, heading toward it, at `altitude_ft` (BARO) and
   `speed_kts`, wingmen in echelon right, full internal fuel. Its route continues to the IP.
+- **Route** (planned for every flight from your areas): departure -> `IP` (`air_start.toward`, or
+  the first area whose id contains `ip`/`ingress`/`push`, e.g. `ip_arrow`) -> `TGT`/`TGT1..n`
+  (objective areas in spec order; a target threat/support/single-area pool stands in for a
+  missing area) -> `EGRESS` (first area id containing `egress`) -> `HOME` (landing at the `land`
+  objective's airbase, else the start airbase). Jets fly it at 20,000 ft, helicopters at 150 m
+  AGL. Name an IP and an egress area if you want those steerpoints.
 - **Loadouts**: `loadout: auto` uses the aircraft's mission-type preset. F-16C_50 presets:
   `sead` (2x AGM-88C, 2x GBU-12, ALQ-184, HTS, LITENING, 2x AIM-120C, 2x AIM-9X), `lgb_strike`
   (4x GBU-12 on TERs, 2x 370 gal tanks, ALQ-184, LITENING, AIM-120C/AIM-9X), `cas` (2x GBU-12 TER

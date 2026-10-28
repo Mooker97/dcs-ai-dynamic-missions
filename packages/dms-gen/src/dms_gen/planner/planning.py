@@ -61,7 +61,12 @@ from dms_core.schemas.story import StoryBible
 from dms_core.schemas.voice import VoiceLineSet
 from pydantic import ValidationError
 
-from ..builder.mission import aircraft_type, callsign_names, closest_callsign
+from ..builder.mission import (
+    aircraft_type,
+    callsign_names,
+    closest_callsign,
+    support_callsign_names,
+)
 from . import forces
 from .ambient import plan_ambient
 from .context import (
@@ -116,9 +121,38 @@ FT = 0.3048
 KTS_KMH = 1.852
 #: Air-start formation: each wingman this far behind and to the right of the previous unit (m).
 AIR_START_SPACING_M = 300.0
+#: Player flight route: fixed-wing cruise altitude and speed (air starts use their own).
+CRUISE_ALT_FT = 20000.0
+CRUISE_KTS = 450.0
+#: Helicopter route: low level (RADIO altitude) and speed.
+HELO_ROUTE_ALT_M = 150.0
+HELO_ROUTE_KMH = 200.0
+#: Area ids that name the IP / ingress point and the egress point of player routes.
+IP_AREA = re.compile(r"(^|[_-])(ip|ingress|push)([_-]|$)", re.IGNORECASE)
+EGRESS_AREA = re.compile(r"(^|[_-])egress([_-]|$)", re.IGNORECASE)
+#: Highest VHF-FM frequency (MHz): anything below it is FM (ground / JTAC radios).
+FM_BAND_TOP_MHZ = 87.995
+_CALLSIGN_NUM = re.compile(r"^\s*([A-Za-z][A-Za-z ]*?)\s*(\d+)?(?:-\d+)?\s*$")
 #: Minimum metres between pre-placed groups, and SAM-to-SAM spacing.
 GROUP_SPACING_M = 250.0
 SAM_SPACING_M = 1500.0
+
+
+def radio_modulation(freq_mhz: float | None, explicit: str | None = None) -> str:
+    """'AM'/'FM': ``explicit`` when set, else FM below 87.995 MHz (VHF-FM band), else AM."""
+    if explicit in ("AM", "FM"):
+        return explicit
+    if freq_mhz is not None and freq_mhz < FM_BAND_TOP_MHZ:
+        return "FM"
+    return "AM"
+
+
+def split_callsign(text: str) -> tuple[str, int | None]:
+    """'Texaco 6' -> ('Texaco', 6); 'Magic' -> ('Magic', None); 'Ripper 2-1' -> ('Ripper', 2)."""
+    m = _CALLSIGN_NUM.match(text)
+    if m is None:
+        return text.strip(), None
+    return m.group(1), int(m.group(2)) if m.group(2) else None
 
 
 def resolve_seed(spec: MissionSpec, seed: int | None) -> int:
@@ -330,6 +364,7 @@ class _Planner:
         self.char_faction = (
             {c.id: c.faction for c in bible.characters if c.faction} if bible is not None else {}
         )
+        self.support_cs: dict[str, int] = {}
 
     # -- helpers -------------------------------------------------------------------------
     def area(self, area_id: str) -> ResolvedArea:
@@ -415,8 +450,10 @@ class _Planner:
         """(start point, heading deg, first route point or None) for an air start."""
         a = f.air_start or AirStart()
         target: tuple[float, float] | None = None
-        if a.toward:
-            target = self.area(a.toward).center
+        ip, tgts, _egress = self.route_areas(f)
+        first = ip or (tgts[0] if tgts else None)
+        if first is not None:
+            target = self.area(first).center
         else:
             obj = next((o for o in self.spec.objectives if o.area), None)
             if obj is not None and obj.area is not None:
@@ -434,6 +471,91 @@ class _Planner:
         hdg = round(math.degrees(math.atan2(uy, ux)) % 360.0, 2) % 360.0
         return (sx, sy), hdg, target
 
+    def route_areas(self, f: PlayerFlight) -> tuple[str | None, list[str], str | None]:
+        """(IP area, target areas in spec order, egress area) for a player flight's route.
+
+        IP = ``air_start.toward``, else the first area whose id names an IP/ingress/push point.
+        Targets = each objective's area (or its target threat's / support asset's area, or the
+        target pool's area when the pool has exactly one), skipping land/survive objectives,
+        the start and recovery areas and the IP/egress areas. Egress = first area named egress.
+        """
+        ids = self.spec.area_ids()
+        ip: str | None = None
+        if f.air_start is not None and f.air_start.toward:
+            ip = f.air_start.toward
+        else:
+            ip = next((a for a in ids if IP_AREA.search(a)), None)
+        egress = next((a for a in ids if EGRESS_AREA.search(a)), None)
+        threats = {t.id: t.area for t in self.spec.threats}
+        support = {s.id: s.area or (s.route[-1] if s.route else None) for s in self.spec.support}
+        pools = {p.id: p.areas[0] for p in self.spec.dynamic.pools if len(p.areas) == 1}
+        recovery = self.recovery_area(f)
+        skip = {f.start_area, recovery, ip, egress}
+        tgts: list[str] = []
+        for o in self.spec.objectives:
+            if o.kind in ("land", "survive"):
+                continue
+            a = o.area
+            if a is None and o.target:
+                a = threats.get(o.target) or support.get(o.target) or pools.get(o.target)
+            if a is None or a in skip or a in tgts or a not in self.areas:
+                continue
+            tgts.append(a)
+        return ip, tgts, egress
+
+    def recovery_area(self, f: PlayerFlight) -> str | None:
+        """First 'land' objective area at an airbase, else the start area when it is one."""
+        for o in self.spec.objectives:
+            if o.kind == "land" and o.area and o.area in self.areas and self.areas[o.area].airbase:
+                return o.area
+        start = self.areas.get(f.start_area)
+        return f.start_area if start is not None and start.airbase else None
+
+    def _route_legs(
+        self, f: PlayerFlight, helo: bool, alt_m: float, speed_kmh: float, skip_first: bool
+    ) -> list[PlanWaypoint]:
+        """IP -> TGT(s) -> EGRESS -> HOME (landing) waypoints for a player flight."""
+        ip, tgts, egress = self.route_areas(f)
+        named: list[tuple[str, str]] = []
+        if ip:
+            named.append((ip, "IP"))
+        named += [(a, "TGT" if len(tgts) == 1 else f"TGT{k}") for k, a in enumerate(tgts, 1)]
+        if egress:
+            named.append((egress, "EGRESS"))
+        if skip_first and (ip or tgts):
+            named = named[1:]  # the air start already flies to it (added by the caller)
+        legs = [
+            PlanWaypoint(
+                x=round(self.area(a).x, 1),
+                y=round(self.area(a).y, 1),
+                alt_m=alt_m,
+                alt_type="RADIO" if helo else "BARO",
+                speed_kmh=speed_kmh,
+                name=label,
+            )
+            for a, label in named
+        ]
+        home = self.recovery_area(f)
+        if home is not None:
+            h = self.area(home)
+            legs.append(
+                PlanWaypoint(
+                    x=round(h.x, 1),
+                    y=round(h.y, 1),
+                    action="Landing",
+                    airbase=h.airbase,
+                    speed_kmh=speed_kmh,
+                    name="HOME",
+                )
+            )
+        return legs
+
+    def _first_leg_name(self, f: PlayerFlight) -> str:
+        ip, tgts, _egress = self.route_areas(f)
+        if ip is not None:
+            return "IP"
+        return "TGT" if len(tgts) <= 1 else "TGT1"
+
     def _player_group(self, f: PlayerFlight, idx: int, single_player: bool) -> PlanGroup:
         area = self.area(f.start_area)
         ac = aircraft_type(f.aircraft)
@@ -443,7 +565,14 @@ class _Planner:
         freq = f.frequency_mhz or float(getattr(ac, "radio_frequency", 0) or 0) or None
         hdg = 0.0
         positions = [(area.x + 30 * (j - 1), area.y) for j in range(1, f.count + 1)]
+        max_kmh = float(getattr(ac, "max_speed", 0) or 0)
+        cruise_kmh = round(CRUISE_KTS * KTS_KMH, 1)
+        if max_kmh > 0:
+            cruise_kmh = min(cruise_kmh, round(0.8 * max_kmh, 1))
+        route_alt = HELO_ROUTE_ALT_M if helo else round(CRUISE_ALT_FT * FT, 1)
+        route_kmh = HELO_ROUTE_KMH if helo else cruise_kmh
         route: list[PlanWaypoint]
+        skip_first = False
         if f.start_type != "air" and area.airbase:
             route = [
                 PlanWaypoint(
@@ -468,6 +597,7 @@ class _Planner:
                 for k in range(f.count)
             ]  # echelon right
             route = [PlanWaypoint(x=round(sx, 1), y=round(sy, 1), alt_m=alt, speed_kmh=spd)]
+            route_alt, route_kmh = alt, spd
             if target is not None:
                 route.append(
                     PlanWaypoint(
@@ -475,9 +605,10 @@ class _Planner:
                         y=round(target[1], 1),
                         alt_m=alt,
                         speed_kmh=spd,
-                        name="IP",
+                        name=self._first_leg_name(f),
                     )
                 )
+                skip_first = True
         else:
             alt = 150.0 if helo else 3000.0
             route = [
@@ -488,6 +619,7 @@ class _Planner:
                     speed_kmh=200 if helo else 500,
                 )
             ]
+        route += self._route_legs(f, helo, route_alt, route_kmh, skip_first)
         lead_skill: PlanSkill = "Player" if single_player else "Client"
         wing_skill: PlanSkill = "High" if single_player else "Client"
         units = [
@@ -512,6 +644,7 @@ class _Planner:
             units=units,
             route=route,
             frequency_mhz=freq,
+            modulation=radio_modulation(freq),  # type: ignore[arg-type]
             client=True,
             source=f.callsign if re.match(r"^[A-Za-z0-9][A-Za-z0-9_.\-]*$", f.callsign) else None,
             variant=f.variant,
@@ -644,7 +777,13 @@ class _Planner:
                 d = math.dist((bx, by), (tx, ty)) or 1.0
                 center = (bx - (tx - bx) / d * 60000, by - (ty - by) / d * 60000)
             name = self.names.alloc(f"{s.id}_1")
-            return _air_group(name, tpl, side, country, task, center, self.rng, False, "High", s.id)
+            g = _air_group(name, tpl, side, country, task, center, self.rng, False, "High", s.id)
+            g.frequency_mhz = s.frequency_mhz
+            g.modulation = radio_modulation(s.frequency_mhz, s.modulation)  # type: ignore[assignment]
+            if s.role == "tanker":
+                g.tacan = s.tacan
+            g.radio_callsign = self._support_callsign(s, tpl.units[0][0], country)
+            return g
         if s.role not in ("convoy", "friendly_ground", "jtac"):
             return None  # medevac / farp: not supported by the builder yet (validate warns)
         types, _bad = forces.parse_composition(s.composition)
@@ -681,8 +820,23 @@ class _Planner:
             units=_units_at(name, tpl, at, 0.0, "Good"),
             route=route,
             frequency_mhz=s.frequency_mhz,
+            modulation=radio_modulation(s.frequency_mhz, s.modulation),  # type: ignore[arg-type]
             source=s.id,
         )
+
+    def _support_callsign(self, s: Support, aircraft: str, country: str) -> str | None:
+        """'Magic 1-1' when the type has DCS AWACS/tanker callsigns (closest name if needed)."""
+        if not s.callsign:
+            return None
+        names = support_callsign_names(aircraft, country)
+        wanted, num = split_callsign(s.callsign)
+        name = closest_callsign(wanted, names)
+        if name is None:
+            return None
+        if num is None:
+            self.support_cs[name] = self.support_cs.get(name, 0) + 1
+            num = self.support_cs[name]
+        return f"{name} {num}-1"
 
     def _objective_centroid(self) -> tuple[float, float]:
         pts = [self.area(o.area).center for o in self.spec.objectives if o.area]
@@ -808,8 +962,15 @@ class _Planner:
             ):
                 side = "neutral"
             country = self.country_for(p.faction, side)
+            pinned = {
+                role: forces.pinned(role, self.era, list(p.templates or [])) for role in p.roles
+            }
+            any_pinned = any(pinned.values())
             for role in p.roles:
-                for tpl in self.choices(role, p.faction, "medium"):
+                role_choices = (
+                    pinned[role] if any_pinned else self.choices(role, p.faction, "medium")
+                )
+                for tpl in role_choices:
                     if tpl.category not in ("ground", "plane", "helicopter", "ship"):
                         continue
                     templates.setdefault(
@@ -994,11 +1155,11 @@ def build_speakers(
         if not callsign:
             continue
         freq = sup.frequency_mhz if sup is not None else None
-        fm = sup is not None and sup.role in ("friendly_ground", "jtac", "convoy", "medevac")
+        mod = radio_modulation(freq, sup.modulation if sup is not None else None)
         out[cid] = Speaker(
             callsign=callsign,
             frequency=freq,
-            modulation=(1 if fm else 0) if freq else None,
+            modulation=(1 if mod == "FM" else 0) if freq else None,
         )
     return out
 

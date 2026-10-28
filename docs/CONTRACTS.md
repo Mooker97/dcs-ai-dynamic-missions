@@ -454,7 +454,18 @@ Player flights (`PlayerFlight`), start options and slots:
   (only with `start_type: air`; omitted = defaults when `start_type: air`): the planner puts the
   flight `distance_nm_before_first_wp` short of its first route point (`toward` area id, default
   the first objective area) on the line from `start_area`, heading toward it, at that altitude
-  (BARO) and speed; the route continues to that point.
+  (BARO) and speed; the route continues to that point (the IP when one exists, see Route).
+- Route (every player flight, from the spec's areas only): departure (parking point / air-start
+  point) -> `IP` (`air_start.toward`, else the first area whose id contains an `ip`, `ingress`
+  or `push` token, e.g. `ip_arrow`) -> `TGT` / `TGT1..n` (each objective's area in spec order;
+  without an area, its target threat's or support asset's area, or the target pool's area when
+  the pool has exactly one; `land`/`survive` objectives and the start/recovery/IP/egress areas
+  are skipped) -> `EGRESS` (first area whose id contains an `egress` token) -> `HOME`
+  (`Landing` at the first `land` objective's airbase area, else the start area's airbase).
+  Fixed-wing: 20,000 ft BARO at 450 kts (capped at 0.8 x the type's max speed; air starts use
+  their `air_start` altitude/speed). Helicopters: 150 m RADIO at 200 km/h. Waypoint names
+  (`PlanWaypoint.name`) are written to the .miz. Test mode builds its own proxy route and only
+  uses the flight's first route point.
 - Loadout `auto` (or an unrecognised intent) picks the aircraft's preset for the mission type
   (F-16C_50: SEAD/DEAD -> `sead`, STRIKE/INTERDICTION -> `lgb_strike`, CAS -> `cas`); free text
   with HARM/SEAD, GBU/LGB/strike, CAS/Maverick maps to those presets. Fuel is always full internal.
@@ -466,11 +477,24 @@ Player flights (`PlayerFlight`), start options and slots:
 
 Threats and support: `Threat.templates: list[str]` pins the catalog templates the planner may
 pick for that threat (they must be templates of the role and era; validate errors when none
-match, warns for ignored ids). `Support.faction` (friendly bible faction) sets the asset's DCS
+match, warns for ignored ids). `PoolIntent.templates: list[str] | null` does the same for a
+dynamic pool: the runtime pool's members are only those ids that are templates of one of the
+pool's roles and the era (validate errors when none fit, warns for ignored ids; null/empty = any
+template for the roles/era/faction). `Support.faction` (friendly bible faction) sets the asset's DCS
 country; without it the speaker character's faction is used when it is on the players' side,
 else the side's first country.
 
-Plan fields: `PlanGroup.variant` (copied from the flight), `PlanGroup.radio_callsign`,
+Support radios: `Support.frequency_mhz` is carried into `PlanGroup.frequency_mhz` and applied by
+the builder (AWACS/tanker: their tuned frequency, `SetFrequency` + group frequency; default 251.0
+when null). `Support.modulation: AM|FM|null` (null = FM below 87.995 MHz, else AM) sets
+`PlanGroup.modulation` and the speaker's `modulation`; player flights get the band rule too.
+`Support.callsign` for AWACS/tankers becomes `PlanGroup.radio_callsign` (`"Magic 1-1"`; a number
+in the spec callsign, `"Texaco 6"`, is the flight number) when it is a DCS name for the type
+(AWACS: Overlord, Magic, Wizard, Focus, Darkstar; tankers: Texaco, Arco, Shell); otherwise the
+closest name is used and validate warns. `Support.tacan` (tankers, e.g. `"51Y"`, null = `10X`)
+becomes `PlanGroup.tacan`.
+
+Plan fields: `PlanGroup.variant` (copied from the flight), `PlanGroup.radio_callsign`, `PlanGroup.tacan`,
 `BuildPlan.neutral_countries` (countries of every neutral-coalition faction used by threats or
 pools; threats of a neutral faction are planned in the neutral coalition and the builder adds the
 countries to the neutral coalition).

@@ -119,10 +119,15 @@ class PlanGroup(DMSModel):
             "that variant's .miz. Null = in every variant."
         ),
     )
+    tacan: str | None = Field(
+        default=None,
+        description="TACAN channel of a tanker, e.g. '51Y'. Null = builder default ('10X').",
+    )
     radio_callsign: str | None = Field(
         default=None,
         description=(
-            "DCS radio callsign of the lead applied by the builder, e.g. 'Python 1-1' "
+            "DCS radio callsign of the lead applied by the builder, e.g. 'Python 1-1', "
+            "'Magic 1-1' (AWACS), 'Shell 1-1' (tanker) "
             "(name flight-unit)."
         ),
     )

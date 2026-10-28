@@ -132,6 +132,27 @@ def callsign_names(aircraft: str | type[FlyingType], country: str) -> list[str]:
     return common + [n for n in specific if n not in common]
 
 
+SUPPORT_CALLSIGN_CATEGORIES = ("AWACS", "Tankers")
+"""pydcs aircraft categories whose callsigns come from the country's own name list."""
+
+
+def support_callsign_names(aircraft: str | type[FlyingType], country: str) -> list[str]:
+    """DCS callsign names for an AWACS or tanker type flown by ``country`` (DCS index order).
+
+    AWACS: Overlord, Magic, Wizard, Focus, Darkstar. Tankers: Texaco, Arco, Shell. Empty for
+    other aircraft categories or unknown countries.
+    """
+    from dcs import countries
+
+    category = getattr(aircraft_type(aircraft), "category", None)
+    if category not in SUPPORT_CALLSIGN_CATEGORIES:
+        return []
+    for cls in countries.country_dict.values():
+        if getattr(cls, "name", None) == country:
+            return [str(n) for n in getattr(cls, "callsign", {}).get(category, [])]
+    return []
+
+
 def closest_callsign(wanted: str, names: Sequence[str]) -> str | None:
     """``wanted`` if in ``names`` (case-insensitive), else the closest name (deterministic)."""
     import difflib
@@ -343,6 +364,9 @@ class MissionBuilder:
         waypoints: Sequence[AirWaypoint] = (),
         unit_positions: Sequence[XY] | None = None,
         wingman_skill: Skill = "High",
+        land_at: str | None = None,
+        land_name: str | None = None,
+        modulation: str = "AM",
     ) -> unitgroup.FlyingGroup[Any]:
         """Player flight. ``client=True``: every unit is a multiplayer 'Client' slot.
         ``client=False``: the lead is the single-player 'Player' and the other units are AI
@@ -350,7 +374,9 @@ class MissionBuilder:
 
         Air starts (``start="air"``) spawn at ``position``/``altitude_m`` with ``speed_kmh`` and
         ``heading_deg``; ``unit_positions`` (one per unit) override pydcs' 10 m line-up, and
-        ``waypoints`` are appended after the start point. Internal fuel is always full.
+        ``waypoints`` are appended after the start point (named when ``AirWaypoint.name`` is
+        set); ``land_at`` appends a landing waypoint at that airbase (named ``land_name``).
+        Internal fuel is always full.
         """
         group = self._flight(
             coalition,
@@ -385,11 +411,18 @@ class MissionBuilder:
         for wp in waypoints:
             mp = group.add_waypoint(self.point(wp.x, wp.y), wp.alt_m, wp.speed_kmh)
             mp.alt_type = wp.alt_type
+            if wp.name:
+                mp.name = wp.name
+        if land_at:
+            lp = group.land_at(self.airbase(land_at))
+            if land_name:
+                lp.name = land_name
         self._apply_payload(group, payload)
         if callsign is not None:
             self._apply_callsign(group, country, callsign)
         if frequency_mhz is not None:
             group.set_frequency(frequency_mhz)
+            group.modulation = 1 if modulation == "FM" else 0
         return group
 
     def add_ai_flight(
@@ -408,9 +441,16 @@ class MissionBuilder:
         payload: Mapping[int, str] | str | None = None,
         skill: Skill = "High",
         frequency_mhz: float | None = None,
-        tacan: str = "10X",
+        tacan: str | None = None,
+        callsign: tuple[str, int] | None = None,
+        modulation: str = "AM",
     ) -> unitgroup.FlyingGroup[Any]:
-        """Basic AI flight. ``orbit`` = (p1, p2): race-track legs (CAS: p1 = target area)."""
+        """Basic AI flight. ``orbit`` = (p1, p2): race-track legs (CAS: p1 = target area).
+
+        AWACS/tankers tune ``frequency_mhz`` (default 251.0) with ``modulation`` ("AM"/"FM")
+        and tankers turn on TACAN ``tacan`` (default "10X"). ``callsign`` = (name, flight
+        number) is applied when ``name`` is a DCS callsign for the type (closest otherwise).
+        """
         m = self.mission
         c = self.country(coalition, country)
         t: Any = aircraft_type(aircraft)
@@ -463,7 +503,7 @@ class MissionBuilder:
                 speed=speed_kmh,
                 start_type=st,
                 frequency=freq,
-                tacanchannel=tacan,
+                tacanchannel=tacan or "10X",
             )
         elif task_kind == "cas":
             group = self._flight(
@@ -492,8 +532,19 @@ class MissionBuilder:
                 self._claim_unit(u.name)
             u.skill = DcsSkill(skill)
         self._apply_payload(group, payload)
-        if frequency_mhz is not None and task_kind in ("cap", "cas"):
+        mod = 1 if modulation == "FM" else 0
+        if task_kind in ("awacs", "tanker"):
+            group.set_frequency(freq)
+            group.modulation = mod
+            for pt in group.points:
+                for tk in pt.tasks:
+                    if isinstance(tk, task.SetFrequencyCommand):
+                        tk.params["action"]["params"]["modulation"] = mod
+        elif frequency_mhz is not None:
             group.set_frequency(frequency_mhz)
+            group.modulation = mod
+        if callsign is not None:
+            self._apply_callsign(group, country, callsign)
         return group
 
     def add_ai_route_flight(
@@ -537,6 +588,8 @@ class MissionBuilder:
         for wp in waypoints:
             mp = group.add_waypoint(self.point(wp.x, wp.y), wp.alt_m, wp.speed_kmh)
             mp.alt_type = wp.alt_type
+            if wp.name:
+                mp.name = wp.name
         if land_at:
             group.land_at(self.airbase(land_at))
         for u in group.units:
@@ -614,7 +667,8 @@ class MissionBuilder:
         self, group: unitgroup.FlyingGroup[Any], country: str, callsign: tuple[str, int]
     ) -> None:
         cs_name, flight_no = callsign
-        names = callsign_names(group.units[0].unit_type, country)
+        t = group.units[0].unit_type
+        names = callsign_names(t, country) or support_callsign_names(t, country)
         if not names:
             return  # numeric-callsign type/country: keep pydcs' assignment
         cs_name = closest_callsign(cs_name, names) or names[0]

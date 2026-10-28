@@ -69,9 +69,16 @@ authoritative. Unknown keys are rejected.
      the neutral coalition automatically.
      Threats named in the briefing as known get `hidden_on_map: false`. Scale threats by
      qualities (low intel means more hidden threats; high enemy AA means `heavy`).
-   - `support[]`: `{role, callsign, area, route, composition, faction, speaker}`. `faction`
-     (a friendly bible faction) sets the units' DCS country, e.g. a partner force on CJTF Blue.
-   - `dynamic`: `pools[] {id, roles, areas, pick: [min,max], faction, notes}`, and
+   - `support[]`: `{role, callsign, area, route, composition, faction, speaker, frequency_mhz,
+     modulation, tacan}`. `faction` (a friendly bible faction) sets the units' DCS country, e.g. a
+     partner force on CJTF Blue. AWACS/tankers fly on `frequency_mhz` with the spec `callsign`
+     when it is a DCS name (AWACS: Overlord, Magic, Wizard, Focus, Darkstar; tankers: Texaco,
+     Arco, Shell; `"Texaco 6"` = flight 6), else the closest one (validate warns). Tankers take
+     `tacan` (e.g. `51Y`, default 10X). `modulation` is automatic (FM below 88 MHz, e.g. JTAC
+     41.5; AM otherwise); set it only to override.
+   - `dynamic`: `pools[] {id, roles, areas, pick: [min,max], faction, templates, notes}`
+     (`templates` pins the pool to catalog templates, e.g. `[sa8, sa8_section]`, same rules as
+     threats), and
      `encounters[] {id, kind, pool, trigger {type proximity|beat|director|time, area, radius_nm,
      beat, after_min}, chance, telegraph_beat, waves, gap_min, hunt}`, plus `fog_of_war`.
      See `references/beats-and-encounters.md`.

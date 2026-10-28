@@ -5,7 +5,10 @@ Concatenates the modules listed in ``lua/manifest.txt`` (from ``lua/src/dms/``) 
 (``<root pyproject version>+<git short sha>``), then verifies the result compiles under
 Lua 5.1 via lupa. Missing modules are skipped with a warning.
 
-Usage: ``uv run python tools/bundle_lua.py [--out dist/dms.lua]``
+Stdlib-only apart from that lupa check: ``--no-check`` skips it (CI's Lua job runs without the
+project's dev deps and syntax-checks the result with ``luac -p`` instead).
+
+Usage: ``uv run python tools/bundle_lua.py [--out dist/dms.lua] [--no-check]``
 """
 
 from __future__ import annotations
@@ -85,12 +88,15 @@ def build_source(quiet: bool = False) -> tuple[str, list[str], list[str]]:
     return "\n".join(parts), included, missing
 
 
-def bundle(out: Path | None = None, quiet: bool = False) -> Path:
+def bundle(out: Path | None = None, quiet: bool = False, check: bool = True) -> Path:
     out = out or DEFAULT_OUT
     source, included, _missing = build_source(quiet=quiet)
-    err = check_lua51(source, "@" + out.name)
-    if err:
-        raise SystemExit(f"bundle failed Lua 5.1 syntax check: {err}")
+    if check:
+        err = check_lua51(source, "@" + out.name)
+        if err:
+            raise SystemExit(f"bundle failed Lua 5.1 syntax check: {err}")
+    elif not quiet:
+        print("note: Lua 5.1 syntax check skipped (--no-check); run luac -p", file=sys.stderr)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(source, encoding="utf-8", newline="\n")
     if not quiet:
@@ -104,8 +110,13 @@ def main(argv: list[str] | None = None) -> int:
         "--out", type=Path, default=DEFAULT_OUT, help="output file (default dist/dms.lua)"
     )
     ap.add_argument("-q", "--quiet", action="store_true")
+    ap.add_argument(
+        "--no-check",
+        action="store_true",
+        help="skip the lupa Lua 5.1 syntax check (no third-party imports; use luac -p after)",
+    )
     args = ap.parse_args(argv)
-    bundle(args.out, quiet=args.quiet)
+    bundle(args.out, quiet=args.quiet, check=not args.no_check)
     return 0
 
 

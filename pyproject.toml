@@ -26,7 +26,7 @@ strict = true
 exclude = ["legacy/"]
 
 [tool.pytest.ini_options]
-testpaths = ["packages", "lua", "tests", "evals"]
+testpaths = ["packages", "lua", "tests", "evals", "arma/tools", "tools/tests"]
 addopts = "-q --strict-markers"
 
 [[tool.mypy.overrides]]

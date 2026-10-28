@@ -40,7 +40,9 @@ import shutil
 import subprocess
 import sys
 import time
-import winreg
+
+if sys.platform == "win32":  # Windows-only at runtime; guarded so the parsers import on Linux CI
+    import winreg
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 

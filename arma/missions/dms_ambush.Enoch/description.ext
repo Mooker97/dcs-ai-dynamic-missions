@@ -1,0 +1,175 @@
+// DMS "Ambush" - Livonia (Enoch), CBA + ACE + LAMBS + RHS. Solo player leading an AI squad.
+author = "DMS";
+onLoadName = "Ambush";
+onLoadMission = "Ambush a Russian convoy on a forest road, then break contact and reach the rally point.";
+briefingName = "DMS - Ambush";
+overviewText = "Lead a USMC squad into an ambush position on Livonia, destroy a Russian motor-rifle convoy and break contact to the rally point. Requires CBA, ACE, LAMBS Danger, RHS AFRF and RHS USAF.";
+
+respawn = 0;
+respawnDialog = 0;
+disabledAI = 1;
+enableDebugConsole = 1;
+corpseManagerMode = 0;
+wreckManagerMode = 0;
+
+class Header
+{
+	gameType = "Coop";
+	minPlayers = 1;
+	maxPlayers = 1;
+};
+
+class Params
+{
+	class DMS_seed
+	{
+		title = "Random seed (0 = random, logged)";
+		values[] = {0, 1, 2, 3, 7, 42, 1337, 4242};
+		texts[] = {"Random", "1", "2", "3", "7", "42", "1337", "4242"};
+		default = 0;
+	};
+	class DMS_site
+	{
+		title = "Ambush site";
+		values[] = {0, 1, 2, 3};
+		texts[] = {"From seed", "Forest road between Gieraltow and Dolnik", "Main road between Polana and Huta", "Main road south of Karlin"};
+		default = 0;
+	};
+	class DMS_debug
+	{
+		title = "Debug (log to screen, convoy markers)";
+		values[] = {0, 1};
+		texts[] = {"Off", "On"};
+		default = 0;
+	};
+	class DMS_testMode
+	{
+		title = "Test mode (AI squad plays unattended)";
+		values[] = {0, 1};
+		texts[] = {"Off", "On"};
+		default = 0;
+	};
+	class DMS_testMinutes
+	{
+		title = "Test mode time limit (minutes)";
+		values[] = {15, 20, 30, 45, 60, 90};
+		texts[] = {"15", "20", "30", "45", "60", "90"};
+		default = 45;
+	};
+	class DMS_testTimeScale
+	{
+		title = "Test mode time scale for mission delays (percent)";
+		values[] = {100, 50, 25, 15, 10};
+		texts[] = {"100% (real)", "50%", "25%", "15%", "10%"};
+		default = 100;
+	};
+	class DMS_testStartDist
+	{
+		title = "Test mode squad start distance from the ambush position (m, 0 = normal)";
+		values[] = {0, 300, 500};
+		texts[] = {"Normal", "300", "500"};
+		default = 0;
+	};
+	class DMS_testAssist
+	{
+		title = "Test mode fight assist (s after contact before the rest of the convoy is removed; 0 = off)";
+		values[] = {0, 120, 180, 300};
+		texts[] = {"Off", "120", "180", "300"};
+		default = 0;
+	};
+	class DMS_testForce
+	{
+		title = "Test mode forced failure";
+		values[] = {0, 1, 2};
+		texts[] = {"None", "Convoy escapes (squad holds fire)", "Squad wiped out after contact"};
+		default = 0;
+	};
+};
+
+class CfgFunctions
+{
+	class DMS
+	{
+		tag = "DMS";
+		class mission
+		{
+			file = "functions";
+			class config {};
+			class log {};
+			class rng {};
+			class t {};
+			class mods {};
+			class findPos {};
+			class route {};
+			class convoy {};
+			class support {};
+			class rp {};
+			class end {};
+			class testMode {};
+		};
+	};
+};
+
+class CfgCommunicationMenu
+{
+	class DMS_ArtyFire
+	{
+		text = "Mortars: fire for effect";
+		submenu = "";
+		expression = "['REQUEST', [_this select 0, _this select 1, 'FFE']] remoteExecCall ['DMS_fnc_support', 2];";
+		icon = "\a3\Ui_f\data\GUI\Cfg\CommunicationMenu\artillery_ca.paa";
+		cursor = "\a3\Ui_f\data\IGUI\Cfg\Cursors\iconCursorSupport_ca.paa";
+		enable = "1";
+		removeAfterExpressionCall = 1;
+	};
+	class DMS_ArtySpot
+	{
+		text = "Mortars: spotting round";
+		submenu = "";
+		expression = "['REQUEST', [_this select 0, _this select 1, 'SPOT']] remoteExecCall ['DMS_fnc_support', 2];";
+		icon = "\a3\Ui_f\data\GUI\Cfg\CommunicationMenu\artillery_ca.paa";
+		cursor = "\a3\Ui_f\data\IGUI\Cfg\Cursors\iconCursorSupport_ca.paa";
+		enable = "1";
+		removeAfterExpressionCall = 1;
+	};
+};
+
+class CfgDebriefing
+{
+	class DMS_Win
+	{
+		title = "Mission complete";
+		subtitle = "Convoy destroyed";
+		description = "The convoy was destroyed in the kill zone and the squad broke contact to the rally point.";
+	};
+	class DMS_FailDead
+	{
+		title = "Mission failed";
+		subtitle = "Squad lost";
+		description = "You were killed or the squad was wiped out.";
+	};
+	class DMS_FailEscape
+	{
+		title = "Mission failed";
+		subtitle = "Convoy escaped";
+		description = "Too much of the convoy got past the kill line.";
+	};
+	class DMS_FailMods
+	{
+		title = "Mission cannot start";
+		subtitle = "Required mods missing";
+		description = "Load CBA_A3, ACE, LAMBS Danger, RHS AFRF and RHS USAF, then start the mission again.";
+	};
+	class DMS_FailSetup
+	{
+		title = "Mission cannot start";
+		subtitle = "No usable road";
+		description = "The ambush site could not be laid out on the road network. See the [DMS] lines in the .rpt log.";
+	};
+	class DMS_TestEnd
+	{
+		title = "Test run ended";
+		subtitle = "Time limit";
+		description = "The unattended test run reached its time limit.";
+	};
+};

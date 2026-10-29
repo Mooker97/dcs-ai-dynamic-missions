@@ -687,10 +687,11 @@ Order fields (all optional except `do`):
   - `land`: land in area `at` (an airbase area means that airfield).
   - `escort`: follow flight `flight` and engage threats to it within `radius_nm`.
   - `engage`: orbit `at` and attack `targets` within `radius_nm`.
-  - `strike`: one attack run on a target in area `at`, then the next order. The target is the
-    first live group whose name starts with `group`, a threat/pool id (`DMS_` prefix allowed),
-    using DCS AttackGroup with `weapon`. With no `group`, or no live match, it is a Bombing task
-    on the area centre.
+  - `strike`: attack a target in area `at` in up to 3 passes, then the next order. The target is
+    the first live group whose name starts with `group`, a threat/pool id (`DMS_` prefix allowed).
+    Each aircraft of the flight gets a different live unit of that group per pass, and survivors
+    are re-attacked while the flight has ammo of the `weapon` kind. With no `group`, or no live
+    match, it is a single Bombing run on the area centre.
   - `rtb`: fly to the start airbase and land.
 - `alt_ft`: AGL for helicopters, MSL for planes.
 - `speed_kts`.
@@ -758,7 +759,10 @@ Order semantics:
 - `fly`: a Mission task to the zone centre at altM and speed. Done within max(300 m, zone
   radius).
 - `hold`: Orbit (Circle) over the zone. Done on `until` or `maxSec`.
-- `land`: a `Land` task at the zone centre for helicopters; planes land at the airbase. Done
+- `land`: a `Land` task at the zone centre for helicopters; planes land at the airbase. A
+  helicopter more than 2 km from the point first gets a `fly`-style route there at cruise (the
+  order's `altM`/`speedMps`, else the latest earlier order's, else the defaults), and the `Land`
+  task when it is within 2 km, so the transit is not flown at the Land task's approach speed. Done
   after `groundSec` on the ground (S_EVENT_LAND for the lead, or AGL < 3 m and speed < 2 m/s);
   then the group lifts off. `flight.lifted` is emitted when the ground time ends and the next order
   is issued (not on the actual liftoff). The last order keeps the group on the ground
@@ -767,9 +771,23 @@ Order semantics:
   `targetTypes` do the engaging (a fixed EngageTargetsInZone cannot follow a moving group). Done on
   `until`, `maxSec`, or when the escorted group is gone.
 - `engage`: Orbit plus EngageTargetsInZone.
-- `strike`: AttackGroup (or Bombing) with weaponType and expend "All". Done when the target
-  group is dead, when the flight's weapon was released and 60 s passed, or at `maxSec`. It emits
-  `flight.weapon` per release.
+- `strike` with a live target group: passes. Each pass is one group task, a `ComboTask` of one
+  `AttackUnit` per aircraft (as many as the flight has live aircraft, on the target group's live
+  units in unit order, each a different unit), with `groupAttack = false`, `attackQtyLimit =
+  true`, `attackQty = 1`, weaponType per `weapon`, `expend = "Two"` (`"One"` when the target
+  group has no more live units than the flight has aircraft), and the attack altitude when the
+  order has `altM`. A pass is over 45 s after its last release (`unit.shot`) or when all of its
+  targeted units are dead. Then, if target units survive, it is re-tasked on the survivors
+  (at most 3 passes), as long as a flight unit still carries ammo of the `weapon` kind
+  (`Unit.getAmmo`, best effort: AAMs and SAMs never count; no answer from DCS counts as ammo).
+  Done when the target group is dead (`target dead`), after pass 3 (`passes exhausted`), with no
+  ammo left (`no ammo`), or at `maxSec`. Every pass logs
+  `[DMS][Flights] flight '<id>' strike pass <n>: targets <unit>,<unit>`. (DCS cannot task the
+  units of an AI aircraft group separately, so the split is per AttackUnit in one ComboTask
+  [? headless check that each aircraft takes a different AttackUnit].)
+- `strike` with no live target group: a `Bombing` task on the area centre with expend "All".
+  Done 60 s after the first release, or at `maxSec`. Both forms emit `flight.weapon` per
+  release.
 - `rtb`: route to startAirbase with a Land waypoint (airborne starts use the nearest friendly
   airbase).
 
@@ -793,6 +811,13 @@ Python compile rules (`packages/dms-gen/src/dms_gen/planner/flights.py`):
 
 A dead group ends its orders (`flight.lost`). Every order start, end and skip logs
 `[DMS][Flights] ...` (info).
+
+Speed telemetry: when `DMS.Log.isDebug()` (test and debug builds) or
+`DMS_CONFIG.flightsTelemetry == true`, every 10 s each running flight's lead logs (info)
+`[DMS][Flights] TELEM flight=<id> order=<i>/<kind> spd=<kt> agl=<ft> msl=<ft> dist=<m|->`, where
+`dist` is the 2D distance to the order's target: the strike target group's or escorted group's
+lead, else the land area or order zone centre, else `-`. `flightsTelemetry` is a Lua-side key
+only (the Python side does not emit it yet).
 
 Events (add these to the table above):
 

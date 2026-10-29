@@ -227,3 +227,20 @@ These are the options, in order of preference:
   `weaponType` for `Auto` (Hoggit 1073741822 vs MOOSE 3221225470); whether `ROE = OPEN_FIRE` is
   enough for `AttackGroup`/`EngageTargetsInZone`; whether `S_EVENT_SHOT` fires for every bomb
   release of an AI flight.
+- **Strike: AttackGroup piles onto one unit.** In the w01 watch run (2026-10-29) a two-ship F-16
+  given `AttackGroup` (expend All, GuidedBomb) put every bomb from both jets on the same truck,
+  left one truck alive and went home. `DMS.Flights` now gives a group a `ComboTask` of one
+  `AttackUnit` per aircraft on different units (`groupAttack = false`, `attackQty = 1`) and
+  re-tasks on survivors for up to 3 passes. **[? headless check]** that the AI splits the
+  AttackUnit tasks across wingmen rather than running them in sequence with the whole flight.
+- **Helicopters at ~40 kt.** In the same run the UH-60A and AH-64D flew about 40 kt with orders
+  compiled at 110-135 kt. The waypoints we hand DCS look right (`speed` in m/s, `speed_locked =
+  true`, `ETA_locked = false`, `Turning Point`, current position first, Orbit speed = order
+  speed). Likely causes **[? headless check]**: a bare `Land` main task flies the transit at the
+  AI's own slow approach speed (now: route at cruise until 2 km, then `Land`); `Orbit` holds,
+  `EngageTargetsInZone` and `Escort` (which matches the escorted helicopter) are flown slowly by
+  helicopter AI. Use the `TELEM` log (`DMS_CONFIG.flightsTelemetry = true` or debug) to see
+  speed per order.
+- `Unit.getAmmo()` returns nil for a unit with no ammo left; entries are `{count, desc}` with
+  `desc.category` (Weapon.Category) and, for missiles, `desc.missileCategory`.
+  **[? `desc.guidance` present only on guided bombs]**.

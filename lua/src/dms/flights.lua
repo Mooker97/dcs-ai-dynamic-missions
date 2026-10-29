@@ -23,7 +23,11 @@ F.LANDED_SPEED_MPS = 2
 F.LAND_AREA_MIN_M = 300 -- land: ground contact counts within max(this, zone radius) of the point
 F.AIRBASE_AREA_M = 4000 -- landing at an airbase: ground contact within this of the airbase point
 F.PICKUP_RADIUS_M = 300
-F.STRIKE_AFTER_RELEASE_SEC = 60
+F.STRIKE_AFTER_RELEASE_SEC = 60 -- Bombing fallback: done this long after the first release
+F.STRIKE_PASS_SEC = 45 -- AttackUnit pass: over this long after the pass's last release
+F.STRIKE_MAX_PASSES = 3
+F.LAND_APPROACH_M = 2000 -- helicopter land: route at cruise speed until this close, then the Land task
+F.TELEM_SEC = 10
 F.LAND_EXTRA_SEC = 120 -- Land task ground time beyond groundSec (the next order lifts the group)
 F.DEFAULT_RADIUS_M = 2778 -- 1.5 nm
 F.DEFAULT_GROUND_SEC = 60
@@ -571,6 +575,42 @@ end
 
 local BEGIN = {}
 
+local function setTaskErr(fl, task)
+  local ok, err = setTask(fl, task)
+  if not ok then
+    return err
+  end
+  return nil
+end
+
+-- Altitude/speed for a transit without its own: the order's, else the latest earlier order's.
+local function cruiseOf(fl, o)
+  local c = { altM = o.altM, altType = o.altType, speedMps = o.speedMps }
+  for k = fl.index - 1, 1, -1 do
+    local p = fl.orders[k] or {}
+    if c.speedMps == nil and p.speedMps then
+      c.speedMps = p.speedMps
+    end
+    if c.altM == nil and p.altM then
+      c.altM, c.altType = p.altM, p.altType
+    end
+  end
+  return c
+end
+
+local function heliLandTask(fl, cur)
+  cur.approach = false
+  local last = fl.index >= #fl.orders
+  return setTaskErr(fl, {
+    id = "Land",
+    params = {
+      point = { x = cur.area.x, y = cur.area.y },
+      durationFlag = not last,
+      duration = math.floor(cur.groundSec + F.LAND_EXTRA_SEC),
+    },
+  })
+end
+
 BEGIN.fly = function(fl, o, cur)
   local to = resolvePlace(o.to)
   if not to then
@@ -693,6 +733,124 @@ local function findTarget(fl, prefix, at)
 end
 F._findTarget = findTarget
 
+local function unitName(u)
+  local ok, n = pcall(u.getName, u)
+  return ok and n or "?"
+end
+
+local function unitAlive(name)
+  if not (Unit and Unit.getByName) then
+    return false
+  end
+  local ok, u = pcall(Unit.getByName, name)
+  if not ok or not u then
+    return false
+  end
+  local okE, ex = pcall(u.isExist, u)
+  return okE and ex == true
+end
+
+-- Weapon keyword -> does an ammo entry's desc match? (Weapon.Category: SHELL 0, MISSILE 1, ROCKET 2,
+-- BOMB 3; Weapon.MissileCategory AAM 1, SAM 2.) [? desc.guidance only on guided bombs: headless check]
+local AMMO_MATCH = {
+  guided_bomb = function(d)
+    return d.category == 3 and d.guidance ~= nil
+  end,
+  bomb = function(d)
+    return d.category == 3
+  end,
+  missile = function(d)
+    return d.category == 1 and d.missileCategory ~= 1 and d.missileCategory ~= 2
+  end,
+  rockets = function(d)
+    return d.category == 2
+  end,
+  gun = function(d)
+    return d.category == 0
+  end,
+  any = function(d)
+    return d.category ~= 1 or (d.missileCategory ~= 1 and d.missileCategory ~= 2)
+  end,
+}
+
+local function weaponKey(w)
+  if type(w) == "number" then
+    return "any"
+  end
+  w = F.WEAPON_ALIASES[w] or w or "guided_bomb"
+  return AMMO_MATCH[w] and w or "guided_bomb"
+end
+
+-- Best effort: true when any live unit of the flight carries ammo of the order's weapon kind (or
+-- when DCS gives no usable answer). Unit.getAmmo returns nil for an empty unit.
+local function flightHasAmmo(fl, weapon)
+  local match = AMMO_MATCH[weaponKey(weapon)]
+  for _, u in ipairs(liveUnits(liveGroup(fl.group))) do
+    local ok, ammo = pcall(u.getAmmo, u)
+    if not ok then
+      return true
+    end
+    if type(ammo) == "table" then
+      for _, a in ipairs(ammo) do
+        local d = type(a) == "table" and a.desc or nil
+        if
+          type(a) == "table"
+          and (tonumber(a.count) or 0) > 0
+          and (type(d) ~= "table" or d.category == nil or match(d))
+        then
+          return true
+        end
+      end
+    end
+  end
+  return false
+end
+F._flightHasAmmo = flightHasAmmo
+
+-- One strike pass: a ComboTask with one AttackUnit per aircraft, each on a different live unit of
+-- the target group (ordered by unit). -> error string or nil.
+local function startStrikePass(fl, cur)
+  local targets = liveUnits(liveGroup(cur.target))
+  if #targets == 0 then
+    return "target group has no live units"
+  end
+  local aircraft = math.max(1, #liveUnits(liveGroup(fl.group)))
+  local expend = (#targets <= aircraft) and "One" or "Two"
+  local tasks, names = {}, {}
+  for i = 1, math.min(aircraft, #targets) do
+    local u = targets[i]
+    local okI, uid = pcall(u.getID, u)
+    if okI and uid then
+      tasks[#tasks + 1] = {
+        id = "AttackUnit",
+        number = #tasks + 1,
+        enabled = true,
+        auto = false,
+        params = {
+          unitId = uid,
+          weaponType = cur.flag,
+          expend = expend,
+          attackQtyLimit = true,
+          attackQty = 1,
+          groupAttack = false,
+          directionEnabled = false,
+          altitudeEnabled = cur.attackAlt ~= nil,
+          altitude = cur.attackAlt,
+        },
+      }
+      names[#names + 1] = unitName(u)
+    end
+  end
+  if #tasks == 0 then
+    return "target units have no id"
+  end
+  cur.pass = (cur.pass or 0) + 1
+  cur.passUnits = names
+  cur.passReleasedAt = nil
+  log("info", "flight '%s' strike pass %d: targets %s", fl.id, cur.pass, table.concat(names, ","))
+  return setTaskErr(fl, { id = "ComboTask", params = { tasks = tasks } })
+end
+
 BEGIN.strike = function(fl, o, cur)
   local at = resolvePlace(o.at)
   local target = o.group and findTarget(fl, o.group, at) or nil
@@ -702,55 +860,33 @@ BEGIN.strike = function(fl, o, cur)
   local alt, altType = altOf(fl, o)
   local flag = F.weaponFlag(o.weapon)
   cur.place = at
+  cur.flag = flag
   openFire(fl)
-  local task
   if target then
-    local tg = liveGroup(target)
-    local okI, gid = pcall(tg.getID, tg)
-    if not okI then
-      return "target group has no id"
-    end
     cur.target = target
-    task = {
-      id = "AttackGroup",
-      params = {
-        groupId = gid,
-        weaponType = flag,
-        expend = "All",
-        attackQtyLimit = false,
-        directionEnabled = false,
-        altitudeEnabled = o.altM ~= nil,
-        altitude = o.altM and mslAlt(alt, altType, at and at.x or 0, at and at.y or 0) or nil,
-      },
-    }
-  else
-    cur.target = nil
-    task = {
-      id = "Bombing",
-      params = {
-        point = { x = at.x, y = at.y },
-        weaponType = flag,
-        expend = "All",
-        attackQty = 1,
-        groupAttack = true,
-        directionEnabled = false,
-        altitudeEnabled = o.altM ~= nil,
-        altitude = o.altM and mslAlt(alt, altType, at.x, at.y) or nil,
-      },
-    }
+    if o.altM then
+      local u = liveUnits(liveGroup(target))[1]
+      local p = u and unitPoint(u)
+      cur.attackAlt = mslAlt(alt, altType, p and p.x or (at and at.x or 0), p and p.z or (at and at.y or 0))
+    end
+    log("info", "flight '%s' strike: AttackUnit on %s weaponType=%s", fl.id, target, tostring(flag))
+    return startStrikePass(fl, cur)
   end
-  log(
-    "info",
-    "flight '%s' strike: %s weaponType=%s",
-    fl.id,
-    target and ("AttackGroup " .. target) or ("Bombing on " .. tostring(o.at)),
-    tostring(flag)
-  )
-  local ok, err = setTask(fl, task)
-  if not ok then
-    return err
-  end
-  return nil
+  cur.target = nil
+  log("info", "flight '%s' strike: Bombing on %s weaponType=%s", fl.id, tostring(o.at), tostring(flag))
+  return setTaskErr(fl, {
+    id = "Bombing",
+    params = {
+      point = { x = at.x, y = at.y },
+      weaponType = flag,
+      expend = "All",
+      attackQty = 1,
+      groupAttack = true,
+      directionEnabled = false,
+      altitudeEnabled = o.altM ~= nil,
+      altitude = o.altM and mslAlt(alt, altType, at.x, at.y) or nil,
+    },
+  })
 end
 
 -- Landing at an airbase (planes; rtb for both): route with a Landing waypoint.
@@ -778,20 +914,19 @@ BEGIN.land = function(fl, o, cur)
   cur.groundSec = range(o.groundSec, F.DEFAULT_GROUND_SEC)
   cur.zone = o.at
   if flightCategory(fl) == "helicopter" then
+    cur.place = at
     cur.area = { x = at.x, y = at.y, radius = math.max(F.LAND_AREA_MIN_M, at.radius or 0) }
-    local last = fl.index >= #fl.orders
-    local ok, err = setTask(fl, {
-      id = "Land",
-      params = {
-        point = { x = at.x, y = at.y },
-        durationFlag = not last,
-        duration = math.floor(cur.groundSec + F.LAND_EXTRA_SEC),
-      },
-    })
-    if not ok then
-      return err
+    local p = leadPoint(fl)
+    if p and dist2D(p, at) > F.LAND_APPROACH_M then
+      -- A bare Land task flies the transit at the AI's own approach speed [? headless check]:
+      -- route there at cruise first, Land when within LAND_APPROACH_M (see landProgress).
+      local c = cruiseOf(fl, o)
+      local alt, altType = altOf(fl, c)
+      cur.approach = true
+      log("info", "flight '%s' land: approach to %s at %.0f m/s first", fl.id, tostring(o.at), speedOf(fl, c))
+      return setTaskErr(fl, routeTask(fl, at, alt, altType, speedOf(fl, c)))
     end
-    return nil
+    return heliLandTask(fl, cur)
   end
   local ab = at.airbase or nearestAirbase({ x = at.x, y = at.y }, fl.side)
   if not ab then
@@ -876,20 +1011,57 @@ PROGRESS.escort = function(fl, cur)
   return untilOrMax(fl, cur)
 end
 
-PROGRESS.strike = function(_, cur)
-  if cur.target and #liveUnits(liveGroup(cur.target)) == 0 then
-    return true, "target dead"
+-- A pass is over STRIKE_PASS_SEC after its last release, or when all of its targeted units died.
+local function strikePassOver(cur)
+  if cur.passReleasedAt and now() - cur.passReleasedAt >= F.STRIKE_PASS_SEC then
+    return true
   end
-  if cur.releasedAt and now() - cur.releasedAt >= F.STRIKE_AFTER_RELEASE_SEC then
+  for _, name in ipairs(cur.passUnits or {}) do
+    if unitAlive(name) then
+      return false
+    end
+  end
+  return true
+end
+
+PROGRESS.strike = function(fl, cur)
+  if cur.target then
+    if #liveUnits(liveGroup(cur.target)) == 0 then
+      return true, "target dead"
+    end
+  elseif cur.releasedAt and now() - cur.releasedAt >= F.STRIKE_AFTER_RELEASE_SEC then
     return true, "weapon released"
   end
   if now() - cur.startedAt >= cur.maxSec then
     return true, "maxSec"
   end
+  if cur.target and strikePassOver(cur) then
+    if (cur.pass or 0) >= F.STRIKE_MAX_PASSES then
+      return true, "passes exhausted"
+    end
+    if not flightHasAmmo(fl, cur.order.weapon) then
+      return true, "no ammo"
+    end
+    local err = startStrikePass(fl, cur)
+    if err then
+      return true, err
+    end
+  end
   return false
 end
 
 local function landProgress(fl, cur)
+  if cur.approach then
+    local p = leadPoint(fl)
+    if p and dist2D(p, cur.area) <= F.LAND_APPROACH_M then
+      log("info", "flight '%s' land: approach done, Land at %s", fl.id, tostring(cur.zone))
+      local err = heliLandTask(fl, cur)
+      if err then
+        return true, "land task failed: " .. err
+      end
+    end
+    return false
+  end
   if not cur.landedAt and cur.area and onGroundIn(fl, cur.area) then
     markLanded(fl, cur)
   end
@@ -1013,6 +1185,62 @@ local function tickFlight(fl)
 end
 
 -- ---------------------------------------------------------------------------
+-- telemetry (debug builds or DMS_CONFIG.flightsTelemetry)
+-- ---------------------------------------------------------------------------
+
+local function telemetryOn()
+  return (DMS.Log and DMS.Log.isDebug and DMS.Log.isDebug()) or cfg().flightsTelemetry == true
+end
+
+local function groupLeadXY(name)
+  local u = name and liveUnits(liveGroup(name))[1]
+  local p = u and unitPoint(u)
+  return p and { x = p.x, y = p.z } or nil
+end
+
+local function orderTargetXY(cur)
+  if not cur then
+    return nil
+  end
+  return (cur.target and groupLeadXY(cur.target))
+    or (cur.escorted and groupLeadXY(cur.escorted))
+    or cur.area
+    or cur.place
+end
+
+local function round(v)
+  return math.floor(v + 0.5)
+end
+
+local function telemFlight(fl)
+  if fl.status ~= "running" or not fl.found then
+    return
+  end
+  local u = liveUnits(liveGroup(fl.group))[1]
+  local p = u and unitPoint(u)
+  if not p then
+    return
+  end
+  local spd = 0
+  local okV, v = pcall(u.getVelocity, u)
+  if okV and type(v) == "table" then
+    spd = math.sqrt((v.x or 0) ^ 2 + (v.y or 0) ^ 2 + (v.z or 0) ^ 2)
+  end
+  local tp = orderTargetXY(fl.cur)
+  log(
+    "info",
+    "TELEM flight=%s order=%d/%s spd=%d agl=%d msl=%d dist=%s",
+    fl.id,
+    fl.index,
+    fl.cur and tostring(fl.cur.kind) or "-",
+    round(spd * 1.943844),
+    round((p.y - groundHeight(p.x, p.z)) * 3.28084),
+    round(p.y * 3.28084),
+    tp and tostring(round(dist2D(p, tp))) or "-"
+  )
+end
+
+-- ---------------------------------------------------------------------------
 -- bus handlers
 -- ---------------------------------------------------------------------------
 
@@ -1054,6 +1282,7 @@ local function onShot(ev)
     return
   end
   cur.releasedAt = cur.releasedAt or now()
+  cur.passReleasedAt = now() -- the pass ends STRIKE_PASS_SEC after its last release
   emit("flight.weapon", payload(fl, { weapon = ev.weapon, target = cur.target or cur.order.at }))
 end
 
@@ -1233,6 +1462,19 @@ function F.start()
         end
       end
     end, { firstDelay = F.TICK_SEC })
+    if #s.ids > 0 then
+      s.clocks[#s.clocks + 1] = DMS.Clock.every(F.TELEM_SEC, function()
+        if not telemetryOn() then
+          return
+        end
+        for _, id in ipairs(s.ids) do
+          local ok, err = pcall(telemFlight, s.flights[id])
+          if not ok then
+            log("warn", "flight '%s' telemetry: %s", id, tostring(err))
+          end
+        end
+      end, { firstDelay = F.TELEM_SEC })
+    end
     if watch and not testProxyRun() then
       local tries = 0
       local function arm()

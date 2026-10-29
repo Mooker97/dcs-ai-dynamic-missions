@@ -18,14 +18,29 @@ local function heli(name, x, y, alt, side)
   })
 end
 
-local function plane(name, x, y, alt)
-  MOCK.addGroup({
-    name = name,
-    coalition = 2,
-    country = "USA",
-    category = "airplane",
-    units = { { name = name .. "-1", type = "F-16C_50", x = x or 0, y = y or 0, alt = alt or 4000 } },
-  })
+local function plane(name, x, y, alt, n)
+  local units = {}
+  for i = 1, n or 1 do
+    units[i] =
+      { name = name .. "-" .. i, type = "F-16C_50", x = (x or 0) + (i - 1) * 50, y = y or 0, alt = alt or 4000 }
+  end
+  MOCK.addGroup({ name = name, coalition = 2, country = "USA", category = "airplane", units = units })
+end
+
+-- Unit.getAmmo for every unit of a mock group (desc: Weapon.Category etc.)
+local function arm(group, n, ammo)
+  for i = 1, n do
+    MOCK.units[group .. "-" .. i].ammo = ammo
+  end
+end
+local GBU12 = { { count = 2, desc = { category = 3, guidance = 7, typeName = "GBU-12" } } }
+
+local function shot(unit, weapon)
+  MOCK.fireEvent({ id = "SHOT", initiator = Unit.getByName(unit), weapon = MOCK.makeWeapon(weapon or "GBU-12") })
+end
+
+local function uid(name)
+  return Unit.getByName(name):getID()
 end
 
 local function ground(name, x, y, side, n)
@@ -134,6 +149,14 @@ describe("DMS.Flights", function()
     MOCK.advance(4)
     assert.are.equal(1, DMS.Narrative.firedCount("lz_cold"))
     assert.are.equal("land", DMS.Flights.state("dustoff").kind)
+    -- 10 km out: a cruise route (the last order's alt/speed) before the Land task
+    t = lastTask("Dustoff_dustoff")
+    assert.are.equal("Mission", t.id)
+    assert.are.equal(20000, t.params.route.points[2].x)
+    assert.are.equal(56.6, t.params.route.points[2].speed)
+    assert.are.equal(90, t.params.route.points[2].alt)
+    move("Dustoff_dustoff-1", 18500, 0, 90)
+    MOCK.advance(3)
     t = lastTask("Dustoff_dustoff")
     assert.are.equal("Land", t.id)
     assert.are.equal(20000, t.params.point.x)
@@ -188,8 +211,9 @@ describe("DMS.Flights", function()
     assert.are.equal("done", DMS.Flights.state("dusty").status)
   end)
 
-  it("strikes a group by name prefix (DMS_ prefix) with AttackGroup and emits flight.weapon", function()
+  it("strikes a group by name prefix (DMS_ prefix) with AttackUnit and emits flight.weapon", function()
     plane("Hog_hog", 0, 0, 4000)
+    arm("Hog_hog", 1, GBU12)
     ground("DMS_technicals_1", 40100, 0, 1, 2)
     DMS_CONFIG = config({
       {
@@ -205,20 +229,110 @@ describe("DMS.Flights", function()
     DMS.boot()
     MOCK.advance(3)
     local t = lastTask("Hog_hog")
-    assert.are.equal("AttackGroup", t.id)
-    assert.are.equal(Group.getByName("DMS_technicals_1"):getID(), t.params.groupId)
-    assert.are.equal(14, t.params.weaponType)
-    assert.are.equal("All", t.params.expend)
+    assert.are.equal("ComboTask", t.id)
+    assert.are.equal(1, #t.params.tasks) -- one aircraft -> one target unit
+    local a = t.params.tasks[1]
+    assert.are.equal("AttackUnit", a.id)
+    assert.are.equal(uid("DMS_technicals_1-1"), a.params.unitId)
+    assert.are.equal(14, a.params.weaponType)
+    assert.are.equal("Two", a.params.expend) -- 2 targets > 1 aircraft
+    assert.is_false(a.params.groupAttack)
+    assert.is_true(a.params.attackQtyLimit)
+    assert.are.equal(1, a.params.attackQty)
+    assert.is_true(a.params.altitudeEnabled)
+    assert.are.equal(4572, a.params.altitude)
     assert.are.equal(AI.Option.Air.val.ROE.OPEN_FIRE, MOCK.lastCall("Controller.setOption", "Hog_hog").args[2])
-    MOCK.fireEvent({ id = "SHOT", initiator = Unit.getByName("Hog_hog-1"), weapon = MOCK.makeWeapon("GBU-12") })
+    shot("Hog_hog-1")
     assert.are.equal(1, #weapon)
     assert.are.equal("GBU-12", weapon[1].weapon)
     assert.are.equal("DMS_technicals_1", weapon[1].target)
     MOCK.advance(30)
     assert.are.equal(0, #done)
+    -- the targeted unit dies -> the next pass at once, on the survivor, expend One
+    MOCK.killUnit("DMS_technicals_1-1")
+    MOCK.advance(3)
+    assert.is_true((MOCK.logContains("%[DMS%]%[Flights%] flight 'hog' strike pass 2: targets DMS_technicals_1%-2")))
+    t = lastTask("Hog_hog")
+    assert.are.equal(uid("DMS_technicals_1-2"), t.params.tasks[1].params.unitId)
+    assert.are.equal("One", t.params.tasks[1].params.expend)
     MOCK.killGroup("DMS_technicals_1")
     MOCK.advance(3)
     assert.are.equal(1, #done)
+    assert.is_true((MOCK.logContains("order 1 %(strike%) done: target dead")))
+  end)
+
+  it("gives each aircraft of a two-ship its own target unit and re-attacks survivors (max 3 passes)", function()
+    plane("Venom_venom", 0, 0, 5000, 2)
+    arm("Venom_venom", 2, GBU12)
+    ground("DMS_compound_1", 40100, 0, 1, 3)
+    DMS_CONFIG = config({
+      {
+        id = "venom",
+        group = "Venom_venom",
+        category = "airplane",
+        orders = { { kind = "strike", at = "target", group = "compound", weapon = "guided_bomb", maxSec = 600 } },
+      },
+    })
+    local done = events("flight.done")
+    DMS.boot()
+    MOCK.advance(3)
+    local t = lastTask("Venom_venom")
+    assert.are.equal("ComboTask", t.id)
+    assert.are.equal(2, #t.params.tasks)
+    assert.are.equal(uid("DMS_compound_1-1"), t.params.tasks[1].params.unitId)
+    assert.are.equal(uid("DMS_compound_1-2"), t.params.tasks[2].params.unitId)
+    assert.are.equal("Two", t.params.tasks[1].params.expend)
+    assert.is_false(t.params.tasks[2].params.altitudeEnabled)
+    assert.is_true((MOCK.logContains("flight 'venom' strike pass 1: targets DMS_compound_1%-1,DMS_compound_1%-2")))
+    local calls = MOCK.countCalls("Controller.setTask", "Venom_venom")
+    -- pass 1: releases at t+0 and t+10; the pass is over 45 s after the last one
+    shot("Venom_venom-1")
+    MOCK.advance(10)
+    shot("Venom_venom-2")
+    MOCK.killUnit("DMS_compound_1-1")
+    MOCK.advance(40)
+    assert.are.equal(calls, MOCK.countCalls("Controller.setTask", "Venom_venom"))
+    MOCK.advance(8)
+    assert.is_true((MOCK.logContains("flight 'venom' strike pass 2: targets DMS_compound_1%-2,DMS_compound_1%-3")))
+    t = lastTask("Venom_venom")
+    assert.are.equal(2, #t.params.tasks)
+    assert.are.equal("One", t.params.tasks[1].params.expend) -- 2 survivors <= 2 aircraft
+    shot("Venom_venom-1")
+    MOCK.killUnit("DMS_compound_1-2")
+    MOCK.advance(48)
+    assert.is_true((MOCK.logContains("flight 'venom' strike pass 3: targets DMS_compound_1%-3$")))
+    assert.are.equal(1, #lastTask("Venom_venom").params.tasks)
+    shot("Venom_venom-2")
+    MOCK.advance(48)
+    assert.are.equal(1, #done)
+    assert.is_true((MOCK.logContains("order 1 %(strike%) done: passes exhausted")))
+    assert.is_truthy(Unit.getByName("DMS_compound_1-3"))
+  end)
+
+  it("ends a strike when the flight has no ammo of the order's kind left", function()
+    plane("Hog_hog", 0, 0, 4000)
+    MOCK.units["Hog_hog-1"].ammo = {
+      { count = 2, desc = { category = 1, missileCategory = 1, typeName = "AIM-9" } },
+      { count = 0, desc = { category = 3, guidance = 7, typeName = "GBU-12" } },
+    }
+    ground("DMS_technicals_1", 40100, 0, 1, 2)
+    DMS_CONFIG = config({
+      { id = "hog", group = "Hog_hog", orders = { { kind = "strike", at = "target", group = "technicals" } } },
+    })
+    local done = events("flight.done")
+    DMS.boot()
+    MOCK.advance(3)
+    shot("Hog_hog-1")
+    MOCK.advance(48)
+    assert.are.equal(1, #done)
+    assert.is_true((MOCK.logContains("order 1 %(strike%) done: no ammo")))
+    assert.is_false(DMS.Flights._flightHasAmmo({ group = "Hog_hog" }, "guided_bomb"))
+    assert.is_false(DMS.Flights._flightHasAmmo({ group = "Hog_hog" }, "missile")) -- AAM only
+    assert.is_false(DMS.Flights._flightHasAmmo({ group = "Hog_hog" }, "any")) -- AAMs never count
+    MOCK.units["Hog_hog-1"].ammo = { { count = 300, desc = { category = 0 } } }
+    assert.is_true(DMS.Flights._flightHasAmmo({ group = "Hog_hog" }, "gun"))
+    assert.is_true(DMS.Flights._flightHasAmmo({ group = "Hog_hog" }, "any"))
+    assert.is_false(DMS.Flights._flightHasAmmo({ group = "Hog_hog" }, "bomb"))
   end)
 
   it("falls back to Bombing on the zone centre and ends 60 s after a release", function()
@@ -335,6 +449,40 @@ describe("DMS.Flights", function()
     assert.are.equal(2, #lost)
     assert.are.same({ "dusty", "ghost" }, DMS.Flights.ids())
     assert.are.equal("Dusty_dusty", DMS.Flights.groupName("dusty"))
+  end)
+
+  it("logs TELEM per flight lead every 10 s when flightsTelemetry or debug is on", function()
+    heli("Dusty_dusty", 0, 0, 150)
+    MOCK.units["Dusty_dusty-1"].velocity = { x = 30, y = 0, z = 40 } -- 50 m/s = 97 kt
+    DMS_CONFIG = config({
+      { id = "dusty", group = "Dusty_dusty", orders = { { kind = "fly", to = "gate", speedMps = 56.6 } } },
+    }, { flightsTelemetry = true })
+    DMS.boot()
+    MOCK.advance(11)
+    assert.is_true(
+      (MOCK.logContains("^%[DMS%]%[Flights%] TELEM flight=dusty order=1/fly spd=97 agl=492 msl=492 dist=10000$"))
+    )
+    local n = #MOCK.logLines()
+    MOCK.advance(10)
+    local telem = 0
+    for _, l in ipairs(MOCK.logLines()) do
+      if string.find(l, "TELEM flight=dusty", 1, true) then
+        telem = telem + 1
+      end
+    end
+    assert.are.equal(2, telem)
+    assert.is_true(#MOCK.logLines() > n)
+  end)
+
+  it("logs no TELEM by default, and TELEM in debug builds", function()
+    heli("Dusty_dusty", 0, 0, 150)
+    DMS_CONFIG = config({ { id = "dusty", group = "Dusty_dusty", orders = { { kind = "hold", at = "gate" } } } })
+    DMS.boot()
+    MOCK.advance(25)
+    assert.is_falsy((MOCK.logContains("TELEM")))
+    DMS_CONFIG.debug = true
+    MOCK.advance(10)
+    assert.is_true((MOCK.logContains("TELEM flight=dusty order=1/hold spd=0 agl=492 msl=492 dist=10000")))
   end)
 
   it("maps weapons and targets per the contract", function()

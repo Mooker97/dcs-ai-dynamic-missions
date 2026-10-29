@@ -114,6 +114,7 @@ characters:
       cadence: measured
       brevity: terse
       radio_fx: uhf_clean
+      eleven_voice_id: XrExE9yKIg1WjnnlVkGX
       notes: "Flat by default. Pressure shows as fewer words, not a raised voice."
 
   - id: tower_hatay
@@ -161,6 +162,7 @@ characters:
       cadence: measured
       brevity: terse
       radio_fx: vhf_noisy
+      eleven_voice_id: JBFqnCBsd6RMkjVDRZzb
       notes: "Low, near-whisper on the hill. Only raises his voice for 'check fire'."
 
   - id: mule_reyes
@@ -267,7 +269,7 @@ characters:
       cadence: measured
       brevity: terse
       radio_fx: uhf_clean
-      eleven_voice_id: null
+      eleven_voice_id: T3RkkRObzq7rCMQT4zhL
       notes: "Flat by default. Never says more than the other station needs."
 
   - id: dustoff_whitfield
@@ -291,7 +293,7 @@ characters:
       cadence: brisk
       brevity: terse
       radio_fx: uhf_clean
-      eleven_voice_id: null
+      eleven_voice_id: EXAVITQu4vr4xnSDxMaL
       notes: "Short transmissions. Patient first, aircraft second."
 
   - id: venom_lindqvist
@@ -315,7 +317,7 @@ characters:
       cadence: brisk
       brevity: terse
       radio_fx: uhf_clean
-      eleven_voice_id: null
+      eleven_voice_id: vIuLMrDs3Mbl0w5kvuKe
       notes: "Mask mic. Two to five words per call when he can."
 
   - id: hammer

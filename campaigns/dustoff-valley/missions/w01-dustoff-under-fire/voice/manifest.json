@@ -1,0 +1,86 @@
+{
+  "ops_start_v1": {
+    "file": "ops_start_v1.ogg",
+    "dur_sec": 6.56,
+    "text": "Dusty, Dustoff Three-One, Hatay Ops. Kestrel has one urgent surgical. Cleared in.",
+    "speaker": "ops_walsh",
+    "model": "eleven_v3"
+  },
+  "kestrel_casualty_v1": {
+    "file": "kestrel_casualty_v1.ogg",
+    "dur_sec": 6.08,
+    "text": "[whispers] Dustoff, Kestrel Two-Two. One urgent surgical. LZ is the field below us.",
+    "speaker": "kestrel_ferris",
+    "model": "eleven_v3"
+  },
+  "kestrel_technicals_v1": {
+    "file": "kestrel_technicals_v1.ogg",
+    "dur_sec": 5.93,
+    "text": "Dusty, Kestrel. Technicals on the canal road, northbound toward the LZ.",
+    "speaker": "kestrel_ferris",
+    "model": "eleven_v3"
+  },
+  "dusty_tally_v1": {
+    "file": "dusty_tally_v1.ogg",
+    "dur_sec": 3.14,
+    "text": "Kestrel, Dusty. Tally the road. Pushing ahead to engage.",
+    "speaker": "dusty_brennan",
+    "model": "eleven_v3"
+  },
+  "ops_strike_v1": {
+    "file": "ops_strike_v1.ogg",
+    "dur_sec": 5.28,
+    "text": "Venom One-One, Hatay Ops. Compound south of the ridge. Cleared hot.",
+    "speaker": "ops_walsh",
+    "model": "eleven_v3"
+  },
+  "venom_bombs_v1": {
+    "file": "venom_bombs_v1.ogg",
+    "dur_sec": 2.83,
+    "text": "Venom One-One, bombs away. Thirty seconds.",
+    "speaker": "venom_lindqvist",
+    "model": "eleven_v3"
+  },
+  "dusty_lz_cold_v1": {
+    "file": "dusty_lz_cold_v1.ogg",
+    "dur_sec": 3.45,
+    "text": "Dustoff, Dusty. LZ is cold. Come in from the west.",
+    "speaker": "dusty_brennan",
+    "model": "eleven_v3"
+  },
+  "dustoff_inbound_v1": {
+    "file": "dustoff_inbound_v1.ogg",
+    "dur_sec": 4.89,
+    "text": "Dusty, Dustoff. Inbound from the west. Short final in one minute.",
+    "speaker": "dustoff_whitfield",
+    "model": "eleven_v3"
+  },
+  "kestrel_lz_hot_v1": {
+    "file": "kestrel_lz_hot_v1.ogg",
+    "dur_sec": 3.84,
+    "text": "[urgent] Dusty, Kestrel. Movement in the treeline east of the LZ.",
+    "speaker": "kestrel_ferris",
+    "model": "eleven_v3"
+  },
+  "dustoff_lifting_v1": {
+    "file": "dustoff_lifting_v1.ogg",
+    "dur_sec": 5.54,
+    "text": "Dustoff Three-One lifting. One urgent surgical aboard. Egress west.",
+    "speaker": "dustoff_whitfield",
+    "model": "eleven_v3"
+  },
+  "kestrel_egress_gun_v1": {
+    "file": "kestrel_egress_gun_v1.ogg",
+    "dur_sec": 4.72,
+    "text": "[urgent] Dusty, Kestrel. Gun truck moving south of Dustoff's egress.",
+    "speaker": "kestrel_ferris",
+    "model": "eleven_v3"
+  },
+  "ops_clear_v1": {
+    "file": "ops_clear_v1.ogg",
+    "dur_sec": 6.74,
+    "text": "Dustoff, Hatay Ops. Copy clear of the valley. Surgical team is waiting.",
+    "speaker": "ops_walsh",
+    "model": "eleven_v3"
+  }
+}

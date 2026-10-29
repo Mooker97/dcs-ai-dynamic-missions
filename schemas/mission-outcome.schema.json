@@ -1,4 +1,101 @@
 {
+  "$defs": {
+    "PlayerOutcome": {
+      "additionalProperties": false,
+      "description": "Per-player facts in an outcome (contract v0.9 `players[]`; runtime not implemented yet).\n\nA bare string (the pre-v0.9 shape, a player name) is accepted and becomes ``{name}``. Facts\nare counted per player name, so multicrew (two players in one unit) gives two entries.",
+      "properties": {
+        "name": {
+          "description": "DCS player name (multiplayer callsign).",
+          "title": "Name",
+          "type": "string"
+        },
+        "flight": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Player group name the player flew in (dynamic slots included).",
+          "title": "Flight"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Unit name of the player's aircraft.",
+          "title": "Unit"
+        },
+        "type_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Aircraft type, e.g. 'F-16C_50'.",
+          "title": "Type Name"
+        },
+        "kills": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "Kills credited to this player by category or type.",
+          "title": "Kills",
+          "type": "object"
+        },
+        "dead": {
+          "default": false,
+          "description": "The player was killed (PILOT_DEAD).",
+          "title": "Dead",
+          "type": "boolean"
+        },
+        "ejected": {
+          "default": false,
+          "description": "The player ejected.",
+          "title": "Ejected",
+          "type": "boolean"
+        },
+        "late": {
+          "default": false,
+          "description": "Joined after mission start (player.joined_late fired).",
+          "title": "Late",
+          "type": "boolean"
+        },
+        "joined_sec": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Mission time (s) the player first spawned.",
+          "title": "Joined Sec"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "PlayerOutcome",
+      "type": "object"
+    }
+  },
   "additionalProperties": false,
   "description": "One outcome report. A mission usually emits several (per beat, plus a final summary).",
   "properties": {
@@ -114,9 +211,9 @@
       "type": "object"
     },
     "players": {
-      "description": "Player names involved.",
+      "description": "Players involved. Pre-v0.9 lines carry bare names (accepted as {name}); v0.9 adds per-player facts (flight, kills, dead/ejected, late).",
       "items": {
-        "type": "string"
+        "$ref": "#/$defs/PlayerOutcome"
       },
       "title": "Players",
       "type": "array"

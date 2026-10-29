@@ -53,7 +53,10 @@ BeatEvent = Literal[
     "flight.weapon",
     "flight.done",
     "flight.lost",
+    "player.joined_late",
 ]
+
+BeatScope = Literal["mission", "flight"]
 
 # camelCase (Lua) spellings accepted on input and mapped to the snake_case field names.
 _CAMEL_KEYS: dict[str, str] = {
@@ -345,6 +348,15 @@ class Beat(DMSModel):
         default=50, ge=0, le=100, description="Higher wins when several beats are eligible at once."
     )
     once: bool = Field(default=True, description="Fire at most once per mission.")
+    scope: BeatScope | None = Field(
+        default=None,
+        description=(
+            "Multiplayer scope (contract v0.9, not implemented yet): 'mission' (unset) = one "
+            "fired set for the whole mission, the first flight to trip the beat consumes it; "
+            "'flight' = each player flight (keyed by group name) gets its own once/cooldown, "
+            "and the radio/mark go to that flight only (payload.flight)."
+        ),
+    )
     guaranteed: bool = Field(
         default=False,
         description=(

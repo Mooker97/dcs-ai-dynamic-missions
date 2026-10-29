@@ -6,7 +6,7 @@ import json
 import re
 from typing import Any
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 
 from ._common import DMSModel, OutcomeValue
 
@@ -20,6 +20,44 @@ _ALIASES = {"outcome": "outcomes", "t": "time", "mission": "mission_id", "event"
 def camel_to_snake(name: str) -> str:
     """'missionId' -> 'mission_id'."""
     return _CAMEL_RE.sub("_", name).lower()
+
+
+class PlayerOutcome(DMSModel):
+    """Per-player facts in an outcome (contract v0.9 `players[]`; runtime not implemented yet).
+
+    A bare string (the pre-v0.9 shape, a player name) is accepted and becomes ``{name}``. Facts
+    are counted per player name, so multicrew (two players in one unit) gives two entries.
+    """
+
+    name: str = Field(description="DCS player name (multiplayer callsign).")
+    flight: str | None = Field(
+        default=None, description="Player group name the player flew in (dynamic slots included)."
+    )
+    unit: str | None = Field(default=None, description="Unit name of the player's aircraft.")
+    type_name: str | None = Field(default=None, description="Aircraft type, e.g. 'F-16C_50'.")
+    kills: dict[str, int] = Field(
+        default_factory=dict, description="Kills credited to this player by category or type."
+    )
+    dead: bool = Field(default=False, description="The player was killed (PILOT_DEAD).")
+    ejected: bool = Field(default=False, description="The player ejected.")
+    late: bool = Field(
+        default=False, description="Joined after mission start (player.joined_late fired)."
+    )
+    joined_sec: float | None = Field(
+        default=None, ge=0, description="Mission time (s) the player first spawned."
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _from_name(cls, data: Any) -> Any:
+        if isinstance(data, str):
+            return {"name": data}
+        if isinstance(data, dict):
+            out = {camel_to_snake(str(k)): v for k, v in data.items()}
+            if out.get("kills") == []:
+                out["kills"] = {}
+            return out
+        return data
 
 
 class MissionOutcome(DMSModel):
@@ -42,7 +80,13 @@ class MissionOutcome(DMSModel):
     losses: dict[str, int] = Field(
         default_factory=dict, description="Friendly losses by category or type."
     )
-    players: list[str] = Field(default_factory=list, description="Player names involved.")
+    players: list[PlayerOutcome] = Field(
+        default_factory=list,
+        description=(
+            "Players involved. Pre-v0.9 lines carry bare names (accepted as {name}); v0.9 adds "
+            "per-player facts (flight, kills, dead/ejected, late)."
+        ),
+    )
     quality_deltas: dict[str, float] = Field(
         default_factory=dict,
         description="Cumulative quality changes from beat effects (the debriefer applies them).",
@@ -101,7 +145,7 @@ class MissionOutcome(DMSModel):
             outcomes={**self.outcomes, **other.outcomes},
             kills=_max(self.kills, other.kills),
             losses=_max(self.losses, other.losses),
-            players=list(dict.fromkeys([*self.players, *other.players])),
+            players=list({p.name: p for p in [*self.players, *other.players]}.values()),
             quality_deltas={**self.quality_deltas, **other.quality_deltas},
             qualities={**self.qualities, **other.qualities},
             beats=list(dict.fromkeys([*self.beats, *other.beats])),

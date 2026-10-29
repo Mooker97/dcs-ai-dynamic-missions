@@ -8,11 +8,13 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from ._common import (
+    ENCOUNTER_KINDS,
     MISSION_TYPES,
     THEATERS,
     Coalition,
     ContentMode,
     DMSModel,
+    EncounterKind,
     LatLon,
     MissionType,
     QualityCheck,
@@ -41,7 +43,7 @@ from .mission import (
     Support,
     Threat,
 )
-from .outcome import MissionOutcome, parse_dcs_log, summarize_outcomes
+from .outcome import MissionOutcome, PlayerOutcome, parse_dcs_log, summarize_outcomes
 from .plan import (
     BuildPlan,
     Payload,
@@ -69,6 +71,7 @@ from .runtime import (
     AmbientSite,
     Budgets,
     CircleZone,
+    CommsSettings,
     Director,
     DirectorGain,
     Encounter,
@@ -79,8 +82,10 @@ from .runtime import (
     PolygonZone,
     Pool,
     PoolMember,
+    ResumeState,
     RuntimeConfig,
     Speaker,
+    StateSettings,
     Template,
     TemplateUnit,
     VoiceEntry,
@@ -132,6 +137,7 @@ def export_json_schemas(out_dir: str | Path) -> list[Path]:
 
 __all__ = [
     "DOCUMENT_MODELS",
+    "ENCOUNTER_KINDS",
     "MISSION_TYPES",
     "THEATERS",
     "Act",
@@ -155,6 +161,7 @@ __all__ = [
     "Character",
     "CircleZone",
     "Coalition",
+    "CommsSettings",
     "ContentMode",
     "DMSModel",
     "DialogueTurn",
@@ -164,6 +171,7 @@ __all__ = [
     "DynamicIntent",
     "Encounter",
     "EncounterIntent",
+    "EncounterKind",
     "EncounterTrigger",
     "EncounterTriggerIntent",
     "Faction",
@@ -196,6 +204,7 @@ __all__ = [
     "PlanWeather",
     "PlanZone",
     "PlayerFlight",
+    "PlayerOutcome",
     "Players",
     "PolygonArea",
     "PolygonZone",
@@ -208,10 +217,12 @@ __all__ = [
     "QualityDef",
     "RadioFxPreset",
     "Requires",
+    "ResumeState",
     "RuntimeConfig",
     "Setting",
     "Source",
     "Speaker",
+    "StateSettings",
     "StoryBible",
     "Support",
     "Template",

@@ -529,3 +529,27 @@ describe("intel.mark contract", function()
     eq(DMS.Intel.mark("unit:nobody"), nil)
   end)
 end)
+
+describe("v0.9 contract keys (not implemented) are tolerated", function()
+  it("boots with scope/perFlight/comms/state/resume and a v0.9 kind, no errors", function()
+    DMS_CONFIG = {
+      missionId = "m-v09",
+      narrative = { minGapSec = 0 },
+      beats = {
+        { id = "go", when = { event = "mission.start" }, scope = "flight", text = "Go" },
+        { id = "late", when = { event = "player.joined_late" }, scope = "flight" },
+      },
+      encounters = {
+        { id = "arty", kind = "artillery", perFlight = true, trigger = { type = "manual" } },
+      },
+      comms = { maxAgeSec = 45 },
+      state = { enabled = true, intervalSec = 300, chunkBytes = 2000 },
+      resume = { seq = 1, t = 0, seed = 7, modules = { Narrative = { fired = {} } } },
+    }
+    assert.is_true(DMS.boot())
+    MOCK.spawnPlayer({ name = "P-1", group = "P", playerName = "Mav", x = 0, y = 0, alt = 500 })
+    MOCK.advance(60)
+    eq(fired("go"), 1)
+    noErrors()
+  end)
+end)

@@ -16,7 +16,7 @@ from typing import Annotated, Any, Literal, Union, get_args, get_origin
 
 from pydantic import BaseModel, Field, model_validator
 
-from ._common import DirectorState, DMSModel, Ident, Skill
+from ._common import DirectorState, DMSModel, EncounterKind, Ident, Skill
 from .beats import Beat, BeatTrigger
 
 Range = float | tuple[float, float]
@@ -198,8 +198,11 @@ class Encounter(DMSModel):
     """A runtime encounter."""
 
     id: Ident = Field(description="Encounter id.")
-    kind: Literal["ambush_sam", "waves", "hunt", "convoy", "cap", "pool"] = Field(
-        description="Encounter behaviour."
+    kind: EncounterKind = Field(
+        description=(
+            "Encounter behaviour. artillery / csar / ground_war: contract v0.9 kinds registered "
+            "via DMS.Encounters.registerKind (enc_<kind>.lua), not implemented yet."
+        )
     )
     pool: Ident | None = Field(
         default=None, description="Pool id (one of pool / template / group is required)."
@@ -218,6 +221,13 @@ class Encounter(DMSModel):
     )
     gap_sec: tuple[float, float] | None = Field(default=None, description="[min, max] wave gap.")
     once: bool | None = Field(default=None, description="Fire at most once (default true).")
+    per_flight: bool | None = Field(
+        default=None,
+        description=(
+            "Contract v0.9, not implemented yet: true = trigger once per player flight (keyed by "
+            "group name; `once` then applies per flight), within the director budget."
+        ),
+    )
     engage_radius_m: float | None = Field(
         default=None,
         gt=0,
@@ -586,6 +596,69 @@ class TestSettings(DMSModel):
     loiter: TestLoiter | None = Field(
         default=None, description="Hold the proxy at the objective until the RTB beat."
     )
+    proxies: list[str] | None = Field(
+        default=None,
+        description=(
+            "Contract v0.9, not implemented yet: AI group names that each stand in for one "
+            "player flight (multiplayer logic headless in SP). Unset = [player_proxy] when set."
+        ),
+    )
+
+
+class CommsSettings(DMSModel):
+    """DMS_CONFIG.comms: radio queue settings (contract v0.9, not implemented yet)."""
+
+    max_age_sec: float | None = Field(
+        default=None,
+        gt=0,
+        description=(
+            "Drop a queued per-group line older than this instead of playing it late (join in "
+            "progress: no backlog of stale calls). Unset = never drop."
+        ),
+    )
+
+
+class StateSettings(DMSModel):
+    """DMS_CONFIG.state: [DMS.STATE] checkpoints (contract v0.9, not implemented yet)."""
+
+    enabled: bool = Field(default=True, description="false keeps DMS.State inert.")
+    interval_sec: float = Field(
+        default=300, gt=0, description="Seconds between periodic checkpoints (also on every beat)."
+    )
+    chunk_bytes: int = Field(
+        default=2000,
+        ge=200,
+        description=(
+            "Max JSON bytes per [DMS.STATE] line before splitting into part/of chunks "
+            "(tune from probe K9, the longest env.info line that survives intact)."
+        ),
+    )
+
+
+class ResumeState(DMSModel):
+    """DMS_CONFIG.resume: last checkpoint baked in by `dms resume` (contract v0.9, not implemented yet)."""
+
+    seq: int = Field(
+        ge=0, description="Sequence number of the [DMS.STATE] checkpoint it came from."
+    )
+    t: float = Field(default=0, ge=0, description="Mission time (s) of that checkpoint.")
+    seed: int | None = Field(
+        default=None, description="Pinned runtime seed so the resumed run rolls the same choices."
+    )
+    modules: dict[str, dict[str, Any]] = Field(
+        default_factory=dict,
+        description=(
+            "Module name (as on DMS, e.g. 'Narrative', 'Encounters') -> the table its "
+            "M.snapshot() returned; passed to M.restore(t) before M.start(). Keys verbatim."
+        ),
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _empty_lua_table(cls, data: Any) -> Any:
+        if isinstance(data, dict) and data.get("modules") == []:
+            return {**data, "modules": {}}
+        return data
 
 
 class WatchConfig(DMSModel):
@@ -707,6 +780,17 @@ class RuntimeConfig(DMSModel):
     )
     flights: list[FlightConfig] | None = Field(
         default=None, description="AI flights with orders (unset = DMS.Flights inert)."
+    )
+    comms: CommsSettings | None = Field(
+        default=None, description="Radio queue settings (contract v0.9; unset = defaults)."
+    )
+    state: StateSettings | None = Field(
+        default=None,
+        description="[DMS.STATE] checkpoint settings (contract v0.9; unset = DMS.State inert).",
+    )
+    resume: ResumeState | None = Field(
+        default=None,
+        description="Checkpoint to resume from (contract v0.9; set only by `dms resume`).",
     )
 
     @classmethod

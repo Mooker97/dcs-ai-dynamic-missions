@@ -33,6 +33,23 @@
           "title": "Once",
           "type": "boolean"
         },
+        "scope": {
+          "anyOf": [
+            {
+              "enum": [
+                "mission",
+                "flight"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Multiplayer scope (contract v0.9, not implemented yet): 'mission' (unset) = one fired set for the whole mission, the first flight to trip the beat consumes it; 'flight' = each player flight (keyed by group name) gets its own once/cooldown, and the radio/mark go to that flight only (payload.flight).",
+          "title": "Scope"
+        },
         "guaranteed": {
           "default": false,
           "description": "Story-spine beat that must play in every run: the runtime ignores chance, keeps it pending until its requires hold, and never drops its radio line from a full queue.",
@@ -484,7 +501,8 @@
             "flight.pickup",
             "flight.weapon",
             "flight.done",
-            "flight.lost"
+            "flight.lost",
+            "player.joined_late"
           ],
           "title": "Event",
           "type": "string"

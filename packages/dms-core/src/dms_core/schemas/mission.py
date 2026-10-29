@@ -16,6 +16,7 @@ from ._common import (
     Coalition,
     ContentMode,
     DMSModel,
+    EncounterKind,
     Ident,
     LatLon,
     MissionType,
@@ -270,8 +271,14 @@ class Objective(DMSModel):
     """A mission objective, checkable at runtime via flags."""
 
     id: Ident = Field(description="Objective id, e.g. 'convoy_arrives'.")
-    kind: Literal["destroy", "protect", "escort", "reach", "recon", "rescue", "survive", "land"] = (
-        Field(description="Objective type.")
+    kind: Literal[
+        "destroy", "protect", "escort", "reach", "recon", "rescue", "survive", "land", "troops"
+    ] = Field(
+        description=(
+            "Objective type. troops (contract v0.9, not implemented yet): carry the friendly "
+            "ground group `target` (a support id) from where it waits to `area` (the drop zone); "
+            "succeeds when they are unloaded inside `area`."
+        )
     )
     description: str = Field(description="Briefing text for this objective.")
     primary: bool = Field(default=True, description="Primary objectives decide success.")
@@ -336,8 +343,12 @@ class EncounterIntent(DMSModel):
     """A dynamic event: pop-up SAM, reinforcement waves, hunters, enemy CAP."""
 
     id: Ident = Field(description="Encounter id, e.g. 'popup_sam', 'qrf'.")
-    kind: Literal["ambush_sam", "waves", "hunt", "convoy", "cap", "pool"] = Field(
-        description="Encounter behaviour."
+    kind: EncounterKind = Field(
+        description=(
+            "Encounter behaviour. artillery, csar and ground_war are contract v0.9 kinds "
+            "(DMS.Encounters.registerKind, enc_<kind>.lua), not implemented yet: the runtime "
+            "logs 'unknown kind' and skips them until they land."
+        )
     )
     pool: Ident = Field(description="Pool id it draws from.")
     trigger: EncounterTriggerIntent = Field(description="What starts the encounter.")
@@ -355,6 +366,14 @@ class EncounterIntent(DMSModel):
         default=None, description="[min, max] minutes between waves."
     )
     hunt: bool = Field(default=False, description="Spawned groups actively hunt the players.")
+    per_flight: bool | None = Field(
+        default=None,
+        description=(
+            "Multiplayer (contract v0.9, not implemented yet): true = run once per player flight "
+            "(a late joiner gets their own), within the director spawn budget. Unset/false = "
+            "once per mission."
+        ),
+    )
     notes: str | None = Field(default=None, description="Design intent.")
 
 

@@ -213,7 +213,7 @@ exfil:
   hold_distance: 1500
   fly_height: 60
   hot_radius: 200
-  hot_vehicle_radius: 600
+  hot_vehicle_radius: 1200
   ready_radius: 75
   ready_max_wait: 600
   hot_max_hold: 300

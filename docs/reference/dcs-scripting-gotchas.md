@@ -28,8 +28,9 @@ Related: [miz-format.md](miz-format.md) · [ADR 0003](../adr/0003-own-lua-core-o
   `DMS.Clock` is the only module that calls the scheduler, and it handles this.
 - Never schedule for exactly `timer.getTime()` during mission start. In the m03 headless run
   (2026-10-28), two encounters with `afterSec = 0` never ran while a 30 s one did. `DMS.Clock`
-  now schedules every first run at least 0.05 s ahead. Suspected cause, not yet proven in
-  isolation.
+  now schedules every first run at least 0.05 s ahead. With that, m03's two `after_min: 0`
+  encounters (fort_positions, armor_line) spawned at t=0 (headless DCS 2026-10-29). Not proven in
+  isolation that the exact-now schedule was the cause.
 - Wrap `onEvent` handlers in `pcall` as well. `DMS.Bus` is the only module that calls
   `world.addEventHandler`.
 
@@ -42,7 +43,8 @@ Related: [miz-format.md](miz-format.md) · [ADR 0003](../adr/0003-own-lua-core-o
 - **Routes** are set with `setTask({id='Mission', params={route={points={...}}}})`.
   - Give the route at least 2 points, with the current position first. MOOSE `RouteGroundTo`
     builds exactly `{FromWP (current), ToWP}` ([Controllable.lua](https://github.com/FlightControl-Master/MOOSE/blob/master/Moose%20Development/Moose/Wrapper/Controllable.lua)).
-    **[? whether a 1-point route fails: headless test, spawn a group, give it a 1-point route, log its position after 60 s]**
+    A 1-point route does nothing: a BTR-80 given `{id='Mission'}` with one point 2 km away had
+    moved 0 m after 60 s and 180 s (headless DCS 2026-10-29, Syria, DCS 2.9.31).
   - A route point's `y` is the Vec3 `z`.
   - Speeds are in m/s.
   - Point actions are Off Road, On Road, Cone, Rank, Diamond, Vee and EchelonL/R.
@@ -97,13 +99,14 @@ Related: [miz-format.md](miz-format.md) · [ADR 0003](../adr/0003-own-lua-core-o
 - `world.getMarkPanels()` returns mark panels **and markup shapes** (`circleToAll`, `textToAll`, ...).
   Each entry has `{idx, time, initiator, coalition, groupID, text, pos}`. A shape drawn for all
   coalitions may report coalition 255, and a shape's `pos` is about the average of its points
-  ([Hoggit](https://wiki.hoggitworld.com/view/DCS_func_getMarkPanels)). The mock (`lua/mocks/dcs.lua`)
-  matches this, and `DMS.Test` `marks` verifies circles as well as text marks (still tolerant when
-  a build lists no shapes).
-- Script-made marks are assumed to have `initiator == nil`, and `DMS.Test` ghost detection relies
-  on that. DCS-gRPC treats `initiator` as optional, which is consistent with this but doesn't prove
-  it. **[? headless test: markToAll + circleToAll from script, then log `tostring(p.initiator)`,
-  `p.coalition` and `p.groupID` for each panel]**
+  ([Hoggit](https://wiki.hoggitworld.com/view/DCS_func_getMarkPanels)). Verified (headless DCS
+  2026-10-29, DCS 2.9.31): `circleToAll(-1, ...)` is listed with `text = ""`, coalition 255 and
+  `pos` at the centre (y = terrain height); `markToAll` also reports coalition 255;
+  `markToCoalition(.., 2, ..)` reports 2. The m01 runs' `f10_marks` check found circles 3/3 and
+  text 4/4. The mock (`lua/mocks/dcs.lua`) matches this.
+- Script-made marks have `initiator == nil` and `groupID == 4294967295` (-1 as an unsigned 32-bit
+  value), whether made by `markToAll`, `markToCoalition` or `circleToAll` (headless DCS 2026-10-29).
+  `DMS.Test` ghost detection relies on `initiator == nil`.
 
 ## Events
 
@@ -146,17 +149,19 @@ Related: [miz-format.md](miz-format.md) · [ADR 0003](../adr/0003-own-lua-core-o
   - Reference it from a never-firing keeper trigger. The ME drops a key from `mapResource` when
     someone edits or deletes the action that uses it, and this is also the community's standard fix
     ([ED forum](https://forum.dcs.world/topic/291580-add-a-sound-file-to-be-used-by-triggeraction-outsound)).
-  - **[? whether the *sim* (not the ME) needs the `mapResource` entry to play a file: headless test,
-    a miz with an `.ogg` in `l10n/DEFAULT/` and no ResKey, call outSoundForCoalition, then grep
-    dcs.log for a file error]**
+  - **[? whether the *sim* (not the ME) needs the `mapResource` entry to play a file]** Headless
+    can't settle it: `outSoundForCoalition` and `radioTransmission` on a file that doesn't exist
+    raise no Lua error and log nothing in dcs.log (headless DCS 2026-10-29, `ED_SOUND` uses the
+    dummy driver with `--norender`). A clean dcs.log therefore doesn't prove a file played;
+    that needs a cockpit check.
 - The scripting signature is `trigger.action.radioTransmission(file, vec3, modulation, loop, freqHz, power, name)`.
   DCS 2.9.25 added subtitles to the ME **trigger action**, which the ME serializes as
   `a_radio_transmission(file, zone, mod, loop, freqKHz, power, name, delay, mic, squelch, text, subtitleSec)`
   ([changelog](https://www.digitalcombatsimulator.com/en/news/changelog/release/2.9.25.21123/)).
   MOOSE still passes 7 arguments and says trigger transmissions can't carry subtitles
   ([Radio.lua](https://github.com/FlightControl-Master/MOOSE/blob/master/Moose%20Development/Moose/Sound/Radio.lua)).
-  **[? whether `trigger.action.radioTransmission` accepts extra subtitle args: headless test, call it
-  with an 8th string and a 9th number under pcall and log the result]**
+  `trigger.action.radioTransmission` accepts an 8th string and a 9th number without error (headless
+  DCS 2026-10-29). Whether it *uses* them as a subtitle can't be seen headless (cockpit check).
 - `radioTransmission` is a real transmitter. Reception fades and gets noisy with distance and low
   `power` (in W), and needs line of sight, so altitude matters. Reports:
   - 50 W ground emitters are inaudible beyond about 35 nm since DCS 2.9
@@ -169,7 +174,9 @@ Related: [miz-format.md](miz-format.md) · [ADR 0003](../adr/0003-own-lua-core-o
   - Don't put the source exactly on the player. Use at least `y + 1`.
 - DMS.Comms transmits at 10000 W from 150 m above each listener group's first player: one
   `radioTransmission` per player group on the frequency (groups within 2 nm share one), each with
-  its own name. Group lines use only that group. **[? exact range model: headless test can't hear
+  its own name. Group lines use only that group. In a `DMS.Test` proxy run (no human player) the
+  proxy group stands in, so headless runs exercise `radioTransmission` too (m01: 20/20 lines
+  `via=radio tx=1`, no script errors, headless DCS 2026-10-29). **[? exact range model: headless test can't hear
   audio, so this needs a cockpit A/B at 5, 20 and 50 km, 1000 W vs 10000 W]**
 
 ## Detection, skill, weather
@@ -187,11 +194,16 @@ Related: [miz-format.md](miz-format.md) · [ADR 0003](../adr/0003-own-lua-core-o
 
 ## RNG
 
-- `os` isn't available, so seed by mixing the sub-second fraction of `timer.getTime()` at the first
-  player BIRTH with `DMS_CONFIG.seed`. Burn a few values after seeding. `MissionScripting.lua` and
-  `ScriptingSystem.lua` never call `math.randomseed`, so don't rely on `math.random`'s start state.
-  `DMS.Rng` is independent of it. **[? whether `math.random` repeats across mission restarts:
-  headless test, log `math.random()` x3 at mission start on two launches]**
+- `os` isn't available, and time gives no entropy in single player: DMS boots at t = 0 with the
+  mission's fixed start time, so a time-only seed was identical on every launch of a .miz (two m01
+  runs: `seed=800998044` both, same spawns; headless DCS 2026-10-29). `DMS.Rng.seed()` therefore
+  also mixes `Rng.launchEntropy()`: the heap address of a fresh table and closure
+  (`tostring({})`, which differs between DCS processes) plus the GC byte count. Re-run: seeds
+  2715297192 vs 1588303233 with different spawn positions and line variants. Burn a few values
+  after seeding. `DMS.Rng` is independent of `math.random`.
+- `math.random` does *not* repeat across launches: three calls at mission load gave
+  0.4029/0.8970/0.9885 and 0.2373/0.5131/0.7700 on two launches of the same .miz (headless DCS
+  2026-10-29). Don't rely on it either way.
 
 ## Persistence
 

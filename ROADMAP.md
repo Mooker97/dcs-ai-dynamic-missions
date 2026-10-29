@@ -30,9 +30,9 @@ A feature is done when all of the following are true:
 ## v0.4: Vertical slice
 - [ ] Hand-written `mission-spec.yaml` → `dms plan` → `plan.json`
 - [ ] `dms build` (pydcs) → `.miz` with `dms.lua` and `DMS_CONFIG` injected
-- [ ] Runtime modules: spawner, ground, encounters and intel (fog of war via `hidden` + marks) *(tested on mocks; spawns verified headless in DCS; marks/fog test-mode checks added 2026-10-29, not yet run in DCS)*
+- [ ] Runtime modules: spawner, ground, encounters and intel (fog of war via `hidden` + marks) *(tested on mocks; headless DCS 2026-10-29: f10_marks, fog_hidden, log_marks PASS on viper m01 x3, m02, m03 (circleToAll shapes listed by getMarkPanels); cockpit check of the F10 view pending)*
 - [ ] `dms check`: IDs, slots, resources, config schema and `luac -p` *(implemented + tested, incl. config schema and beat reachability)*
-- [ ] Slice mission flown in DCS: spawns, routes, an ambush and marks all verified (flown) *(headless pass: spawns, beats, encounters, comms, outcome; marks and cockpit unchecked)*
+- [ ] Slice mission flown in DCS: spawns, routes, an ambush and marks all verified (flown) *(headless DCS 2026-10-29: viper m01 and m02 pass every check, incl. marks; m03 failed outcome_end until the CAS proxy route fix (80f4266), re-run pending; cockpit unchecked)*
 
 ## v0.5: Story pillar
 - [ ] Skills: story-writer, campaign-planner and mission-designer
@@ -42,9 +42,9 @@ A feature is done when all of the following are true:
 - [ ] A campaign authored end to end from a premise; mission 1 flown (flown)
 
 ## v0.6: Voice pillar
-- [ ] `dms voice`: ElevenLabs v3 and Text-to-Dialogue, ffmpeg radio FX, sha256 cache *(implemented + tested; viper m01 rendered for real, 101 clips; not heard in DCS)*
+- [ ] `dms voice`: ElevenLabs v3 and Text-to-Dialogue, ffmpeg radio FX, sha256 cache *(implemented + tested; viper m01 rendered for real, 101 clips; headless DCS 2026-10-29: all 20 played lines `file=*.ogg`, via=radio, no script errors; headless uses a dummy sound driver and a missing .ogg logs nothing, so not heard in DCS)*
 - [ ] Audio embedded in `l10n/DEFAULT/` with mapResource and a keeper trigger *(structural tests on a built miz)*
-- [ ] Beat-driven playback with shuffle-bag variants *(tested on mocks, 200 seeds; no-overlap check in test mode)*
+- [ ] Beat-driven playback with shuffle-bag variants *(tested on mocks, 200 seeds; headless DCS 2026-10-29: radio_no_overlap, log_comms_overlap, spine_lines_played PASS on viper m01/m02/m03)*
 - [ ] voice-director skill with a cost estimate *(implemented)*
 - [ ] Voiced mission flown with no overlapping or missing lines (flown)
 

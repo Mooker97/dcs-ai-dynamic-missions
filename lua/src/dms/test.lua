@@ -14,10 +14,12 @@
 -- }
 -- Check kinds: booted | spawns {min} | beats_in_order {beats} | beat {id} | comms {min} |
 --   encounter {id, optional, group} | convoy_halt | outcome {requireResult} | ambient_cycle {site} |
---   marks {min} | fog_hidden | comms_no_overlap | comms_beats {beats} | flight_orders.
+--   marks {min} | fog_hidden | comms_no_overlap | comms_beats {beats} | flight_orders |
+--   flight_strike | camera_cues | voice_files {subtitleOnly} | watch_mode | plugins {plugins, min}.
 --   Optional per check: name, deadlineSec.
--- marks / fog_hidden / comms_no_overlap / comms_beats are end-of-run checks (like convoy_halt):
---   they never hold the run open and resolve when DONE is logged.
+-- marks / fog_hidden / comms_no_overlap / comms_beats / flight_strike / camera_cues / voice_files /
+--   watch_mode are end-of-run checks (like convoy_halt): they never hold the run open and resolve
+--   when DONE is logged. plugins is polled (see docs/CONTRACTS.md "Test mode").
 -- encounter optional=true never FAILs and never holds the run open: PASS if spawned, else INFO
 --   "optional encounter X not spawned" (naming spawned siblings of the same exclusive `group`).
 -- outcome passes on any end outcome (detail reports the result) unless requireResult (or legacy
@@ -335,6 +337,7 @@ local function freshObs()
     beats = {},
     beatIndex = {},
     beatTimes = {}, -- beat id -> model time it first fired
+    beatFires = {}, -- beat id -> number of times it fired
     addGroups = {}, -- runtime coalition.addGroup calls: {name, coalition, hidden, t}
     markIssues = {}, -- F10 mark mismatches seen by the periodic marks sampler
     encounters = {},
@@ -344,6 +347,13 @@ local function freshObs()
     proxyTakeoff = false,
     proxyLanded = false,
     ambient = {}, -- site -> {act=n, deact=n, cycled=bool}
+    strikes = {}, -- started strike orders: {flight, index, startedAt, maxSec, target, releases, ended...}
+    strikeCur = {}, -- flight id -> its running strike record
+    camera = {}, -- "CAMERA: ..." texts: {msg, all, t}
+    radioTx = 0, -- trigger.action.radioTransmission calls
+    markCoal = {}, -- Intel marks drawn with a coalition other than -1: "id:coal"
+    marksDrawn = 0, -- Intel mark draw calls seen by the wrappers
+    focusRegistered = false, -- every watch focus unit seen in DMS.Bus._players
   }
 end
 T._obs = T._obs or freshObs()
@@ -410,6 +420,9 @@ function T._observe()
     checkSpawnSurface(ev)
   end)
   on("beat.fired", function(ev)
+    if ev and ev.id then
+      O.beatFires[ev.id] = (O.beatFires[ev.id] or 0) + 1
+    end
     if ev and ev.id and not O.beatIndex[ev.id] then
       O.beats[#O.beats + 1] = ev.id
       O.beatIndex[ev.id] = #O.beats
@@ -494,7 +507,36 @@ function T._observe()
       T.info("zone", string.format("%s t=%.0f", tostring(ev.zone), now()))
     end
   end)
+  -- flight_strike: one record per started strike order; releases counted until the order ends
+  on("flight.order", function(ev)
+    if not (ev and ev.flight) then
+      return
+    end
+    T._endStrike(ev.flight, "next order")
+    if ev.kind == "strike" then
+      T._beginStrike(ev.flight, ev.index)
+    end
+  end)
+  on("flight.weapon", function(ev)
+    local rec = ev and ev.flight and O.strikeCur[ev.flight]
+    if rec then
+      rec.releases = rec.releases + 1
+      rec.firstRelease = rec.firstRelease or now()
+    end
+  end)
+  on("flight.done", function(ev)
+    if ev and ev.flight then
+      T._endStrike(ev.flight, "flight done")
+    end
+  end)
+  on("flight.lost", function(ev)
+    if ev and ev.flight then
+      T._endStrike(ev.flight, "lost")
+    end
+  end)
+  T._seedStrikes()
   T._wrapAddGroup()
+  T._wrapOutputs()
   -- outcome lines: wrap DMS.Log.outcome so the check sees exactly what reached dcs.log
   if DMS.Log and DMS.Log.outcome and not T._origOutcome then
     T._origOutcome = DMS.Log.outcome
@@ -504,6 +546,166 @@ function T._observe()
         O.outcomes[#O.outcomes + 1] = { kind = tbl.kind, result = tbl.result }
       end
       return line
+    end
+  end
+end
+
+-- ---------------------------------------------------------------- strike / output tracking
+
+-- Live (existing) units of a group by name. -> count (0 when the group is gone)
+local function liveUnitCount(name)
+  if not (name and Group and Group.getByName) then
+    return 0
+  end
+  local okG, g = pcall(Group.getByName, name)
+  if not okG or not g then
+    return 0
+  end
+  local okE, ex = pcall(g.isExist, g)
+  if not okE or not ex then
+    return 0
+  end
+  local okU, units = pcall(g.getUnits, g)
+  local n = 0
+  for _, u in ipairs((okU and type(units) == "table") and units or {}) do
+    local okX, ux = pcall(u.isExist, u)
+    if okX and ux then
+      n = n + 1
+    end
+  end
+  return n
+end
+T._liveUnitCount = liveUnitCount
+
+-- Best effort: a flight's running order state (resolved strike target, rolled maxSec).
+local function flightCur(id)
+  local F = DMS.Flights
+  local fl = F and F._s and F._s.flights and F._s.flights[id]
+  return fl and fl.cur or nil
+end
+
+function T._beginStrike(id, index)
+  local O = T._obs
+  local rec = { flight = id, index = index, startedAt = now(), releases = 0 }
+  pcall(function()
+    local cur = flightCur(id)
+    if cur and cur.kind == "strike" then
+      rec.target = cur.target
+      rec.maxSec = tonumber(cur.maxSec)
+      rec.at = cur.order and cur.order.at or nil
+    end
+  end)
+  O.strikes[#O.strikes + 1] = rec
+  O.strikeCur[id] = rec
+  return rec
+end
+
+function T._endStrike(id, how)
+  local O = T._obs
+  local rec = O.strikeCur[id]
+  if not rec then
+    return
+  end
+  O.strikeCur[id] = nil
+  rec.ended = how
+  rec.endedAt = now()
+  rec.targetDead = rec.target ~= nil and liveUnitCount(rec.target) == 0
+end
+
+-- A strike order may already be running when DMS.Test starts (Flights begins orders at boot).
+function T._seedStrikes()
+  local F = DMS.Flights
+  if not (F and F.ids and F.state) then
+    return
+  end
+  for _, id in ipairs(F.ids()) do
+    local st = F.state(id)
+    local cur = flightCur(id)
+    if st and st.status == "running" and st.kind == "strike" and cur and not cur.waiting then
+      if not T._obs.strikeCur[id] then
+        local rec = T._beginStrike(id, st.index)
+        rec.startedAt = tonumber(cur.startedAt) or rec.startedAt
+      end
+    end
+  end
+end
+
+local function intelMarkId(id)
+  local first = (DMS.Intel and DMS.Intel.FIRST_MARK_ID) or 50000
+  return type(id) == "number" and id >= first
+end
+
+local function noteMark(id, coal)
+  if not intelMarkId(id) then
+    return
+  end
+  local O = T._obs
+  O.marksDrawn = O.marksDrawn + 1
+  if coal ~= -1 then
+    O.markCoal[#O.markCoal + 1] = tostring(id) .. ":" .. tostring(coal)
+  end
+end
+
+local function noteCamera(msg, all)
+  if type(msg) == "string" and string.sub(msg, 1, 8) == "CAMERA: " then
+    local O = T._obs
+    O.camera[#O.camera + 1] = { msg = msg, all = all == true, t = now() }
+  end
+end
+
+-- Test mode only: wrap output calls (each wrapper calls through unchanged) so camera_cues and
+-- watch_mode can see CAMERA texts, radio transmissions and the coalition of every Intel mark.
+function T._wrapOutputs()
+  if T._outputsWrapped then
+    return
+  end
+  T._outputsWrapped = true
+  local A = trigger and trigger.action
+  if A then
+    local function wrap(name, before)
+      local orig = A[name]
+      if type(orig) ~= "function" then
+        return
+      end
+      A[name] = function(...)
+        pcall(before, ...)
+        return orig(...)
+      end
+    end
+    wrap("radioTransmission", function()
+      T._obs.radioTx = T._obs.radioTx + 1
+    end)
+    wrap("markToCoalition", function(id, _, _, coal)
+      noteMark(id, coal)
+    end)
+    wrap("markToAll", function(id)
+      noteMark(id, -1)
+    end)
+    wrap("circleToAll", function(coal, id)
+      noteMark(id, coal)
+    end)
+    wrap("outText", function(msg)
+      if not T._inCommsText then
+        noteCamera(msg, true)
+      end
+    end)
+  end
+  local C = DMS.Comms
+  if C and type(C.text) == "function" then
+    local origText = C.text
+    C.text = function(msg, opts)
+      local full = msg
+      if type(opts) == "table" and opts.callsign and type(msg) == "string" then
+        full = opts.callsign .. ": " .. msg
+      end
+      pcall(noteCamera, full, type(opts) == "table" and opts.all == true)
+      T._inCommsText = true
+      local ok, r = pcall(origText, msg, opts)
+      T._inCommsText = false
+      if not ok then
+        error(r, 0)
+      end
+      return r
     end
   end
 end
@@ -1124,6 +1326,307 @@ CHECKS.flight_orders = function(c, deadline)
       return false, "unfinished: " .. table.concat(open, ",")
     end
     return true, table.concat(parts, ",")
+  end, deadline)
+end
+
+-- Every started strike order had at least one flight.weapon release (end of run). No release:
+-- INFO when the target died first or the flight was lost, else FAIL (maxSec / early end / still
+-- running at the end).
+CHECKS.flight_strike = function(c)
+  T._finals[#T._finals + 1] = function()
+    local O = T._obs
+    if #O.strikes == 0 then
+      T.pass(c.name, "no strike order started (vacuous)")
+      return
+    end
+    local released, infos, bad = 0, {}, {}
+    for _, r in ipairs(O.strikes) do
+      local tag = string.format("%s#%s", tostring(r.flight), tostring(r.index))
+      if r.releases > 0 then
+        released = released + 1
+      else
+        local dead = r.targetDead
+        if not r.ended and r.target ~= nil then
+          dead = liveUnitCount(r.target) == 0
+        end
+        local ran = (r.endedAt or now()) - r.startedAt
+        if dead then
+          infos[#infos + 1] = string.format("%s target %s died before any release", tag, tostring(r.target))
+        elseif r.ended == "lost" then
+          infos[#infos + 1] = string.format("%s flight lost before any release", tag)
+        elseif not r.ended then
+          bad[#bad + 1] = string.format("%s still running after %.0f s with no release", tag, ran)
+        elseif r.maxSec and ran >= r.maxSec - 1 then
+          bad[#bad + 1] = string.format("%s ended on maxSec (%.0f s) with no release", tag, r.maxSec)
+        else
+          bad[#bad + 1] = string.format("%s ended before maxSec (%s, %.0f s) with no release", tag, r.ended, ran)
+        end
+      end
+    end
+    for _, msg in ipairs(infos) do
+      T.info(c.name, msg)
+    end
+    local detail = string.format("%d strike order(s), %d with a release", #O.strikes, released)
+    if #infos > 0 then
+      detail = detail .. string.format(", %d excused (INFO)", #infos)
+    end
+    if #bad > 0 then
+      T.fail(c.name, idList(bad, 4) .. " (" .. detail .. ")")
+    else
+      T.pass(c.name, detail)
+    end
+  end
+end
+
+-- Every fired beat with a `cue` produced exactly one "CAMERA: <cue>" text to all (end of run).
+CHECKS.camera_cues = function(c)
+  T._finals[#T._finals + 1] = function()
+    local O = T._obs
+    local want, order = {}, {} -- msg -> {n = expected, beats = {...}}
+    for _, beat in ipairs((DMS_CONFIG and DMS_CONFIG.beats) or {}) do
+      local fires = O.beatFires[beat.id] or 0
+      if type(beat.cue) == "string" and beat.cue ~= "" and fires > 0 then
+        local msg = "CAMERA: " .. beat.cue
+        if not want[msg] then
+          want[msg] = { n = 0, beats = {} }
+          order[#order + 1] = msg
+        end
+        want[msg].n = want[msg].n + fires
+        want[msg].beats[#want[msg].beats + 1] = beat.id
+      end
+    end
+    local gotAll, notAll, extra = {}, {}, {}
+    for _, e in ipairs(O.camera) do
+      if not want[e.msg] then
+        extra[#extra + 1] = e.msg
+      elseif e.all then
+        gotAll[e.msg] = (gotAll[e.msg] or 0) + 1
+      else
+        notAll[#notAll + 1] = e.msg
+      end
+    end
+    local problems = {}
+    for _, msg in ipairs(order) do
+      local w, g = want[msg], gotAll[msg] or 0
+      if g ~= w.n then
+        problems[#problems + 1] =
+          string.format("%s: cue shown %d time(s), want %d", table.concat(w.beats, "+"), g, w.n)
+      end
+    end
+    if #notAll > 0 then
+      problems[#problems + 1] = "not sent to all: " .. idList(notAll, 3)
+    end
+    if #extra > 0 then
+      problems[#problems + 1] = "no fired beat for: " .. idList(extra, 3)
+    end
+    local detail = string.format("%d cued beat(s) fired, %d CAMERA text(s)", #order, #O.camera)
+    if #problems > 0 then
+      T.fail(c.name, table.concat(problems, "; ") .. " (" .. detail .. ")")
+    else
+      T.pass(c.name, detail)
+    end
+  end
+end
+
+-- Every played line plays its own file: DMS_CONFIG.voice[line].file, or (subtitle only) no file
+-- and non-empty text. subtitleOnly lists voiced:false ids, which must have no file at all.
+CHECKS.voice_files = function(c)
+  T._finals[#T._finals + 1] = function()
+    local voice = (DMS_CONFIG and DMS_CONFIG.voice) or {}
+    local sub, haveList = {}, type(c.subtitleOnly) == "table"
+    for _, id in ipairs(haveList and c.subtitleOnly or {}) do
+      sub[id] = true
+    end
+    local h = (DMS.Comms and DMS.Comms.history and DMS.Comms.history()) or {}
+    local voiced, subtitle, unrendered, bad = 0, 0, {}, {}
+    for _, e in ipairs(h) do
+      local line = type(e) == "table" and e.line or nil
+      if line then
+        local v = voice[line]
+        local own = type(v) == "table" and type(v.file) == "string" and v.file ~= "" and v.file or nil
+        if sub[line] and own then
+          bad[#bad + 1] = string.format("%s is voiced:false but has file %s", line, own)
+        elseif own then
+          if e.file ~= own then
+            bad[#bad + 1] = string.format("%s played file=%s, want %s", line, tostring(e.file), own)
+          else
+            voiced = voiced + 1
+          end
+        elseif e.file ~= nil then
+          bad[#bad + 1] = string.format("%s (subtitle only) played file=%s", line, tostring(e.file))
+        elseif type(e.text) ~= "string" or e.text == "" then
+          bad[#bad + 1] = string.format("%s (subtitle only) showed no text", line)
+        else
+          subtitle = subtitle + 1
+          if haveList and not sub[line] then
+            unrendered[#unrendered + 1] = line
+          end
+        end
+      end
+    end
+    local detail = string.format("%d voiced line(s) with their file, %d subtitle-only", voiced, subtitle)
+    if #unrendered > 0 then
+      T.info(c.name, "voiced line(s) with no rendered file (subtitle only): " .. idList(unrendered))
+      detail = detail .. string.format(" (%d unrendered)", #unrendered)
+    end
+    if #bad > 0 then
+      T.fail(c.name, idList(bad, 4) .. " (" .. detail .. ")")
+    else
+      T.pass(c.name, detail)
+    end
+  end
+end
+
+-- Units of the watch focus group that are not (yet) in DMS.Bus._players. -> list, unit count
+local function focusUnregistered(focus)
+  local okG, g = pcall(Group.getByName, focus)
+  if not okG or not g then
+    return nil, 0
+  end
+  local okU, units = pcall(g.getUnits, g)
+  local missing, n = {}, 0
+  for _, u in ipairs((okU and type(units) == "table") and units or {}) do
+    local okN, uname = pcall(u.getName, u)
+    if okN and uname then
+      n = n + 1
+      if not (DMS.Bus and DMS.Bus._players and DMS.Bus._players[uname]) then
+        missing[#missing + 1] = uname
+      end
+    end
+  end
+  return missing, n
+end
+
+-- Watch mission: focus units registered as players, no radioTransmission, Intel marks for all.
+CHECKS.watch_mode = function(c)
+  local w = (DMS_CONFIG and DMS_CONFIG.watch) or {}
+  local focus = w.focus or T.proxyName()
+  local O = T._obs
+  local function sample()
+    if O.focusRegistered or not focus then
+      return
+    end
+    local missing, n = focusUnregistered(focus)
+    if missing and n > 0 and #missing == 0 then
+      O.focusRegistered = true
+    end
+  end
+  if DMS.Clock and DMS.Clock.every then
+    DMS.Clock.every(5, function()
+      if T._done or O.focusRegistered then
+        return false
+      end
+      pcall(sample)
+      return true
+    end, { firstDelay = 5 })
+  end
+  T._finals[#T._finals + 1] = function()
+    if not (DMS.isWatch and DMS.isWatch()) then
+      T.fail(c.name, "not a watch mission (DMS_CONFIG.watch.enabled is off)")
+      return
+    end
+    pcall(sample)
+    local problems = {}
+    if not focus then
+      problems[#problems + 1] = "no watch focus group"
+    elseif not O.focusRegistered then
+      local missing = focusUnregistered(focus)
+      problems[#problems + 1] = "focus "
+        .. tostring(focus)
+        .. " not registered in DMS.Bus._players"
+        .. ((missing and #missing > 0) and (": " .. idList(missing, 4)) or " (group not found)")
+    end
+    if O.radioTx > 0 then
+      problems[#problems + 1] = string.format("%d radioTransmission call(s)", O.radioTx)
+    end
+    local badMarks = {}
+    for _, m in ipairs(O.markCoal) do
+      badMarks[#badMarks + 1] = m
+    end
+    if DMS.Intel and DMS.Intel.liveMarks then
+      local ids = {}
+      for id, m in pairs(DMS.Intel.liveMarks()) do
+        if type(m) == "table" and m.coalition ~= -1 then
+          ids[#ids + 1] = id
+        end
+      end
+      table.sort(ids)
+      for _, id in ipairs(ids) do
+        badMarks[#badMarks + 1] = tostring(id) .. ":" .. tostring(DMS.Intel.liveMarks()[id].coalition)
+      end
+    end
+    if #badMarks > 0 then
+      problems[#problems + 1] = "marks not for coalition -1 (id:coal): " .. idList(badMarks, 4)
+    end
+    local detail = string.format(
+      "focus=%s registered=%s tx=%d marks=%d",
+      tostring(focus),
+      tostring(O.focusRegistered),
+      O.radioTx,
+      O.marksDrawn
+    )
+    if #problems > 0 then
+      T.fail(c.name, table.concat(problems, "; ") .. " (" .. detail .. ")")
+    else
+      T.pass(c.name, detail)
+    end
+  end
+end
+
+local function global(name)
+  return rawget(_G, name)
+end
+
+local function countKeys(t)
+  local n = 0
+  for _ in pairs(type(t) == "table" and t or {}) do
+    n = n + 1
+  end
+  return n
+end
+
+local PLUGIN_PROBES = {
+  mist = function()
+    local m = global("mist")
+    if type(m) ~= "table" then
+      return false, "mist absent"
+    end
+    local ver = string.format("%s.%s.%s", tostring(m.majorVersion), tostring(m.minorVersion), tostring(m.build))
+    return m.majorVersion == 4, "mist " .. ver
+  end,
+  moose = function()
+    local okB, okD = global("BASE") ~= nil, global("_DATABASE") ~= nil
+    return okB and okD, string.format("moose BASE=%s _DATABASE=%s", tostring(okB), tostring(okD))
+  end,
+  skynet = function(min)
+    local A = DMS.SkynetAdapter
+    local active = type(A) == "table" and A.active == true
+    local n = type(A) == "table" and countKeys(A.sites) or 0
+    return active and n >= min, string.format("skynet active=%s sites=%d/%d", tostring(active), n, min)
+  end,
+}
+
+-- Each listed plugin is loaded and working (polled until it passes or the deadline).
+CHECKS.plugins = function(c, deadline)
+  local list = type(c.plugins) == "table" and c.plugins or {}
+  local min = tonumber(c.min) or 1
+  T.expect(c.name, function()
+    if #list == 0 then
+      return true, "no plugins (vacuous)"
+    end
+    local parts, ok = {}, true
+    for _, p in ipairs(list) do
+      local probe = PLUGIN_PROBES[p]
+      if not probe then
+        return false, "unknown plugin '" .. tostring(p) .. "'", true
+      end
+      local okP, good, d = pcall(probe, min)
+      if not (okP and good) then
+        ok = false
+      end
+      parts[#parts + 1] = okP and tostring(d) or (tostring(p) .. " error: " .. tostring(good))
+    end
+    return ok, table.concat(parts, "; ")
   end, deadline)
 end
 

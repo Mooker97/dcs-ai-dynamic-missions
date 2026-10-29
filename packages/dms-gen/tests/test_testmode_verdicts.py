@@ -329,4 +329,5 @@ def test_end_of_run_checks_for_marks_fog_and_comms() -> None:
         from_lua(TestSettings, {"enabled": True, "checks": default_checks(60, beats, [])})
     )
     kinds = [c.kind for c in cfg.checks]
-    assert kinds[-6:-2] == ["marks", "fog_hidden", "comms_no_overlap", "comms_beats"]
+    assert kinds[-7:-3] == ["marks", "fog_hidden", "comms_no_overlap", "comms_beats"]
+    assert kinds[-2] == "voice_files"  # always added (A3)

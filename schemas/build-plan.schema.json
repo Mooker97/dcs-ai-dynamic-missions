@@ -4550,7 +4550,12 @@
             "fog_hidden",
             "comms_no_overlap",
             "comms_beats",
-            "flight_orders"
+            "flight_orders",
+            "flight_strike",
+            "camera_cues",
+            "voice_files",
+            "watch_mode",
+            "plugins"
           ],
           "title": "Kind",
           "type": "string"
@@ -4593,7 +4598,7 @@
             }
           ],
           "default": null,
-          "description": "spawns / comms / marks: minimum count.",
+          "description": "spawns / comms / marks: minimum count; plugins: minimum Skynet sites (1).",
           "title": "Min"
         },
         "beats": {
@@ -4720,6 +4725,46 @@
           "default": null,
           "description": "ambient_cycle: site id to watch (unset = any site).",
           "title": "Site"
+        },
+        "plugins": {
+          "anyOf": [
+            {
+              "items": {
+                "enum": [
+                  "mist",
+                  "moose",
+                  "skynet"
+                ],
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "plugins: plugin names to verify at runtime (dependency-expanded).",
+          "title": "Plugins"
+        },
+        "subtitle_only": {
+          "anyOf": [
+            {
+              "items": {
+                "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+                "maxLength": 64,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "voice_files: voiced:false line ids (must play with no file).",
+          "title": "Subtitle Only"
         }
       },
       "required": [

@@ -13,7 +13,7 @@ from dms_core.schemas.runtime import CircleZone, PolygonZone
 from dms_gen.builder import build_from_plan
 from dms_gen.check import check_miz
 from dms_gen.planner import make_test_plan, plan_mission, write_runtime_config, write_test_lua
-from dms_gen.planner.testmode import to_lua
+from dms_gen.planner.testmode import default_checks, runtime_plugins, to_lua
 
 REPO = Path(__file__).resolve().parents[3]
 M01 = REPO / "campaigns" / "dustoff-valley" / "missions" / "m01-first-light"
@@ -104,16 +104,20 @@ def test_test_lua_compiles_and_sets_config(m01: Any) -> None:
     assert tb.plan.runtime is not None
     assert kinds.count("encounter") == len(tb.plan.runtime.encounters)
     # end-of-run checks (CONTRACTS test section), then convoy_halt and the outcome
-    assert kinds[-6:] == [
+    assert kinds[-7:] == [
         "marks",
         "fog_hidden",
         "comms_no_overlap",
         "comms_beats",
         "convoy_halt",
+        "voice_files",
         "outcome",
     ]
     names = [t.checks[i].name for i in range(1, len(t.checks) + 1)]
-    assert names[-6:-2] == ["f10_marks", "fog_hidden", "radio_no_overlap", "spine_lines_played"]
+    assert names[-7:-3] == ["f10_marks", "fog_hidden", "radio_no_overlap", "spine_lines_played"]
+    # no flights / watch / plugins in m01: none of the A3 conditional kinds
+    for k in ("flight_orders", "flight_strike", "camera_cues", "watch_mode", "plugins"):
+        assert k not in kinds
     spine = t.checks[3].beats
     assert [spine[i] for i in range(1, len(spine) + 1)] == [
         "mission_start",
@@ -173,3 +177,122 @@ def test_build_test_miz_has_ai_proxy_with_landing(
     rep = check_miz(out)
     assert rep.ok, rep.errors
     assert any(i.code == "no_player_slot" and i.severity == "warning" for i in rep.issues)
+
+
+# ---- A3 check kinds: flight_strike, camera_cues, voice_files, watch_mode, plugins -----------
+
+W01 = REPO / "campaigns" / "dustoff-valley" / "missions" / "w01-dustoff-under-fire"
+
+
+@pytest.fixture(scope="module")
+def w01() -> tuple[Any, MissionSpec, BeatSheet, VoiceLineSet]:
+    spec = MissionSpec.model_validate(_yaml(W01 / "mission-spec.yaml"))
+    beats = BeatSheet.model_validate(_yaml(W01 / "beats.yaml"))
+    bible = StoryBible.model_validate(_yaml(BIBLE))
+    lines = VoiceLineSet.model_validate(_yaml(W01 / "lines.yaml"))
+    return plan_mission(spec, beats, lines, seed=7, bible=bible), spec, beats, lines
+
+
+def _checks(lua_src: str) -> list[dict[str, Any]]:
+    lupa = pytest.importorskip("lupa")
+    lua = lupa.lua51.LuaRuntime(unpack_returned_tuples=True)
+    lua.execute(lua_src)
+    t = lua.eval("DMS_CONFIG.test")
+    out: list[dict[str, Any]] = []
+    for i in range(1, len(t.checks) + 1):
+        c = t.checks[i]
+        d: dict[str, Any] = {k: c[k] for k in c}
+        for k in ("plugins", "subtitleOnly"):
+            if d.get(k) is not None:
+                d[k] = [d[k][j] for j in range(1, len(d[k]) + 1)]
+        out.append(d)
+    return out
+
+
+def test_default_checks_a3_kinds_are_conditional() -> None:
+    base = [c["kind"] for c in default_checks(10, [], [])]
+    assert "voice_files" in base  # always
+    for k in ("flight_strike", "camera_cues", "watch_mode", "plugins"):
+        assert k not in base
+    full = default_checks(
+        10,
+        [],
+        [],
+        flights=True,
+        strike=True,
+        cues=True,
+        watch=True,
+        plugins=["mist", "skynet"],
+        subtitle_only=["b", "a", "a"],
+    )
+    kinds = [c["kind"] for c in full]
+    assert kinds[-7:] == [
+        "voice_files",
+        "flight_orders",
+        "flight_strike",
+        "camera_cues",
+        "watch_mode",
+        "plugins",
+        "outcome",
+    ]
+    by = {c["kind"]: c for c in full}
+    assert by["voice_files"]["subtitleOnly"] == ["a", "b"]
+    assert by["plugins"] == {
+        "kind": "plugins",
+        "name": "plugins",
+        "plugins": ["mist", "skynet"],
+        "deadlineSec": 570,
+    }
+    # end-of-run checks carry no deadline (they resolve with DONE)
+    for k in ("flight_strike", "camera_cues", "watch_mode", "voice_files"):
+        assert "deadlineSec" not in by[k]
+
+
+def test_runtime_plugins_expands_dependencies() -> None:
+    assert runtime_plugins([]) == []
+    assert runtime_plugins(["skynet"]) == ["mist", "skynet"]
+    assert runtime_plugins(["moose"]) == ["moose"]
+    assert runtime_plugins(["moose", "mist"]) == ["mist", "moose"]
+
+
+def test_watch_test_build_adds_a3_checks(w01: Any) -> None:
+    plan, spec, beats, lines = w01
+    sub = [ln.id for ln in lines.lines if not ln.voiced]
+    assert sub, "w01 has voiced:false lines"
+    tb = make_test_plan(plan, spec, beats, subtitle_only=sub)
+    checks = _checks(tb.lua)
+    kinds = [c["kind"] for c in checks]
+    for k in ("flight_orders", "flight_strike", "camera_cues", "watch_mode", "voice_files"):
+        assert kinds.count(k) == 1, k
+    assert "plugins" not in kinds
+    assert kinds[-1] == "outcome"
+    voice = next(c for c in checks if c["kind"] == "voice_files")
+    assert voice["subtitleOnly"] == sorted(set(sub))
+    # without the line set the check still runs, just without the voiced:false list
+    plain = _checks(make_test_plan(plan, spec, beats).lua)
+    assert next(c for c in plain if c["kind"] == "voice_files").get("subtitleOnly") is None
+
+
+def test_watch_cues_off_drops_camera_cues(w01: Any) -> None:
+    plan, spec, beats, _ = w01
+    assert spec.watch is not None
+    spec_off = spec.model_copy(update={"watch": spec.watch.model_copy(update={"cues": False})})
+    p2 = plan.model_copy(deep=True)
+    assert p2.runtime is not None and p2.runtime.watch is not None
+    p2.runtime.watch.cues = False
+    kinds = [c["kind"] for c in _checks(make_test_plan(p2, spec_off, beats).lua)]
+    assert "camera_cues" not in kinds
+    assert "watch_mode" in kinds
+
+
+def test_plugins_check_from_spec(m01: Any) -> None:
+    plan, spec, beats = m01
+    sp = spec.model_copy(update={"plugins": ["skynet"]})
+    checks = _checks(make_test_plan(plan, sp, beats, minutes=30).lua)
+    plug = [c for c in checks if c["kind"] == "plugins"]
+    assert len(plug) == 1
+    assert plug[0]["plugins"] == ["mist", "skynet"]
+    assert plug[0]["deadlineSec"] == 30 * 60 - 30
+    kinds = [c["kind"] for c in checks]
+    assert "watch_mode" not in kinds and "camera_cues" not in kinds
+    assert "flight_strike" not in kinds

@@ -515,13 +515,20 @@ class TestCheck(DMSModel):
         "comms_no_overlap",
         "comms_beats",
         "flight_orders",
+        "flight_strike",
+        "camera_cues",
+        "voice_files",
+        "watch_mode",
+        "plugins",
     ] = Field(description="Check kind.")
     name: str | None = Field(default=None, description="Name in [DMS.TEST] lines (default kind).")
     deadline_sec: float | None = Field(
         default=None, ge=0, description="Model seconds after start before a pending check fails."
     )
     min: int | None = Field(
-        default=None, ge=0, description="spawns / comms / marks: minimum count."
+        default=None,
+        ge=0,
+        description="spawns / comms / marks: minimum count; plugins: minimum Skynet sites (1).",
     )
     beats: list[Ident] | None = Field(
         default=None,
@@ -550,6 +557,14 @@ class TestCheck(DMSModel):
     )
     site: Ident | None = Field(
         default=None, description="ambient_cycle: site id to watch (unset = any site)."
+    )
+    plugins: list[Literal["mist", "moose", "skynet"]] | None = Field(
+        default=None,
+        description="plugins: plugin names to verify at runtime (dependency-expanded).",
+    )
+    subtitle_only: list[Ident] | None = Field(
+        default=None,
+        description="voice_files: voiced:false line ids (must play with no file).",
     )
 
 

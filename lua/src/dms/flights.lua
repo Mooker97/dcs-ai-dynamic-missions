@@ -27,6 +27,11 @@ F.STRIKE_AFTER_RELEASE_SEC = 60 -- Bombing fallback: done this long after the fi
 F.STRIKE_PASS_SEC = 45 -- AttackUnit pass: over this long after the pass's last release
 F.STRIKE_MAX_PASSES = 3
 F.LAND_APPROACH_M = 2000 -- helicopter land: route at cruise speed until this close, then the Land task
+F.LAND_STEPDOWN_M = 5000 -- helicopter land: leave cruise altitude/speed this far out ...
+F.LAND_GATE_M = 1800 -- ... and reach the approach gate (this far out) at GATE altitude and speed
+F.LAND_GATE_ALT_M = 90 -- AGL (~300 ft)
+F.LAND_GATE_MPS = 41 -- ~80 kt
+F.ORBIT_RING_M = 1500 -- an orbit's altitude clears the highest ground within this ring
 F.TELEM_SEC = 10
 F.LAND_EXTRA_SEC = 120 -- Land task ground time beyond groundSec (the next order lifts the group)
 F.DEFAULT_RADIUS_M = 2778 -- 1.5 nm
@@ -439,6 +444,23 @@ local function routeTask(fl, to, alt, altType, speed, fromTasks, toTasks, toWp)
   }
 end
 
+-- RADIO orbit altitude over the highest ground under the circle (the centre alone let the
+-- AGL height swing 640-1070 ft as the terrain changed under the orbit; w01, 2026-10-29).
+local function orbitAlt(c, alt, altType)
+  if altType ~= "RADIO" then
+    return alt
+  end
+  local top = groundHeight(c.x, c.y)
+  for i = 0, 7 do
+    local a = i * math.pi / 4
+    local h = groundHeight(c.x + F.ORBIT_RING_M * math.cos(a), c.y + F.ORBIT_RING_M * math.sin(a))
+    if h > top then
+      top = h
+    end
+  end
+  return alt + top
+end
+
 local function orbitTask(c, alt, altType, speed)
   local pattern = (AI and AI.Task and AI.Task.OrbitPattern and AI.Task.OrbitPattern.CIRCLE) or "Circle"
   return {
@@ -446,7 +468,7 @@ local function orbitTask(c, alt, altType, speed)
     params = {
       pattern = pattern,
       point = { x = c.x, y = c.y },
-      altitude = mslAlt(alt, altType, c.x, c.y),
+      altitude = orbitAlt(c, alt, altType),
       speed = speed,
     },
   }
@@ -922,9 +944,27 @@ BEGIN.land = function(fl, o, cur)
       -- route there at cruise first, Land when within LAND_APPROACH_M (see landProgress).
       local c = cruiseOf(fl, o)
       local alt, altType = altOf(fl, c)
+      local speed = speedOf(fl, c)
       cur.approach = true
-      log("info", "flight '%s' land: approach to %s at %.0f m/s first", fl.id, tostring(o.at), speedOf(fl, c))
-      return setTaskErr(fl, routeTask(fl, at, alt, altType, speedOf(fl, c)))
+      log("info", "flight '%s' land: approach to %s at %.0f m/s first", fl.id, tostring(o.at), speed)
+      -- step down instead of diving from cruise in the last 2 km (the AI overshoots and circles):
+      -- cruise to LAND_STEPDOWN_M out, then descend and slow to the gate at LAND_GATE_M
+      local d = dist2D(p, at)
+      local function along(m)
+        local k = m / d
+        return { x = at.x + (p.x - at.x) * k, y = at.y + (p.z - at.y) * k }
+      end
+      local gateSpeed = math.min(speed, F.LAND_GATE_MPS)
+      local gateAlt = math.min(mslAlt(alt, altType, at.x, at.y) - groundHeight(at.x, at.y), F.LAND_GATE_ALT_M)
+      local pts = { waypoint(p.x, p.z, alt, altType, speed) }
+      if d > F.LAND_STEPDOWN_M then
+        local sd = along(F.LAND_STEPDOWN_M)
+        pts[#pts + 1] = waypoint(sd.x, sd.y, alt, altType, speed)
+      end
+      local g = along(F.LAND_GATE_M)
+      pts[#pts + 1] = waypoint(g.x, g.y, gateAlt, "RADIO", gateSpeed)
+      pts[#pts + 1] = waypoint(at.x, at.y, gateAlt, "RADIO", gateSpeed)
+      return setTaskErr(fl, { id = "Mission", params = { route = { points = pts } } })
     end
     return heliLandTask(fl, cur)
   end

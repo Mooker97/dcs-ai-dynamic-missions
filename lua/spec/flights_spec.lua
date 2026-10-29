@@ -149,12 +149,19 @@ describe("DMS.Flights", function()
     MOCK.advance(4)
     assert.are.equal(1, DMS.Narrative.firedCount("lz_cold"))
     assert.are.equal("land", DMS.Flights.state("dustoff").kind)
-    -- 10 km out: a cruise route (the last order's alt/speed) before the Land task
+    -- 10 km out: cruise (the last order's alt/speed) to the step-down point 5 km out, then
+    -- descend and slow to the gate 1.8 km out, then the LZ; the Land task comes inside 2 km
     t = lastTask("Dustoff_dustoff")
     assert.are.equal("Mission", t.id)
-    assert.are.equal(20000, t.params.route.points[2].x)
-    assert.are.equal(56.6, t.params.route.points[2].speed)
-    assert.are.equal(90, t.params.route.points[2].alt)
+    local pts = t.params.route.points
+    assert.are.equal(4, #pts)
+    assert.are.equal(15000, pts[2].x) -- step-down, 5 km out
+    assert.are.equal(56.6, pts[2].speed)
+    assert.are.equal(90, pts[2].alt)
+    assert.are.equal(18200, pts[3].x) -- gate, 1.8 km out
+    assert.are.equal(41, pts[3].speed)
+    assert.are.equal("RADIO", pts[3].alt_type)
+    assert.are.equal(20000, pts[4].x)
     move("Dustoff_dustoff-1", 18500, 0, 90)
     MOCK.advance(3)
     t = lastTask("Dustoff_dustoff")

@@ -70,7 +70,11 @@ createHashMapFromArray [
 	["escortHaltSec", [20, 45]], // escorts halt this long on contact to return fire, then drive through
 	["ineffectiveMaxAlive", 2], // convoy is combat ineffective with no working vehicle and at most this many men left
 	["fledDistance", 900], // convoy men further than this from the kill zone no longer count
-	["stuckWarn", 120],
+	["stuckWarn", 90], // s without the lead getting 15 m closer to the kill zone = convoy stalled
+	["stuckMaxNudges", 4], // stalls that try UNSTICK before giving up
+	["stuckMoveMin", 10], // a vehicle that moved less than this since the last stall gets nudged
+	["stuckNudge", 15], // m ahead along the road
+	["stuckPlayerClear", 300], // never nudge with a player this close
 
 	// ---------------------------------------------------------------- rally point pickup (RHS USMC)
 	["rpVehicles", ["rhsusf_m1025_w_m2", "rhsusf_m998_w_4dr"]],

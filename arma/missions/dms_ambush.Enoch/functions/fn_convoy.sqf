@@ -6,6 +6,7 @@
 	["CONTACT", [_reason]] call DMS_fnc_convoy;      once: the ambush is sprung (or compromised); the convoy reacts
 	["DISMOUNT", [_veh, _cargoGrp]] spawn DMS_fnc_convoy; stop the truck, dismount, then LAMBS taskHunt
 	["MONITOR"] spawn DMS_fnc_convoy;                detection, escapes past the kill line, combat-ineffective check
+	["UNSTICK"] call DMS_fnc_convoy;                 nudge vehicles that made no progress onto the road ahead
 	Escaped vehicles drive on and are removed; escapeFailCount escapes fail the mission.
 */
 params [["_mode", "", [""]], ["_args", [], [[]]]];
@@ -198,8 +199,11 @@ switch (_mode) do {
 		private _kz = DMS_route get "killZone";
 		private _escaped = 0;
 		private _closeLogged = false;
-		private _slowSince = -1;
-		private _stuckLogged = false;
+		// Stall = the lead got no closer to the kill zone for stuckWarn s. Speed alone missed it: in the
+		// 2026-10-29 seed-2 run the lead sat 720 m out for 8 min while still reporting speed >= 1.
+		private _progBest = 1e9;
+		private _progSince = time;
+		private _nudges = 0;
 		while {!DMS_over && {!DMS_convoyIneffective}} do {
 			sleep 2;
 			private _lead = (DMS_convoy select 0) select 0;
@@ -214,14 +218,26 @@ switch (_mode) do {
 					_closeLogged = true;
 					[format ["Convoy lead 400 m from the kill zone at t=%1", round time]] call DMS_fnc_log;
 				};
-				if (alive _lead && {speed _lead < 1}) then {
-					if (_slowSince < 0) then { _slowSince = time; };
-					if (!_stuckLogged && {time - _slowSince > (DMS_cfg get "stuckWarn")}) then {
-						_stuckLogged = true;
-						[format ["Convoy lead has not moved for %1 s at %2 (%3 m from the kill zone)", DMS_cfg get "stuckWarn", mapGridPosition _lead, round (_lead distance2D _kz)], "WARN"] call DMS_fnc_log;
+				if (alive _lead && {(_lead distance2D _kz) > 100}) then {
+					private _d = _lead distance2D _kz;
+					if (_d < _progBest - 15) then {
+						_progBest = _d;
+						_progSince = time;
+						{ (_x select 0) setVariable ["DMS_stallPos", getPosATL (_x select 0)]; } forEach DMS_convoy;
 					};
-				} else {
-					_slowSince = -1;
+					if (time - _progSince > (DMS_cfg get "stuckWarn")) then {
+						_progSince = time;
+						_nudges = _nudges + 1;
+						[format ["Convoy stalled: lead no closer than %1 m to the kill zone for %2 s at %3 (stall %4)",
+							round _d, DMS_cfg get "stuckWarn", mapGridPosition _lead, _nudges], "WARN"] call DMS_fnc_log;
+						{
+							_x params ["_veh", "_role"];
+							[format ["  %1 (%2): alive=%3 canMove=%4 driver=%5 speed=%6 damage=%7 at %8, %9 m from the kill zone",
+								typeOf _veh, _role, alive _veh, canMove _veh, alive (driver _veh), round (speed _veh),
+								(round ((damage _veh) * 100)) / 100, mapGridPosition _veh, round (_veh distance2D _kz)]] call DMS_fnc_log;
+						} forEach DMS_convoy;
+						if (_nudges <= (DMS_cfg get "stuckMaxNudges")) then { ["UNSTICK"] call DMS_fnc_convoy; };
+					};
 				};
 			};
 			// escapes past the kill line
@@ -266,6 +282,36 @@ switch (_mode) do {
 				};
 			};
 		};
+	};
+	case "UNSTICK": {
+		// Vehicles that moved under stuckMoveMin since the last stall are put on the road a few metres
+		// ahead towards the group's current waypoint. Never done in sight of a player.
+		private _grp = DMS_convoyGroup;
+		if (isNull _grp) exitWith {};
+		private _wpIdx = currentWaypoint _grp;
+		private _target = if (_wpIdx < count (waypoints _grp)) then { waypointPosition [_grp, _wpIdx] } else { DMS_route get "killZone" };
+		{
+			_x params ["_veh", "_role"];
+			private _last = _veh getVariable ["DMS_stallPos", [0, 0, 0]];
+			_veh setVariable ["DMS_stallPos", getPosATL _veh];
+			if (alive _veh && {canMove _veh} && {alive (driver _veh)} && {(_veh distance2D _last) < (_cfg get "stuckMoveMin")}
+				&& {(allPlayers findIf {alive _x && {(_x distance2D _veh) < (_cfg get "stuckPlayerClear")}}) == -1}) then {
+				private _ahead = _veh getPos [_cfg get "stuckNudge", _veh getDir _target];
+				private _roads = ((_ahead nearRoads 25) apply { [_x distance2D _ahead, _x] });
+				_roads sort true;
+				private _p = if (_roads isEqualTo []) then { _ahead } else { getPosATL ((_roads select 0) select 1) };
+				private _free = _p findEmptyPosition [0, 15, typeOf _veh];
+				if (_free isNotEqualTo []) then {
+					_veh setDir (_veh getDir _target);
+					_veh setPosATL [_free select 0, _free select 1, 0.3];
+					[format ["Unstick: %1 (%2) moved %3 m towards waypoint %4", typeOf _veh, _role, round (_veh distance2D _last), _wpIdx]] call DMS_fnc_log;
+				} else {
+					[format ["Unstick: no free spot ahead of %1 (%2)", typeOf _veh, _role], "WARN"] call DMS_fnc_log;
+				};
+			};
+		} forEach DMS_convoy;
+		_grp setCurrentWaypoint [_grp, _wpIdx];
+		{ if (_x != leader _grp) then { _x doFollow (leader _grp); }; } forEach (units _grp);
 	};
 	default {};
 };

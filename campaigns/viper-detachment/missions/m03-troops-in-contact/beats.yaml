@@ -427,13 +427,16 @@ beats:
     effects: {set_flag: armor_dead}
 
   # ---- Optional: the assault waves and the civilians -------------------------------------------
-  # Telegraph for encounter assault_push (telegraph_beat in mission-spec). The waves kind spawns
-  # 6+ km south and drives north, so this call on the first spawn leads the first technicals into
-  # the fight by minutes. Ungated, delay 0 (lint telegraph_too_short).
+  # Telegraph for encounter assault_push (telegraph_beat in mission-spec). The waves kind emits
+  # encounter.telegraph 30-60 s before *each* wave spawns 6+ km south, so this call leads every
+  # wave into the fight. once: false + cooldown: the headless m03 run (2026-10-29) showed a
+  # once-only beat telegraphed wave 1 only (waves 2-3 "ignored"); the cooldown swallows the
+  # beat.request that arrives with the same telegraph. Ungated, delay 0 (lint telegraph_too_short).
   - id: assault_massing
-    when: {event: encounter.spawned, encounter: assault_push}
+    when: {event: encounter.telegraph, encounter: assault_push}
     priority: 66
-    once: true
+    once: false
+    cooldown_sec: 90
     speaker: jtac_ortiz
     lines: [assault_massing_v1, assault_massing_v2, assault_massing_v3]
     text: "Python, Jackal. Enemy massing south of the Mill. Two minutes."

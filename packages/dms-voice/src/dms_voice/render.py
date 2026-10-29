@@ -3,6 +3,8 @@
 The manifest ``{line_id: {file, dur_sec, text, speaker, model[, placeholder]}}`` feeds
 ``DMS_CONFIG.voice`` (durSec).
 Lines with ``turns`` are rendered as one clip with ElevenLabs Text-to-Dialogue.
+Lines with ``voiced: false`` are subtitle-only: never sent to ElevenLabs, no .ogg, no manifest
+entry (the planner treats lines without a manifest ``dur_sec`` as subtitles).
 
 Voice ids resolve per speaker from the campaign bible (``characters[].voice``, a
 ``VoiceProfile``) first and ``data/voice/voices.json`` (or ``--voices``) second.
@@ -28,6 +30,7 @@ from .models import (
     bible_voices,
     line_fields,
     line_turns,
+    line_voiced,
     voice_fx_of,
     voice_id_of,
 )
@@ -88,6 +91,8 @@ class CostEstimate:
     lines: list[PlannedLine] = field(default_factory=list)
     offline: bool = False
     model: str = DEFAULT_MODEL
+    subtitle_only: list[str] = field(default_factory=list)
+    """Ids of ``voiced: false`` lines: skipped entirely, never billed."""
 
     @property
     def credits(self) -> int:
@@ -100,9 +105,14 @@ class CostEstimate:
     def summary(self) -> str:
         cached = self.total_lines - self.to_render
         head = f"{self.total_lines} lines ({cached} cached, {self.to_render} to render): "
+        tail = (
+            f"; {len(self.subtitle_only)} subtitle-only (voiced: false, not billed)"
+            if self.subtitle_only
+            else ""
+        )
         if self.offline:
-            return head + "offline placeholder clips, 0 ElevenLabs credits"
-        return head + f"{self.characters} characters ~= {self.credits} ElevenLabs credits"
+            return head + "offline placeholder clips, 0 ElevenLabs credits" + tail
+        return head + f"{self.characters} characters ~= {self.credits} ElevenLabs credits" + tail
 
 
 class PlaceholderSynth:
@@ -210,12 +220,17 @@ def plan_lines(
     offline = model == PLACEHOLDER_MODEL
     fresh_ids = set(rerender)
     planned: list[PlannedLine] = []
+    subtitle_only: list[str] = []
     seen: set[str] = set()
     for line in lines:
         line_id, speaker, text, fx = line_fields(line)
         if line_id in seen:
             raise ValueError(f"duplicate line id {line_id!r}")
         seen.add(line_id)
+        if not line_voiced(line):
+            # Subtitle only: no voice lookup, no cache key, no billing, no audio.
+            subtitle_only.append(line_id)
+            continue
         fx = fx or voice_fx_of(voices.get(speaker)) or fx_preset
         if fx not in PRESETS:
             raise ValueError(f"line {line_id!r}: unknown fx preset {fx!r}")
@@ -244,7 +259,7 @@ def plan_lines(
     # Lines whose raw TTS is cached (only the FX changed) cost nothing to re-render.
     todo = [p for p in planned if not p.cached and (p.fresh or cache.get_raw(p.raw_key) is None)]
     chars = sum(p.characters for p in todo)
-    return CostEstimate(len(planned), len(todo), chars, planned, offline, model)
+    return CostEstimate(len(planned), len(todo), chars, planned, offline, model, subtitle_only)
 
 
 def _synthesize(p: PlannedLine, client: Synthesizer, model: str) -> bytes:
@@ -307,6 +322,9 @@ def render_lines(
 
         client = default_client()
     out.mkdir(parents=True, exist_ok=True)
+    for line_id in est.subtitle_only:
+        # A line switched to voiced: false must not keep an old take next to the manifest.
+        (out / f"{line_id}.ogg").unlink(missing_ok=True)
     for p in est.lines:
         cached_path = None if p.fresh else cache.get(p.key)
         if cached_path is None:

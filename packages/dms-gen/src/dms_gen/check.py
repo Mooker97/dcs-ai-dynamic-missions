@@ -163,6 +163,7 @@ def check_miz(path: str | os.PathLike[str]) -> CheckReport:
     _check_lua_syntax(rep, miz, files)
     if config is not None:
         _check_fog(rep, mission, config)
+        _check_flights(rep, mission, config)
         _check_beat_reachability(
             rep, mission, config, _earlier_mission_keys(path, config.get("missionId"))
         )
@@ -184,6 +185,56 @@ def _relax_for_test_build(rep: CheckReport, scripts: list[str]) -> None:
     rep.ok = not rep.errors
     if "dms.lua" in scripts and scripts.index("dms_test.lua") > scripts.index("dms.lua"):
         rep.add("error", "test_script_order", "dms_test.lua must load before dms.lua")
+
+
+def _check_flights(rep: CheckReport, mission: dict[Any, Any], cfg: dict[str, Any]) -> None:
+    """DMS_CONFIG.watch / DMS_CONFIG.flights against the mission's groups and zones (v0.9)."""
+    groups = {str(g.get("name")) for _s, _c, g in _groups(mission)}
+    watch = _as_map(cfg.get("watch"))
+    is_watch = bool(watch) and watch.get("enabled", True) is not False
+    if is_watch:
+        for i in rep.issues:
+            if i.code == "no_player_slot":
+                i.severity = "info"
+                i.message = "no Client/Player slot (watch mission: spectator only, by design)"
+        rep.ok = not rep.errors
+        focus = watch.get("focus")
+        if focus is None:
+            rep.add("error", "watch_no_focus", "DMS_CONFIG.watch has no focus group", "watch")
+        elif str(focus) not in groups:
+            rep.add(
+                "error",
+                "watch_focus_missing",
+                f"watch focus group '{focus}' is not in the mission",
+                "watch",
+            )
+    flights = [_as_map(f) for f in _as_list(cfg.get("flights"))]
+    zones = {str(k) for k in _as_map(cfg.get("zones"))} | _me_zones(mission)
+    ids = {str(f.get("id")) for f in flights}
+    for f in flights:
+        where = f"flights.{f.get('id')}"
+        if str(f.get("group")) not in groups:
+            rep.add(
+                "error",
+                "flight_group_missing",
+                f"flight group '{f.get('group')}' is not in the mission",
+                where,
+            )
+        for k, o in enumerate(_as_list(f.get("orders"))):
+            o = _as_map(o)
+            ow = f"{where}.orders[{k + 1}]"
+            kind = o.get("kind")
+            for key in ("to", "at"):
+                z = o.get(key)
+                # land may name an airbase instead of a zone
+                if z is not None and str(z) not in zones and kind != "land":
+                    rep.add("error", "flight_bad_zone", f"{kind} {key} zone '{z}' missing", ow)
+            fl = o.get("flight")
+            if fl is not None and str(fl) not in ids:
+                rep.add("error", "flight_bad_escort", f"escort flight '{fl}' missing", ow)
+            pk = o.get("pickup")
+            if pk is not None and str(pk) not in groups:
+                rep.add("warning", "flight_bad_pickup", f"pickup group '{pk}' not in mission", ow)
 
 
 def _check_groups(rep: CheckReport, mission: dict[Any, Any]) -> None:

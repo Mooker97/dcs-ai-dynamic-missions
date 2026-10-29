@@ -235,12 +235,22 @@ def plan_comms(
 
     chars = {c.id: c for c in bible.characters} if bible is not None else {}
     factions = {f.id: f for f in bible.factions} if bible is not None else {}
-    side = spec.player_flights[0].coalition
+    from .flights import flight_support
+
+    focus = next(
+        (f for f in spec.flights if spec.watch is not None and f.id == spec.watch.focus), None
+    )
+    if spec.player_flights:
+        side: str = spec.player_flights[0].coalition
+        first_aircraft = spec.player_flights[0].aircraft
+    elif focus is not None:  # watch mission: the focus flight stands in for the players
+        side, first_aircraft = focus.coalition, focus.aircraft
+    else:
+        side, first_aircraft = "blue", ""
     cid_callsign = {cid: (ch.callsign or ch.name) for cid, ch in chars.items()}
     clients = [g for g in groups if g.client]
-    first = spec.player_flights[0]
-    radios = aircraft_radios(first.aircraft)
-    bands = tunable_bands(first.aircraft)
+    radios = aircraft_radios(first_aircraft) if first_aircraft else []
+    bands: set[Band] = tunable_bands(first_aircraft) if first_aircraft else {"uhf", "vhf", "fm"}
 
     used: set[int] = set()
     flights: list[_Agency] = []
@@ -272,7 +282,7 @@ def plan_comms(
 
     agencies: list[_Agency] = []
     support_speakers: set[str] = set()
-    for s in spec.support:
+    for s in [*spec.support, *flight_support(spec)]:
         a = _support_agency(s, cid_callsign)
         if a is None:
             continue

@@ -549,3 +549,113 @@ def test_env_offline_truthy_only(
 ) -> None:
     monkeypatch.setenv("DMS_VOICE_OFFLINE", value)
     assert cli.env_offline() is offline
+
+
+# ---- voiced: false (subtitle only) ---------------------------------------
+
+MUTE = {"id": "m1", "speaker": "nobody_voiced", "text": "Subtitle only line.", "voiced": False}
+MUTE_DIALOGUE: dict[str, Any] = {
+    "id": "m2",
+    "voiced": False,
+    "turns": [TURN_A, {"speaker": "ghost", "text": "No voice id needed."}],
+}
+
+
+def test_unvoiced_lines_skip_client_files_and_manifest(tmp_path: Path, cache: TTSCache) -> None:
+    from dms_voice.models import VoiceLine
+
+    fake = FakeClient()
+    out = tmp_path / "voice"
+    out.mkdir()
+    (out / "m1.ogg").write_bytes(b"stale take")  # line was voiced in an earlier render
+    lines = [VoiceLine.model_validate(MUTE), LINES[0], VoiceLine.model_validate(MUTE_DIALOGUE)]
+    manifest = render_lines(lines, VOICES, out, client=fake, cache=cache)
+    assert [c[0] for c in fake.calls] == [LINES[0]["text"]]
+    assert fake.dialogue_calls == []
+    assert set(manifest) == {"l1"}
+    assert not (out / "m1.ogg").exists() and not (out / "m2.ogg").exists()
+    assert set(json.loads((out / "manifest.json").read_text())) == {"l1"}
+
+
+def test_all_unvoiced_needs_no_client(tmp_path: Path, cache: TTSCache) -> None:
+    # No client passed and no API key: nothing to render, so default_client() is never built.
+    from dms_voice.models import VoiceLine
+
+    mute_dia = VoiceLine.model_validate(MUTE_DIALOGUE)
+    manifest = render_lines([MUTE, mute_dia], {}, tmp_path / "v", cache=cache)
+    assert manifest == {}
+    assert json.loads((tmp_path / "v" / "manifest.json").read_text()) == {}
+
+
+def test_dry_run_bills_voiced_lines_only(
+    tmp_path: Path, cache: TTSCache, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from dms_voice.models import VoiceLine
+
+    fake = FakeClient()
+    lines = [MUTE, *LINES, VoiceLine.model_validate(MUTE_DIALOGUE)]
+    est = plan_lines(lines, VOICES, cache=cache)
+    assert est.characters == sum(len(ln["text"]) for ln in LINES)
+    assert est.total_lines == 2 and est.subtitle_only == ["m1", "m2"]
+    manifest = render_lines(lines, VOICES, tmp_path / "d", dry_run=True, client=fake, cache=cache)
+    assert set(manifest) == {"l1", "l2"}
+    assert fake.calls == [] and fake.dialogue_calls == []
+    text = capsys.readouterr().out
+    assert f"{est.characters} characters" in text
+    assert "2 subtitle-only" in text
+
+
+def test_unvoiced_still_checked_for_duplicates_and_rerender(cache: TTSCache) -> None:
+    with pytest.raises(ValueError, match="duplicate"):
+        plan_lines([MUTE, {**LINES[0], "id": "m1"}], VOICES, cache=cache)
+    est = plan_lines([MUTE, LINES[0]], VOICES, cache=cache, rerender=["m1"])
+    assert [p.line_id for p in est.lines] == ["l1"]
+
+
+def test_eleven_v3_subset_voiced(tmp_path: Path, cache: TTSCache) -> None:
+    from dms_voice.cache import dialogue_cache_key
+    from dms_voice.models import VoiceLine
+
+    fake = FakeClient()
+    lines: list[Any] = [
+        {**LINES[0], "voiced": False},
+        VoiceLine.model_validate(DIALOGUE),
+        LINES[1],
+        {**MUTE, "id": "m3", "speaker": "dusty"},
+    ]
+    out = tmp_path / "v3"
+    manifest = render_lines(lines, VOICES, out, model="eleven_v3", client=fake, cache=cache)
+    assert list(manifest) == ["x1", "l2"]  # order follows lines.yaml, gaps skipped
+    assert [c[0] for c in fake.calls] == [LINES[1]["text"]]
+    assert all(c[2] == "eleven_v3" for c in fake.calls)
+    assert len(fake.dialogue_calls) == 1 and fake.dialogue_calls[0][1] == "eleven_v3"
+    key = dialogue_cache_key(
+        [("vid_dusty", TURN_A["text"]), ("vid_mustang", TURN_B["text"])], "eleven_v3", "uhf_clean"
+    )
+    assert cache.get(key) is not None
+    assert sorted(f.name for f in out.glob("*.ogg")) == ["l2.ogg", "x1.ogg"]
+
+    # Voicing a previously subtitle-only line later renders just that line.
+    lines[0] = LINES[0]
+    manifest2 = render_lines(lines, VOICES, out, model="eleven_v3", client=fake, cache=cache)
+    assert list(manifest2) == ["l1", "x1", "l2"]
+    assert len(fake.calls) == 2 and len(fake.dialogue_calls) == 1
+
+
+def test_cli_dry_run_ignores_unvoiced(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("DMS_TTS_CACHE", str(tmp_path / "c"))
+    lines = tmp_path / "lines.yaml"
+    lines.write_text(
+        "lines:\n"
+        "  - {id: a, speaker: ops_mustang, text: Splash HVT.}\n"
+        "  - {id: b, speaker: ops_mustang, text: Not spoken aloud., voiced: false}\n",
+        encoding="utf-8",
+    )
+    voices = tmp_path / "voices.json"
+    voices.write_text(json.dumps({"voices": {"ops_mustang": {"voice_id": "v"}}}))
+    assert cli.main([str(lines), "--voices", str(voices), "--dry-run"]) == 0
+    out = capsys.readouterr().out
+    assert "11 characters" in out and "1 subtitle-only" in out
+    assert '"b"' not in out

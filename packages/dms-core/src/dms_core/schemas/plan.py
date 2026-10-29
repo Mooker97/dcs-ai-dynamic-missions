@@ -167,6 +167,19 @@ class PlanGroup(DMSModel):
             "(name flight-unit)."
         ),
     )
+    ai_flight: bool = Field(
+        default=False,
+        description=(
+            "AI flight driven at runtime by DMS.Flights (MissionSpec.flights): built as a plain "
+            "route flight (start point + optional first leg) with `task` as its DCS main task."
+        ),
+    )
+    immortal: bool = Field(
+        default=False, description="Air groups: SetImmortal start command on the first waypoint."
+    )
+    invisible: bool = Field(
+        default=False, description="Air groups: SetInvisible start command on the first waypoint."
+    )
 
 
 class PlanZone(DMSModel):

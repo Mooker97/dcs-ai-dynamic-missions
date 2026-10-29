@@ -14,7 +14,7 @@ import random
 import zipfile
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 import dcs
 from dcs import action, condition, mapping, task, triggers, unitgroup
@@ -563,16 +563,31 @@ class MissionBuilder:
         land_at: str | None = None,
         position: XY | None = None,
         altitude_m: float | None = None,
+        *,
+        maintask: str | None = None,
+        speed_kmh: float | None = None,
+        heading_deg: float | None = None,
+        unit_positions: Sequence[XY] | None = None,
+        start_alt_type: Literal["BARO", "RADIO"] | None = None,
+        callsign: tuple[str, int] | None = None,
+        modulation: str | None = None,
+        immortal: bool = False,
+        invisible: bool = False,
     ) -> unitgroup.FlyingGroup[Any]:
         """AI flight that flies ``waypoints`` in order, optionally landing at ``land_at``.
 
-        ``start`` "air" spawns in flight at ``position`` (default: the first waypoint).
+        ``start`` "air" spawns in flight at ``position`` (default: the first waypoint) with
+        ``speed_kmh``/``heading_deg``; ``unit_positions`` override pydcs' line-up and
+        ``start_alt_type`` sets the start point's altitude reference. ``maintask`` is a DCS main
+        task name (e.g. 'Ground Attack'; default: the type's). ``immortal``/``invisible`` add
+        SetImmortal/SetInvisible commands to the first waypoint.
         """
         if start == "air" and position is None:
             if not waypoints:
                 raise ValueError("air start needs position or a waypoint")
             position = (waypoints[0].x, waypoints[0].y)
             altitude_m = altitude_m if altitude_m is not None else waypoints[0].alt_m
+        task_cls = task.MainTask.map.get(maintask) if maintask else None
         group = self._flight(
             coalition,
             country,
@@ -581,10 +596,29 @@ class MissionBuilder:
             name,
             start,
             count,
-            task_=None,
+            task_=task_cls,
             position=position,
             altitude_m=altitude_m,
+            speed_kmh=speed_kmh,
         )
+        if start == "air":
+            for i, u in enumerate(group.units):
+                u.fuel = u.unit_type.fuel_max
+                if unit_positions is not None and i < len(unit_positions):
+                    u.position = self.point(*unit_positions[i])
+                if heading_deg is not None:
+                    u.heading = heading_deg % 360
+            if group.points:
+                group.points[0].position = self.point(
+                    group.units[0].position.x, group.units[0].position.y
+                )
+                if start_alt_type is not None:
+                    group.points[0].alt_type = start_alt_type
+        if group.points and (immortal or invisible):
+            if immortal:
+                group.points[0].tasks.append(task.SetImmortalCommand(True))
+            if invisible:
+                group.points[0].tasks.append(task.SetInvisibleCommand(True))
         for wp in waypoints:
             mp = group.add_waypoint(self.point(wp.x, wp.y), wp.alt_m, wp.speed_kmh)
             mp.alt_type = wp.alt_type
@@ -597,6 +631,10 @@ class MissionBuilder:
         self._apply_payload(group, payload)
         if frequency_mhz is not None:
             group.set_frequency(frequency_mhz)
+            if modulation is not None:
+                group.modulation = 1 if modulation == "FM" else 0
+        if callsign is not None:
+            self._apply_callsign(group, country, callsign)
         return group
 
     def _flight(

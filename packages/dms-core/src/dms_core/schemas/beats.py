@@ -45,6 +45,14 @@ BeatEvent = Literal[
     "convoy.resumed",
     "ground.stuck",
     "intel.revealed",
+    "flight.order",
+    "flight.arrived",
+    "flight.landed",
+    "flight.lifted",
+    "flight.pickup",
+    "flight.weapon",
+    "flight.done",
+    "flight.lost",
 ]
 
 # camelCase (Lua) spellings accepted on input and mapped to the snake_case field names.
@@ -148,7 +156,8 @@ class BeatTrigger(DMSModel):
         description="flag event: value to compare the flag with (number => equal, '>=2' style string, or true/false). Omit = 'flag is set'.",
     )
     flight: str | None = Field(
-        default=None, description="director.state: only this player flight (group name)."
+        default=None,
+        description="director.state: only this player flight (group name). flight.* events: the AI flight id (payload.flight).",
     )
     unit_prefix: str | None = Field(default=None, description="Unit name prefix filter.")
     delay_sec: float | None = Field(
@@ -356,6 +365,10 @@ class Beat(DMSModel):
         default=None, description="Subtitle / fallback text shown if no audio plays."
     )
     mark: BeatMark | None = Field(default=None, description="Optional F10 mark.")
+    cue: str | None = Field(
+        default=None,
+        description="Watch missions (watch.cues): camera cue shown to everyone as 'CAMERA: <text>' for 10 s; ignored otherwise.",
+    )
     effects: BeatEffects = Field(default_factory=BeatEffects, description="Effects on fire.")
 
     @model_validator(mode="before")

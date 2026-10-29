@@ -125,6 +125,12 @@
           "description": "Override the speaker's radio FX preset for this line.",
           "title": "Radio Fx"
         },
+        "voiced": {
+          "default": true,
+          "description": "false = subtitle only: `dms voice` never sends it to ElevenLabs and --dry-run does not count it.",
+          "title": "Voiced",
+          "type": "boolean"
+        },
         "file": {
           "anyOf": [
             {

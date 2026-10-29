@@ -37,6 +37,12 @@ def line_fields(line: Any) -> tuple[str, str, str, str | None]:
     return str(line_id), str(speaker), str(text), (str(fx) if fx else None)
 
 
+def line_voiced(line: Any) -> bool:
+    """False for a subtitle-only line (``voiced: false``): never sent to ElevenLabs."""
+    val = line.get("voiced", True) if isinstance(line, Mapping) else getattr(line, "voiced", True)
+    return val is not False
+
+
 def line_turns(line: Any) -> list[tuple[str, str]] | None:
     """Return ``[(speaker, text), ...]`` for a multi-speaker line, or None for a single voice."""
     turns = _get(line, "turns")
@@ -86,6 +92,7 @@ __all__ = [
     "bible_voices",
     "line_fields",
     "line_turns",
+    "line_voiced",
     "voice_fx_of",
     "voice_id_of",
 ]

@@ -769,6 +769,24 @@ Order semantics:
 - `rtb`: route to startAirbase with a Land waypoint (airborne starts use the nearest friendly
   airbase).
 
+Python compile rules (`packages/dms-gen/src/dms_gen/planner/flights.py`):
+
+- DCS group name: `<CallsignWord>_<id>` ("Dustoff 3-1" + `dustoff` -> `Dustoff_dustoff`), made
+  unique by the planner. `DMS_CONFIG.watch.focus` and `pickup` carry DCS group names (a `pickup`
+  support id resolves to that support's ground group, e.g. `kestrel_1`).
+- `targets` are mapped to DCS attribute names in Python; `weapon` stays a **keyword** and Lua maps
+  it to `weaponType`. Defaults are filled in Python: `altM`/`altType`/`speedMps` for
+  fly/hold/escort/engage/strike (order value, else the flight's start alt/speed, else 500 ft AGL /
+  100 kt helicopters, 15000 ft MSL / 350 kt planes), `radiusM` 2778 and `targets {"Ground Units"}`
+  for escort/engage, `maxSec` (900 / 360), `groundSec` 60, `weapon "guided_bomb"`.
+- A plane's `land` at an airbase area compiles `at` to the airbase name; helicopters get the zone id.
+- The .miz group is a plain route flight (start point + first leg toward `heading_toward` or the
+  first order's area), never late-activated or uncontrolled. Its DCS main task comes from the
+  orders (strike: Ground Attack, engage: CAS, escort: Escort, else the type default).
+  `immortal`/`invisible` are SetImmortal/SetInvisible commands on the first waypoint in the .miz,
+  not `DMS_CONFIG` keys. Helicopter air starts use a RADIO start point (alt = AGL feet).
+- AI flights with a `speaker` or `frequency_mhz` join the comms plan like Support assets.
+
 A dead group ends its orders (`flight.lost`). Every order start, end and skip logs
 `[DMS][Flights] ...` (info).
 

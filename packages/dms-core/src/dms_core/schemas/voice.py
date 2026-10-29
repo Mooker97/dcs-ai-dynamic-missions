@@ -45,6 +45,13 @@ class VoiceLine(DMSModel):
     radio_fx: RadioFxPreset | None = Field(
         default=None, description="Override the speaker's radio FX preset for this line."
     )
+    voiced: bool = Field(
+        default=True,
+        description=(
+            "false = subtitle only: `dms voice` never sends it to ElevenLabs and --dry-run "
+            "does not count it."
+        ),
+    )
     file: str | None = Field(
         default=None,
         description="Rendered .ogg file name (`dms voice` writes voice/manifest.json, not this).",

@@ -8,7 +8,7 @@ group ids here; ``dms plan`` resolves areas to coordinates and roles to unit typ
 from __future__ import annotations
 
 import datetime as _dt
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import Field, model_validator
 
@@ -22,6 +22,7 @@ from ._common import (
     Skill,
     Theater,
 )
+from .beats import BeatTrigger
 
 # ---------------------------------------------------------------------------
 # Areas (by reference)
@@ -404,6 +405,190 @@ class AmbientSpec(DMSModel):
     )
 
 
+# ---------------------------------------------------------------------------
+# AI flights and watch missions (CONTRACTS "AI flights and watch missions (v0.9)")
+# ---------------------------------------------------------------------------
+
+SpecRange = float | tuple[float, float]
+"""A number or a [min, max] pair; the runtime rolls one value per order (DMS.Rng.range)."""
+
+OrderKind = Literal["fly", "hold", "land", "escort", "engage", "strike", "rtb"]
+TargetKind = Literal["ground", "armor", "aaa", "infantry", "air"]
+StrikeWeapon = Literal["guided_bomb", "bomb", "missile", "rockets", "gun", "any"]
+
+# order kind -> field it must set
+_ORDER_NEEDS: dict[str, str] = {
+    "fly": "to",
+    "hold": "at",
+    "land": "at",
+    "escort": "flight",
+    "engage": "at",
+    "strike": "at",
+}
+# field -> order kinds that may set it
+_ORDER_ONLY: dict[str, tuple[str, ...]] = {
+    "pickup": ("land",),
+    "ground_min": ("land",),
+    "group": ("strike",),
+    "weapon": ("strike",),
+    "until": ("hold", "escort", "engage"),
+}
+
+
+class FlightOrder(DMSModel):
+    """One order of an AI flight. Orders run in sequence; each starts when the previous is done."""
+
+    do: OrderKind = Field(
+        description=(
+            "fly: route to area `to`. hold: orbit area `at`. land: land in area `at` (an airbase "
+            "area means that airfield). escort: follow flight `flight` and engage threats to it. "
+            "engage: orbit `at` and attack `targets` within radius_nm. strike: one attack run on "
+            "threat/pool `group` in area `at` with `weapon` (no group = bomb the area centre). "
+            "rtb: fly to the start airbase and land."
+        ),
+    )
+    to: Ident | None = Field(default=None, description="fly: destination area id.")
+    at: Ident | None = Field(
+        default=None, description="hold / land / engage / strike: area id where it happens."
+    )
+    flight: Ident | None = Field(default=None, description="escort: id of the flight to escort.")
+    group: Ident | None = Field(
+        default=None,
+        description="strike: threat or pool id whose first live group is the target (DMS_ prefix allowed).",
+    )
+    weapon: StrikeWeapon | None = Field(
+        default=None, description="strike: weapon class (default guided_bomb)."
+    )
+    targets: list[TargetKind] | None = Field(
+        default=None, description="escort / engage: target classes (default [ground])."
+    )
+    alt_ft: float | None = Field(
+        default=None, gt=0, le=60000, description="Altitude in feet (AGL helicopters, MSL planes)."
+    )
+    speed_kts: float | None = Field(default=None, gt=0, le=1200, description="Speed in knots.")
+    radius_nm: float | None = Field(
+        default=None, gt=0, le=50, description="escort / engage: engagement radius (default 1.5)."
+    )
+    ground_min: SpecRange | None = Field(
+        default=None,
+        description="land: minutes on the ground before the next order (default 1); number or [min, max].",
+    )
+    max_min: SpecRange | None = Field(
+        default=None,
+        description="Order ends after this many minutes even if `until` never happens (default 15 hold/escort/engage, 6 strike); number or [min, max].",
+    )
+    pickup: Ident | None = Field(
+        default=None,
+        description="land: support/flight id of a friendly ground group that boards (removed after ground time if within 300 m).",
+    )
+    until: BeatTrigger | None = Field(
+        default=None,
+        description="hold / escort / engage: end condition in beat `when` form, e.g. {beat: lz_cold} or {event: flight.lifted, flight: dustoff}.",
+    )
+    when: BeatTrigger | None = Field(
+        default=None,
+        description="Start condition in beat `when` form (default: right after the previous order).",
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _kind_alias(cls, data: Any) -> Any:
+        """Accept the Lua spelling `kind` for `do`."""
+        if isinstance(data, dict) and "do" not in data and "kind" in data:
+            d = dict(data)
+            d["do"] = d.pop("kind")
+            return d
+        return data
+
+    @model_validator(mode="after")
+    def _check(self) -> FlightOrder:
+        need = _ORDER_NEEDS.get(self.do)
+        if need and getattr(self, need) is None:
+            raise ValueError(f"order '{self.do}' requires '{need}'")
+        for fld, kinds in _ORDER_ONLY.items():
+            if getattr(self, fld) is not None and self.do not in kinds:
+                raise ValueError(f"'{fld}' is only valid for {'/'.join(kinds)} orders")
+        for fld in ("ground_min", "max_min"):
+            v = getattr(self, fld)
+            if isinstance(v, tuple):
+                if v[0] < 0 or v[1] < v[0]:
+                    raise ValueError(f"{fld} range must be [min, max] with 0 <= min <= max")
+            elif v is not None and v < 0:
+                raise ValueError(f"{fld} must be >= 0")
+        return self
+
+
+class FlightSpec(DMSModel):
+    """An AI flight that follows a list of orders (any mission; a watch mission's actors)."""
+
+    id: Ident = Field(
+        description="Flight id, e.g. 'dustoff'. The planner picks the DCS group name (plan.json / DMS_CONFIG.flights[].group)."
+    )
+    callsign: str = Field(description="Radio callsign, e.g. 'Dustoff 3-1'.")
+    aircraft: str = Field(description="DCS aircraft type id, e.g. 'UH-60A', 'F-16C_50'.")
+    count: int = Field(default=1, ge=1, le=4, description="Aircraft in the flight.")
+    coalition: Literal["blue", "red"] = Field(default="blue", description="Side.")
+    country: str = Field(default="USA", description="DCS country of the aircraft.")
+    skill: Literal["Average", "Good", "High", "Excellent"] = Field(
+        default="High", description="AI skill."
+    )
+    start_area: Ident = Field(
+        description="Area id where the flight starts; an airbase area with parking_hot/runway starts there, else airborne."
+    )
+    start_type: Literal["air", "parking_hot", "runway"] = Field(
+        default="air", description="How the flight starts."
+    )
+    start_alt_ft: float | None = Field(
+        default=None,
+        gt=0,
+        le=60000,
+        description="Air start altitude in feet (AGL helicopters, default 500; MSL planes, default 15000).",
+    )
+    start_speed_kts: float | None = Field(
+        default=None,
+        gt=0,
+        le=1200,
+        description="Air start speed in knots (default 100 helicopters, 350 planes).",
+    )
+    heading_toward: Ident | None = Field(
+        default=None,
+        description="Air start: area id the flight initially heads toward (default: the first order's area).",
+    )
+    loadout: str | None = Field(
+        default=None,
+        description="Loadout keyword (same as player flights), e.g. 'medevac', 'strike'; omit for the default.",
+    )
+    speaker: Ident | None = Field(
+        default=None, description="Bible character id who talks for this flight."
+    )
+    frequency_mhz: float | None = Field(
+        default=None, gt=0, description="Radio frequency in MHz (as for Support)."
+    )
+    modulation: Literal["AM", "FM"] | None = Field(
+        default=None, description="Radio modulation; null = FM below 87.995 MHz, else AM."
+    )
+    immortal: bool = Field(default=False, description="Units cannot be destroyed.")
+    invisible: bool = Field(default=False, description="AI enemies do not see the flight.")
+    orders: list[FlightOrder] = Field(
+        default_factory=list, description="Orders run in sequence; empty = just fly the start."
+    )
+
+    @model_validator(mode="after")
+    def _check(self) -> FlightSpec:
+        if self.heading_toward is not None and self.start_type != "air":
+            raise ValueError("heading_toward is only valid with start_type 'air'")
+        return self
+
+
+class WatchSpec(DMSModel):
+    """Spectator mission: no client slots; every actor is AI (CONTRACTS v0.9)."""
+
+    focus: Ident = Field(
+        description="Id of the flight that stands in for the player (zone.entered, director, ambient, comms position)."
+    )
+    cues: bool = Field(default=True, description="Show beat `cue` text as 'CAMERA: <text>'.")
+
+
 class MissionTestHints(DMSModel):
     """Hints for headless test builds (`dms build --test`); never affect normal play."""
 
@@ -451,7 +636,17 @@ class MissionSpec(DMSModel):
         description="Bible character ids who speak in this mission; beat/line speakers must be among them.",
     )
     areas: list[Area] = Field(min_length=1, description="Named areas used throughout the spec.")
-    player_flights: list[PlayerFlight] = Field(min_length=1, description="Client flights.")
+    player_flights: list[PlayerFlight] = Field(
+        default_factory=list,
+        description="Client flights (at least one, unless `watch` is set).",
+    )
+    watch: WatchSpec | None = Field(
+        default=None,
+        description="Spectator (watch) mission: no client slots needed; `focus` names the stand-in flight.",
+    )
+    flights: list[FlightSpec] = Field(
+        default_factory=list, description="AI flights that follow orders (any mission)."
+    )
     objectives: list[Objective] = Field(min_length=1, description="Objectives, primary first.")
     threats: list[Threat] = Field(default_factory=list, description="Pre-placed enemy presence.")
     support: list[Support] = Field(default_factory=list, description="Friendly assets.")
@@ -485,6 +680,26 @@ class MissionSpec(DMSModel):
         twice = sorted({p for p in self.plugins if self.plugins.count(p) > 1})
         if twice:
             raise ValueError(f"duplicate plugins: {twice}")
+        if not self.player_flights and self.watch is None:
+            raise ValueError("player_flights needs at least one flight (unless `watch` is set)")
+        flight_ids = [f.id for f in self.flights]
+        dup_f = sorted({i for i in flight_ids if flight_ids.count(i) > 1})
+        if dup_f:
+            raise ValueError(f"duplicate flight ids: {dup_f}")
+        if self.watch is not None and self.watch.focus not in flight_ids:
+            raise ValueError(
+                f"watch.focus '{self.watch.focus}' is not a flight id (flights: {flight_ids})"
+            )
+        pickups = set(flight_ids) | {s.id for s in self.support}
+        for i, f in enumerate(self.flights):
+            for j, o in enumerate(f.orders):
+                path = f"flights[{i}].orders[{j}]"
+                if o.flight is not None and o.flight not in flight_ids:
+                    raise ValueError(f"{path}.flight: unknown flight '{o.flight}'")
+                if o.flight is not None and o.flight == f.id:
+                    raise ValueError(f"{path}.flight: a flight cannot escort itself")
+                if o.pickup is not None and o.pickup not in pickups:
+                    raise ValueError(f"{path}.pickup: unknown support/flight id '{o.pickup}'")
         return self
 
     def area_ids(self) -> list[str]:
@@ -512,4 +727,13 @@ class MissionSpec(DMSModel):
         for i, e in enumerate(self.dynamic.encounters):
             if e.trigger.area:
                 refs.append((f"dynamic.encounters[{i}].trigger.area", e.trigger.area))
+        for i, fl in enumerate(self.flights):
+            refs.append((f"flights[{i}].start_area", fl.start_area))
+            if fl.heading_toward:
+                refs.append((f"flights[{i}].heading_toward", fl.heading_toward))
+            for j, fo in enumerate(fl.orders):
+                if fo.to:
+                    refs.append((f"flights[{i}].orders[{j}].to", fo.to))
+                if fo.at:
+                    refs.append((f"flights[{i}].orders[{j}].at", fo.at))
         return refs

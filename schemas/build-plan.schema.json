@@ -523,6 +523,19 @@
           "default": null,
           "description": "Optional F10 mark."
         },
+        "cue": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Watch missions (watch.cues): camera cue shown to everyone as 'CAMERA: <text>' for 10 s; ignored otherwise.",
+          "title": "Cue"
+        },
         "effects": {
           "$ref": "#/$defs/BeatEffects",
           "description": "Effects on fire."
@@ -881,7 +894,15 @@
             "convoy.halted",
             "convoy.resumed",
             "ground.stuck",
-            "intel.revealed"
+            "intel.revealed",
+            "flight.order",
+            "flight.arrived",
+            "flight.landed",
+            "flight.lifted",
+            "flight.pickup",
+            "flight.weapon",
+            "flight.done",
+            "flight.lost"
           ],
           "title": "Event",
           "type": "string"
@@ -1084,7 +1105,7 @@
             }
           ],
           "default": null,
-          "description": "director.state: only this player flight (group name).",
+          "description": "director.state: only this player flight (group name). flight.* events: the AI flight id (payload.flight).",
           "title": "Flight"
         },
         "unit_prefix": {
@@ -2109,6 +2130,352 @@
       "title": "EncounterTrigger",
       "type": "object"
     },
+    "FlightConfig": {
+      "additionalProperties": false,
+      "description": "DMS_CONFIG.flights[]: an AI flight and its orders.",
+      "properties": {
+        "id": {
+          "description": "Flight id from the mission spec.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "group": {
+          "description": "DCS group name.",
+          "title": "Group",
+          "type": "string"
+        },
+        "category": {
+          "description": "Aircraft category.",
+          "enum": [
+            "helicopter",
+            "plane"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "coalition": {
+          "description": "1 = red, 2 = blue.",
+          "enum": [
+            1,
+            2
+          ],
+          "title": "Coalition",
+          "type": "integer"
+        },
+        "speaker": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Character id for comms.",
+          "title": "Speaker"
+        },
+        "start_airbase": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Airbase of a parking/runway start (nil for airborne starts).",
+          "title": "Start Airbase"
+        },
+        "orders": {
+          "description": "Orders, run in sequence.",
+          "items": {
+            "$ref": "#/$defs/FlightOrderConfig"
+          },
+          "title": "Orders",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "group",
+        "category",
+        "coalition"
+      ],
+      "title": "FlightConfig",
+      "type": "object"
+    },
+    "FlightOrderConfig": {
+      "additionalProperties": false,
+      "description": "One compiled AI-flight order (lua/src/dms/flights.lua).",
+      "properties": {
+        "kind": {
+          "description": "Order kind.",
+          "enum": [
+            "fly",
+            "hold",
+            "land",
+            "escort",
+            "engage",
+            "strike",
+            "rtb"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "to": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "fly: zone id (DMS_CONFIG.zones).",
+          "title": "To"
+        },
+        "at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "hold / land / engage / strike: zone id, or an airbase name for land.",
+          "title": "At"
+        },
+        "flight": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "escort: flight id to escort.",
+          "title": "Flight"
+        },
+        "group": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "strike: target group-name prefix (threat/pool id).",
+          "title": "Group"
+        },
+        "weapon": {
+          "anyOf": [
+            {
+              "enum": [
+                "guided_bomb",
+                "bomb",
+                "missile",
+                "rockets",
+                "gun",
+                "any"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "strike: weapon keyword; Lua maps it to DCS weaponType.",
+          "title": "Weapon"
+        },
+        "targets": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "escort / engage: DCS attribute names, e.g. 'Ground Units'.",
+          "title": "Targets"
+        },
+        "alt_m": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Altitude in meters (alt_type).",
+          "title": "Alt M"
+        },
+        "alt_type": {
+          "anyOf": [
+            {
+              "enum": [
+                "BARO",
+                "RADIO"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "RADIO for helicopters (AGL), BARO for planes (MSL).",
+          "title": "Alt Type"
+        },
+        "speed_mps": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Speed in m/s.",
+          "title": "Speed Mps"
+        },
+        "radius_m": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "escort / engage: engagement radius in meters.",
+          "title": "Radius M"
+        },
+        "ground_sec": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "land: seconds on the ground (number or [min, max]).",
+          "title": "Ground Sec"
+        },
+        "max_sec": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Order timeout in seconds (number or [min, max]).",
+          "title": "Max Sec"
+        },
+        "pickup": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "land: DCS group name of the friendly ground group that boards.",
+          "title": "Pickup"
+        },
+        "until": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BeatTrigger"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "End condition (beat `when` form, canonical)."
+        },
+        "when": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BeatTrigger"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Start condition (beat `when` form, canonical)."
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "FlightOrderConfig",
+      "type": "object"
+    },
     "Intel": {
       "additionalProperties": false,
       "description": "Fog-of-war / intel settings.",
@@ -2638,6 +3005,24 @@
           "default": null,
           "description": "DCS radio callsign of the lead applied by the builder, e.g. 'Python 1-1', 'Magic 1-1' (AWACS), 'Shell 1-1' (tanker) (name flight-unit).",
           "title": "Radio Callsign"
+        },
+        "ai_flight": {
+          "default": false,
+          "description": "AI flight driven at runtime by DMS.Flights (MissionSpec.flights): built as a plain route flight (start point + optional first leg) with `task` as its DCS main task.",
+          "title": "Ai Flight",
+          "type": "boolean"
+        },
+        "immortal": {
+          "default": false,
+          "description": "Air groups: SetImmortal start command on the first waypoint.",
+          "title": "Immortal",
+          "type": "boolean"
+        },
+        "invisible": {
+          "default": false,
+          "description": "Air groups: SetInvisible start command on the first waypoint.",
+          "title": "Invisible",
+          "type": "boolean"
         }
       },
       "required": [
@@ -3710,6 +4095,34 @@
           ],
           "default": null,
           "description": "Headless test mode (only in `dms build --test` builds)."
+        },
+        "watch": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WatchConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Spectator (watch) mission settings (unset = normal mission)."
+        },
+        "flights": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/FlightConfig"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "AI flights with orders (unset = DMS.Flights inert).",
+          "title": "Flights"
         }
       },
       "required": [
@@ -3944,7 +4357,8 @@
             "marks",
             "fog_hidden",
             "comms_no_overlap",
-            "comms_beats"
+            "comms_beats",
+            "flight_orders"
           ],
           "title": "Kind",
           "type": "string"
@@ -4356,6 +4770,39 @@
         "text"
       ],
       "title": "VoiceTurn",
+      "type": "object"
+    },
+    "WatchConfig": {
+      "additionalProperties": false,
+      "description": "DMS_CONFIG.watch: spectator mission (no client slots; the focus flight stands in).",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "description": "true = watch mission (DMS.isWatch()).",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "focus": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "DCS group name of the focus flight (DMS.standInGroups()).",
+          "title": "Focus"
+        },
+        "cues": {
+          "default": true,
+          "description": "Show beat `cue` text as 'CAMERA: <text>'.",
+          "title": "Cues",
+          "type": "boolean"
+        }
+      },
+      "title": "WatchConfig",
       "type": "object"
     },
     "XY": {

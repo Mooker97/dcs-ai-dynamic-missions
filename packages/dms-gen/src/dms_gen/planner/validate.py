@@ -14,7 +14,7 @@ from collections import Counter
 
 from dms_core import catalog as cat
 from dms_core.schemas.beats import Beat, BeatSheet
-from dms_core.schemas.mission import MissionSpec, NearAirbase, NearNamedPlace
+from dms_core.schemas.mission import MissionSpec, NearAirbase, NearNamedPlace, Support
 from dms_core.schemas.runtime import Budgets
 from dms_core.schemas.story import StoryBible
 from dms_core.schemas.validation import Issue, suggest, validate_mission_bundle
@@ -28,6 +28,7 @@ from ..builder.mission import (
 )
 from . import forces
 from .context import (
+    ResolvedArea,
     canonical_country,
     country_names,
     era_for_year,
@@ -231,6 +232,9 @@ def validate(
                         )
                     )
 
+    # --- AI flights (CONTRACTS "AI flights and watch missions (v0.9)") ----------------------
+    issues.extend(_validate_flights(spec, c, era, resolved, blue_c, red_c))
+
     # one single-player lead per variant (flights without a variant are in every variant)
     seen_player: dict[str | None, int] = {}
     for i, f in enumerate(spec.player_flights):
@@ -253,7 +257,7 @@ def validate(
     # --- threats --------------------------------------------------------------------------
     roles = Counter(t.role for t in spec.threats)
     est_units = 0
-    player_side = spec.player_flights[0].coalition if spec.player_flights else "blue"
+    player_side, player_country = _player_side(spec)
     enemy_side = "blue" if player_side == "red" else "red"
     for i, t in enumerate(spec.threats):
         tp = f"threats[{i}]"
@@ -456,7 +460,7 @@ def validate(
             )
         elif s.faction and s.faction in factions:
             fside = factions[s.faction][1]
-            pside = spec.player_flights[0].coalition
+            pside = player_side
             if fside != pside:
                 issues.append(
                     _warn(
@@ -470,8 +474,7 @@ def validate(
 
             tpl = c.templates.get(_SUPPORT_AIR[s.role][0])
             if tpl is not None and tpl.units:
-                pf = spec.player_flights[0].country
-                country = canonical_country(pf) or pf
+                country = canonical_country(player_country) or player_country
                 names = support_callsign_names(tpl.units[0].type, country)
                 wanted, _num = split_callsign(s.callsign)
                 got = closest_callsign(wanted, names)
@@ -486,9 +489,18 @@ def validate(
                     )
         if s.tacan and s.role != "tanker":
             issues.append(_warn(sp + ".tacan", "tacan is only used for tankers; ignored"))
-        if s.role in ("medevac", "farp"):
+        if s.role == "farp":
             issues.append(
                 _warn(sp + ".role", f"support role '{s.role}' is not built yet; it is skipped")
+            )
+        elif s.role == "medevac" and not _represented_by_flight(spec, s):
+            issues.append(
+                _warn(
+                    sp + ".role",
+                    "support role 'medevac' is not built by the builder; it is skipped. "
+                    "Represent it as a flights[] entry (same id, callsign or speaker as this "
+                    "support) with land/pickup orders",
+                )
             )
         if s.role == "convoy" and len(s.route) < 2:
             issues.append(_warn(sp + ".route", "convoy needs a route of >= 2 areas to move"))
@@ -518,8 +530,73 @@ def validate(
             + [e.id for e in spec.dynamic.encounters]
             + [o.target or o.id for o in spec.objectives]
             + [f.callsign for f in spec.player_flights]
+            + [x for f in spec.flights for x in (f.id, f.callsign)]
         )
+        flight_ids = [f.id for f in spec.flights]
+        beat_ids = [b.id for b in beat_list]
+        speakers = set(spec.cast) | ({ch.id for ch in bible.characters} if bible else set())
+        for i, fl in enumerate(spec.flights):
+            if fl.speaker and fl.speaker not in speakers:
+                issues.append(
+                    _err(
+                        f"flights[{i}].speaker",
+                        f"unknown speaker '{fl.speaker}'",
+                        suggest(fl.speaker, speakers),
+                    )
+                )
+            for j, fo in enumerate(fl.orders):
+                for key, trig in (("when", fo.when), ("until", fo.until)):
+                    if trig is None:
+                        continue
+                    tp = f"flights[{i}].orders[{j}].{key}"
+                    if trig.beat and trig.beat not in beat_ids:
+                        issues.append(
+                            _warn(
+                                tp + ".beat",
+                                f"unknown beat '{trig.beat}'",
+                                suggest(trig.beat, beat_ids),
+                            )
+                        )
+                    if trig.flight and trig.flight not in flight_ids:
+                        issues.append(
+                            _warn(
+                                tp + ".flight",
+                                f"unknown flight '{trig.flight}'",
+                                suggest(trig.flight, flight_ids),
+                            )
+                        )
         for i, b in enumerate(beat_list):
+            bw = b.when
+            if (
+                bw.event
+                and str(bw.event).startswith("flight.")
+                and bw.flight
+                and bw.flight not in flight_ids
+            ):
+                issues.append(
+                    Issue(
+                        path=f"beats.yaml:beats[{i}].when.flight",
+                        problem=f"'{bw.flight}' is not a flights[] id",
+                        suggestions=suggest(bw.flight, flight_ids),
+                        severity="warning",
+                    )
+                )
+            if b.cue and spec.watch is None:
+                issues.append(
+                    Issue(
+                        path=f"beats.yaml:beats[{i}].cue",
+                        problem="camera cue is ignored: the mission has no `watch`",
+                        severity="info",
+                    )
+                )
+            elif b.cue and spec.watch is not None and not spec.watch.cues:
+                issues.append(
+                    Issue(
+                        path=f"beats.yaml:beats[{i}].cue",
+                        problem="camera cue is not shown: watch.cues is false",
+                        severity="info",
+                    )
+                )
             ref = b.when.group or b.when.group_prefix
             if ref and not any(ref.startswith(p) or p.startswith(ref) for p in prefixes):
                 issues.append(
@@ -544,6 +621,143 @@ def validate(
                         suggest(e.pool, pool_ids),
                     )
                 )
+    return issues
+
+
+#: Support roles that are friendly ground groups an AI flight can pick up (`land` + `pickup`).
+PICKUP_ROLES = ("friendly_ground", "convoy", "jtac")
+
+
+def _player_side(spec: MissionSpec) -> tuple[str, str]:
+    """(coalition, country) of the players; the watch focus flight stands in when there are none."""
+    if spec.player_flights:
+        return spec.player_flights[0].coalition, spec.player_flights[0].country
+    focus = next((f for f in spec.flights if spec.watch and f.id == spec.watch.focus), None)
+    if focus is not None:
+        return focus.coalition, focus.country
+    return "blue", spec.blue_countries[0] if spec.blue_countries else "USA"
+
+
+def _represented_by_flight(spec: MissionSpec, s: Support) -> bool:
+    """A support asset is represented by an AI flight with the same id, callsign or speaker."""
+    for f in spec.flights:
+        if f.id == s.id:
+            return True
+        if s.callsign and f.callsign.lower() == s.callsign.lower():
+            return True
+        if s.speaker and f.speaker == s.speaker:
+            return True
+    return False
+
+
+def _validate_flights(
+    spec: MissionSpec,
+    c: cat.Catalog,
+    era: str | None,
+    resolved: dict[str, ResolvedArea],
+    blue_c: set[str],
+    red_c: set[str],
+) -> list[Issue]:
+    """Semantic checks of `flights[]` (AI flights with orders)."""
+    issues: list[Issue] = []
+    side_key = {"blue": "blue_countries", "red": "red_countries"}
+    support = {s.id: s for s in spec.support}
+    flight_ids = {f.id for f in spec.flights}
+    strike_ids = [t.id for t in spec.threats] + [p.id for p in spec.dynamic.pools]
+    for i, f in enumerate(spec.flights):
+        fp = f"flights[{i}]"
+        cat_ac = c.units.get(f.aircraft)
+        category: str | None = None
+        try:
+            ac = aircraft_type(f.aircraft)
+            category = "helicopter" if getattr(ac, "helicopter", False) else "plane"
+        except (KeyError, ValueError):
+            issues.append(
+                _err(
+                    fp + ".aircraft",
+                    f"unknown aircraft type '{f.aircraft}'",
+                    c.suggest(f.aircraft, "unit"),
+                )
+            )
+        if cat_ac is None and category is not None:
+            issues.append(_warn(fp + ".aircraft", f"'{f.aircraft}' is not in the DMS catalog"))
+        if cat_ac is not None:
+            if cat_ac.category not in ("plane", "helicopter"):
+                issues.append(_err(fp + ".aircraft", f"'{f.aircraft}' is not an aircraft"))
+            if era and era not in cat_ac.eras:
+                issues.append(
+                    _warn(
+                        fp + ".aircraft",
+                        f"'{f.aircraft}' is not typical for era {era} ({spec.era})",
+                    )
+                )
+            if f.coalition not in cat_ac.coalitions:
+                issues.append(
+                    _warn(fp + ".aircraft", f"'{f.aircraft}' is not usually flown by {f.coalition}")
+                )
+        side_set = blue_c if f.coalition == "blue" else red_c
+        if (canonical_country(f.country) or f.country) not in side_set:
+            issues.append(
+                _err(
+                    fp + ".country",
+                    f"country '{f.country}' is not in {side_key[f.coalition]}",
+                    list(getattr(spec, side_key[f.coalition])),
+                )
+            )
+        if category is not None and f.loadout:
+            choice = choose_loadout(f.aircraft, f.loadout, spec.mission_type)
+            if not choice.ok:
+                issues.append(_warn(fp + ".loadout", choice.note))
+        start = resolved.get(f.start_area)
+        if start is not None and f.start_type != "air" and start.airbase is None:
+            issues.append(
+                _warn(
+                    fp + ".start_area",
+                    f"start_type '{f.start_type}' needs a near_airbase area; flight will air-start",
+                )
+            )
+        if f.start_type != "air":
+            for fld in ("start_alt_ft", "start_speed_kts"):
+                if getattr(f, fld) is not None:
+                    issues.append(
+                        _warn(f"{fp}.{fld}", f"{fld} is only used with start_type 'air'; ignored")
+                    )
+        for j, o in enumerate(f.orders):
+            op = f"{fp}.orders[{j}]"
+            if o.do == "strike" and o.group:
+                bare = o.group.removeprefix("DMS_")
+                if not any(bare == x or bare.startswith(x + "_") for x in strike_ids):
+                    issues.append(
+                        _warn(
+                            op + ".group",
+                            f"strike group '{o.group}' is not a threat or pool id; the strike "
+                            "falls back to bombing the area centre if no group matches",
+                            suggest(bare, strike_ids),
+                        )
+                    )
+            if o.pickup:
+                sup = support.get(o.pickup)
+                if sup is not None and sup.role not in PICKUP_ROLES:
+                    issues.append(
+                        _warn(
+                            op + ".pickup",
+                            f"pickup '{o.pickup}' is a '{sup.role}' support; only ground groups "
+                            f"({', '.join(PICKUP_ROLES)}) or another flight can board",
+                        )
+                    )
+                elif sup is None and o.pickup not in flight_ids:
+                    issues.append(_err(op + ".pickup", f"unknown support/flight id '{o.pickup}'"))
+                elif o.pickup == f.id:
+                    issues.append(_warn(op + ".pickup", "a flight cannot pick itself up"))
+            if o.do == "land" and o.at and category == "plane":
+                at = resolved.get(o.at)
+                if at is not None and at.airbase is None:
+                    issues.append(
+                        _warn(
+                            op + ".at",
+                            f"planes land only at airfields; '{o.at}' is not a near_airbase area",
+                        )
+                    )
     return issues
 
 

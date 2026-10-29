@@ -354,6 +354,8 @@ def make_test_plan(
     tp = variant_plan(plan, variant) if variant else plan.model_copy(deep=True)
     if tp.runtime is None:
         raise ValueError("plan has no runtime config")
+    if spec.watch is not None:
+        return _watch_test_plan(tp, spec, beats, minutes)
     orig = pick_test_proxy(tp, variant)
     # Helicopters fly the route low and slow; fixed-wing jets need a jet profile (an F-16 at the
     # helicopter's 120 m / 220 km/h fell out of the sky in the first Viper run).
@@ -543,8 +545,50 @@ def make_test_plan(
         optional=optional,
         require_result=hints.require_result if hints is not None else None,
         loiter=loiter,
+        flights=bool(rt.flights),
     )
     return TestBuild(plan=tp, lua=lua, proxy=proxy_name, minutes=mins, route_km=route_km)
+
+
+def _watch_test_plan(
+    tp: BuildPlan,
+    spec: MissionSpec,
+    beats: list[Beat] | BeatSheet | None,
+    minutes: float | None,
+) -> TestBuild:
+    """Watch mission: keep every AI flight; the focus flight is the proxy (no loiter)."""
+    assert tp.runtime is not None and spec.watch is not None
+    rt = tp.runtime
+    focus = rt.watch.focus if rt.watch is not None else None
+    if not focus:
+        focus = next(
+            (g.name for g in tp.groups if g.ai_flight and g.source == spec.watch.focus), None
+        )
+    if not focus:
+        raise ValueError(f"watch focus flight '{spec.watch.focus}' has no group in the plan")
+    tp.groups = [g for g in tp.groups if not g.client]
+    beat_list = _beat_list(beats, tp)
+    rt.debug = True
+    for e in rt.encounters:
+        e.chance = 100
+    res = [r for r in tp.resources if Path(r.path).name != TEST_SCRIPT]
+    idx = next((i for i, r in enumerate(res) if Path(r.path).name == "dms_config.lua"), None)
+    if idx is None:
+        idx = next((i - 1 for i, r in enumerate(res) if Path(r.path).name == "dms.lua"), -1)
+    res.insert(idx + 1, PlanResource(path=TEST_SCRIPT_PATH, source=TEST_SCRIPT, kind="script"))
+    tp.resources = res
+    mins = float(minutes) if minutes is not None else float(spec.duration_min)
+    hints = spec.test
+    lua = build_test_lua(
+        focus,
+        mins,
+        beat_list,
+        [e.id for e in rt.encounters],
+        optional={e.id: None for e in rt.encounters},
+        require_result=hints.require_result if hints is not None else None,
+        flights=bool(rt.flights),
+    )
+    return TestBuild(plan=tp, lua=lua, proxy=focus, minutes=mins, route_km=0.0)
 
 
 def default_checks(
@@ -555,6 +599,7 @@ def default_checks(
     ambient: bool = False,
     optional: dict[str, str | None] | None = None,
     require_result: str | None = None,
+    flights: bool = False,
 ) -> list[dict[str, Any]]:
     """The default in-mission check list (see lua/src/dms/test.lua for the kinds).
 
@@ -562,7 +607,8 @@ def default_checks(
     ``ambient_cycle`` check (a site activates, then deactivates once the proxy leaves) is added.
     ``optional``: encounter id -> mutually exclusive group (or None) for optional encounter checks
     (see :func:`encounter_requirements`). ``require_result``: outcome_end demands this result
-    (default: any mission end passes).
+    (default: any mission end passes). ``flights``: add ``flight_orders`` (every AI flight
+    reached flight.done or flight.lost by the end).
     """
     optional = optional or {}
     d = int(minutes * 60 - 30)
@@ -602,6 +648,8 @@ def default_checks(
     checks.append({"kind": "comms_no_overlap", "name": "radio_no_overlap"})
     checks.append({"kind": "comms_beats", "name": "spine_lines_played"})
     checks.append({"kind": "convoy_halt", "name": "convoy_halt_on_hit"})
+    if flights:
+        checks.append({"kind": "flight_orders", "name": "flight_orders"})
     outcome: dict[str, Any] = {"kind": "outcome", "name": "outcome_end"}
     if require_result:
         outcome["requireResult"] = require_result
@@ -620,6 +668,7 @@ def build_test_lua(
     optional: dict[str, str | None] | None = None,
     require_result: str | None = None,
     loiter: dict[str, Any] | None = None,
+    flights: bool = False,
 ) -> str:
     cfg: dict[str, Any] = {
         "enabled": True,
@@ -632,6 +681,7 @@ def build_test_lua(
             ambient=ambient,
             optional=optional,
             require_result=require_result,
+            flights=flights,
         ),
     }
     if loiter is not None:

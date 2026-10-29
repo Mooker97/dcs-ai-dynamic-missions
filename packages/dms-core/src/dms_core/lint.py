@@ -668,6 +668,7 @@ def _starts_with_callsign(text: str, callsigns: set[str]) -> bool:
 
 def _callsign_words(spec: MissionSpec, bible: StoryBible | None) -> set[str]:
     names: list[str] = [f.callsign for f in spec.player_flights]
+    names += [f.callsign for f in spec.flights]
     names += [s.callsign for s in spec.support if s.callsign]
     for c in _bible_chars(bible).values():
         if c.callsign:

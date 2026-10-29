@@ -229,6 +229,9 @@ def _add_group(b: MissionBuilder, g: PlanGroup) -> None:
         _apply_radio_presets(group, g)
     else:
         kind = _AI_TASKS.get(str(g.task or ""))
+        if g.ai_flight:  # DMS.Flights drives it: a plain route flight, never the canned tasks
+            _add_route_flight(b, g, coal, payload)
+            return
         # A planned Landing (the test proxy) means the route is the flight: the canned CAP/CAS
         # race-track ends in an endless Orbit and never lands (m03 headless run, 2026-10-29).
         if kind is None or any(p.action == "Landing" for p in g.route):
@@ -323,11 +326,30 @@ def _add_route_flight(
         land_at=(landing.airbase or (first.airbase if first else None)) if landing else None,
         position=position,
         altitude_m=alt,
+        **_ai_flight_extras(g, first, start),
     )
     b.rename_units(group, [u.name for u in g.units])
     group.late_activation = g.late_activation
     group.hidden = g.hidden
     group.uncontrolled = g.uncontrolled
+
+
+def _ai_flight_extras(g: PlanGroup, first: Any, start: StartKind) -> dict[str, Any]:
+    """Extra add_ai_route_flight arguments for a MissionSpec.flights group (else none)."""
+    if not g.ai_flight:
+        return {}
+    air = start == "air" and first is not None
+    return {
+        "maintask": str(g.task) if g.task else None,
+        "speed_kmh": (first.speed_kmh or None) if air else None,
+        "heading_deg": g.units[0].heading_deg if air else None,
+        "unit_positions": [(u.x, u.y) for u in g.units] if air else None,
+        "start_alt_type": first.alt_type if air else None,
+        "callsign": _parse_callsign(g.radio_callsign),
+        "modulation": g.modulation,
+        "immortal": g.immortal,
+        "invisible": g.invisible,
+    }
 
 
 def _resolve_params(b: MissionBuilder, params: dict[str, Any]) -> dict[str, Any]:

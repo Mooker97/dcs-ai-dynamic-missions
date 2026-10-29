@@ -147,6 +147,316 @@
       "title": "Area",
       "type": "object"
     },
+    "BeatTrigger": {
+      "additionalProperties": false,
+      "description": "What wakes the beat up. Set `event` plus the matching filter fields.",
+      "properties": {
+        "event": {
+          "description": "Trigger event. timer: after_sec from mission start; flag: when `flag` becomes set; zone.entered: a player/group enters `zone`; group.dead: `group` (or any group with `group_prefix`) is destroyed; beat.fired: after another beat; encounter.spawned: an encounter spawned; director.state: director enters `state`; others mirror DCS events.",
+          "enum": [
+            "mission.start",
+            "timer",
+            "flag",
+            "zone.entered",
+            "group.dead",
+            "unit.dead",
+            "unit.hit",
+            "unit.shot",
+            "player.spawned",
+            "player.left",
+            "unit.landed",
+            "unit.takeoff",
+            "mark.added",
+            "beat.fired",
+            "encounter.spawned",
+            "director.state",
+            "mission.end",
+            "mission.result",
+            "mark.changed",
+            "mark.removed",
+            "spawner.spawned",
+            "encounter.telegraph",
+            "encounter.sam_hot",
+            "encounter.wave",
+            "encounter.cleared",
+            "encounter.proximity",
+            "convoy.halted",
+            "convoy.resumed",
+            "ground.stuck",
+            "intel.revealed",
+            "flight.order",
+            "flight.arrived",
+            "flight.landed",
+            "flight.lifted",
+            "flight.pickup",
+            "flight.weapon",
+            "flight.done",
+            "flight.lost"
+          ],
+          "title": "Event",
+          "type": "string"
+        },
+        "group": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Exact group name filter, e.g. 'HVT'.",
+          "title": "Group"
+        },
+        "group_prefix": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Group name prefix filter, e.g. 'AAA_KIRK' matches AAA_KIRK_1..n.",
+          "title": "Group Prefix"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Exact unit name filter.",
+          "title": "Unit"
+        },
+        "zone": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Zone/area id. zone.entered: the zone entered. unit.landed/unit.takeoff: position filter, the unit must be inside this zone at the event (e.g. 'land at fob_pad').",
+          "title": "Zone"
+        },
+        "place": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "unit.landed/unit.takeoff only: airbase/FARP/ship name the unit landed at or took off from (payload.place, case-insensitive), e.g. 'Kutaisi'. Alias: airbase.",
+          "title": "Place"
+        },
+        "flag": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Flag name (flag event).",
+          "title": "Flag"
+        },
+        "beat": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Beat id (beat.fired).",
+          "title": "Beat"
+        },
+        "encounter": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Encounter id (encounter.spawned).",
+          "title": "Encounter"
+        },
+        "state": {
+          "anyOf": [
+            {
+              "enum": [
+                "BUILD_UP",
+                "PEAK",
+                "RELAX"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Director state (director.state).",
+          "title": "State"
+        },
+        "after_sec": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Seconds after mission start (timer).",
+          "title": "After Sec"
+        },
+        "coalition": {
+          "anyOf": [
+            {
+              "enum": [
+                0,
+                1,
+                2
+              ],
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Coalition filter: 0 = neutral (e.g. civilians), 1 = red, 2 = blue. For unit.hit it is the target's coalition.",
+          "title": "Coalition"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "flag event: value to compare the flag with (number => equal, '>=2' style string, or true/false). Omit = 'flag is set'.",
+          "title": "Value"
+        },
+        "flight": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "director.state: only this player flight (group name). flight.* events: the AI flight id (payload.flight).",
+          "title": "Flight"
+        },
+        "unit_prefix": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Unit name prefix filter.",
+          "title": "Unit Prefix"
+        },
+        "delay_sec": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Per-trigger delivery delay; used only when the beat's own delay_sec is 0.",
+          "title": "Delay Sec"
+        },
+        "type_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "DCS unit type filter, e.g. 'ZSU-23-4 Shilka'.",
+          "title": "Type Name"
+        },
+        "players_only": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Only count events caused by/affecting player aircraft.",
+          "title": "Players Only"
+        }
+      },
+      "required": [
+        "event"
+      ],
+      "title": "BeatTrigger",
+      "type": "object"
+    },
     "DirectorIntent": {
       "additionalProperties": false,
       "description": "AI-director pacing intent.",
@@ -416,6 +726,487 @@
         "type"
       ],
       "title": "EncounterTriggerIntent",
+      "type": "object"
+    },
+    "FlightOrder": {
+      "additionalProperties": false,
+      "description": "One order of an AI flight. Orders run in sequence; each starts when the previous is done.",
+      "properties": {
+        "do": {
+          "description": "fly: route to area `to`. hold: orbit area `at`. land: land in area `at` (an airbase area means that airfield). escort: follow flight `flight` and engage threats to it. engage: orbit `at` and attack `targets` within radius_nm. strike: one attack run on threat/pool `group` in area `at` with `weapon` (no group = bomb the area centre). rtb: fly to the start airbase and land.",
+          "enum": [
+            "fly",
+            "hold",
+            "land",
+            "escort",
+            "engage",
+            "strike",
+            "rtb"
+          ],
+          "title": "Do",
+          "type": "string"
+        },
+        "to": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "fly: destination area id.",
+          "title": "To"
+        },
+        "at": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "hold / land / engage / strike: area id where it happens.",
+          "title": "At"
+        },
+        "flight": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "escort: id of the flight to escort.",
+          "title": "Flight"
+        },
+        "group": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "strike: threat or pool id whose first live group is the target (DMS_ prefix allowed).",
+          "title": "Group"
+        },
+        "weapon": {
+          "anyOf": [
+            {
+              "enum": [
+                "guided_bomb",
+                "bomb",
+                "missile",
+                "rockets",
+                "gun",
+                "any"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "strike: weapon class (default guided_bomb).",
+          "title": "Weapon"
+        },
+        "targets": {
+          "anyOf": [
+            {
+              "items": {
+                "enum": [
+                  "ground",
+                  "armor",
+                  "aaa",
+                  "infantry",
+                  "air"
+                ],
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "escort / engage: target classes (default [ground]).",
+          "title": "Targets"
+        },
+        "alt_ft": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 60000,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Altitude in feet (AGL helicopters, MSL planes).",
+          "title": "Alt Ft"
+        },
+        "speed_kts": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 1200,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Speed in knots.",
+          "title": "Speed Kts"
+        },
+        "radius_nm": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 50,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "escort / engage: engagement radius (default 1.5).",
+          "title": "Radius Nm"
+        },
+        "ground_min": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "land: minutes on the ground before the next order (default 1); number or [min, max].",
+          "title": "Ground Min"
+        },
+        "max_min": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Order ends after this many minutes even if `until` never happens (default 15 hold/escort/engage, 6 strike); number or [min, max].",
+          "title": "Max Min"
+        },
+        "pickup": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "land: support/flight id of a friendly ground group that boards (removed after ground time if within 300 m).",
+          "title": "Pickup"
+        },
+        "until": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BeatTrigger"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "hold / escort / engage: end condition in beat `when` form, e.g. {beat: lz_cold} or {event: flight.lifted, flight: dustoff}."
+        },
+        "when": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BeatTrigger"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Start condition in beat `when` form (default: right after the previous order)."
+        }
+      },
+      "required": [
+        "do"
+      ],
+      "title": "FlightOrder",
+      "type": "object"
+    },
+    "FlightSpec": {
+      "additionalProperties": false,
+      "description": "An AI flight that follows a list of orders (any mission; a watch mission's actors).",
+      "properties": {
+        "id": {
+          "description": "Flight id, e.g. 'dustoff'. The planner picks the DCS group name (plan.json / DMS_CONFIG.flights[].group).",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "callsign": {
+          "description": "Radio callsign, e.g. 'Dustoff 3-1'.",
+          "title": "Callsign",
+          "type": "string"
+        },
+        "aircraft": {
+          "description": "DCS aircraft type id, e.g. 'UH-60A', 'F-16C_50'.",
+          "title": "Aircraft",
+          "type": "string"
+        },
+        "count": {
+          "default": 1,
+          "description": "Aircraft in the flight.",
+          "maximum": 4,
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "coalition": {
+          "default": "blue",
+          "description": "Side.",
+          "enum": [
+            "blue",
+            "red"
+          ],
+          "title": "Coalition",
+          "type": "string"
+        },
+        "country": {
+          "default": "USA",
+          "description": "DCS country of the aircraft.",
+          "title": "Country",
+          "type": "string"
+        },
+        "skill": {
+          "default": "High",
+          "description": "AI skill.",
+          "enum": [
+            "Average",
+            "Good",
+            "High",
+            "Excellent"
+          ],
+          "title": "Skill",
+          "type": "string"
+        },
+        "start_area": {
+          "description": "Area id where the flight starts; an airbase area with parking_hot/runway starts there, else airborne.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Start Area",
+          "type": "string"
+        },
+        "start_type": {
+          "default": "air",
+          "description": "How the flight starts.",
+          "enum": [
+            "air",
+            "parking_hot",
+            "runway"
+          ],
+          "title": "Start Type",
+          "type": "string"
+        },
+        "start_alt_ft": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 60000,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Air start altitude in feet (AGL helicopters, default 500; MSL planes, default 15000).",
+          "title": "Start Alt Ft"
+        },
+        "start_speed_kts": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 1200,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Air start speed in knots (default 100 helicopters, 350 planes).",
+          "title": "Start Speed Kts"
+        },
+        "heading_toward": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Air start: area id the flight initially heads toward (default: the first order's area).",
+          "title": "Heading Toward"
+        },
+        "loadout": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Loadout keyword (same as player flights), e.g. 'medevac', 'strike'; omit for the default.",
+          "title": "Loadout"
+        },
+        "speaker": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Bible character id who talks for this flight.",
+          "title": "Speaker"
+        },
+        "frequency_mhz": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Radio frequency in MHz (as for Support).",
+          "title": "Frequency Mhz"
+        },
+        "modulation": {
+          "anyOf": [
+            {
+              "enum": [
+                "AM",
+                "FM"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Radio modulation; null = FM below 87.995 MHz, else AM.",
+          "title": "Modulation"
+        },
+        "immortal": {
+          "default": false,
+          "description": "Units cannot be destroyed.",
+          "title": "Immortal",
+          "type": "boolean"
+        },
+        "invisible": {
+          "default": false,
+          "description": "AI enemies do not see the flight.",
+          "title": "Invisible",
+          "type": "boolean"
+        },
+        "orders": {
+          "description": "Orders run in sequence; empty = just fly the start.",
+          "items": {
+            "$ref": "#/$defs/FlightOrder"
+          },
+          "title": "Orders",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "callsign",
+        "aircraft",
+        "start_area"
+      ],
+      "title": "FlightSpec",
       "type": "object"
     },
     "FogOfWarIntent": {
@@ -1336,6 +2127,30 @@
       ],
       "title": "Threat",
       "type": "object"
+    },
+    "WatchSpec": {
+      "additionalProperties": false,
+      "description": "Spectator mission: no client slots; every actor is AI (CONTRACTS v0.9).",
+      "properties": {
+        "focus": {
+          "description": "Id of the flight that stands in for the player (zone.entered, director, ambient, comms position).",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "Focus",
+          "type": "string"
+        },
+        "cues": {
+          "default": true,
+          "description": "Show beat `cue` text as 'CAMERA: <text>'.",
+          "title": "Cues",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "focus"
+      ],
+      "title": "WatchSpec",
+      "type": "object"
     }
   },
   "additionalProperties": false,
@@ -1505,12 +2320,31 @@
       "type": "array"
     },
     "player_flights": {
-      "description": "Client flights.",
+      "description": "Client flights (at least one, unless `watch` is set).",
       "items": {
         "$ref": "#/$defs/PlayerFlight"
       },
-      "minItems": 1,
       "title": "Player Flights",
+      "type": "array"
+    },
+    "watch": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/WatchSpec"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Spectator (watch) mission: no client slots needed; `focus` names the stand-in flight."
+    },
+    "flights": {
+      "description": "AI flights that follow orders (any mission).",
+      "items": {
+        "$ref": "#/$defs/FlightSpec"
+      },
+      "title": "Flights",
       "type": "array"
     },
     "objectives": {
@@ -1606,7 +2440,6 @@
     "date",
     "mission_type",
     "areas",
-    "player_flights",
     "objectives"
   ],
   "title": "MissionSpec",

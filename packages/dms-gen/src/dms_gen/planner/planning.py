@@ -17,7 +17,7 @@ import re
 import zlib
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import yaml
 from dms_core.schemas.beats import Beat, BeatSheet
@@ -81,6 +81,7 @@ from .context import (
     on_map,
     resolve_areas,
 )
+from .flights import compile_flights, group_base_name, plan_flight_group, watch_config
 from .loadouts import payload_for
 from .radios import plan_comms
 
@@ -360,13 +361,16 @@ class _Planner:
         self.fog = spec.dynamic.fog_of_war.enabled
         bases = [a.center for a in areas.values() if a.airbase]
         self.placer = _Placer(spec.theater, self.rng, bases)
-        self.players_side = spec.player_flights[0].coalition
+        self.players_side = (
+            spec.player_flights[0].coalition if spec.player_flights else _watch_side(spec)
+        )
         self.enemy_side = "red" if self.players_side == "blue" else "blue"
         self.neutral: list[str] = []
         self.char_faction = (
             {c.id: c.faction for c in bible.characters if c.faction} if bible is not None else {}
         )
         self.support_cs: dict[str, int] = {}
+        self.flight_cs: dict[str, int] = {}
 
     # -- helpers -------------------------------------------------------------------------
     def area(self, area_id: str) -> ResolvedArea:
@@ -652,6 +656,15 @@ class _Planner:
             variant=f.variant,
         )
 
+    # -- AI flights ----------------------------------------------------------------------
+    def plan_flights(self) -> None:
+        """MissionSpec.flights -> AI route groups (DMS.Flights drives their orders)."""
+        for f in self.spec.flights:
+            name = self.names.alloc(group_base_name(f))
+            self.groups.append(
+                plan_flight_group(f, name, self.area, self.spec.mission_type, self.flight_cs)
+            )
+
     # -- threats -------------------------------------------------------------------------
     def plan_threats(self) -> None:
         for t in self.spec.threats:
@@ -756,7 +769,7 @@ class _Planner:
                 self.groups.append(g)
 
     def _player_base(self) -> tuple[float, float]:
-        return self.area(self.spec.player_flights[0].start_area).center
+        return self.area(_base_area(self.spec)).center
 
     def _support(self, s: Support) -> PlanGroup | None:
         side = self.players_side
@@ -1075,6 +1088,26 @@ class _Planner:
         )
 
 
+def _watch_side(spec: MissionSpec) -> Literal["blue", "red"]:
+    """Players' side of a watch mission: the focus flight's coalition (else blue)."""
+    focus = spec.watch.focus if spec.watch is not None else None
+    f = next((f for f in spec.flights if f.id == focus), None)
+    return f.coalition if f is not None else "blue"
+
+
+def _base_area(spec: MissionSpec) -> str:
+    """Start area of the first player flight, else of the watch focus flight / first flight."""
+    if spec.player_flights:
+        return spec.player_flights[0].start_area
+    focus = spec.watch.focus if spec.watch is not None else None
+    f = next((f for f in spec.flights if f.id == focus), None)
+    if f is None and spec.flights:
+        f = spec.flights[0]
+    if f is None:
+        raise PlanError("mission has no player flights and no AI flights")
+    return f.start_area
+
+
 def _voice_file_optional() -> bool:
     return not VoiceEntry.model_fields["file"].is_required()
 
@@ -1152,12 +1185,17 @@ def build_speakers(
     for cid in ids:
         ch = chars.get(cid)
         sup = next((s for s in spec.support if s.speaker == cid), None)
+        fl = next((f for f in spec.flights if f.speaker == cid), None)
         callsign = (ch.callsign or ch.name) if ch is not None else None
         callsign = callsign or (sup.callsign if sup is not None else None)
+        callsign = callsign or (fl.callsign if fl is not None else None)
         if not callsign:
             continue
         freq = sup.frequency_mhz if sup is not None else None
-        mod = radio_modulation(freq, sup.modulation if sup is not None else None)
+        explicit = sup.modulation if sup is not None else None
+        if freq is None and fl is not None:
+            freq, explicit = fl.frequency_mhz, fl.modulation
+        mod = radio_modulation(freq, explicit)
         out[cid] = Speaker(
             callsign=callsign,
             frequency=freq,
@@ -1197,6 +1235,7 @@ def plan_mission(
     s = resolve_seed(spec, seed)
     p = _Planner(spec, s, bible, extra_places)
     p.plan_players()
+    p.plan_flights()
     p.plan_support()
     p.plan_threats()
     p.plan_objectives()
@@ -1208,6 +1247,8 @@ def plan_mission(
     voice = build_voice_map(lines, manifest)
     runtime = p.runtime(rt_zones, beat_list, voice, debug)
     runtime.speakers = build_speakers(spec, bible, lines)
+    runtime.flights = compile_flights(spec, p.groups, p.areas)
+    runtime.watch = watch_config(spec, p.groups)
     line_speakers = [ln.speaker for ln in lines.lines] if lines is not None else []
     comms = plan_comms(
         spec,
@@ -1215,7 +1256,8 @@ def plan_mission(
         list(dict.fromkeys([*spec.cast, *line_speakers])),
         p.groups,
         runtime.speakers,
-        start_airbases=[p.area(f.start_area).airbase for f in spec.player_flights],
+        start_airbases=[p.area(f.start_area).airbase for f in spec.player_flights]
+        or [p.area(_base_area(spec)).airbase],
     ).comms
     runtime.ambient = plan_ambient(spec.ambient, p.groups, theater=spec.theater, era=p.era, seed=s)
     if qualities:

@@ -754,6 +754,7 @@ source = { editable = "packages/dms-cli" }
 dependencies = [
     { name = "dms-core" },
     { name = "dms-gen" },
+    { name = "dms-tacview" },
     { name = "dms-voice" },
     { name = "typer" },
 ]
@@ -762,6 +763,7 @@ dependencies = [
 requires-dist = [
     { name = "dms-core", editable = "packages/dms-core" },
     { name = "dms-gen", editable = "packages/dms-gen" },
+    { name = "dms-tacview", editable = "packages/dms-tacview" },
     { name = "dms-voice", editable = "packages/dms-voice" },
     { name = "typer", specifier = ">=0.12" },
 ]

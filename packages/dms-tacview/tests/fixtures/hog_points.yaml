@@ -1,0 +1,5 @@
+points:
+  - name: Column
+    lon: 42.30
+    lat: 43.10
+    radius_m: 3000

@@ -197,12 +197,15 @@ def read_acmi_text(path: Path) -> str:
     """Return the ACMI text of ``path``; zip containers (any extension) are unpacked."""
     data = path.read_bytes()
     if data[:4] == b"PK\x03\x04":
-        with zipfile.ZipFile(io.BytesIO(data)) as zf:
-            names = [n for n in zf.namelist() if not n.endswith("/")]
-            if not names:
-                raise AcmiError(f"{path}: empty zip archive")
-            pick = next((n for n in names if n.lower().endswith(".acmi")), names[0])
-            data = zf.read(pick)
+        try:
+            with zipfile.ZipFile(io.BytesIO(data)) as zf:
+                names = [n for n in zf.namelist() if not n.endswith("/")]
+                if not names:
+                    raise AcmiError(f"{path}: empty zip archive")
+                pick = next((n for n in names if n.lower().endswith(".acmi")), names[0])
+                data = zf.read(pick)
+        except zipfile.BadZipFile as exc:
+            raise AcmiError(f"{path}: corrupt zip archive ({exc})") from None
     if data[:2] in (b"7z", b"7z\xbc\xaf"):
         raise AcmiError(f"{path}: 7z-compressed ACMI is not supported; unpack it first")
     return data.decode("utf-8-sig", errors="replace")

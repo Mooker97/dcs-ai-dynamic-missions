@@ -3,7 +3,7 @@ name = "dms-cli"
 version = "0.3.0.dev0"
 description = "DMS command line"
 requires-python = ">=3.11"
-dependencies = ["dms-core", "dms-gen", "dms-voice", "typer>=0.12"]
+dependencies = ["dms-core", "dms-gen", "dms-voice", "dms-tacview", "typer>=0.12"]
 
 [build-system]
 requires = ["hatchling"]
@@ -16,6 +16,7 @@ packages = ["src/dms_cli"]
 dms-core = { workspace = true }
 dms-gen = { workspace = true }
 dms-voice = { workspace = true }
+dms-tacview = { workspace = true }
 
 [project.scripts]
 dms = "dms_cli.main:app"

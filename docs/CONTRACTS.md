@@ -637,6 +637,53 @@ Deterministic dcs.log -> campaign state. No schema changes: debrief metadata liv
   so it lands last: a failure before it leaves the flight un-guarded and a rerun redoes it (the
   continuity entry is replaced, not duplicated).
 
+### Debrief: Tacview ACMI (`dms debrief --acmi`)
+
+Optional (G1, `dms_tacview.debrief.merge_acmi`, CLI glue in `dms_cli/cmd_debrief_acmi.py`).
+Implemented, not flown: tested on hand-written ACMI fixtures only.
+
+- **CLI**: `dms debrief <campaign> --mission mNN --acmi <PATH|auto> [--acmi-player X] [--acmi-facts]`.
+  `PATH` is a `.txt.acmi` or `.zip.acmi` (zip detected by magic bytes; 7z unsupported); a `PATH`
+  that does not exist is a usage error (exit 2). `auto` = newest-mtime `*.acmi` directly inside
+  `$DMS_TACVIEW_DIR`, else `%USERPROFILE%\Documents\Tacview`, else
+  `%USERPROFILE%\OneDrive\Documents\Tacview` [? default folder not confirmed on a real install].
+  `auto` does not yet check the dcs.log session window.
+- **Never fatal**: no recording found, an unreadable/corrupt file or no player aircraft is recorded
+  in `extra.tacview.error` / `extra.tacview.warnings` and printed as `tacview error:` /
+  `tacview warning:`; the dcs.log debrief proceeds unchanged.
+- **Player**: `--acmi-player` (object id, `Pilot`, `Name`, `CallSign` or `Group`); else the first
+  of `MissionOutcome.players` matching an ACMI object; else the first piloted aircraft
+  (`selected_by: heuristic_first_piloted_aircraft`).
+- **Points**: `campaigns/<slug>/missions/<mission dir>/tacview-points.yaml` (exact mission id, else
+  `mNN` prefix), a list (or `{points: [...]}`) of `{name, lon, lat, radius_m?}`. Zones (with
+  `radius_m`) give time over target.
+- **`extra.tacview`** (`dms_tacview.facts.TacviewFacts`, `extra="forbid"`): `source`, `title`,
+  `data_source`, `reference_time`, `recording_time`, `duration_s`;
+  `player {object_id, name, pilot, coalition, selected_by, first_seen, last_seen, flight_time_s,
+  distance_km, min_alt_m, max_alt_m, takeoffs[], landings[], landed, destroyed, fate}` or null;
+  `weapons_released [{weapon, count, hits}]` (player, by weapon `Name`, projectiles excluded);
+  `shots [{weapon_id, weapon, t_fired, t_end, launcher_method, target_id, target, hit,
+  hit_method}]` (player); `kills [{victim_id, victim, victim_type, victim_coalition, killer_id,
+  killer, by_player, weapon_id, weapon, t, method, confidence}]` (every destroyed combatant);
+  `time_over_target [{name, min_distance_m, t_min, radius_m, entered, first_entry_t,
+  time_inside_s}]`; `closest_threat_m`; `facts` (flat `tv_*`, below); `merged_into_outcomes`;
+  `warnings[]`; `error`. Times are seconds from the ACMI `ReferenceTime`; altitudes metres MSL.
+  `method` / `confidence` say how a kill was attributed (`timeout_event` high; `nearest_weapon`
+  medium with a `Parent`, else low). The debriefer must not state a `low` kill as fact.
+- **Facts** (`dms_tacview.facts.outcome_facts`, keys match the arc condition grammar, all `tv_`):
+  `tv_player_found`, `tv_duration_s`; with a player: `tv_flight_time_s`, `tv_distance_km`,
+  `tv_min_alt_m`, `tv_max_alt_m`, `tv_player_destroyed`, `tv_player_landed`, `tv_player_shots`,
+  `tv_player_hits`, `tv_player_kills`, `tv_player_kills_{air,ground,sea}`,
+  `tv_player_kills_confident`, `tv_friendly_losses`, `tv_enemy_losses`, `tv_closest_threat_m`,
+  `tv_time_over_target_s` (sum over zones); per point `tv_<slug>_min_m`, per zone
+  `tv_<slug>_entered`, `tv_<slug>_time_inside_s`.
+- **`--acmi-facts`**: the facts are also merged into `outcomes` before `apply_outcome`, never
+  overwriting a Lua-reported key, so they become `<mNN>_tv_*` flags and arc `quality_effects`
+  keys. Off by default so a heuristic never changes campaign state unless asked. Facts are merged
+  only when a player was found.
+- **Re-debrief guard**: `extra.session_hash` is from the dcs.log records only; adding, changing or
+  removing `--acmi` does not change it (use `--force` to re-apply with an ACMI).
+
 ## AI flights and watch missions (v0.9)
 
 A **watch mission** has no client slots. The viewer is a spectator (F2/F7/F10/F11) and every

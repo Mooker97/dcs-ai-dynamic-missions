@@ -1,8 +1,10 @@
 # Tacview-powered debriefs (DCS)
 
 Status: groundwork implemented 2026-10-29 (`packages/dms-tacview`: parser, summary, facts adapter,
-`dms-tacview summarize`), tested against hand-written fixtures only. **Not yet run on a real DCS
-ACMI file, not wired into `dms debrief`.** Implemented, not flown.
+`dms-tacview summarize`), tested against hand-written fixtures only. Wired into `dms debrief
+--acmi <path|auto>` (G1; contract in docs/CONTRACTS.md "Debrief: Tacview ACMI"). **Not yet run on
+a real DCS ACMI file.** Implemented, not flown. The "Proposed integration" below is superseded by
+that contract.
 
 ## What
 

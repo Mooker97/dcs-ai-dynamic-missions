@@ -101,8 +101,10 @@ quirks are documented in [`reference/dcs-scripting-gotchas.md`](reference/dcs-sc
 Modules 6–13 build only on the core API (1–5) and the raw DCS API. `init.lua` calls each module's
 `DMS.<Module>.start()` when `DMS_CONFIG` is present.
 
-**Optional plugins** (`lua/plugins/`, pinned versions) are loaded before `dms.lua` when a spec asks
-for them:
+**Optional plugins** (`lua/plugins/`, pinned versions, see `lua/plugins/PINS.md`) are loaded before
+`dms.lua` when a spec asks for them (`plugins: [skynet]`); DMS adapters for them
+(`lua/plugins/adapters/`) load after `dms.lua` and no-op without the plugin
+([ADR 0013](adr/0013-vendored-plugins-and-adapters.md)):
 
 - Skynet-IADS (needs MIST)
 - MOOSE (for CTLD, CSAR, ATIS and EasyGCICAP)

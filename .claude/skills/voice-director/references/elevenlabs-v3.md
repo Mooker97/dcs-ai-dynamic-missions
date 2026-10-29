@@ -17,6 +17,8 @@ can set `subtitle` explicitly.
 
 - One leading tag sets the state: `[calm]`, `[tired]`, `[tense]`, `[urgent]`, `[matter-of-fact]`,
   `[relieved]`, `[whispers]`, and rarely `[shouts]` (only over gunfire or rotor noise).
+  Stress reads as fewer words and a faster cadence, not volume: keep `[urgent]` for
+  PEAK-eligible beats (hits, shots, SAM launches) and avoid `[shouts]` on aircrew and controllers.
 - A mid-line tag marks a change: `"[calm] Kestrel copies. [tense] Wait. Movement north."`
 - Non-verbal tags (`[exhales]`, `[clears throat]`): at most one per mission, not one per line.
 - Never stack 3+ tags or tag every line. No comic tags (`[laughs]`) on a combat net unless it's an

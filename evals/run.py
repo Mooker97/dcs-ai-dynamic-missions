@@ -84,7 +84,9 @@ class PremiseExpect(DMSModel):
     airframe_role: str = Field(
         description="Catalog role of the player airframe, e.g. attack_helo, multirole."
     )
-    missions: tuple[int, int] = Field(description="[min, max] number of missions in arc.yaml.")
+    missions: tuple[int, int] = Field(
+        description="[min, max] number of main-line (non-optional) missions in arc.yaml."
+    )
     mission_types: list[MissionType] = Field(
         default_factory=list, description="Mission types that must appear somewhere in the arc."
     )
@@ -524,8 +526,15 @@ def score_campaign(campaign_dir: Path, premise: Premise, *, build: bool = True) 
 
     arc_missions = [m for act in arc.acts for m in act.missions] if arc is not None else []
     if arc is not None:
-        n = len(arc_missions)
-        rep.add("premise", "mission count", _in_range(n, e.missions), f"{n} in {list(e.missions)}")
+        # optional (branch-only) missions are recovery content, not scope: count main-line only
+        n = sum(1 for m in arc_missions if not m.optional)
+        n_opt = len(arc_missions) - n
+        rep.add(
+            "premise",
+            "mission count",
+            _in_range(n, e.missions),
+            f"{n} main in {list(e.missions)}" + (f" (+{n_opt} optional)" if n_opt else ""),
+        )
         types = {m.mission_type for m in arc_missions}
         missing = sorted(set(e.mission_types) - types)
         rep.add("premise", "required mission types", not missing, ", ".join(missing))

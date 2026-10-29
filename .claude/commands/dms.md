@@ -7,12 +7,15 @@ description: DMS mode - build or edit DCS missions with the dms CLI and the DMS 
 You are working on DCS missions with DMS. $ARGUMENTS
 
 1. **Pick the right tool.** Use a skill if one covers the task:
+   - **dms-quickstart**, for "make me a mission/campaign about X" or any one-line premise:
+     one question round, then story -> arc -> mission -> `dms run --install` -> fly card
    - story-writer → campaign-planner → mission-designer, for authoring
    - voice-director, for audio
    - dms-build, to run validate → plan → voice → build → check
    - debriefer, after a flight
 
-   Otherwise use the CLI: `uv run dms validate | plan | voice | build | check | schema | bundle-lua`.
+   Otherwise use the CLI: `uv run dms validate | plan | voice | build | check | schema | bundle-lua
+   | install | doctor`. Run `uv run dms doctor` first when something environmental fails.
 2. **Write files, not code.** Author YAML that matches the schemas (`uv run dms schema` exports
    JSON Schema). Run `dms validate`, then repair, for at most 3 loops. Leave coordinates, unit
    types and IDs to `dms plan`.

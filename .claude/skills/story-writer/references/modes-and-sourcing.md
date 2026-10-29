@@ -66,6 +66,14 @@ Typical briefs:
 Merge the results, de-duplicate, and keep only what the story uses. Low-confidence claims may drive
 flavour, never plot.
 
+## When the core activity can't be sourced
+
+Sometimes research finds the setting but not the premise's central activity (for example, no
+source for helicopter flights into Babushara in September 1993). Then say so: add a
+`canon_rules` entry such as `"Invention: the Senaki-Babushara helicopter air bridge is invented;
+the siege of Sukhumi and the Mi-8 fleet are real."`, keep the invented events `fictional: true`
+in `timeline`, and leave them out of `sources`. Only sourced claims go in `sources`.
+
 ## Hygiene rules
 
 - Files are memory: write facts into the bible, never "remember" them between sessions.

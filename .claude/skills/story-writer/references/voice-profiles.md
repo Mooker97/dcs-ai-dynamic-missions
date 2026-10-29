@@ -17,8 +17,33 @@ voice:
   cadence: measured            # slow | measured | brisk | rapid
   brevity: terse               # terse | normal | chatty
   radio_fx: uhf_clean          # uhf_clean | vhf_noisy | intercom | none
-  notes: "Understated. Humour is bone dry and rare."
+  notes: "Understated. Humour is bone dry and rare. Habit: closes every tasking with 'Ops out.'"
 ```
+
+## Library voices (assign up front)
+
+`data/voice/voices.json` holds voices that already exist, so using one costs nothing. Set the
+character's `eleven_voice_id` to the `voice_id` of the closest fit. Several speakers may share a
+library voice only if they never talk in the same mission.
+
+| key | `eleven_voice_id` | fits |
+|---|---|---|
+| `mission_control` | `IqaWsJgCV6ihH2Uh6Jb2` | calm male controller: tower, ops |
+| `awacs_magic` | `2qVLKOamXa29yju9mqTK` | AWACS / GCI |
+| `ops_lindqvist` | `XrExE9yKIg1WjnnlVkGX` | female, even American: ops officer |
+| `briefing_officer` | `T3RkkRObzq7rCMQT4zhL` | Australian officer: ops, briefings |
+| `warning_system` | `vIuLMrDs3Mbl0w5kvuKe` | American fighter pilot, Southern hint: wingman, other aircrew |
+| `jtac` | `PtGjyQZ7kCARwCuiOKQL` | American soldier, high energy: JTAC |
+| `ground_troops` | `KgoKSoe0uSDQXTd5sh94` | soldier under fire: ground commander, team in contact |
+
+Read the file for the current list (keys can be added). No good fit: leave `eleven_voice_id:
+null`, write the `design_prompt`, and the voice-director designs it (with the user's approval).
+
+## Verbal habits
+
+Give each recurring speaker one habit and one procedural tell in `notes`, e.g. "Always says
+'welcome back' on the recovery call", "Counts impacts down: 'splash in three... two...'",
+"Reads grids twice when tired". Mission lines reuse them, so character survives brevity.
 
 ## Writing a Voice Design prompt (60–120 words)
 

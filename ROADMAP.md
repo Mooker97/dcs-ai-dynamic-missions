@@ -30,35 +30,44 @@ A feature is done when all of the following are true:
 ## v0.4: Vertical slice
 - [ ] Hand-written `mission-spec.yaml` → `dms plan` → `plan.json`
 - [ ] `dms build` (pydcs) → `.miz` with `dms.lua` and `DMS_CONFIG` injected
-- [ ] Runtime modules: spawner, ground, encounters and intel (fog of war via `hidden` + marks) *(tested on mocks; spawns verified headless in DCS)*
+- [ ] Runtime modules: spawner, ground, encounters and intel (fog of war via `hidden` + marks) *(tested on mocks; spawns verified headless in DCS; marks/fog test-mode checks added 2026-10-29, not yet run in DCS)*
 - [ ] `dms check`: IDs, slots, resources, config schema and `luac -p` *(implemented + tested, incl. config schema and beat reachability)*
 - [ ] Slice mission flown in DCS: spawns, routes, an ambush and marks all verified (flown) *(headless pass: spawns, beats, encounters, comms, outcome; marks and cockpit unchecked)*
 
 ## v0.5: Story pillar
 - [ ] Skills: story-writer, campaign-planner and mission-designer
-- [ ] Narrative module (storylets/beats, qualities, `[DMS.OUTCOME]`)
+- [ ] Narrative module (storylets/beats, qualities, `[DMS.OUTCOME]`) *(+ campaign flags, landed zone/place filters; tested on mocks)*
 - [ ] Comms module (subtitle queue, F10 per-group menus)
-- [ ] Briefing (5-paragraph order) and kneeboard generation *(embedded in the miz; not viewed in DCS)*
+- [ ] Briefing (5-paragraph order) and kneeboard generation *(embedded in the miz; conditional blocks + generated COMMS page; not viewed in DCS)*
 - [ ] A campaign authored end to end from a premise; mission 1 flown (flown)
 
 ## v0.6: Voice pillar
-- [ ] `dms voice`: ElevenLabs v3 and Text-to-Dialogue, ffmpeg radio FX, sha256 cache
-- [ ] Audio embedded in `l10n/DEFAULT/` with mapResource and a keeper trigger
-- [ ] Beat-driven playback with shuffle-bag variants
-- [ ] voice-director skill with a cost estimate
+- [ ] `dms voice`: ElevenLabs v3 and Text-to-Dialogue, ffmpeg radio FX, sha256 cache *(implemented + tested; viper m01 rendered for real, 101 clips; not heard in DCS)*
+- [ ] Audio embedded in `l10n/DEFAULT/` with mapResource and a keeper trigger *(structural tests on a built miz)*
+- [ ] Beat-driven playback with shuffle-bag variants *(tested on mocks, 200 seeds; no-overlap check in test mode)*
+- [ ] voice-director skill with a cost estimate *(implemented)*
 - [ ] Voiced mission flown with no overlapping or missing lines (flown)
 
 ## v0.7: Director and the campaign loop
-- [ ] Director: per-flight intensity, BUILD_UP → PEAK → RELAX, spawn budget
-- [ ] Hidden difficulty adaptation, clamped to ±1 tier
-- [ ] Debriefer skill: `dcs.log` → outcomes, qualities and `continuity.md` *(`dms debrief` verified on a real headless DCS log, dry run)*
-- [ ] Next mission generated to fit the previous outcome (flown, 2 consecutive missions)
+- [ ] Director: per-flight intensity, BUILD_UP → PEAK → RELAX, spawn budget *(hardened 2026-10-29; 37 specs × 50 seeds)*
+- [ ] Hidden difficulty adaptation, clamped to ±1 tier *(tested on mocks)*
+- [ ] Debriefer skill: `dcs.log` → outcomes, qualities and `continuity.md` *(`dms debrief` verified on a real headless DCS log, dry run; arc quality_effects applied by code; integration-tested)*
+- [ ] Next mission generated to fit the previous outcome (flown, 2 consecutive missions) *(plan changes with outcome via qualities, flags and conditional briefings; integration-tested; not flown)*
 
 ## v0.8: Reach and evals
-- [ ] MCP server (FastMCP, ~6 coarse tools) wrapping the CLI library *(implemented + tested; not tried from Claude Code yet)*
-- [ ] Golden prompt eval suite (~30 premises/specs) *(30 premises, 8 goldens green; no LLM-generated campaign scored yet)*
-- [ ] Optional plugins: Skynet-IADS (+ MIST) and MOOSE, pinned
+- [ ] MCP server (FastMCP, ~6 coarse tools) wrapping the CLI library *(stdio-tested with the mcp client; `.mcp.json` added; not yet loaded in a Claude Code session)*
+- [ ] Golden prompt eval suite (~30 premises/specs) *(31 premises, 8 goldens green; first blind run p09 scored 63/63; viper 107/107 on a retro premise)*
+- [ ] Optional plugins: Skynet-IADS (+ MIST) and MOOSE, pinned *(implemented + tested: MIST 4.5.126, Skynet 3.3.0, MOOSE 2.9.19 vendored, `plugins: [skynet]` spec field, Skynet adapter; not flown)*
 - [ ] Headless dedicated-server smoke test automation *(single-player headless works end to end; server mode needs an ED login)*
+
+## Few-prompt quickstart (north star: one-line premise → installed .miz)
+- [ ] `dms-quickstart` skill: one batched question, then story → arc → mission → `dms run --install` → fly card *(dry-run end to end on an A-10C CAS premise; not flown)*
+- [ ] `dms install` / `dms doctor` *(implemented + tested; doctor 14/14 OK on the dev machine)*
+- [ ] Mission-quality lint in `dms validate` (26 rules, `dms_core.lint`) *(implemented + tested; all campaigns 0 errors)*
+
+## Next (proposal)
+See [docs/rebuild/NEXT.md](docs/rebuild/NEXT.md) for v0.9/v1.0, and the groundwork packages
+`dms-tacview`, `dms-beamng`, `dms-arma` (fixture/fake-tested only).
 
 ## Arma 3 track ([plan](docs/arma/PLAN.md), [ADR 0012](docs/adr/0012-multiple-game-backends.md))
 - [x] Research, knowledge base (`docs/arma/kb/`), MVP mission "The Hill" written

@@ -18,29 +18,35 @@ stage, repairing, and explaining what each stage produced.
 
 | Stage | Command | Produces |
 |---|---|---|
-| validate | `uv run dms validate mission-spec.yaml` | errors with suggested fixes, or OK |
-| plan | `uv run dms plan mission-spec.yaml -o plan.json` | `plan.json`: exact positions, unit types, payload CLSIDs, frequencies, group names, triggers, seed, `DMS_CONFIG` |
+| validate | `uv run dms validate <mission folder>` | schema + cross-file + planner errors and mission-quality lint (`[code] ... Fix: ...`), or OK |
+| plan | `uv run dms plan <mission folder>` | `out/plan.json`: exact positions, unit types, payload CLSIDs, frequencies, group names, triggers, seed, `DMS_CONFIG` |
 | voice | `uv run dms voice lines.yaml --dry-run`, then `uv run dms voice lines.yaml` | cost estimate, then `voice/*.ogg` (radio FX applied, cached) |
 | build | `uv run dms build <mission folder>` (`--variant air` for one variant) | the `.miz`: pydcs mission + `dms.lua` bundle + `dms_config.lua` + audio + briefing text from `briefing.md` + kneeboard pages rendered from `kneeboard.md`. With start variants: one `out/<id>-<variant>.miz` per variant (each checked) plus `out/<id>.miz` = copy of the first |
-| check | `uv run dms check out/mNN.miz` | structural report: IDs, slots, resources, config schema, `luac -p` |
+| check | `uv run dms check <mission folder>` (every built variant) or one `.miz` | structural report: IDs, slots, resources, config schema, `luac -p` |
 
 Run all commands from the repo root with full paths, e.g.
-`uv run dms validate campaigns/dustoff-valley/missions/m01-first-light/mission-spec.yaml`.
+`uv run dms validate campaigns/dustoff-valley/missions/m01-first-light`. `uv run dms run <mission
+folder>` chains validate -> voice -> plan -> build -> check (`--skip-voice`, `--install`).
 `uv run dms schema` regenerates `schemas/<stem>.schema.json` (mission-spec, beats, voice-lines,
 build-plan, runtime-config, ...) from the pydantic models in `packages/dms-core/src/dms_core/schemas/`.
 `plan.json` is a `BuildPlan` and the embedded `DMS_CONFIG` is a `RuntimeConfig`.
 
 ## Steps
 
-1. **Pre-flight.** Confirm the files exist and `uv run dms --help` works. If the CLI or a
-   subcommand isn't implemented yet, say so plainly and stop at that stage. Don't fake outputs.
-2. **Validate.** On errors, apply the suggested fixes to the authored YAML (keeping the designer's
-   intent) and re-run. At most 3 loops, then report the remaining errors verbatim. If `dms validate`
-   isn't implemented yet, run the `validate_mission_bundle` one-liner from the mission-designer
-   skill (step 7). It checks the schema plus cross-references between spec, beats, lines and bible.
-3. **Plan.** Summarise `plan.json` for the user: seed, player slot, spawn zones resolved,
-   threat types chosen, frequencies. Copy the frequencies into `kneeboard.md`/`briefing.md`,
-   replacing `TBD (plan)`. The plan is seeded, so re-running with the same seed reproduces it.
+1. **Pre-flight.** Confirm the files exist and run `uv run dms doctor` (deps, Lua 5.1, ffmpeg,
+   ElevenLabs key present, DCS folders, `dist/dms.lua` freshness, git-lfs; fix any FAIL). Don't
+   fake outputs: if a stage fails, stop there.
+2. **Validate.** `uv run dms validate <mission folder>` runs the schema, cross-file and planner
+   checks plus the mission-quality lint (`dms_core.lint`; rules in the mission design guide §6 and
+   CONTRACTS "Mission-quality lint"). Fix all errors and every lint warning you can, at most 3
+   loops, keeping the designer's intent (fix the field, never delete the beat). Then report the
+   rest verbatim. `--strict` fails on warnings too; use it when the user asks for a clean bill.
+3. **Plan.** Summarise `out/plan.json` for the user: seed, player slot, spawn zones resolved,
+   threat types chosen, frequencies. Frequencies are authored in the spec and already written in
+   `briefing.md`/`kneeboard.md` by the designer: confirm the plan's values match them (fix the
+   Markdown or the spec, not `plan.json`). If the briefing names a threat type, confirm the plan
+   picked it (else pin `templates` in the spec). Re-run `dms validate` now: `transit_too_long`
+   only runs once `out/plan.json` exists. The plan is seeded, so the same seed reproduces it.
 4. **Voice.** Run the dry-run and report the cost. Render only after the user approves new cost.
    For voice/tag work, use the voice-director skill. No API key: skip and note that beats will
    show subtitles only.
@@ -63,13 +69,16 @@ build-plan, runtime-config, ...) from the pydantic models in `packages/dms-core/
      variant `.miz` is checked. Tell the user which file is which start.
    - `uv run dms build <mission> --test [--variant V]` makes the headless test build; its AI proxy
      replaces the ramp/runway flight by default, `--variant air` tests the air start.
-6. **Check.** Every finding is either fixed (back to the stage that owns it: spec → validate/plan,
+6. **Check** (`uv run dms check <mission folder>` checks every variant). Every finding is either fixed (back to the stage that owns it: spec → validate/plan,
    lines → voice, generator bug → report) or explicitly accepted by the user.
 7. **Explain how to fly it** (below), then point at the debriefer skill for after the flight.
 
 ## Flying it
 
-1. Copy the `.miz` for the start you want to `C:\Users\mook\Saved Games\DCS\Missions\`
+1. Install: `uv run dms install <mission folder>` copies every variant to
+   `Saved Games\DCS[.openbeta]\Missions\DMS\<campaign>\` (`--dcs stable|openbeta|auto`,
+   `--dry-run` to preview; `dms run <mission> --install` does it after a clean build). Or copy
+   the `.miz` for the start you want to `C:\Users\mook\Saved Games\DCS\Missions\`
    (Open Beta: `Saved Games\DCS.openbeta\Missions\`): `out/<id>-ramp.miz` for a cold start on
    the ramp, `out/<id>-air.miz` for an air start near the IP (copy both to have the choice in
    DCS). Missions without variants have just `out/<id>.miz`.
@@ -104,9 +113,9 @@ build-plan, runtime-config, ...) from the pydantic models in `packages/dms-core/
 
 ## Checklist
 
-- [ ] validate OK (≤3 repair loops)
-- [ ] plan.json summarised; frequencies copied into briefing/kneeboard
+- [ ] validate OK, lint warnings fixed or accepted (≤3 repair loops); re-validated after plan
+- [ ] plan.json summarised; its frequencies and threat types match briefing/kneeboard
 - [ ] voice dry-run shown; render approved or skipped with reason
 - [ ] out/mNN.miz built; check clean or findings accepted
 - [ ] briefing screen and kneeboard page(s) match briefing.md / kneeboard.md (not flown = not verified)
-- [ ] Fly instructions and dcs.log pointers given; debriefer suggested
+- [ ] Installed with `dms install` (or the copy path given); fly instructions and dcs.log pointers given; debriefer suggested

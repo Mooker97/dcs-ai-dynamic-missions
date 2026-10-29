@@ -18,7 +18,7 @@ A `.miz` is a plain ZIP archive. You can inspect one with `unzip -l mission.miz`
 | `l10n/DEFAULT/dictionary` | Lua table of localized strings (`DictKey_*`), such as briefing text |
 | `l10n/DEFAULT/mapResource` | Lua table mapping `ResKey_*` to file names in `l10n/DEFAULT/` |
 | `l10n/DEFAULT/*` | Embedded resources: scripts, `.ogg`/`.wav` audio, kneeboard images |
-| `KNEEBOARD/IMAGES/*` | Mission kneeboard pages [?] |
+| `KNEEBOARD/IMAGES/*` | Mission kneeboard pages, at the archive root (verified in ED-shipped quickstart missions; the ME keeps root files as sim files) |
 
 When you re-zip, copy every entry you didn't change **byte for byte**.
 

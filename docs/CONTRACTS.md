@@ -22,7 +22,8 @@ Target: DCS mission scripting, **Lua 5.1** (no goto; os/io/lfs/require unavailab
 global table on `DMS` with the guard `DMS = DMS or {}; DMS.X = DMS.X or {}`. Load order is
 `lua/manifest.txt`; `tools/bundle_lua.py` concatenates it into `dist/dms.lua`.
 
-**Embed order in the .miz:** plugins -> `dms_config.lua` -> `dms.lua` (config first). The runtime
+**Embed order in the .miz:** plugins -> `dms_config.lua` -> `dms.lua` -> plugin adapters (config
+first; see "Optional plugins" below). The runtime
 tolerates either order: `init.lua` boots immediately when `DMS_CONFIG` exists at load, otherwise
 it re-checks for a few seconds via `DMS.Clock.after` and then logs a warning. `DMS.boot()` is
 idempotent.
@@ -81,8 +82,10 @@ DMS.Spawner.spawn(templateId, zoneId|point|{zone=}|{x,y,radiusM}, opts) -> group
 --         radiusM, cost, altM / speed (air), losHeightM (outOfLOS eye height, default 3),
 --         readyDelaySec (before onReady).
 --         Ground points must be land (no water / shallow water) for every unit.
-DMS.Spawner.spawnPool(poolId, opts) -> {groupName...}   -- count = Rng.range(pool.pick), scaled by director
+DMS.Spawner.spawnPool(poolId, opts) -> {groupName...}   -- count = poolCount(poolId) unless opts.count
 --   opts as spawn, plus count (fixed, not scaled) and zone | point (where; default a random pool.zones entry)
+--   opts.cost is PER GROUP: every spawned group emits spawner.spawned{cost}, so a launch notes count x cost.
+DMS.Spawner.poolCount(poolId) -> n   -- one roll of Rng.range(pool.pick), rounded, then Director.scaleCount
 DMS.Spawner.getZone(id) zoneCenter(z) zoneRadius(z) inZone(z, p) randomPointInZone(z) playerUnits()
 DMS.Spawner.isLand(p) isWater(p) validPoint(p, opts, players) -> ok, reason
 --   validPoint opts: category (ship = water, air = anywhere, else land), buildingRadius, outOfLOS,
@@ -97,6 +100,18 @@ DMS.Director.canSpawn(cost, flight?) -> ok, reason   noteSpawn(cost)   state(fli
 DMS.Director.skillFor(skill) scaleCount(n) scaleDelay(sec) adapt(delta, why) level()
 DMS.Director.addIntensity(flight, amount, why) addPlayer(unit, group?) removePlayer(unit) flights() -> sorted names
 DMS.Director.spawnBudget() -> spawns/min   tick(dt)   -- tick is driven by start(); call directly only in specs
+--   removePlayer(unit, keepFlight?): last unit gone -> flight deleted, or kept as an orphan
+--     (keepFlight) so the breather (PEAK -> RELAX) still applies; tick prunes orphans once back in
+--     BUILD_UP; a respawn into the same group resumes its state.
+--   player.left keeps the flight as an orphan and remembers the unit for Director.LEFT_GRACE_SEC
+--     (10 s): a unit.dead / unit.ejected / unit.pilot_dead for it inside the window still counts as
+--     a player death (counted once per life); with no death the flight is deleted when it expires.
+--     unit.ejected / unit.pilot_dead while the unit is still mapped also count as the death.
+--   spawn budget: rolling 60 s window of noted costs, max(1, spawnsPerMin * (1 + 0.25 * level));
+--     an empty window always admits one spawn (oversized costs are throttled, never starved).
+--   state() with no flight: state of the most intense flight; ties -> PEAK > RELAX > BUILD_UP, then name.
+--   adapt clamp: DMS_CONFIG.director.adapt {min<=0, max>=0} (default -1/+1); skill tier = rounded level.
+--   enabled=false: passthrough. Only the spawn budget applies (no flights, no states, level stays 0).
 -- encounters.lua
 DMS.Encounters.trigger(id, opts) -> bool   -- opts: boolean force | {force=bool, beat=id}; ignores chance,
                                            --       respects once unless force
@@ -113,15 +128,47 @@ DMS.Comms.say(speaker, lineIds, text, opts) -> lineId|true|false
 --   opts: coalition, groupId, frequency (MHz|Hz), modulation (0 AM, 1 FM), pos, power, priority,
 --         cooldownSec, key, callsign, durSec, keep (never dropped from a full queue)
 --   frequency/modulation default to DMS_CONFIG.speakers[speaker]; callsign likewise.
+--   Queue: one line at a time, GAP_SEC (0.75) between, priority then FIFO, never interrupts.
+--   lineIds list = variants: shuffle-bag per (speaker, list), no immediate repeat across refills.
+--   With a frequency, radioTransmission at opts.power or Comms.TX_POWER_W (10000 W, the ME max)
+--   from near each listener (DCS fades by range/LOS per listener; ~1 nm at 10000 W stays clear):
+--   opts.pos -> one transmitter there; a group line (groupId) -> one, Comms.TX_ABOVE_M (150 m)
+--   above that group's first player unit (none if the group has no player); a coalition-wide line
+--   -> one per player group, de-duplicated by group, TX_ABOVE_M above each group's first player
+--   unit, and a group within Comms.TX_MERGE_M (2 nm) of an earlier transmitter shares it. Every
+--   radioTransmission gets its own name (DMS_TX_<seq>). The line still plays once: one subtitle,
+--   one queue slot, one PLAY line. With no player position, outSoundForGroup/ForCoalition (never
+--   a map-origin transmitter).
+--   Each play logs info `PLAY n=<seq> line=<id|-> speaker=<id> via=radio|group|coalition|text
+--   file=<f|-> start=<t> end=<t+durSec> tx=<n>` (n = radioTransmission calls, 0 unless via=radio);
+--   start logs `started (.. N voice lines, M with audio)`.
 DMS.Comms.text(msg, opts) repeatLast(groupId, coalition) history() addMenuCommand(path, label, fn)
+--   history(): played lines {t, dur, line, speaker, file, text}, oldest first; capped at
+--   Comms.historyCap() = HISTORY_CAP (200), or HISTORY_CAP_TEST (100000) when DMS_CONFIG.test is
+--   enabled so the end-of-run comms checks see every line.
 DMS.Comms.isBusy() -> bool   statusText() -> string   menuFor(groupId) -> menu record|nil
 DMS.Comms.addStatusProvider(fn() -> string|{string...})   -- extra lines in the status menu text
 -- intel.lua
 DMS.Intel.reveal(groupName, reason, opts) forget(g) contacts() contact(g) report(groupId) kills()
 DMS.Intel.mark(spec) -> handle            -- see "mark" below
-DMS.Intel.removeMarkHandle(handle) -> bool
+DMS.Intel.removeMarkHandle(handle) -> bool     -- true once the handle is removed (false if unknown)
+--   Group marks: one stable handle per group (marking the same group again returns it). Removing
+--   it forgets the contact only if the mark created it; an independently detected contact stays
+--   and gets its label/radius back.
 DMS.Intel.resolveGroup(name) -> groupName|nil   -- "group:<name>": exact live group, else first live
                                                 --  prefix match (with or without "DMS_")
+DMS.Intel.liveMarks() -> {id -> {kind="circle"|"text", text, pos, coalition, radius, owner, t}}
+DMS.Intel.markStats() -> {added, removed, failed, live}   -- mission-wide (survive stop/start)
+--   Mark ids start at FIRST_MARK_ID (50000) and only grow; they are never reused, even after
+--   removeMark (a reused id fires MARK_ADDED but never renders: ED bug). Intel.start() raises the
+--   next id past panels in our band [FIRST_MARK_ID, FIRST_MARK_ID + MARK_ID_BAND (10^7)) or
+--   script-made ones (initiator nil) below PLAYER_MARK_FLOOR (2.5e8), never past player marks
+--   (ids ~251,000,000+), so our next id cannot land on the player's next mark. Intel.stop() removes every mark it drew; Intel.start() calls stop() only
+--   on a restart, so marks beats drew before the first start survive. A mark DCS rejected (pcall
+--   error) is not tracked. Each F10 change logs one debug line (test builds set debug = true):
+--     [DMS][Intel] MARK add id=<n> kind=circle|text coal=<-1|1|2> x=<x> z=<z> r=<m|-> t=<model s> owner=<contact:G|mark:label> text=<label>
+--     [DMS][Intel] MARK remove id=<n> kind=<kind> t=<model s> why=<redraw|destroyed|contact lost|...>
+--   (newlines in text become " | "; owner has no spaces). A failed call logs ERROR "MARK add failed id=<n>".
 -- ambient.lua: DMS.Ambient (friendly base traffic around player airbases; own budget, never
 --   tracked in DMS.Registry, never emits spawner.spawned, so Director/Intel/Test spawn counts ignore it)
 DMS.Ambient.start()                 -- in START_ORDER after Intel; inert unless DMS_CONFIG.ambient.enabled
@@ -140,7 +187,35 @@ DMS.Test.config() isEnabled() proxyName() isProxyRun() runChecks(checks, deadlin
 --                      loiter={zone, x, y, radiusM, altM, altType, speedMps, startBeat?, untilBeat, returnSec}?}
 --   check kinds: booted | spawns{min} | beats_in_order{beats} | beat{id} | comms{min} |
 --                encounter{id, optional?, group?} | convoy_halt | outcome{requireResult?} |
---                ambient_cycle{site?}; optional name, deadlineSec
+--                ambient_cycle{site?} | marks{min?} | fog_hidden | comms_no_overlap{toleranceSec?} |
+--                comms_beats{beats?}; optional name, deadlineSec
+--   marks / fog_hidden / comms_no_overlap / comms_beats are end-of-run checks (resolved with DONE,
+--     never hold the run open). testmode adds all four (f10_marks, fog_hidden, radio_no_overlap,
+--     spine_lines_played; f10_marks min = 1 when a spine beat has a mark, else 0).
+--   marks: PASS when Intel drew >= min marks, none failed, and (sampled every 10 s and at the end)
+--     every live text mark id is in world.getMarkPanels() and no removed id in our range is still
+--     listed. DCS lists drawn shapes there too ({idx, time, initiator, coalition, groupID, text,
+--     pos}; all-coalition shapes report coalition 255, pos = average of points), so circles are
+--     verified: a missing one fails once getMarkPanels lists any of our circles; if it lists none,
+--     the detail says circles are unverified (no FAIL). No getMarkPanels -> PASS "unverified".
+--   fog_hidden: with intel.fogOfWar ~= false, every enemy vehicle/ship/plane/helicopter group in
+--     env.mission (minus intel.knownGroups) and every enemy group passed to coalition.addGroup
+--     after mission.start (test mode wraps it) has hidden = true.
+--   comms_no_overlap: no DMS.Comms.history() line starts before the previous t + dur - 0.05 s.
+--     SKIP when history entries carry no numeric t/dur.
+--   comms_beats: every guaranteed beat (or `beats`) with speech (lines/text, or effects.speak) that
+--     fired has a history entry at/after its fire time whose `line` is one of its lines or whose
+--     text contains its text. Still queued at the end -> INFO, not FAIL.
+--   Comms log line the harness reads (info): [DMS][Comms] PLAY n=<seq> line=<id|-> speaker=<id>
+--     via=<..> file=<f|-> start=<model s> end=<model s> (see comms.lua above); tools/dcs_harness
+--     log_comms_overlap SKIPs PLAY lines without start=/end=. The debug `TX '<text>'` line is text only.
+--   Harness-side checks (tools/dcs_harness/run_mission.py, report `log_checks`, on unless
+--     --no-log-checks; a FAIL fails the run): log_marks (replays the debug MARK add/remove lines:
+--     FAIL on an add of a live id, a remove of a never-added id, a failed call, or replay counts
+--     at the Lua marks check line ("added=A removed=R live=L failed=F") that differ from it;
+--     without that Lua line it is informational; no MARK lines -> SKIP if the Lua check counted
+--     marks (debug off), else INFO) and log_comms_overlap (sorted by start, every PLAY start >= previous
+--     end + Comms.GAP_SEC (0.75) - 0.05 s; dur = end - start).
 --   encounter optional=true: never FAILs and never holds the run open; PASS if it spawned, else
 --     INFO "optional encounter X not spawned" (plus "group G: Y spawned" when a sibling of the same
 --     mutually exclusive `group` spawned). testmode makes a check required only when its trigger is
@@ -170,7 +245,8 @@ All payload names are strings; `pos` is vec3; coalition is 0 neutral / 1 red / 2
 | `unit.dead` | `{unit, group, coalition, category="air"\|"ground"\|"ship"\|"static", typeName, pos, killer?}` | bus (DEAD/UNIT_LOST/KILL/CRASH, de-duplicated) |
 | `group.dead` | `{group, coalition}` | bus (last known unit died) |
 | `player.spawned` | `{unit, group, groupId, playerName, coalition, typeName}` | bus (BIRTH with player) |
-| `player.left` | `{unit, group, groupId, playerName}` | bus |
+| `player.left` | `{unit, group, groupId, playerName}` | bus (PLAYER_LEAVE_UNIT, or after a player's unit.dead; a destroyed initiator is resolved through an object-id -> unit-name map filled at BIRTH) |
+| `unit.ejected` / `unit.pilot_dead` | `{unit, group, coalition, groupId, player?}` (player = name while still in the slot) | bus (EJECTION / PILOT_DEAD, initiator = the aircraft; for EJECTION `target` is the seat, or the pilot without an ejection seat) |
 | `unit.takeoff` / `unit.landed` | `{unit, group, coalition, place}` | bus |
 | `mark.added` / `mark.changed` / `mark.removed` | `{idx, text, pos, coalition, groupId}` | bus |
 | `mission.start` | `{missionId}` | init, after all modules started |
@@ -194,6 +270,20 @@ All payload names are strings; `pos` is vec3; coalition is 0 neutral / 1 red / 2
 | `ambient.activated` | `{site, groups, statics}` (groups/statics = number queued for spawn) | ambient |
 | `ambient.deactivated` | `{site, groups, statics, reason}` (number removed; reason `"left"` \| `"manual"`) | ambient |
 
+DCS event-order facts the bus relies on (research 2026-10-29, Hoggit + ED forum):
+
+- Slot or coalition change: the new unit's BIRTH fires **before** the old unit's PLAYER_LEAVE_UNIT,
+  so subscribers see `player.spawned` (new) then `player.left` (old). `Bus._players` is keyed by
+  unit name and each entry remembers its object id; a PLAYER_LEAVE_UNIT or death for an older
+  object with the same unit name (re-slot into the same slot) is ignored.
+- In PLAYER_LEAVE_UNIT and death handlers the initiator may already be destroyed (`getName` fails).
+  The bus falls back to `Bus._objNames` (object id `id_` -> unit name, filled at BIRTH, cleared on
+  leave/death), so `Bus._players` never leaks.
+- PILOT_DEAD can come **before** EJECTION (a mortally wounded player ejects), and removing a
+  parachute unit can raise PILOT_DEAD for the aircraft minutes after ejection (none if the player
+  re-slotted first). The Director's `LEFT_GRACE_SEC` window is deliberately short; don't lengthen it.
+- The order of EJECTION / PILOT_DEAD relative to PLAYER_LEAVE_UNIT is still unknown [? cockpit test].
+
 ## DMS_CONFIG (generated by Python, consumed by Lua)
 
 Python model: `dms_core.schemas.runtime.RuntimeConfig`, serialized as `DMS_CONFIG = {...}` in
@@ -203,7 +293,7 @@ key being absent (including `DMS_CONFIG = {}`). `Range` = number or `{min, max}`
 ```lua
 DMS_CONFIG = {
   version = 1, seed = 12345, debug = false, missionId = "m01-first-light",
-  budgets  = { maxActiveGround = 150, maxActiveAir = 16, maxActiveShip = nil, spawnsPerMin = 3 },
+  budgets  = { maxActiveGround = 150, maxActiveAir = 16, maxActiveShip = nil, spawnsPerMin = 3 },  -- spawnsPerMin >= 1
   director = { enabled = true, peak = 70, relaxSec = {40, 90}, decayPerSec = 1.5, adapt = {min = -1, max = 1},
                peakHoldSec = 15, maxIntensity = 100, nearM = 10000, calmSec = 300,
                gain = { hit = 25, nearShot = 5, samLaunch = 15, nearKill = 8, playerDead = 40 } },
@@ -220,7 +310,7 @@ DMS_CONFIG = {
       trigger = { type = "proximity",                  -- proximity|beat|director|time|event|manual
                   zone = "patrol_box", radiusM = 8334, point = nil, coalition = nil, checkSec = 5,
                   beat = nil, state = nil, afterSec = nil --[[Range]], event = nil, group = nil },
-      chance = 70, once = true, telegraph = "beat:popup_aa_warning",  -- "beat:<id>" | "event:<name>" | "<name>"
+      chance = 70, once = true, telegraph = "beat:popup_aa_warning",  -- "beat:<id>" | "event:<name>" | "<name>"; fires: ambush_sam when a player enters range (goes hot telegraphSec later), waves before each wave (spawns telegraphSec later), cap at each launch
       hunt = false --[[or group name]], engageRadiusM = 15000, hotChance = nil, telegraphSec = {30, 60},
       reactSec = {2, 8}, checkSec = 2, gated = true, cost = 1, maxDeferSec = 300, gateRetrySec = 15,
       huntIntervalSec = 30, huntSpeed = 8, huntRadiusM = nil, target = nil, spawnZone = nil,
@@ -235,14 +325,21 @@ DMS_CONFIG = {
       maxSpawns = 1, replaceOnDead = true, replaceOnRtb = true, replaceDelaySec = {60, 180}, arriveM = 10000,
       stationTimeoutSec = 1200, rtbDespawnSec = 600, despawnMinPlayerM = 37000, checkSec = 10, maxDeferSec = 900 },
     -- cap launches are strictly director-gated: still refused after maxDeferSec -> dropped (logged), never forced.
+    -- director gate (gated ~= false): a pool launch rolls its count first (Spawner.poolCount, once per launch,
+    --   kept across retries) and asks canSpawn(cost * count, flight) before spawnPool(..., {count = count});
+    --   template launches ask cost * 1. flight = the triggering unit's group (proximity) if the director tracks
+    --   it, else the tracked player flight nearest the encounter anchor (spawnZone, trigger zone/point, zone,
+    --   point, first pool zone), else nil (busiest flight).
   },
   beats = { --[[ see "Beats" ]] },
   voice = { ops_cleared_v1 = { file = "ops_cleared_v1.ogg" --[[optional: nil/"" = subtitle only]], text = "Dusty, Hatay Ops...", durSec = 7.5,
                                speaker = "ops_walsh", turns = nil --[[ { {speaker=, text=}, ... } ]] } },
   speakers = { ops_walsh = { callsign = "Hatay Ops", frequency = nil --[[MHz]], modulation = nil --[[0 AM|1 FM]] } },
   qualities = { intel = 0, enemy_aa = 2 },            -- campaign values at plan time; seeds `requires.qualities`
+  flags = { m01_sa6_radar_destroyed = true, m01_success = true, m01_failure = false },
+                                                      -- campaign flags at plan time (state/qualities.yaml `flags`)
   narrative = { minGapSec = 8, pendingTtlSec = 45, zonePollSec = 3 },
-  intel = { fogOfWar = true, revealRadiusM = 5000, markRefreshSec = 15, staleSec = 120,
+  intel = { fogOfWar = true --[[on unless false: nil = on in intel/spawner/test and `dms check`]], revealRadiusM = 5000, markRefreshSec = 15, staleSec = 120,
             removeSec = nil --[[default 3 * staleSec]], scanSec = 5, markRadiusM = 600, sensors = true,
             knownGroups = { "aaa_reyhanli_1" } --[[enemy groups shown on F10 by design (spec hidden_on_map: false);
                                                    `dms check` does not flag them]] },
@@ -336,6 +433,12 @@ Filter semantics:
   player; always true for `player.spawned`.
 - `beat`: `payload.beat` or `payload.id`; `encounter`: `payload.encounter` or `payload.id`;
   `zone` / `state` / `flight`: equal; any other key: `payload[key] == value`.
+- `unit.landed` / `unit.takeoff` only: `zone` is a **position** filter (the unit's position at the
+  event, via `Unit.getByName(payload.unit):getPoint()`, is inside the config zone, else the ME
+  trigger zone); `place` (alias `airbase`) matches `payload.place` (airbase/FARP/ship name)
+  case-insensitively. Both may be set (both must hold). A non-matching landing is logged at debug
+  (`[DMS][Narrative] landed ... not in zone ...`). So "land at X" is one beat:
+  `when = { event = "unit.landed", zone = "fob_pad", playersOnly = true }`.
 - Aliases (Lua and Python normaliser): no `event` with `afterSec`/`timer` -> timer, `flag` -> flag,
   `zone` -> zone.entered, `director`/`directorState` -> director.state, `beat` -> beat.fired.
 
@@ -343,6 +446,12 @@ Filter semantics:
 `beatsFired`, `beatsNotFired`, `chance` (rolled once when the beat is triggered). Aliases: `flags` as
 a map `{f = true|false}`, `flagsSet`, `notFlags` / `flagsNotSet`, `qualities` as a map
 `{q = 2 (>=) | ">=2" | {min=, max=} | {op=, value=}}`.
+Flag lookups (`flags`, `flagsNot`, `when: {flag=}`) see mission flags first (set by `setFlag` /
+`clearFlag` or an ME trigger), then **campaign flags** (`DMS_CONFIG.flags`, e.g.
+`requires = { flags = { m01_sa6_radar_destroyed = true, m01_player_lost = false } }`), else not set.
+A mission-set value (including a cleared 0) wins over the campaign value. Campaign flags are never
+echoed in the outcome `flags` (those are this flight's flags only). Accessors:
+`DMS.Narrative.getCampaignFlag(name) -> bool`, `DMS.Narrative.campaignFlags() -> {name = bool}`.
 
 **effects** - `qualityDeltas` are applied live (later beats in the same mission see them) and
 reported cumulatively in the outcome; the debriefer applies them to `state/qualities.yaml`.
@@ -368,12 +477,51 @@ ready beats the highest priority fires (ties random), at most one radio beat per
 `narrative.minGapSec`. Silent beats (no speaker, lines or text) bypass the gap and fire at once.
 Chains are expressed with `when: {event: beat.fired, beat: <id>}`, not with same-event flags.
 
+### Optional plugins (`lua/plugins/`, `dms_gen.plugins`, ADR 0003/0013)
+
+Opt-in per mission with `MissionSpec.plugins: list["mist" | "skynet" | "moose"]` (default `[]`,
+no duplicates). The planner expands dependencies and adapters (`skynet` -> `mist`, `skynet`,
+`skynet_adapter`) and emits repo-relative script resources in a fixed order, each its own
+`DO SCRIPT FILE` action in the "DMS: load scripts" trigger:
+
+`mist` -> `moose` -> `skynet` -> (explicit `plan_mission(plugins=[paths])`) -> `dms_config.lua`
+(-> `dms_test.lua`) -> `dms.lua` -> adapters.
+
+Pins (tag, URL, sha256) live in `dms_gen.plugins.PLUGINS` and `lua/plugins/PINS.md`; files are
+vendored as LF text (not LFS) under `lua/plugins/<name>/<version>/`. Current: MIST 4.5.126,
+MOOSE 2.9.19 (`Moose_.lua`), Skynet-IADS 3.3.0 (`skynet-iads-compiled.lua`).
+
+Adapters (`lua/plugins/adapters/*.lua`) are DMS-owned glue, not core modules: they load after
+`dms.lua`, use only `DMS.Log/Clock/Bus/safeCall`, and no-op with one log line when their plugin
+(or DMS) is absent. The core never references a plugin global.
+
+```lua
+-- lua/plugins/adapters/skynet_adapter.lua  (log prefix "SkynetAdapter")
+DMS_SKYNET = { enabled = true, prefixes = { "DMS_" }, coalition = nil, name = "DMS IADS",
+               activateDelaySec = 2, radioMenu = false }   -- optional global, all keys optional
+--   coalition "red"|"blue"; nil -> the enemy of DMS_CONFIG.players.coalition (red when unset)
+DMS.SkynetAdapter.iads            -- the SkynetIADS instance (nil when skipped)
+DMS.SkynetAdapter.sites / .ewrs   -- group / unit names added
+DMS.SkynetAdapter.active          -- true after iads:activate() ran (DMS.Clock.after(activateDelaySec))
+-- At load: groups of that coalition whose name starts with a prefix and contain a unit type from
+-- Skynet's samTypesDB join as SAM sites; units with the EWR attribute join as EW radars.
+-- Later: every DMS.Bus "spawner.spawned" with a matching group name is considered the same way,
+-- DMS.Clock.after(1.5) after the event (controller not ready on a fresh group).
+-- Groups of an `ambush_sam` encounter (spawner.spawned.encounter, or DMS.Registry meta.encounter
+-- for existing groups, whose DMS.Encounters.get(id).def.kind is ambush_sam) are skipped and logged:
+-- the encounter owns their emission control.
+```
+
 ### `dms check` (dms_gen.check.check_miz)
 
 Structural checks on a built `.miz` (lupa round-trip, never pydcs). Errors fail the check:
 - ids/names unique, at least one Client/Player slot (warning in test builds), units on the map;
 - `mapResource` files present; compiled trigger strings present; `DO SCRIPT FILE` order is
   plugins -> `dms_config.lua` (-> `dms_test.lua`) -> `dms.lua` (`script_order`, `test_script_order`);
+- optional plugins (recognised by file name from `dms_gen.plugins.PLUGINS`): a plugin after
+  `dms_config.lua`/`dms.lua` or an adapter before `dms.lua` is `plugin_order` (error); a missing
+  prerequisite is `plugin_dependency` (error; warning for an adapter, which no-ops); bytes that
+  differ from the pinned sha256 are `plugin_unpinned` (warning); `plugins` (info) lists them;
 - `dms_config.lua` evaluates and validates against `RuntimeConfig` (`config_schema`; Lua camelCase
   field names map back to snake_case, user keys untouched); required keys present;
 - references: pool members/zones exist; each encounter has a source (`pool` that exists, or
@@ -383,9 +531,15 @@ Structural checks on a built `.miz` (lupa round-trip, never pydcs). Errors fail 
   an ME trigger zone; `group`/`groupPrefix` an ME group or a possible runtime spawn
   (`DMS_<poolOrTemplate>_<n>`); `unit` an ME unit or a runtime spawn; `event` a known event;
   `encounter` a config encounter; `beat` a reachable beat; `flag` (event or `requires.flags`)
-  set by a reachable beat's `setFlag` or an ME trigger action; `requires.beatsFired` reachable
+  set by a reachable beat's `setFlag`, an ME trigger action or a true `DMS_CONFIG.flags` campaign
+  flag; `requires.beatsFired` reachable
   beats; `director.state` needs the director enabled. Unreachable `guaranteed` beats are errors
-  (`guaranteed_unreachable`), others warnings (`beat_unreachable`);
+  (`guaranteed_unreachable`), others warnings (`beat_unreachable`). A beat that is reachable
+  once missing **campaign flags** arrive is info (`beat_campaign_gated`, any severity of beat): a
+  flag `<mNN>_<fact>` (outcomes `derive_flags` naming) whose `mNN` is an earlier mission (arc
+  play order when `arc.yaml` is found above the .miz, else any other `mNN` key) that has no
+  flags at all in `DMS_CONFIG.flags` yet (not flown/debriefed). Once that mission's flags are
+  present, a still-missing one is a real `beat_unreachable`/`guaranteed_unreachable`;
 - Lua 5.1 syntax of every embedded `.lua`; fog of war on -> enemy groups hidden (warning).
 
 ### Outcome lines
@@ -419,7 +573,7 @@ Deterministic dcs.log -> campaign state. No schema changes: debrief metadata liv
   `extra.log_warnings` / `extra.log_errors`. Malformed `[DMS.OUTCOME]` JSON is skipped and counted
   (`extra.malformed_lines`), never fatal. No outcome line for the mission -> error (exit 1).
 - **state/outcomes/<mNN>.yaml**: merged `MissionOutcome` with `kind: summary`; `extra` holds
-  `source: dcs_log`, `log_file`, `session_start` (log timestamp), `ended` (an `end` line exists),
+  `source: dcs_log`, `log_file`, `session_start` (log timestamp), `session_hash`, `ended` (an `end` line exists),
   `beats_fired`, `quality_changes [{quality, from, to, delta, reason}]`, `flags_set`,
   `next_mission`, `next_reason`, log issues. `mNN` = first `-` segment of the mission id.
 - **state/qualities.yaml** (pure `apply_outcome(state, outcome, arc)`): `qualityDeltas` (cumulative,
@@ -428,13 +582,59 @@ Deterministic dcs.log -> campaign state. No schema changes: debrief metadata liv
   skipped with a warning. Flags: each outcome key becomes `<mNN>_<key>` (bool as-is, number `> 0`,
   string `true`), plus `<mNN>_<result>`; other result flags of the same mission
   (`success|failure|partial|aborted|ended`) are set false. `outcomes[<mission id>]` = outcome
-  facts, `updated_after` = mission id, `next_mission` = branch choice. Arc free-text
-  `quality_effects` are **not** applied by code (the debriefer skill proposes them).
+  facts, `updated_after` = mission id, `next_mission` = branch choice.
+- **Arc `quality_effects`** (v0.7, on by default, `--no-arc-effects` turns it off): each value is
+  split on `;` into clauses; parentheticals (`(min 0)`) are dropped (a warning when the dropped
+  text contains `min` / `max` / `only` / `or` / `and`, i.e. a limit or condition the debriefer must
+  judge by hand). A clause applies when it is
+  `<+N|-N> [more] if <cond>` or `set to <N> if <cond>`; `<cond>` = terms joined by `and` / `or`
+  (`and` binds tighter), a term = `[not] <outcome_key>` (truthy: bool true, number `> 0`, non-empty
+  string; a missing key is false) or `<outcome_key> <op> <number>` (`>= <= > < == !=`; bool = 0/1).
+  `and` / `or` / `not` are reserved, never keys. Keys are this flight's merged `outcome` keys plus
+  `result` (the end result string), `success` and `failure` (`result == ...`) when the log has a
+  result. Every condition key absent from those facts is a warning (it still counts as false / 0).
+  **Unended flights**: if the flight did not end (`extra.ended` false or no `result`), arc effects
+  are skipped with a warning (beat `qualityDeltas` still apply) unless `--force-arc-effects`. Clauses are applied in order, then clamped to the
+  `QualityDef` min/max; each applied clause is a `quality_changes` entry with reason
+  `arc quality_effects: "<clause>"`. Anything else (e.g. `-1 if only one of them`) is not applied
+  and is listed in `warnings` for the debriefer skill. If the beats already reported a non-zero
+  `qualityDeltas` for that quality, its arc effects are skipped (warning) so nothing counts twice.
+- **continuity.md**: unless `--dry-run` / `--no-continuity`, `dms debrief` appends one factual entry
+  `### <date> — dms debrief — <mission id> flown (<result|unknown>)` followed by a marker line
+  `<!-- dms-debrief: <mNN> <session_hash> -->` (result, outcome facts, quality changes with reasons,
+  flags, unapplied effects, log errors, next mission). An entry for the same flight (same marker,
+  or a legacy entry with the same heading mission + `session <session_start>`) is replaced in place,
+  never duplicated. The file's line endings (LF or CRLF) are kept. The debriefer skill adds
+  the narrative entry (canon, threads, player account) after it.
+- **Next flight reflects the outcome** through `state/qualities.yaml`: `dms plan`/`run` of a mission
+  in `campaigns/<slug>/missions/` copy its `values` into `DMS_CONFIG.qualities`, which seeds beat
+  `requires.qualities` (e.g. `intel >= 2` -> the intel mark beat, `sam_threat >= 2` -> the pop-up SAM
+  encounter) and `DMS.Narrative.getQuality`. Its `flags` are copied likewise into
+  `DMS_CONFIG.flags` (campaign flags for beat `requires.flags`, see "Beats"; `dms check` counts the
+  ones that are true as set), and both seed the conditional briefing blocks below.
+- **Conditional briefing** (`dms_gen.builder.conditional`, applied by `dms build` to `briefing.md`
+  and `kneeboard.md`): a directive is a whole line `<!-- if <cond> -->`, `<!-- elif <cond> -->`,
+  `<!-- else -->` or `<!-- endif -->` (blocks nest). `<cond>` is the arc `quality_effects`
+  condition grammar (`and` / `or` / `not`, `<key> <op> <number>`), evaluated against the plan's
+  `DMS_CONFIG.qualities` and `DMS_CONFIG.flags` (campaign state at plan time; a flag and a quality
+  with the same name: the quality wins). Unknown keys are false / 0. Only the taken branch's lines
+  are kept; directive lines are removed. An unparseable condition or unbalanced block fails the
+  build (`ValueError`). Other HTML comments are left alone.
 - **Next mission**: the flown mission's `branches` in order; `when` (`Requires`) is checked against
   campaign `flags`/`values` (`beats_fired`/`beats_not_fired` against this flight's beats; `chance`
   rolled with `--seed`). First match wins, else the next non-optional arc mission, else none (end).
-- **Re-debrief guard**: if `state/outcomes/<mNN>.yaml` already records the same `log_file` +
-  `session_start`, `dms debrief` refuses (exit 1) unless `--force`, so deltas are not applied twice.
+- **Re-debrief guard**: `extra.session_hash` = first 16 hex of the SHA-256 of the session's
+  records for the mission (canonical JSON). If `state/outcomes/<mNN>.yaml` already records the same
+  `session_start` + `session_hash` (the log file path is not compared, so `dcs.log` -> `dcs.log.old`
+  rotation or another spelling of the path is still caught; files without `session_hash` fall back
+  to `session_start`), `dms debrief` refuses (exit 1) unless `--force`. With `--force` on the same
+  flight, the previous file's `quality_changes` are rolled back first (each `to - from` subtracted,
+  newest first, clamped) and its `flags_set` keys removed, then the flight is re-applied; its
+  continuity entry is replaced.
+- **Write order**: every file is written atomically (temp file + rename) in the order
+  continuity.md -> state/qualities.yaml -> state/outcomes/<mNN>.yaml. The outcome file is the guard,
+  so it lands last: a failure before it leaves the flight un-guarded and a rerun redoes it (the
+  continuity entry is replaced, not duplicated).
 
 ## Python schemas (packages/dms-core/src/dms_core/schemas/)
 
@@ -448,7 +648,49 @@ Deterministic dcs.log -> campaign state. No schema changes: debrief metadata liv
 | `plan.py` | `BuildPlan` (exact: positions x/y, unit types, payload CLSIDs, frequencies, group names, trigger list, resources; `blue_countries` / `red_countries` / `neutral_countries` coalition membership) | `dms plan` |
 | `runtime.py` | `RuntimeConfig` (= DMS_CONFIG above) | `dms plan` |
 | `outcome.py` | `MissionOutcome` (parsed `[DMS.OUTCOME]` lines; `parse_dcs_log`, `summarize_outcomes`) | `dms outcome` / debriefer |
-| `validation.py` | `Issue` (path, problem, suggestions, severity); `validate_mission_bundle` cross-file checks | `dms validate` |
+| `validation.py` | `Issue` (path, problem, suggestions, severity `error`/`warning`/`info`, optional lint `code` + `hint`); `validate_mission_bundle` cross-file checks | `dms validate` |
+
+**Mission-quality lint** (`dms_core.lint`, the guide's
+[§6](reference/mission-design-guide.md#6-lint-list-quality-checks-for-dms-validate)): design
+problems that make a mission bad, not invalid. `lint_mission(spec, beats, lines, bible, docs)`
+(arc rules only for this mission's arc entry), `lint_mission_dir(dir, ...)` (reads the optional
+`briefing.md`, `kneeboard.md`, `voice/manifest.json` durations, `out/plan.json` and the nearest
+`arc.yaml` + sibling missions) and `lint_arc(arc, campaign_dir)` (campaign-wide). Each finding is
+an `Issue` with `code` and `hint`, and `problem` reads `"[<code>] <message>. Fix: <hint>"` (the
+CLI/MCP finding shape keeps only path/problem/suggestions/severity, so the code travels in the
+text). Line durations come from the manifest, else words / 2.5 per s (v3 tags stripped). `dms
+validate` and MCP `validate` run it by default (`--no-lint` / `lint=false`); `--strict` /
+`strict=true` fails on warnings. `dms run`/`build` do not lint. `RULES` in the module is the
+source of truth:
+
+| code | sev | fires when |
+|---|---|---|
+| `spine_no_fallback` | warn | a guaranteed beat on `group.dead`/`unit.dead`/`unit.landed`/`encounter.cleared`/`flag` has no other path: no sibling setting the same flag, no timely beat with `requires.beats_not_fired: [it]`, and (flag) fewer than 2 setters and no reliable setter |
+| `guaranteed_on_takeoff` | error | an air-start flight exists and a guaranteed beat depends (directly, via `beat.fired`, a flag or `requires.beats_fired`) on `unit.takeoff` or a ramp-only `start_area` zone |
+| `hook_late` | warn | every radio beat has a known time (timers/chains) and the first is after 180 s |
+| `popup_no_telegraph` | error | `ambush_sam`/`cap`/`waves` encounter with no `telegraph_beat` and no `encounter.telegraph` beat, unless notes contain `no-cue:` and briefing.md mentions it (warn for `waves` whose pool has no anti-air/fighter role) |
+| `telegraph_too_short` | warn | the telegraph beat has a delay, is gated (`requires`/chance) or has no line/text |
+| `line_too_long` | warn | a variant over the speaker's `voice.brevity` words (terse 12, normal 20, chatty 30) or over 8 s |
+| `peak_chatter` | warn | a variant over 12 words on a beat that fires mid-fight (`unit.hit/shot/dead`, `group.dead`, `encounter.sam_hot/wave/proximity`, `director.state` PEAK) |
+| `callsign_first` | warn | a variant's first 4 words hold no cast/flight/support callsign word or short form (`Two`, `Check fire`, ...); same-speaker `beat.fired` continuations exempt |
+| `banned_phrases` | warn | "over and out", "hell yeah", "let's do this", "roger that, over", "copy that", more than one `!` |
+| `brevity_misuse` | warn | "bulls" (not bullseye), BRAA with "for"/"at", "tally" on friendlies, "visual" on enemies, bingo/winchester from a non-aircrew bible role |
+| `variants_too_similar` | warn | two variants of a beat with word Jaccard > 0.8 |
+| `too_few_variants` | warn | `once: false` with lines and fewer than 3 variants |
+| `reaction_no_cooldown` | warn | `once: false` on `unit.hit/shot/dead` with `cooldown_sec` < 30 |
+| `radio_density` | warn | more than 3 radio beats with the same `when` + `requires`, or more than 25 s of radio in any 60 s window of the known (timer/chain) schedule |
+| `no_generic_fallback` | info | every radio beat on a reaction event is `requires`-gated |
+| `quality_swing` | warn | beats' `quality_deltas` can sum past ±2 (or repeat), or the arc entry's `quality_effects` text allows > ±2 (alternatives count once, "more" adds, "set to N" = full range, "per" unbounded unless "max N") |
+| `vul_overload` | warn | more than 6 encounters with `chance` > 0 |
+| `briefing_threat_mismatch` | error | a threat with `hidden_on_map: false`, or a telegraphed encounter, that briefing.md never mentions (id, role words, template names) |
+| `briefing_missing_sections` | warn | briefing.md lacks `## 1.`–`## 5.`, "abort", "bingo", a duration line or a stakes line |
+| `kneeboard_contradiction` | error / warn | laser codes differ between briefing.md and kneeboard.md (error); a briefed frequency is missing from the kneeboard (warn) |
+| `kneeboard_too_long` | warn | kneeboard.md over 25 non-empty lines or no comms table |
+| `transit_too_long` | warn | `out/plan.json` exists and a client group's route to the `IP` waypoint takes > 30 min (ramp) / 8 min (air) at the waypoint speeds |
+| `failure_dead_end` | error (warn while the next mission is not designed) | the arc's next main-line mission exists and `<mNN>_player_lost` / primary objective `failure_flag`s are read by no branch of this mission and not by the next mission's files or synopsis |
+| `branch_never_rejoins` | warn | an `optional` arc mission reaches no main-line mission within 2 hops |
+| `intensity_streak` | warn | this mission is the third `intense` in a row; (arc) an act whose designed missions have no `calm` |
+| `quality_unmoved` / `quality_unread` | warn | (arc) a quality no `quality_effects`/`quality_deltas` moves / no branch, mission file or arc synopsis reads |
 
 Vocabulary notes: threat role `civilian` = unarmed civilian vehicles only (pair with a neutral
 faction; the planner must never pick armed types for it, and lists that faction's country in
@@ -486,6 +728,15 @@ Player flights (`PlayerFlight`), start options and slots:
 - Loadout `auto` (or an unrecognised intent) picks the aircraft's preset for the mission type
   (F-16C_50: SEAD/DEAD -> `sead`, STRIKE/INTERDICTION -> `lgb_strike`, CAS -> `cas`); free text
   with HARM/SEAD, GBU/LGB/strike, CAS/Maverick maps to those presets. Fuel is always full internal.
+  Player helicopters (`dms_gen.builder.payloads.PRESETS`, default in brackets): Mi-8MT and UH-1H
+  [`transport`] / `rockets`; CH-47Fbl1 [`transport`]; Mi-24P [`atgm_rockets`] / `rockets` /
+  `transport`; Ka-50, Ka-50_3 [`atgm_rockets`] / `rockets`; SA342M [`atgm`]; OH58D
+  [`hellfire_rockets`] / `hellfire` / `rockets`. `transport` = clean racks plus door guns.
+  Mi-8MT/UH-1H/Mi-24P map TRANSPORT/CSAR -> `transport`, CAS -> rockets. Free text naming
+  transport/cargo/troops/CSAR/medevac/"no rockets" picks `transport`; ATGM/Vikhr/Ataka/HOT
+  picks `atgm_rockets` / `atgm` when the aircraft has it.
+- `dms validate` warns when a threat's bible faction is not on the side opposite the players'
+  (`player_flights[0].coalition`) or neutral.
 - Radio callsign: the spec `callsign` is applied to the group in DCS when it is one of the type's
   DCS callsign names for that country (F-16C_50/USA: Viper, Venom, Lobo, Cowboy, Python, Rattler,
   Panther, Wolf, Weasel, Wild, Ninja, Jedi); otherwise the closest valid name is chosen
@@ -511,6 +762,40 @@ in the spec callsign, `"Texaco 6"`, is the flight number) when it is a DCS name 
 closest name is used and validate warns. `Support.tacan` (tankers, e.g. `"51Y"`, null = `10X`)
 becomes `PlanGroup.tacan`.
 
+Planner comms plan (`dms_gen.planner.radios`, run by `plan_mission`): every radio agency gets a
+frequency, so no briefing/kneeboard needs `TBD (plan)`. Agencies are the player flights, the
+supports (AWACS/tanker/JTAC always; other roles when they have a speaker, callsign or
+frequency) and every friendly speaker character (`spec.cast` + line speakers) without a support.
+Characters are classified by `role` text: wingman / crew / intercom / sister ship -> the player
+flight's frequency (no own entry); tower / air traffic / ATC -> the player start airbase's ATC
+frequency from pydcs (UHF if the aircraft has a UHF radio, else VHF), else an assigned one;
+AWACS / E-3 / weapons controller -> awacs; JTAC / FAC / observation post / convoy / outpost /
+company / platoon / ground -> ground; anything else (ops, command) -> agency. Characters of a
+faction not on the players' side get nothing (coalition-wide audio as before).
+- Spec values (`frequency_mhz`, `modulation`) always win. Assigned values are deterministic (spec
+  order), never equal to another agency's or flight's frequency or the start airbases' ATC
+  frequencies, and use a band the first player flight's aircraft can tune (pydcs `panel_radio`;
+  each radio's band from its channel 1: < 88 FM, < 225 VHF AM, else UHF AM):
+  awacs/tanker: UHF (from 251.0 / 276.0, 1 MHz steps) else VHF; ground: FM (from 41.0, 0.5
+  steps) else VHF (from 133.0) else UHF (from 280.0); agency: VHF (from 124.0, 0.5 steps) else
+  UHF (from 260.0); ranges FM 30-87.975, VHF 118-151.975, UHF 225-399.975.
+- Assigned support frequencies are written back to the support `PlanGroup.frequency_mhz` /
+  `modulation` (so AWACS and tanker no longer share the builder default 251.0) and to
+  `DMS_CONFIG.speakers[<id>].frequency/modulation` (so the runtime transmits on them).
+- `BuildPlan.comms: list[PlanComm{id, kind: flight|support|agency|tower, callsign, frequency_mhz,
+  modulation, band: uhf|vhf|fm, speaker?, source: spec|planner|airbase|aircraft, preset?}]` in
+  that order. `preset` is the first player flight's preset, e.g. `"radio 2 ch 1"`.
+- `PlanGroup.radio_presets: list[PlanRadioPreset{radio, channel, frequency_mhz, name?}]` on client
+  groups: every non-flight agency on the radio of its band (agency first, so the command net
+  lands on channel 1 of a second radio, then awacs, ground, tanker, tower); channel 1 of the
+  radio that carries the flight frequency is left to DCS. The builder applies them with pydcs
+  `set_radio_channel_preset` to every unit (a radio/channel the type lacks is skipped).
+- Docs (`dms_gen.builder.docs`): in `briefing.md` / `kneeboard.md`, every `TBD (plan)` is
+  replaced by `<MHz> <AM|FM>` of the agency named on that line (callsign, id or speaker id,
+  case-insensitive), else by `see kneeboard COMMS`; a generated `COMMS` kneeboard page (agency,
+  callsign, MHz, preset) is appended whenever `plan.comms` is non-empty; the planner's fallback
+  `PlanBriefing.blue_task` ends with a `Comms:` list.
+
 Plan fields: `PlanGroup.variant` (copied from the flight), `PlanGroup.radio_callsign`, `PlanGroup.tacan`,
 `BuildPlan.neutral_countries` (countries of every neutral-coalition faction used by threats or
 pools; threats of a neutral faction are planned in the neutral coalition and the builder adds the
@@ -524,34 +809,71 @@ writes JSON Schema files to `schemas/` at the repo root for skills and editors.
 
 - **Campaign folder:** `campaigns/<slug>/premise.md, bible.yaml, arc.yaml, continuity.md, state/qualities.yaml, state/outcomes/<mNN>.yaml, missions/mNN-<slug>/{mission-spec.yaml, beats.yaml, briefing.md, kneeboard.md, lines.yaml, voice/, out/}`
 - **YAML** for authored files. **JSON** for machine intermediates (`plan.json`).
-- **Voice cache:** `~/.dms/tts-cache/<sha256>.ogg`, where the key is `sha256(voice_id|model|text|fx_preset)`;
+- **Voice cache:** `~/.dms/tts-cache/<sha256>.ogg`, where the key is `sha256(voice_id|model|text|fx)`
+  and `fx` = `<preset>@<12-hex sha256 of the preset params + output sample rate + codec args>`;
   a Text-to-Dialogue line (with `turns`) uses sha256 of the canonical JSON
-  `{"kind":"dialogue","model","fx","inputs":[{voice_id,text}]}`. Voice ids come from the bible's
+  `{"kind":"dialogue","model","fx","inputs":[{voice_id,text}]}` (same `fx` form). Voice ids come from the bible's
   `VoiceProfile.eleven_voice_id` first, `data/voice/voices.json` (or `--voices`) second; `--model`
-  overrides the lines.yaml `model`. `dms voice` writes `voice/manifest.json` and never edits lines.yaml.
+  overrides the lines.yaml `model`. `dms voice` writes `voice/manifest.json`
+  (`{line_id: {file, dur_sec, text, speaker, model, placeholder?: true}}`) and never edits lines.yaml.
+  `--rerender LINE_ID` (repeatable) / `--no-raw-cache` (all lines) skip both caches for a fresh,
+  billed take that replaces the cached one. `dms build` warns when the manifest has placeholder clips.
+  Raw pre-FX TTS is cached at `raw/<key computed with fx_preset="">.bin`, so an FX change costs 0
+  credits. Credits: 1/char (v3, multilingual), 0.5/char (flash/turbo). Offline: `--offline` or env
+  `DMS_VOICE_OFFLINE` = `1`/`true`/`yes`/`on` uses model `placeholder` (ignoring `--model`, with a
+  warning): tone clips sized to the text, no key, no voice ids, same FX/cache/manifest/embed path.
+- **Audio in the .miz:** each manifest clip is `l10n/DEFAULT/<line_id>.ogg`, registered in
+  `mapResource`, and referenced by one `a_out_sound` action of the never-firing keeper trigger
+  (comment `DMS: keep sound resources (never fires)`, `c_flag_equals DMS_SOUND_KEEPER_NEVER 424242`)
+  so the Mission Editor keeps it; `DMS_CONFIG.voice[id].file` is the bare file name.
 - **CLI** (`packages/dms-cli`, typer; global `--root <repo>`, default: walk up to the uv workspace).
   `<mission>` is a mission folder or its `mission-spec.yaml`.
-  - `dms validate <mission> [--beats --lines --bible] [--json]`: schema + cross-file + planner checks.
+  - `dms validate <mission|arc.yaml> [--beats --lines --bible] [--json] [--no-lint] [--strict]`: schema +
+    cross-file + planner checks + mission-quality lint (see "Mission-quality lint"); `arc.yaml` gets the
+    schema plus the campaign-wide arc lint. `--strict` exits 1 on warnings too.
   - `dms plan <mission> [-o plan.json] [--seed N] [--voice-manifest]`: default output
     `<mission>/out/plan.json`; the voice manifest defaults to `<mission>/voice/manifest.json` if present.
-  - `dms voice <lines.yaml|mission> [--out --dry-run --fx --voices --model]`: output `<mission>/voice`.
+  - `dms voice <lines.yaml|mission> [--out --dry-run --fx --voices --model --offline --rerender ID... --no-raw-cache]`:
+    output `<mission>/voice`.
   - `dms build <plan.json|mission> [-o out.miz] [--lua] [--variant V]`: a folder reads
     `<mission>/out/plan.json` and writes `<mission>/out/<id>.miz`, then runs check. With player
     flight variants it writes one `<mission>/out/<id>-<variant>.miz` per variant (plan order) and
     checks each; `<id>.miz` is a copy of the first variant's build (backward compatibility).
     `--variant V` builds only that variant (`-o` then names its file).
-  - `dms run <mission> [--seed --skip-voice -o]`: validate -> voice -> plan -> build -> check.
+  - `dms run <mission> [--seed --skip-voice -o] [--install [--dcs stable|openbeta|auto]]`: validate -> voice
+    -> plan -> build -> check. `--install` then runs `dms install` on the mission (non-test builds only).
+  - `dms install <mission|out dir|.miz> [--dcs stable|openbeta|auto] [--test] [--dry-run] [--json]`: copy
+    (overwrite) `<mission>/out/<id>.miz` and every `<id>-<variant>.miz` (`<id>-test.miz` only with
+    `--test`; a `.miz` argument installs just that file) to
+    `<Saved Games>/DCS[.openbeta]/Missions/DMS/<campaign>/`. `<campaign>` is the `campaigns/<slug>` folder,
+    else the spec's `campaign`, else `misc`. Saved Games is `$DMS_DCS_SAVED_GAMES` (the Saved Games dir
+    itself), else the Windows known folder (FOLDERID_SavedGames), else `~/Saved Games`. `auto` uses whichever
+    of `DCS`/`DCS.openbeta` exists (both: newest `Logs/dcs.log`; neither: `DCS` with a warning). Exit 1 when
+    nothing is built.
+  - `dms doctor [--json]`: environment checks (python + dms packages + pydcs, lupa Lua 5.1, luac, ffmpeg,
+    ElevenLabs key presence (never its value), DCS install + Saved Games, `dist/dms.lua` freshness, git-lfs,
+    uv) as a `CHECK STATUS DETAIL` table (OK/WARN/FAIL) plus `fix:` hints; JSON is
+    `{ok, checks: [{name, status, detail, fix}]}`. Exit 1 only on a FAIL.
   - `--test [--test-minutes M]` on `plan`, `build` (plus `--seed`) and `run`: headless-DCS test variant
     (AI player proxy + `DMS.Test` checks) in `out/test/<id>-test.miz`; normal outputs are untouched.
     The proxy replaces a ramp/runway player flight (start `parking_*`/`runway` preferred, so
     on-deck/landing beats are reachable); `build --test --variant V` picks the proxy from variant V.
-  - `dms check <miz> [--json]`, `dms schema [--out]`, `dms bundle-lua [--out]`.
-  - `dms catalog units|templates [--era --coalition --role --category]`,
+  - `dms check <miz|mission folder> [--json]`: a folder (or its `out/`) checks every built variant
+    like `dms build` (`out/<id>-<variant>.miz` per `out/plan.json` variant, else `out/<id>.miz`;
+    no plan: every non-test `out/*.miz`); `--json` with several files is `{miz path: report}`.
+    `dms schema [--out]`, `dms bundle-lua [--out]`.
+  - `dms catalog units|templates [--era --coalition --role --category]`, (`templates --role` takes a
+    template role/tag or a spec `ThreatRole`, resolved through `dms_core.catalog.THREAT_ROLE_TEMPLATES`,
+    the planner's role -> template table; an unknown role prints the valid ones),
     `dms catalog airbases --theater T [--near name|x,y --limit]`, `dms catalog mission-types`; all take `--json`.
   - `dms outcome <dcs.log> [--mission-id] [--json]`: parse `[DMS.OUTCOME]` lines and summarise.
-  - `dms new-campaign <slug>`: copy `campaigns/_template` to `campaigns/<slug>`.
-  - `dms debrief <campaign_dir> --mission mNN [--log PATH] [--dry-run] [--force] [--seed N] [--json]`:
-    latest session's `[DMS.OUTCOME]` lines -> `state/outcomes/<mNN>.yaml`, qualities, next mission.
+  - `dms new-campaign <slug> [--with-example]`: copy `campaigns/_template` to `campaigns/<slug>`.
+    Example files (any path segment containing `example`, i.e. `missions/m01-example/` and
+    `state/outcomes/mNN-example.yaml`) are skipped unless `--with-example`; `missions/` and
+    `state/outcomes/` are always created (empty).
+  - `dms debrief <campaign_dir> --mission mNN [--log PATH] [--dry-run] [--force] [--seed N] [--no-arc-effects] [--no-continuity] [--json]`:
+    latest session's `[DMS.OUTCOME]` lines -> `state/outcomes/<mNN>.yaml`, qualities (beat deltas + arc
+    `quality_effects`), a continuity.md entry, next mission.
 - **Briefing and kneeboard in the miz:** `dms_gen.builder.build_from_plan(plan, out, base_dir=<mission dir>)`
   (used by `dms build` and the MCP `build`) folds the mission folder's Markdown into the build.
   `plan.json` on disk is unchanged. Both files are optional; without them the plan's `PlanBriefing` is used.
@@ -583,7 +905,7 @@ can be tested without a client; `dms_mcp.server` only registers the tools.
 
 | Tool | Arguments | Does | Returns (besides `ok`) |
 |---|---|---|---|
-| `validate` | `path` | Like `dms validate`. `path` is a mission folder or `mission-spec.yaml`, or a `bible.yaml` / `arc.yaml` / `qualities.yaml` (schema only) | `kind`, `path`, `files`, `errors`, `warnings`, `issues` |
+| `validate` | `path`, `strict=false`, `lint=true` | Like `dms validate` (incl. the mission-quality lint). `path` is a mission folder or `mission-spec.yaml`, or a `bible.yaml` / `arc.yaml` / `qualities.yaml` (schema only; `arc.yaml` also gets the arc lint) | `kind`, `path`, `files`, `errors`, `warnings`, `issues` |
 | `plan` | `mission_dir`, `seed?` | Like `dms plan`: writes `<mission>/out/plan.json` (uses `voice/manifest.json` when present) | `plan`, `voice_manifest`, `mission_id`, `seed`, `theater`, `players[]`, `stats` |
 | `build` | `mission_dir`, `test=false`, `variant=null` | `dms build` + check (one `.miz` per player-flight variant + `<id>.miz` = first; `variants[]` lists `{variant, miz, ok, check}`). Plans first when `out/plan.json` is missing. `test=true` is `dms build --test` (seed from `out/plan.json`, writes `out/test/`, `out/<id>-test.miz`) | `miz`, `test`, `mission_id`, `seed`, `stats`, `notes[]`, `check`, `harness` (test only) |
 | `check` | `miz_path` | `dms check` | `CheckReport` fields: `path`, `issues`, `stats` |
@@ -595,4 +917,8 @@ can be tested without a client; `dms_mcp.server` only registers the tools.
   `last_check`. This file is generated output (git-ignored with `out/`). The CLI does not write it yet.
 - Voice rendering (paid ElevenLabs calls) and campaign writes (debrief, `new-campaign`) are not
   exposed over MCP. Use the CLI and skills for those.
-- **Entry point:** `dms-mcp` (console script). An example `.mcp.json` is in `packages/dms-mcp/README.md`.
+- **Entry point:** `dms-mcp` (console script). The repo root has a project-scoped `.mcp.json` that
+  registers it for Claude Code as server `dms` (`uv run dms-mcp`, started in the repo root, so
+  `DMS_ROOT` is not needed). `packages/dms-mcp/tests/test_stdio.py` spawns that console script
+  over real stdio with the `mcp` client and calls all six tools on a temp copy of
+  `campaigns/viper-detachment`.

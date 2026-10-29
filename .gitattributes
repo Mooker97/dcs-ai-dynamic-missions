@@ -7,3 +7,10 @@
 *.py text eol=lf
 *.md text eol=lf
 *.yaml text eol=lf
+*.json text eol=lf
+*.toml text eol=lf
+*.txt text eol=lf
+# Vendored third-party plugins (pinned, see lua/plugins/PINS.md): plain text, not LFS
+lua/plugins/mist/** linguist-vendored -diff
+lua/plugins/moose/** linguist-vendored -diff
+lua/plugins/skynet/** linguist-vendored -diff

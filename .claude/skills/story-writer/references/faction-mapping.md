@@ -22,6 +22,16 @@ factions:
 Missions list the countries again in `blue_countries` / `red_countries` in mission-spec.yaml, and
 threats and pools reference faction ids.
 
+## Player coalition first
+
+The player's coalition is fixed by the airframe, not the politics. Run
+`uv run dms catalog units --era <year> --category plane` (or `helicopter`) and read the
+`coalitions` column for the player aircraft: Mi-8MT, Mi-24P and Ka-50 are red; F-16C_50,
+A-10C_2, AH-64D_BLK_II and UH-1H are blue. The player's faction takes that coalition, and every
+enemy faction takes the other one, even when that looks backwards (a Georgian Mi-8 crew in 1993
+makes Georgia red and the Abkhaz forces blue). Write the choice into `canon_rules`. Briefings and
+radio lines use the story's names, never "blue" or "red".
+
 ## Choosing countries
 
 - The country decides liveries, AI voice language and which units the Mission Editor allows. Pick

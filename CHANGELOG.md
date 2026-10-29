@@ -9,6 +9,25 @@ tagged **(flown)** once it has been verified in DCS. Everything else is "impleme
 
 ## [Unreleased]: v0.3 skeleton
 
+### Added (2026-10-29, all implemented, not flown)
+- Few-prompt path: `dms-quickstart` skill, `dms install`, `dms doctor`, `dms run --install`.
+- `dms_core.lint`: 26 mission-quality rules (spine timeouts, telegraphs, radio density, peak
+  chatter, failure dead ends, quality swings, brevity) run by `dms validate` and MCP.
+- Campaign loop: arc `quality_effects` applied by code, continuity entries, rotation-proof
+  re-debrief guard with `--force` rollback, campaign flags in `DMS_CONFIG`, conditional
+  briefing/kneeboard blocks.
+- Planner comms plan (frequencies + radio presets for every agency, COMMS kneeboard page),
+  helicopter and A-10C loadout presets, `beat_campaign_gated` check info.
+- Voice: real m01 render (101 eleven_v3 clips), raw TTS cache, FX-aware keys, offline
+  placeholder renderer, `--rerender`, PLAY log line and no-overlap checks.
+- Runtime: director hardening, budget-correct pool launches, per-flight gating, intel mark
+  tracking, 10 kW per-group radio transmitters, Bus leave fallback, wave/CAP telegraphs,
+  landed zone/place filters; test-mode marks/fog/comms checks.
+- Optional pinned plugins MIST 4.5.126, MOOSE 2.9.19, Skynet 3.3.0 + adapter (ADR 0013).
+- MCP stdio integration test and `.mcp.json`; eval p31 (retro) and first blind run (p09).
+- Groundwork packages: `dms-tacview`, `dms-beamng`, `dms-arma`.
+- Docs: mission design guide, DCS unknowns research, skill improvements, v0.9/v1.0 proposal.
+
 ### Added
 - Test builds (`dms build --test`): encounter checks are required only when the trigger is
   unconditional for the AI proxy (time/director, proximity on its route, guaranteed beat,

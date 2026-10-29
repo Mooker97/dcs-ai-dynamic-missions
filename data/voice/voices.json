@@ -16,41 +16,82 @@
       "voice_id": "KgoKSoe0uSDQXTd5sh94",
       "name": "Sgt Butterfield - Combat Ground",
       "description": "High-energy African-American soldier, excited and relieved under fire",
-      "categories": ["Requesting Support", "Reacting to Good Strike", "Good But Keep Going", "Taking Fire / Under Attack", "Target Spotted / Tally"],
+      "categories": [
+        "Requesting Support",
+        "Reacting to Good Strike",
+        "Good But Keep Going",
+        "Taking Fire / Under Attack",
+        "Target Spotted / Tally"
+      ],
       "settings": null
     },
     "mission_control": {
       "voice_id": "IqaWsJgCV6ihH2Uh6Jb2",
       "name": "Twr Marcus - Military Controller",
       "description": "Professional male controller, authoritative but calm, clear radio communication",
-      "categories": ["Mission Start", "Mission Complete", "Abort / Waveoff"],
+      "categories": [
+        "Mission Start",
+        "Mission Complete",
+        "Abort / Waveoff"
+      ],
       "settings": null
     },
     "briefing_officer": {
       "voice_id": "T3RkkRObzq7rCMQT4zhL",
       "name": "Capt Lockyer - Australian Briefing Officer",
       "description": "Australian military officer, serious pre-mission briefing tone",
-      "categories": ["Mission Start"],
+      "categories": [
+        "Mission Start"
+      ],
       "settings": null
     },
     "warning_system": {
       "voice_id": "vIuLMrDs3Mbl0w5kvuKe",
       "name": "Capt Willis - Fighter Pilot",
       "description": "American fighter pilot with Southern hint, high-energy combat comms",
-      "categories": ["SAM Warning", "Enemy Aircraft", "Friendly Fire Warning", "Weather / Visibility"],
+      "categories": [
+        "SAM Warning",
+        "Enemy Aircraft",
+        "Friendly Fire Warning",
+        "Weather / Visibility"
+      ],
       "settings": null
     },
     "jtac": {
       "voice_id": "PtGjyQZ7kCARwCuiOKQL",
       "name": "Sgt Brown - Combat Ground",
       "description": "American soldier, high-energy, adrenaline-fueled",
-      "categories": ["Negative Results / Miss", "Winchester / Bingo"],
+      "categories": [
+        "Negative Results / Miss",
+        "Winchester / Bingo"
+      ],
       "settings": null
     },
     "awacs_magic": {
       "voice_id": "2qVLKOamXa29yju9mqTK",
       "name": "AWACS - Magic",
       "description": "AWACS controller voice (created from the AWACS Controller design prompt in catalog.md)",
+      "categories": [],
+      "settings": null
+    },
+    "ops_lindqvist": {
+      "voice_id": "XrExE9yKIg1WjnnlVkGX",
+      "name": "Matilda (premade)",
+      "description": "viper-detachment Maj. Lindqvist, Rook Ops: female, mid-low, even American professional delivery",
+      "categories": [],
+      "settings": null
+    },
+    "tower_incirlik": {
+      "voice_id": "IqaWsJgCV6ihH2Uh6Jb2",
+      "name": "Twr marcus",
+      "description": "viper-detachment Incirlik Ground/Tower controller",
+      "categories": [],
+      "settings": null
+    },
+    "wingman_pike": {
+      "voice_id": "vIuLMrDs3Mbl0w5kvuKe",
+      "name": "Capt Willis",
+      "description": "viper-detachment Lt. Pike, Python 1-2 wingman (fighter pilot)",
       "categories": [],
       "settings": null
     }

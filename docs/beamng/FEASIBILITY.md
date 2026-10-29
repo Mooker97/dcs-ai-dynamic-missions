@@ -23,6 +23,18 @@ Steam game with no licence needed. BeamNGpy is the fallback, and on .drive it is
 | Other flags | `-level`, `-lua`, `-luafile`, `-onLevelLoad_ext`, `-vehicle`, `-vehicleConfig`, `-log` (parseArgs). The strings `headless`, `console`, `nosteam`, `userpath` and `gfx` are in `Bin64\BeamNG.drive.x64.exe` [? behaviour untested]. `Bin64\console.x64.exe` exists. |
 | **MCP** | Setting `enableMcp` (default `false`, `settings/defaults.json`). It serves `http://127.0.0.1:29292/mcp` (Streamable HTTP, protocol 2025-11-25). Flags: `-mcpport N`, `-mcpremote`. Tools include `run_lua`, `get_logs`, `spawn`, `set_ai`/`get_ai`/`drive_to`, `get_vehicle_damage`, `get_electrics`, `pause_physics`/`step_physics`/`set_simulation_speed`, `set_time_of_day`, `load_level`, `set_position`, `screenshot`, `write_file`. Release notes not found online [?]. |
 
+### Install re-check, 2026-10-29 (detection only, nothing launched)
+
+| Check | Result |
+|---|---|
+| Steam libraries (`C:\Steam\steamapps\libraryfolders.vdf`) | `C:\Steam`, `P:\SteamLibrary`, `H:\SteamLibrary`, `E:\SteamLibrary`. App 284160 (BeamNG.drive) is only in **E:** (`appmanifest_284160.acf`, buildid 26137019, StateFlags 4 = fully installed). |
+| `integrity.json` | `"version": "0.40.3.0"`, buildbot 290897 |
+| Registry `HKCU\Software\BeamNG\BeamNG.drive` | `rootpath` = `E:\SteamLibrary\steamapps\common\BeamNG.drive\`, `version` = `0.36.4.0` (stale, written by an older launch). `HKCU\Software\Valve\Steam\Apps\284160`: Installed=1, Updating=0, Running=0. No `HKLM\SOFTWARE\BeamNG`. |
+| Last run | `beamng.log` was last written 2026-07-28 and saved version `0.38.6.0`, so 0.40.3 has never been launched. |
+| BeamNG.tech | **Not installed.** There are no `BeamNG.tech*` folders on C:/D:/E: and no tech registry key. The install-root `tech\` folder only holds `annotations.json` and `part_annotation_config.json` (semantic annotation data), and there is no `lua/ge/extensions/tech/`. |
+| Built-in MCP | Present: `lua/ge/extensions/mcp/{server,shared,tools}.lua` + `tools/` |
+| beamngpy | **Not installed**: not in the workspace venv (`uv pip show`), the system Python 3.13 or `pip`. It is declared as the optional extra `dms-beamng[beamngpy]` and imported lazily. |
+
 ## 2. BeamNGpy
 
 - Latest is **1.36**, paired with **BeamNG.tech 0.39** ([README](https://github.com/BeamNG/BeamNGpy),

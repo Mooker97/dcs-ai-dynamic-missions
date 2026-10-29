@@ -135,8 +135,10 @@ def build_from_plan(
                 parts = r.path.split("/")
                 aircraft = parts[1] if len(parts) == 4 and parts[2] == "IMAGES" else None
                 b.embed_kneeboard(src, aircraft)
-            elif r.kind == "briefing_image":
+            elif r.kind == "briefing_image":  # every side: a watch mission's spectator is none
                 b.mission.add_picture_blue(str(src))
+                b.mission.add_picture_red(str(src))
+                b.mission.add_picture_neutral(str(src))
             else:
                 b._add_resource(src)
         if plan.runtime is not None and not any(p.name == "dms_config.lua" for p in scripts):

@@ -195,3 +195,13 @@ def test_apply_mission_docs_leaves_input_plan_alone(mission_dir: Path, tmp_path:
         ("kneeboard", "KNEEBOARD/IMAGES/m01-first-light-kneeboard-01.png")
     ]
     BuildPlan.model_validate(new.model_dump())
+
+
+def test_briefing_picture_embedded_for_every_side(mission_dir: Path, tmp_path: Path) -> None:
+    Image.new("RGB", (64, 36), (200, 120, 40)).save(mission_dir / "briefing.jpg")
+    out = build_from_plan(_plan(), tmp_path / "pic.miz", base_dir=mission_dir)
+    miz = MizFile.open(out)
+    mission = miz.table("mission")
+    for key in ("pictureFileNameB", "pictureFileNameR", "pictureFileNameN"):
+        assert mission[key], key
+    assert "l10n/DEFAULT/briefing.jpg" in miz.files()

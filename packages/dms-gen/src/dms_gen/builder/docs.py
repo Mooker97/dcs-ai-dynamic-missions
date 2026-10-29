@@ -73,6 +73,10 @@ def comms_markdown(comms: Sequence[PlanComm], title: str = "COMMS") -> str:
     )
 
 
+# A picture next to briefing.md becomes the briefing image (all sides).
+BRIEFING_IMAGES = ("briefing.jpg", "briefing.png")
+
+
 def apply_mission_docs(
     plan: BuildPlan, mission_dir: str | os.PathLike[str], work_dir: str | os.PathLike[str]
 ) -> BuildPlan:
@@ -106,6 +110,15 @@ def apply_mission_docs(
         pages += write_kneeboard_pages(
             cm, Path(work_dir), stem=f"{plan.mission_id}-kneeboard-comms", title="COMMS"
         )
+    picture = next(
+        (mdir_src for name in BRIEFING_IMAGES if (mdir_src := Path(mission_dir) / name).is_file()),
+        None,
+    )
+    if picture is not None and not any(r.kind == "briefing_image" for r in plan.resources):
+        update["resources"] = [
+            *plan.resources,
+            PlanResource(path=picture.name, source=str(picture.resolve()), kind="briefing_image"),
+        ]
     if pages:
         taken = {r.path for r in plan.resources}
         extra = [
@@ -115,7 +128,9 @@ def apply_mission_docs(
             for p in pages
             if f"KNEEBOARD/IMAGES/{p.name}" not in taken
         ]
-        update["resources"] = [*plan.resources, *extra]
+        base = update.get("resources", plan.resources)
+        assert isinstance(base, list)
+        update["resources"] = [*base, *extra]
     return plan.model_copy(update=update) if update else plan
 
 

@@ -14,3 +14,4 @@
 lua/plugins/mist/** linguist-vendored -diff
 lua/plugins/moose/** linguist-vendored -diff
 lua/plugins/skynet/** linguist-vendored -diff
+*.jpg filter=lfs diff=lfs merge=lfs -text

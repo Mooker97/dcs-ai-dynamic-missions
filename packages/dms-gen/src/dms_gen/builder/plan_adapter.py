@@ -229,7 +229,9 @@ def _add_group(b: MissionBuilder, g: PlanGroup) -> None:
         _apply_radio_presets(group, g)
     else:
         kind = _AI_TASKS.get(str(g.task or ""))
-        if kind is None:
+        # A planned Landing (the test proxy) means the route is the flight: the canned CAP/CAS
+        # race-track ends in an endless Orbit and never lands (m03 headless run, 2026-10-29).
+        if kind is None or any(p.action == "Landing" for p in g.route):
             if not any(p.action in ("Turning Point", "Fly Over Point") for p in g.route):
                 raise NotImplementedError(
                     f"AI air group {g.name!r}: task {g.task!r} not supported without a route"

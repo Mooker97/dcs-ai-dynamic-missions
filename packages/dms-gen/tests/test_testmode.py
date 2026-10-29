@@ -138,10 +138,16 @@ def test_to_lua_escapes() -> None:
     )
 
 
-def test_build_test_miz_has_ai_proxy_with_landing(m01: Any, tmp_path: Path) -> None:
+@pytest.mark.parametrize("task", [None, "CAS", "CAP"])
+def test_build_test_miz_has_ai_proxy_with_landing(
+    m01: Any, tmp_path: Path, task: str | None
+) -> None:
     plan, spec, beats = m01
     tb = make_test_plan(plan, spec, beats)
     tp = tb.plan
+    if task is not None:
+        # CAS/CAP map to canned AI flights; a proxy with a planned Landing must keep its route
+        next(g for g in tp.groups if g.name == tb.proxy).task = task
     write_test_lua(tb, tmp_path)
     for r in tp.resources:
         if r.path.endswith("dms_config.lua"):

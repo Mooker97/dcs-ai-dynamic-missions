@@ -451,6 +451,23 @@
           "title": "Once",
           "type": "boolean"
         },
+        "scope": {
+          "anyOf": [
+            {
+              "enum": [
+                "mission",
+                "flight"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Multiplayer scope (contract v0.9, not implemented yet): 'mission' (unset) = one fired set for the whole mission, the first flight to trip the beat consumes it; 'flight' = each player flight (keyed by group name) gets its own once/cooldown, and the radio/mark go to that flight only (payload.flight).",
+          "title": "Scope"
+        },
         "guaranteed": {
           "default": false,
           "description": "Story-spine beat that must play in every run: the runtime ignores chance, keeps it pending until its requires hold, and never drops its radio line from a full queue.",
@@ -902,7 +919,8 @@
             "flight.pickup",
             "flight.weapon",
             "flight.done",
-            "flight.lost"
+            "flight.lost",
+            "player.joined_late"
           ],
           "title": "Event",
           "type": "string"
@@ -1247,6 +1265,28 @@
       "title": "CircleZone",
       "type": "object"
     },
+    "CommsSettings": {
+      "additionalProperties": false,
+      "description": "DMS_CONFIG.comms: radio queue settings (contract v0.9, not implemented yet).",
+      "properties": {
+        "max_age_sec": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Drop a queued per-group line older than this instead of playing it late (join in progress: no backlog of stale calls). Unset = never drop.",
+          "title": "Max Age Sec"
+        }
+      },
+      "title": "CommsSettings",
+      "type": "object"
+    },
     "Director": {
       "additionalProperties": false,
       "description": "Intensity director settings.",
@@ -1457,14 +1497,17 @@
           "type": "string"
         },
         "kind": {
-          "description": "Encounter behaviour.",
+          "description": "Encounter behaviour. artillery / csar / ground_war: contract v0.9 kinds registered via DMS.Encounters.registerKind (enc_<kind>.lua), not implemented yet.",
           "enum": [
             "ambush_sam",
             "waves",
             "hunt",
             "convoy",
             "cap",
-            "pool"
+            "pool",
+            "artillery",
+            "csar",
+            "ground_war"
           ],
           "title": "Kind",
           "type": "string"
@@ -1584,6 +1627,19 @@
           "default": null,
           "description": "Fire at most once (default true).",
           "title": "Once"
+        },
+        "per_flight": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Contract v0.9, not implemented yet: true = trigger once per player flight (keyed by group name; `once` then applies per flight), within the director budget.",
+          "title": "Per Flight"
         },
         "engage_radius_m": {
           "anyOf": [
@@ -2846,6 +2902,52 @@
       "title": "Requires",
       "type": "object"
     },
+    "ResumeState": {
+      "additionalProperties": false,
+      "description": "DMS_CONFIG.resume: last checkpoint baked in by `dms resume` (contract v0.9, not implemented yet).",
+      "properties": {
+        "seq": {
+          "description": "Sequence number of the [DMS.STATE] checkpoint it came from.",
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "t": {
+          "default": 0,
+          "description": "Mission time (s) of that checkpoint.",
+          "minimum": 0,
+          "title": "T",
+          "type": "number"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Pinned runtime seed so the resumed run rolls the same choices.",
+          "title": "Seed"
+        },
+        "modules": {
+          "additionalProperties": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "description": "Module name (as on DMS, e.g. 'Narrative', 'Encounters') -> the table its M.snapshot() returned; passed to M.restore(t) before M.start(). Keys verbatim.",
+          "title": "Modules",
+          "type": "object"
+        }
+      },
+      "required": [
+        "seq"
+      ],
+      "title": "ResumeState",
+      "type": "object"
+    },
     "Speaker": {
       "additionalProperties": false,
       "description": "Radio identity of a character.",
@@ -2891,6 +2993,34 @@
         "callsign"
       ],
       "title": "Speaker",
+      "type": "object"
+    },
+    "StateSettings": {
+      "additionalProperties": false,
+      "description": "DMS_CONFIG.state: [DMS.STATE] checkpoints (contract v0.9, not implemented yet).",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "description": "false keeps DMS.State inert.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "interval_sec": {
+          "default": 300,
+          "description": "Seconds between periodic checkpoints (also on every beat).",
+          "exclusiveMinimum": 0,
+          "title": "Interval Sec",
+          "type": "number"
+        },
+        "chunk_bytes": {
+          "default": 2000,
+          "description": "Max JSON bytes per [DMS.STATE] line before splitting into part/of chunks (tune from probe K9, the longest env.info line that survives intact).",
+          "minimum": 200,
+          "title": "Chunk Bytes",
+          "type": "integer"
+        }
+      },
+      "title": "StateSettings",
       "type": "object"
     },
     "Template": {
@@ -3398,6 +3528,22 @@
           ],
           "default": null,
           "description": "Hold the proxy at the objective until the RTB beat."
+        },
+        "proxies": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Contract v0.9, not implemented yet: AI group names that each stand in for one player flight (multiplayer logic headless in SP). Unset = [player_proxy] when set.",
+          "title": "Proxies"
         }
       },
       "title": "TestSettings",
@@ -3736,6 +3882,42 @@
       "default": null,
       "description": "AI flights with orders (unset = DMS.Flights inert).",
       "title": "Flights"
+    },
+    "comms": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CommsSettings"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Radio queue settings (contract v0.9; unset = defaults)."
+    },
+    "state": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/StateSettings"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "[DMS.STATE] checkpoint settings (contract v0.9; unset = DMS.State inert)."
+    },
+    "resume": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ResumeState"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Checkpoint to resume from (contract v0.9; set only by `dms resume`)."
     }
   },
   "required": [

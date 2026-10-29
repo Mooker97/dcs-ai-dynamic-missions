@@ -73,6 +73,22 @@ Confidence = Literal["high", "medium", "low"]
 DirectorState = Literal["BUILD_UP", "PEAK", "RELAX"]
 CompareOp = Literal["==", "!=", ">", ">=", "<", "<="]
 
+# Encounter behaviours. artillery / csar / ground_war are contract v0.9 kinds
+# (DMS.Encounters.registerKind, lua/src/dms/enc_<kind>.lua), not implemented yet.
+EncounterKind = Literal[
+    "ambush_sam",
+    "waves",
+    "hunt",
+    "convoy",
+    "cap",
+    "pool",
+    "artillery",
+    "csar",
+    "ground_war",
+]
+ENCOUNTER_KINDS: tuple[str, ...] = get_args(EncounterKind)
+V09_ENCOUNTER_KINDS: tuple[str, ...] = ("artillery", "csar", "ground_war")
+
 # Scalars allowed as outcome / flag values (they must survive the Lua JSON encoder).
 OutcomeValue = bool | int | float | str
 

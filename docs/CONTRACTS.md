@@ -850,6 +850,218 @@ Watch mode in the other modules:
 `flight_orders`: every flight reached `flight.done` or `flight.lost` by the end (INFO for
 `lost`).
 
+## Multiplayer (contract v0.9, not implemented)
+
+Status: **contract v0.9, not implemented.** The schema fields exist (defaults keep every
+existing campaign valid), and the v0.3 runtime ignores them. Owners: MP-A (`narrative.lua`), MP-B
+(`encounters.lua`, `spawner.lua`), MP-C (`comms.lua`, new `players.lua`, `outcomes.py`), MP-D
+(`test.lua`, `test_proxies.py`). Plan: `docs/rebuild/PLAN.md` "E. v0.9 and v1.0".
+
+Rules every MP implementation follows (DCS facts, `PLAN.md` "DCS risks"):
+- Key per-flight state by **group name**, never `groupId` (DCS reuses ids). Read `getID()` fresh
+  at every BIRTH.
+- A dynamic-slot group name that is not in the miz is a new flight.
+- Multicrew puts 2 players in one unit, so count player facts by **player name**.
+- On a server `world.getPlayer()` is nil; use `coalition.getPlayers(side)`.
+
+**Beat `scope`** (`beats.yaml`, `Beat.scope`, Lua `beat.scope`):
+
+| Value | Meaning |
+|---|---|
+| unset / `"mission"` | Today's behaviour: one fired set per mission; the first flight to trip the beat consumes it. |
+| `"flight"` | Each player flight (group name) has its own fired set, `once` and `cooldownSec`. Radio, subtitle and mark go to that flight only. The payload carries `flight` (group name). Beats with no player cause (`timer`, `flag`, `mission.start`) fire once per **currently alive** flight, and again for a late joiner. |
+
+Effects of a `scope: flight` beat (`setFlag`, `outcome`, `qualityDeltas`, `endMission`) stay
+mission-global. `requires.flags` reads the global flags.
+
+**Encounter `per_flight`** (`EncounterIntent.per_flight` -> `Encounter.per_flight`, Lua
+`perFlight`): `true` runs the trigger once per player flight (`once` then means once per flight).
+Every spawn still goes through the director budget and `budgets.spawnsPerMin`. A late joiner's
+encounter is deferred, never dropped, when the budget is full (`maxDeferSec` applies). Unset or
+`false` keeps once-per-mission.
+
+**Staggered spawns:** when `#players > 1`, `DMS.Spawner` queues spawns through `DMS.Clock` 1-3 s
+apart. This needs no config.
+
+**`DMS_CONFIG.comms`** (`RuntimeConfig.comms`, `CommsSettings`):
+
+```lua
+comms = { maxAgeSec = 45 }   -- drop a queued per-group line older than this; unset = never drop
+```
+
+A join-in-progress client gets the current menus and briefing state, and no backlog of stale
+calls. Dropped lines log `DMS.Log.debug("Comms", "drop stale %s age=%.0f", ...)`.
+
+**Event `player.joined_late`** (a new `BeatEvent`):
+
+| Event | Payload | Emitted by |
+|---|---|---|
+| `player.joined_late` | `{unit, group, groupId, playerName, coalition, typeName, t}` (t = mission time) | bus or `players.lua`: the first `player.spawned` for a **player name** after `mission.start` + 60 s. It is emitted after `player.spawned`. |
+
+**`outcome.players[]`** (`MissionOutcome.players`, `PlayerOutcome`): the final `[DMS.OUTCOME]`
+(`kind = "end"`) carries one entry per player name:
+
+```json
+"players": [{"name": "Mook", "flight": "Viper 1", "unit": "Viper 1-1", "typeName": "F-16C_50",
+             "kills": {"ground": 3}, "dead": false, "ejected": false, "late": false, "joinedSec": 12}]
+```
+
+Pre-v0.9 lines carry bare names (`"players": ["Mook"]`). They still parse, as `{name}`.
+`dms debrief` keeps the list in `state/outcomes/mNN.yaml`. Merging two reports lets the later
+entry win, per name.
+
+**`TestSettings.proxies[]`** (`DMS_CONFIG.test.proxies`): AI group names that each stand in for one
+player flight, so MP logic runs headless in SP without an ED login. Unset means `{playerProxy}`
+when that is set. Each proxy gets its own `player.spawned`, menus and director state. The planned
+headless check is `mp_two_proxies` (owner MP-D).
+
+## State checkpoints and resume (contract v0.9, not implemented)
+
+Status: **contract v0.9, not implemented.** Owners: P1-py (`dms_core/state.py`, `cmd_resume.py`)
+and P1-lua (`state.lua`, plus `snapshot`/`restore` in each module).
+
+The mission environment has no `io` or `lfs`, so state leaves through the log, and Python
+rebuilds the resume config. `dcs.log` rotates at every launch, so run `dms resume` **before**
+relaunching DCS.
+
+**`DMS_CONFIG.state`** (`StateSettings`):
+
+```lua
+state = { enabled = true, intervalSec = 300, chunkBytes = 2000 }   -- unset table = DMS.State inert
+```
+
+**`[DMS.STATE]` lines.** `DMS.State` writes a checkpoint every `intervalSec`, after every
+`beat.fired`, and at `mission.end`. A checkpoint is one JSON document. When the document is longer
+than `chunkBytes` (to be tuned from probe K9, the longest `env.info` line that arrives intact), it
+is split into consecutive parts:
+
+```
+[DMS.STATE] {"seq":7,"part":1,"of":3,"missionId":"m01-first-light","t":1834.5,"data":"<json slice>"}
+[DMS.STATE] {"seq":7,"part":2,"of":3,"data":"<json slice>"}
+[DMS.STATE] {"seq":7,"part":3,"of":3,"data":"<json slice>"}
+```
+
+- `seq` counts up from 1 per mission run. `part` is 1-based and `of` is the part count.
+  Single-part checkpoints still carry `"part":1,"of":1`.
+- `data` slices concatenate, in `part` order, to the JSON text of the checkpoint document:
+  `{"missionId", "t", "seed", "modules": {"Narrative": {...}, "Encounters": {...}, ...}}`.
+- A reader keeps the highest `seq` whose parts 1..`of` are all present and whose joined `data`
+  parses. Incomplete or corrupt checkpoints are skipped with a warning.
+
+**`DMS_CONFIG.resume`** (`ResumeState`), baked in by `dms resume <mission> [--log]` through the
+lupa dict round-trip (never pydcs load/save):
+
+```lua
+resume = { seq = 7, t = 1834.5, seed = 12345,
+           modules = { Narrative = { fired = {...}, flags = {...} }, Encounters = {...} } }
+```
+
+`seed`, when set, is pinned instead of mixing timer entropy, so the resumed run makes the same
+rolls.
+
+**Module contract.** Every stateful module (Narrative, Encounters, Director, Spawner, Intel,
+Flights, Ground, Ambient) may define:
+
+| Function | Contract |
+|---|---|
+| `M.snapshot() -> table` | A JSON-safe table (strings, numbers, booleans, arrays and string-keyed maps; no functions, userdata or cycles) holding the state the module needs to continue: fired beats and cooldowns, flags, qualities, encounter `st`, dead group names, director tiers. Keep it small and identify everything by name, never by DCS id. |
+| `M.restore(t)` | Called by `init.lua` with `DMS_CONFIG.resume.modules[<Name>]`, **after** config load and **before** `M.start()`, only when that key exists. It must tolerate missing keys, because a snapshot can come from an older build. Fired beats don't fire again, and dead groups don't respawn. Survivors respawn at their snapshot positions. Unit health is approximate, which is a known limitation. |
+
+`DMS.State` is the only caller of `snapshot()`, and it schedules through `DMS.Clock` only. It logs
+`DMS.Log.info("State", "checkpoint seq=%d parts=%d bytes=%d", ...)`. The planned headless checks
+are `resume_no_dup_beats` and `resume_no_dead_respawn`.
+
+## Encounter kinds and variety (contract v0.9, not implemented)
+
+Status: **contract v0.9, not implemented.** Today an unknown kind logs
+`Encounter '<id>': unknown kind '<kind>'` and is skipped.
+
+**`DMS.Encounters.registerKind(name, impl)`.** The kind registry lets new behaviours ship as
+separate files, `lua/src/dms/enc_<kind>.lua`, listed in `lua/manifest.txt` **after**
+`encounters.lua`:
+
+```lua
+DMS.Encounters.registerKind("artillery", {
+  start    = function(def, st, ctx) end,  -- required; called when the trigger fires (after chance/budget)
+  stop     = function(def, st) end,       -- optional; encounter cleared/cancelled
+  snapshot = function(def, st) return {} end,  -- optional; JSON-safe, merged into Encounters.snapshot()
+  restore  = function(def, st, t) end,    -- optional
+})
+```
+
+- `def` is the `DMS_CONFIG.encounters[]` entry and `st` is that encounter's mutable state table.
+  `ctx` holds `{flight?, budget}` (`flight` is set for `perFlight`).
+- Kinds spawn only through `DMS.Spawner`, schedule only through `DMS.Clock`, and emit
+  `encounter.*` events on `DMS.Bus`.
+- Registering a name twice replaces the implementation and logs a warning. The built-in kinds
+  (`ambush_sam`, `waves`, `hunt`, `convoy`, `cap`, `pool`) may migrate onto the registry, with
+  no behaviour change.
+
+**New kinds** (`EncounterKind` in `dms_core.schemas._common`, `V09_ENCOUNTER_KINDS`):
+
+| Kind | File | Behaviour (target) | Owner |
+|---|---|---|---|
+| `artillery` | `enc_artillery.lua` | A battery plus a spotter group. Timed fire missions land near the player or protected asset, and each one is telegraphed. Killing the spotter stops the fire. | V1 |
+| `csar` | `enc_csar.lua` | A downed crew spawns in a zone, with a beacon/smoke and a hunting enemy QRF. A helo landing near them picks them up, and delivering them completes it. | V5 |
+| `ground_war` | `enc_ground_war.lua` | Opposing ground lines advance between zones (a front that moves), and the player's results shift it. Headless checks: `front_moves`, `no_stuck_groups`. | V2 |
+
+**Objective `troops`** (`Objective.kind`): carry the friendly ground group `target` (a support id)
+to `area` (the drop zone). It succeeds when they are unloaded inside `area`, which sets
+`success_flag`. It is used by dustoff and helo-ops missions (V5).
+
+## Tooling formats (contract v0.9, not implemented)
+
+Status: **contract v0.9, not implemented.** These formats are fixed now so that the probes (Q7),
+nightly (Q3), status (U1) and Tacview (G1) packages can be built in parallel.
+
+**`[DMS.PROBE] k=v` lines** (`tools/dcs_harness/probes/**`, K1-K10). There is one fact per line,
+written with `env.info`:
+
+```
+[DMS.PROBE] probe=K9 max_line_bytes=4096 ok=true
+[DMS.PROBE] probe=K10 net_get_player_list=false err="attempt to index nil"
+```
+
+- `probe=<id>` comes first. Keys are lower_snake_case. A value is a bare token (number, `true`,
+  `false`, word) or a double-quoted string with `\"` escapes.
+- A probe that crashes writes `ok=false err="..."`. The harness parses `k=v` pairs into
+  `{probe: {k: v}}`.
+
+**Nightly report JSON** (`tools/nightly.py`, one file per night, at
+`~/.dms/nightly/<YYYY-MM-DD>.json`):
+
+```json
+{"version": 1, "date": "2026-10-29", "startedAt": "2026-10-29T02:00:00+10:00", "durationSec": 3120,
+ "dcsVersion": "2.9.x", "gitSha": "abc1234", "ok": false,
+ "skipped": null,
+ "runs": [{"mission": "campaigns/viper-detachment/missions/m01-...", "seed": 1, "ok": true,
+           "durationSec": 610, "checks": {"passed": 9, "failed": 0, "pending": 0},
+           "failed": [], "logErrors": 0, "acmi": "path/or/null"}],
+ "probes": {"K9": {"max_line_bytes": 4096, "ok": true}}}
+```
+
+`skipped` is `null`, or a reason string (`"low_ram"`, `"locked"`, `"game_running"`). A skipped
+night has `ok: false` and empty `runs`. "Green" means `ok: true`.
+
+**`dms status --json`** (`campaign_status.py`, `cmd_status.py`). It writes one JSON object to
+stdout, and the MCP `campaign_status` tool returns the same shape:
+
+```json
+{"campaign": "viper-detachment", "title": "...", "nextMission": "m03-...",
+ "missions": [{"id": "m01-...", "designed": true, "built": true, "flown": true,
+               "debriefed": true, "result": "success", "miz": "path/or/null"}],
+ "qualities": {"trust": 2}, "flags": {"m01_success": true},
+ "resume": {"available": false, "mission": null, "seq": null, "t": null},
+ "issues": [{"severity": "warning", "code": "...", "message": "..."}]}
+```
+
+**`dms debrief --acmi <file.acmi>`** (G1, `packages/dms-tacview`, `cmd_debrief_acmi.py`). This
+reads a Tacview ACMI (zip or text) recorded during the same session, and adds facts the log
+can't give into the outcome's `extra.acmi`: `{"file", "durationSec", "players": {<name>:
+{"maxG", "minAltFt", "distanceNm", "weaponsFired": {...}, "hits": {...}}}}`. Log facts always
+win. ACMI facts never change `outcomes`, flags or qualities, and the debrief shows them as
+narrative colour only. Without `--acmi`, debrief behaves as today.
+
 ## Python schemas (packages/dms-core/src/dms_core/schemas/)
 
 | Module | Models | Written by |

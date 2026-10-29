@@ -191,7 +191,8 @@
             "flight.pickup",
             "flight.weapon",
             "flight.done",
-            "flight.lost"
+            "flight.lost",
+            "player.joined_late"
           ],
           "title": "Event",
           "type": "string"
@@ -532,14 +533,17 @@
           "type": "string"
         },
         "kind": {
-          "description": "Encounter behaviour.",
+          "description": "Encounter behaviour. artillery, csar and ground_war are contract v0.9 kinds (DMS.Encounters.registerKind, enc_<kind>.lua), not implemented yet: the runtime logs 'unknown kind' and skips them until they land.",
           "enum": [
             "ambush_sam",
             "waves",
             "hunt",
             "convoy",
             "cap",
-            "pool"
+            "pool",
+            "artillery",
+            "csar",
+            "ground_war"
           ],
           "title": "Kind",
           "type": "string"
@@ -622,6 +626,19 @@
           "description": "Spawned groups actively hunt the players.",
           "title": "Hunt",
           "type": "boolean"
+        },
+        "per_flight": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Multiplayer (contract v0.9, not implemented yet): true = run once per player flight (a late joiner gets their own), within the director spawn budget. Unset/false = once per mission.",
+          "title": "Per Flight"
         },
         "notes": {
           "anyOf": [
@@ -1463,7 +1480,7 @@
           "type": "string"
         },
         "kind": {
-          "description": "Objective type.",
+          "description": "Objective type. troops (contract v0.9, not implemented yet): carry the friendly ground group `target` (a support id) from where it waits to `area` (the drop zone); succeeds when they are unloaded inside `area`.",
           "enum": [
             "destroy",
             "protect",
@@ -1472,7 +1489,8 @@
             "recon",
             "rescue",
             "survive",
-            "land"
+            "land",
+            "troops"
           ],
           "title": "Kind",
           "type": "string"

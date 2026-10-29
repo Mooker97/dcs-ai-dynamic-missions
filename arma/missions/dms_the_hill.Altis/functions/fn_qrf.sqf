@@ -47,13 +47,16 @@ switch (_mode) do {
 
 		[] spawn {
 			private _cfg = DMS_cfg;
-			private _d1 = [DMS_rolls get "wave1Delay"] call DMS_fnc_t;
+			// Fight-time floors (240 / 600 / 90 s): test compression must not stack every wave on the squad
+			// at once (seeds 1-2 lost to 19-22 East vs 7, 2026-10-28). DMS_fnc_t caps each floor at the
+			// unscaled value, so normal play (DMS_timeScale 1) is unchanged.
+			private _d1 = [DMS_rolls get "wave1Delay", 240] call DMS_fnc_t;
 			[format ["QRF wave 1 from %1 due in %2 s", DMS_rolls get "wave1SpawnName", round _d1]] call DMS_fnc_log;
 			sleep _d1;
 			if (DMS_over) exitWith {};
 			["WAVE", [1]] call DMS_fnc_qrf;
 
-			private _drag = DMS_alarmTime + ([_cfg get "wave2DragTime", 120] call DMS_fnc_t);
+			private _drag = DMS_alarmTime + ([_cfg get "wave2DragTime", 600] call DMS_fnc_t);
 			private _quick = [_cfg get "wave2QuickKill", 60] call DMS_fnc_t;
 			waitUntil {
 				sleep 5;
@@ -63,7 +66,7 @@ switch (_mode) do {
 				}
 			};
 			if (DMS_over) exitWith {};
-			private _d2 = [DMS_rolls get "wave2Delay"] call DMS_fnc_t;
+			private _d2 = [DMS_rolls get "wave2Delay", 90] call DMS_fnc_t;
 			[format ["QRF wave 2 from %1 due in %2 s", DMS_rolls get "wave2SpawnName", round _d2]] call DMS_fnc_log;
 			sleep _d2;
 			if (DMS_over) exitWith {};

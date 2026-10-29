@@ -82,7 +82,8 @@ get task notifications plus a few short text hints from the mortars and the heli
 - **Intel:** hold the action on the laptop on the table under the camo net (8 s).
 - **Extraction (comm menu `0-8`, after the intel):**
   - The Ghost Hawk comes in from your start side.
-  - It holds 1.5 km out while 3 or more enemies are within 300 m of the LZ.
+  - It holds 1.5 km out while the LZ is hot: 3 or more known enemies within 200 m of the LZ, or
+    any known armed enemy vehicle within 1200 m (`exfilHotRadius` / `exfilHotVehicleRadius`).
   - It lands and waits 150 s. It leaves when you and every living squad member within 400 m are
     aboard. AI members are ordered in, and after 60 s any within 30 m are seated directly.
   - If you are not aboard in time it leaves, and you can request it again.
@@ -111,7 +112,14 @@ and invulnerable, and the camera follows the AI leader. The harness then:
 4. forces the alarm if none happens within 20 min
 5. takes the intel once a squad member is inside the compound and two or fewer defenders remain
    (AI cannot use hold actions or the comm menu, so the harness calls the same server functions)
-6. requests extraction and re-requests up to 3 times
+6. requests extraction and re-requests up to 3 times. For the move to the LZ it switches LAMBS
+   Danger off for the squad (`lambs_danger_disableGroupAI` / `lambs_danger_disableAI`), sets
+   YELLOW and `doFollow`, and orders `move` to the LZ if the leader moved less than 30 m in 60 s
+
+When test compression (`DMS_testTimeScale`) shortens the QRF timers, floors keep the waves apart:
+wave 1 comes at least 240 s after the alarm, the wave-2 drag check waits at least 600 s, and wave 2
+at least 90 s after that. Normal play is unchanged. The `STATUS` line every 60 s includes the
+leader's distance to the LZ, `currentWaypoint`, `behaviour` and `expectedDestination`.
 
 Log lines look like this:
 

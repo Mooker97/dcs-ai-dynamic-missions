@@ -59,11 +59,18 @@ switch (_mode) do {
 			while {!DMS_over} do {
 				sleep ([60, 20] call DMS_fnc_t);
 				private _ldr = leader DMS_squad;
-				[format ["STATUS t=%1 squad=%2 leaderToCompound=%3 garrison=%4 eastAlive=%5 alarm=%6 intel=%7 exfil=%8/%9 heliToLz=%10",
+				// Where the squad is trying to go: waypoint index/count, leader behaviour, and the
+				// leader's planned destination (expectedDestination: [pos, planningMode, forceReplan]).
+				private _dest = [[[0, 0, 0], "none", false], expectedDestination _ldr] select (alive _ldr);
+				private _dPos = _dest select 0;
+				[format ["STATUS t=%1 squad=%2 leaderToCompound=%3 garrison=%4 eastAlive=%5 alarm=%6 intel=%7 exfil=%8/%9 heliToLz=%10 leaderToLz=%11 wp=%12/%13 beh=%14 dest=%15 destMode=%16 destToLz=%17",
 					round (time - _t0), {alive _x} count (units DMS_squad), round (_ldr distance2D DMS_compoundCenter),
 					{alive _x} count DMS_garrison, {alive _x && {side (group _x) == east}} count allUnits,
 					DMS_alarm, DMS_intelTaken, DMS_exfilActive, DMS_exfilLanded,
-					[-1, round (DMS_exfilHeli distance2D DMS_lz)] select (alive DMS_exfilHeli)]] call DMS_fnc_log;
+					[-1, round (DMS_exfilHeli distance2D DMS_lz)] select (alive DMS_exfilHeli),
+					round (_ldr distance2D DMS_lz), currentWaypoint DMS_squad, count (waypoints DMS_squad),
+					behaviour _ldr, [round (_dPos select 0), round (_dPos select 1)], _dest select 1,
+					round (_dPos distance2D DMS_lz)]] call DMS_fnc_log;
 			};
 		};
 
@@ -169,6 +176,15 @@ switch (_mode) do {
 
 		// Extraction: stop the assault, request the heli, re-request if it leaves without us.
 		for "_i" from (count (waypoints _grp) - 1) to 0 step -1 do { deleteWaypoint [_grp, _i]; };
+		// Seed 1 (2026-10-28): the squad never left cover for the LZ. With LAMBS Danger loaded its FSM
+		// overrides waypoints under fire, so the test squad opts out for the extraction. Variable names
+		// verified in the LAMBS Danger 2.6.2 PBOs (arma/modules/ambient/CLASSES.md); without the mod
+		// they are plain unused variables. Test mode only: a player's squad is never touched.
+		_grp setVariable ["lambs_danger_disableGroupAI", true, true];
+		{ _x setVariable ["lambs_danger_disableAI", true, true]; } forEach (units _grp);
+		_grp setCombatMode "YELLOW";
+		{ if (_x != leader _grp) then { _x doFollow (leader _grp); }; } forEach (units _grp);
+		["Test: extraction phase: LAMBS danger off for the squad, YELLOW, doFollow"] call DMS_fnc_log;
 		private _tries = 0;
 		while {!DMS_over && {_tries < 3}} do {
 			if (!DMS_exfilActive) then {
@@ -184,7 +200,30 @@ switch (_mode) do {
 				_grp setBehaviour "AWARE";
 				_grp setSpeedMode "FULL";
 				_grp setCurrentWaypoint _lzMove;
-				waitUntil { sleep 5; DMS_over || {!DMS_exfilActive} };
+				// Stuck fallback: if the leader moved less than 30 m in 60 s while still short of the LZ
+				// (and the heli is not yet down for boarding), order the group straight to the LZ.
+				// 60 s is not scaled: AI movement runs in real mission time.
+				private _chkPos = getPosATL (leader _grp);
+				private _chkT = time;
+				waitUntil {
+					sleep 5;
+					if (time - _chkT >= 60) then {
+						private _l = leader _grp;
+						private _moved = _l distance2D _chkPos;
+						if (alive _l && {_moved < 30} && {!DMS_exfilLanded} && {vehicle _l == _l}
+							&& {(_l distance2D DMS_lz) > (DMS_cfg get "exfilReadyRadius")}) then {
+							[format ["Test: leader moved %1 m in 60 s, %2 m from the LZ (%3); ordering move to the LZ",
+								round _moved, round (_l distance2D DMS_lz), behaviour _l]] call DMS_fnc_log;
+							_grp setBehaviour "AWARE";
+							_grp setCombatMode "YELLOW";
+							{ if (_x != _l) then { _x doFollow _l; }; } forEach (units _grp);
+							_grp move DMS_lz;
+						};
+						_chkPos = getPosATL (leader _grp);
+						_chkT = time;
+					};
+					DMS_over || {!DMS_exfilActive}
+				};
 			};
 		};
 	};

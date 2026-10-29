@@ -1125,14 +1125,24 @@ can be tested without a client; `dms_mcp.server` only registers the tools.
 | `check` | `miz_path` | `dms check` | `CheckReport` fields: `path`, `issues`, `stats` |
 | `schema` | `name` | JSON Schema of one document model. `name` is a `DOCUMENT_MODELS` stem (`mission-spec`, ...), a class name (`MissionSpec`) or `bible` / `arc` / `lines` | `name`, `model`, `schema` |
 | `campaign_status` | `campaign_slug` | Read-only overview of `campaigns/<slug>` | `title`, `files`, `qualities`, `flags`, `next_mission`, `outcomes[]`, `missions[]` (`id`, `title`, `designed`, `files`, `voiced`, `planned`, `built[]`, `out[]`, `last_check`, `debriefed`), `arc_missions_not_designed[]` |
+| `catalog` | `kind`, `era?`, `coalition?`, `role?`, `category?`, `theater?` | Read-only, like `dms catalog <kind> --json`. `kind` is `units` \| `templates` \| `airbases` \| `mission-types`. `era` is an era id or a year (`1985`). `airbases` needs `theater` | `kind`, `count`, `rows[]` (the CLI's JSON rows; templates add `n_units`) |
+| `outcome` | `log_path?`, `mission_id?` | Read-only, like `dms outcome --json`. `log_path` is a `dcs.log` or its `Logs` folder; when omitted, the newest stable/openbeta `dcs.log` (`dms_core.outcomes.default_log_paths`). Writes nothing (`dms debrief` stays CLI-only) | `log`, `count`, `records[]` (`MissionOutcome`), `summary` (per mission id, `""` for none) |
+| `doctor` | none | Read-only, like `dms doctor --json`. `ok` is false when any check is `FAIL` | `checks[]` (`{name, status, detail, fix}`) |
+| `voice_estimate` | `mission`, `offline=false` | Like `dms voice --dry-run`, cost only. `mission` is a mission folder or `lines.yaml`. Uses `dms_voice.render.plan_lines` and the TTS cache; never constructs an ElevenLabs client or makes a network call. `offline=true` estimates placeholder clips (0 credits) | `lines`, `model`, `offline`, `total_lines`, `to_render`, `cached`, `characters`, `credits`, `subtitle_only[]`, `summary`, `per_line[]` (`{line_id, speaker, characters, cached}`) |
 
-- **`out/check.json`:** `build` and `check` record the last check result next to the `.miz` as
-  `{"<file>.miz": CheckReport + "checked_at" (UTC ISO)}`, and `campaign_status` reports it as
-  `last_check`. This file is generated output (git-ignored with `out/`). The CLI does not write it yet.
-- Voice rendering (paid ElevenLabs calls) and campaign writes (debrief, `new-campaign`) are not
-  exposed over MCP. Use the CLI and skills for those.
+Ten tools: six workflow tools (`validate`, `plan`, `build`, `check`, `schema`, `campaign_status`)
+and four read-only helpers (`catalog`, `outcome`, `doctor`, `voice_estimate`).
+
+- **`out/check.json`:** the MCP `build` / `check` and the CLI `dms check` / `dms build` / `dms run`
+  record the last check result next to the `.miz` as
+  `{"<file>.miz": CheckReport + "checked_at" (UTC ISO)}` through the shared helper
+  `dms_cli.util.record_check`, and `campaign_status` reports it as `last_check`. This file is
+  generated output (git-ignored with `out/`).
+- Voice rendering (paid ElevenLabs calls, so no `run`), `bundle-lua`, `install` and campaign
+  writes (debrief, `new-campaign`) are not exposed over MCP. Use the CLI and skills for those.
 - **Entry point:** `dms-mcp` (console script). The repo root has a project-scoped `.mcp.json` that
   registers it for Claude Code as server `dms` (`uv run dms-mcp`, started in the repo root, so
   `DMS_ROOT` is not needed). `packages/dms-mcp/tests/test_stdio.py` spawns that console script
-  over real stdio with the `mcp` client and calls all six tools on a temp copy of
-  `campaigns/viper-detachment`.
+  over real stdio with the `mcp` client and calls all ten tools on a temp copy of
+  `campaigns/viper-detachment`, plus negative cases (`validate` on a missing path returns
+  `{ok: false, error}`, not a protocol error).

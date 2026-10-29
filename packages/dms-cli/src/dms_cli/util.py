@@ -298,3 +298,47 @@ def dumps(obj: Any) -> str:
 
 def latest_mtime(paths: Iterable[Path]) -> float:
     return max((p.stat().st_mtime for p in paths if p.is_file()), default=0.0)
+
+
+# ---- shared by the CLI and dms-mcp -------------------------------------------------------------
+
+#: Last check result per .miz, written beside it by ``dms check``/``build``/``run`` and the MCP.
+CHECK_FILE = "check.json"
+
+
+def record_check(miz: Path, report: Any) -> dict[str, Any]:
+    """Merge ``report`` (a CheckReport or its dict) into ``check.json`` beside ``miz``.
+
+    The file maps ``"<file>.miz"`` to the report plus ``checked_at`` (UTC ISO). Returns the
+    JSON-able report. A missing or corrupt ``check.json`` is replaced, never an error."""
+    import datetime
+
+    data: dict[str, Any] = to_jsonable(report)
+    record = miz.parent / CHECK_FILE
+    try:
+        existing = json.loads(record.read_text(encoding="utf-8")) if record.is_file() else {}
+    except (OSError, ValueError):
+        existing = {}
+    if not isinstance(existing, dict):
+        existing = {}
+    now = datetime.datetime.now(datetime.UTC).isoformat(timespec="seconds")
+    existing[miz.name] = {**data, "checked_at": now}
+    record.write_text(json.dumps(existing, indent=2), encoding="utf-8")
+    return data
+
+
+def eras_for(cat: Any, era: str | None) -> list[str] | None:
+    """Era id, or a year (e.g. 1985) mapped to every era whose span contains it."""
+    if era is None:
+        return None
+    if re.fullmatch(r"\d{4}", era):
+        year = int(era)
+        ids = [e.id for e in cat.eras.values() if e.years[0] <= year <= e.years[1]]
+        if not ids:
+            raise CliError(f"no era covers {year}; eras: {', '.join(cat.eras)}")
+        return ids
+    if era not in cat.eras:
+        from dms_core.catalog import CatalogLookupError
+
+        raise CliError(str(CatalogLookupError("era", era, cat.suggest(era, "era"))))
+    return [era]

@@ -594,6 +594,13 @@ def default_checks(
         checks.append(enc)
     if ambient:
         checks.append({"kind": "ambient_cycle", "name": "ambient_cycle", "deadlineSec": d})
+    # End-of-run checks (never hold the run open): F10 marks vs world.getMarkPanels, fog-of-war
+    # hidden flags, radio lines never overlapping, every fired spine beat's line played.
+    spine_marks = any(b.mark is not None or b.effects.mark is not None for b in spine)
+    checks.append({"kind": "marks", "name": "f10_marks", "min": 1 if spine_marks else 0})
+    checks.append({"kind": "fog_hidden", "name": "fog_hidden"})
+    checks.append({"kind": "comms_no_overlap", "name": "radio_no_overlap"})
+    checks.append({"kind": "comms_beats", "name": "spine_lines_played"})
     checks.append({"kind": "convoy_halt", "name": "convoy_halt_on_hit"})
     outcome: dict[str, Any] = {"kind": "outcome", "name": "outcome_end"}
     if require_result:

@@ -443,3 +443,28 @@ def test_m01_end_to_end_golden(tmp_path: Path) -> None:
         shutil.copyfile(out, dest)
         (dest.parent / "m01.plan.json").write_text(plan_a.model_dump_json(indent=2), "utf-8")
         (dest.parent / "m01.check.json").write_text(rep.model_dump_json(indent=2), "utf-8")
+
+
+@pytest.mark.skipif(not BIBLE.is_file(), reason="dustoff-valley bible missing")
+@pytest.mark.parametrize(
+    ("player_side", "country", "faction", "warns"),
+    [
+        ("blue", "USA", "nvc", False),  # red enemy vs blue players
+        ("blue", "USA", "ctf_us", True),  # blue "enemy" vs blue players
+        ("red", "Russia", "ctf_us", False),  # blue enemy vs red players (p09: abkhaz is blue)
+        ("red", "Russia", "nvc", True),  # red "enemy" vs red players
+    ],
+)
+def test_validate_threat_faction_side_respects_player_coalition(
+    player_side: str, country: str, faction: str, warns: bool
+) -> None:
+    bible = StoryBible.model_validate(_yaml(BIBLE))
+    data = convoy_spec().model_dump(mode="json")
+    data["player_flights"][0].update(coalition=player_side, country=country)
+    data["threats"][0]["faction"] = faction
+    issues = validate(MissionSpec.model_validate(data), bible=bible)
+    hits = [i for i in issues if i.path.endswith("threats[0].faction") and "is not" in i.problem]
+    assert bool(hits) is warns, hits
+    if warns:
+        enemy = "blue" if player_side == "red" else "red"
+        assert f"is not {enemy}" in hits[0].problem

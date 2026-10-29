@@ -23,7 +23,7 @@ select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
 
 [tool.mypy]
 strict = true
-exclude = ["legacy/"]
+exclude = ['legacy/', 'packages/[^/]+/tests/conftest[.]py$']
 
 [tool.pytest.ini_options]
 testpaths = ["packages", "lua", "tests", "evals", "arma/tools", "tools/tests"]

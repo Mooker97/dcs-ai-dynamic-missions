@@ -137,8 +137,16 @@ def _semantic(b: Bundle) -> list[Finding]:
     return [finding_from(i) for i in issues]
 
 
-def _issue_summary(findings: list[Finding]) -> dict[str, Any]:
-    errs = sum(1 for f in findings if f.severity == "error")
+def _lint(b: Bundle) -> list[Finding]:
+    from dms_core.lint import lint_mission_dir
+
+    issues = lint_mission_dir(b.mission_dir, b.spec, b.beats, b.lines, b.bible)
+    return [finding_from(i) for i in issues]
+
+
+def _issue_summary(findings: list[Finding], strict: bool = False) -> dict[str, Any]:
+    fail = ("error", "warning") if strict else ("error",)
+    errs = sum(1 for f in findings if f.severity in fail)
     return {
         "ok": errs == 0,
         "errors": errs,
@@ -162,34 +170,56 @@ def _require_bundle(mp: MissionPaths) -> Bundle:
 # ---- validate ----------------------------------------------------------------------------------
 
 
-def validate(path: str | Path, root: Path | None = None) -> dict[str, Any]:
-    """Validate a mission (dir or mission-spec.yaml) or a bible/arc/qualities YAML file."""
+def validate(
+    path: str | Path, root: Path | None = None, *, lint: bool = True, strict: bool = False
+) -> dict[str, Any]:
+    """Validate a mission (dir or mission-spec.yaml) or a bible/arc/qualities YAML file.
+
+    ``lint`` adds the mission-quality lint (``dms_core.lint``; for ``arc.yaml`` the campaign-wide
+    arc rules). ``strict`` counts warnings as errors, like ``dms validate --strict``.
+    """
     r = repo_root(root)
     target = _resolve(path, r)
     if target.is_file() and target.name in _DOC_FILES:
-        return _validate_document(target, _DOC_FILES[target.name], r)
+        return _validate_document(target, _DOC_FILES[target.name], r, lint=lint, strict=strict)
     mp = _mission(target, r)
     findings, bundle = load_bundle(mp)
     if bundle is not None:
         findings = findings + _semantic(bundle)
+        if lint:
+            findings = findings + _lint(bundle)
     files = {
         k: (_rel(v, r) if isinstance(v, Path) else None)
         for k, v in dataclasses.asdict(mp).items()
         if k != "dir"
     }
-    return {"kind": "mission", "path": _rel(mp.dir, r), "files": files, **_issue_summary(findings)}
+    return {
+        "kind": "mission",
+        "path": _rel(mp.dir, r),
+        "files": files,
+        **_issue_summary(findings, strict),
+    }
 
 
-def _validate_document(path: Path, stem: str, root: Path) -> dict[str, Any]:
+def _validate_document(
+    path: Path, stem: str, root: Path, *, lint: bool = True, strict: bool = False
+) -> dict[str, Any]:
     from dms_core.schemas import DOCUMENT_MODELS
 
     model = DOCUMENT_MODELS[stem]
     findings: list[Finding] = []
     try:
-        model.model_validate(load_yaml(path))
+        doc = model.model_validate(load_yaml(path))
     except ValidationError as exc:
         findings = pydantic_findings(exc, path.name, model)
-    return {"kind": stem, "path": _rel(path, root), **_issue_summary(findings)}
+    else:
+        if lint and stem == "campaign-arc":
+            from dms_core.lint import lint_arc
+            from dms_core.schemas import CampaignArc
+
+            if isinstance(doc, CampaignArc):
+                findings = [finding_from(i) for i in lint_arc(doc, path.parent)]
+    return {"kind": stem, "path": _rel(path, root), **_issue_summary(findings, strict)}
 
 
 # ---- plan --------------------------------------------------------------------------------------
@@ -199,6 +229,7 @@ def _plan_obj(bundle: Bundle, seed: int | None, manifest: Path | None) -> Any:
     from dms_gen import planner
 
     try:
+        mdir = bundle.mission_dir
         return planner.plan_mission(
             bundle.spec,
             beats=bundle.beats,
@@ -206,11 +237,8 @@ def _plan_obj(bundle: Bundle, seed: int | None, manifest: Path | None) -> Any:
             voice_manifest=manifest,
             seed=seed,
             bible=bundle.bible,
-            qualities=(
-                planner.load_campaign_qualities(bundle.mission_dir)
-                if bundle.mission_dir is not None
-                else None
-            ),
+            qualities=(planner.load_campaign_qualities(mdir) if mdir is not None else None),
+            flags=(planner.load_campaign_flags(mdir) if mdir is not None else None),
         )
     except (planner.PlanError, ValueError, KeyError) as exc:
         raise OpError(f"planning failed: {exc}") from exc
@@ -343,6 +371,9 @@ def _resolve_resources(plan: Any, bases: list[Path]) -> None:
 
 def _attach_lua(plan: Any, lua: Path, tmp: Path) -> str:
     from dms_core.schemas import PlanResource
+    from dms_gen.plugins import (  # type: ignore[import-untyped,unused-ignore]
+        dms_lua_insert_index,
+    )
 
     for res in plan.resources:
         if res.kind == "script" and "dms.lua" in (Path(res.path).name, Path(res.source).name):
@@ -356,7 +387,10 @@ def _attach_lua(plan: Any, lua: Path, tmp: Path) -> str:
         cfg.write_text(plan.runtime.to_lua_source(), encoding="utf-8")
         new.append(PlanResource(path="l10n/DEFAULT/dms_config.lua", source=str(cfg), kind="script"))
     new.append(PlanResource(path="l10n/DEFAULT/dms.lua", source=str(lua), kind="script"))
-    plan.resources = new + list(plan.resources)
+    # after the plugins (mist/moose/skynet) and any existing config, before the DMS adapters
+    res = list(plan.resources)
+    at = dms_lua_insert_index(x.path for x in res)
+    plan.resources = [*res[:at], *new, *res[at:]]
     return "added"
 
 

@@ -16,8 +16,8 @@ from dms_voice.client import (
     load_api_key,
     with_retries,
 )
-from dms_voice.fx import PRESETS, apply_fx, duration_seconds, tone
-from dms_voice.render import render_lines
+from dms_voice.fx import PRESETS, apply_fx, duration_seconds, fx_signature, tone
+from dms_voice.render import PLACEHOLDER_MODEL, plan_lines, render_lines
 
 VOICES = {"ops_mustang": "vid_mustang", "dusty": {"eleven_voice_id": "vid_dusty"}}
 LINES = [
@@ -51,10 +51,34 @@ def cache(tmp_path: Path) -> TTSCache:
 
 
 def test_cache_key_matches_contract() -> None:
-    expected = hashlib.sha256(b"v|eleven_v3|hello|uhf_clean").hexdigest()
+    sig = fx_signature("uhf_clean")
+    assert len(sig) == 12
+    expected = hashlib.sha256(f"v|eleven_v3|hello|uhf_clean@{sig}".encode()).hexdigest()
     assert cache_key("v", "eleven_v3", "hello", "uhf_clean") == expected
+    raw = hashlib.sha256(b"v|eleven_v3|hello|").hexdigest()
+    assert cache_key("v", "eleven_v3", "hello", "") == raw  # raw key is FX-independent
     assert cache_key("v", "eleven_v3", "hello", "none") != expected
     assert cache_key("v2", "eleven_v3", "hello", "uhf_clean") != expected
+
+
+def test_final_key_tracks_preset_params(monkeypatch: pytest.MonkeyPatch) -> None:
+    import dataclasses
+
+    from dms_voice import fx as fxmod
+    from dms_voice.cache import dialogue_cache_key
+
+    before = cache_key("v", "m", "t", "uhf_clean")
+    raw_before = cache_key("v", "m", "t", "")
+    dia_before = dialogue_cache_key([("v", "t")], "m", "uhf_clean")
+    assert fx_signature("uhf_clean", 44100) != fx_signature("uhf_clean")
+    tuned = dataclasses.replace(PRESETS["uhf_clean"], drive_db=6)
+    monkeypatch.setitem(fxmod.PRESETS, "uhf_clean", tuned)
+    assert cache_key("v", "m", "t", "uhf_clean") != before
+    assert dialogue_cache_key([("v", "t")], "m", "uhf_clean") != dia_before
+    assert cache_key("v", "m", "t", "") == raw_before
+    intercom = fx_signature("intercom")
+    monkeypatch.setattr(fxmod, "OGG_CODEC_ARGS", ("-c:a", "libvorbis", "-q:a", "6", "-f", "ogg"))
+    assert fx_signature("intercom") != intercom
 
 
 def test_cache_env_override(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -401,3 +425,127 @@ def test_cli_uses_bible_voices(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) 
     assert cli.main([str(lines), "--voices", str(empty), "--dry-run"]) == 0
     assert seen["voices"]["ops_main"].eleven_voice_id == "bible_ops"
     assert seen["model"] == "eleven_v3"
+
+
+# ---- raw cache, offline placeholder, credits -------------------------------
+
+
+def test_fx_change_reuses_raw_tts_without_api_call(tmp_path: Path, cache: TTSCache) -> None:
+    fake = FakeClient()
+    render_lines(LINES[:1], VOICES, tmp_path / "a", client=fake, cache=cache)
+    assert len(fake.calls) == 1
+    est = plan_lines(LINES[:1], VOICES, fx_preset="vhf_noisy", cache=cache)
+    assert est.to_render == 0 and est.characters == 0  # raw TTS cached: FX re-run is free
+    m = render_lines(
+        LINES[:1], VOICES, tmp_path / "b", fx_preset="vhf_noisy", client=fake, cache=cache
+    )
+    assert len(fake.calls) == 1
+    assert (tmp_path / "b" / "l1.ogg").read_bytes()[:4] == b"OggS"
+    assert m["l1"]["dur_sec"] > 0
+
+
+def test_offline_placeholder_needs_no_voice_ids_or_key(
+    tmp_path: Path, cache: TTSCache, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("ELEVENLABS_API_KEY", raising=False)
+    lines = [*LINES, {"id": "l3", "speaker": "stranger", "text": "No voice id for me at all."}]
+    est = plan_lines(lines, {}, model=PLACEHOLDER_MODEL, cache=cache)
+    assert est.credits == 0 and "0 ElevenLabs credits" in est.summary()
+    m = render_lines(lines, {}, tmp_path / "v", model=PLACEHOLDER_MODEL, cache=cache)
+    assert set(m) == {"l1", "l2", "l3"}
+    for lid, entry in m.items():
+        assert (tmp_path / "v" / f"{lid}.ogg").read_bytes()[:4] == b"OggS"
+        assert 0.8 <= entry["dur_sec"] <= 13
+    # the model is in the key, so placeholders never satisfy a real render
+    assert plan_lines(LINES, VOICES, cache=cache).to_render == 2
+
+
+def test_cli_offline_flag_and_env(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("DMS_TTS_CACHE", str(tmp_path / "c"))
+    monkeypatch.delenv("ELEVENLABS_API_KEY", raising=False)
+    lines = tmp_path / "m" / "lines.yaml"
+    lines.parent.mkdir()
+    lines.write_text("lines:\n  - {id: a, speaker: nobody, text: Splash HVT.}\n", encoding="utf-8")
+    none = tmp_path / "none.json"
+    none.write_text("{}", encoding="utf-8")
+    assert cli.main([str(lines), "--voices", str(none)]) == 2  # no voice id, no --offline
+    assert cli.main([str(lines), "--offline", "--voices", str(none)]) == 0
+    monkeypatch.setenv("DMS_VOICE_OFFLINE", "1")
+    assert cli.main([str(lines), "--voices", str(none)]) == 0
+    manifest = json.loads((lines.parent / "voice" / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["a"]["file"] == "a.ogg" and manifest["a"]["dur_sec"] > 0
+    assert "wrote 1 lines" in capsys.readouterr().out
+
+
+def test_flash_model_costs_half_credits(cache: TTSCache) -> None:
+    v3 = plan_lines(LINES, VOICES, cache=cache)
+    flash = plan_lines(LINES, VOICES, model="eleven_flash_v2_5", cache=cache)
+    assert v3.credits == v3.characters
+    assert flash.credits == round(flash.characters * 0.5)
+    assert f"~= {flash.credits} ElevenLabs credits" in flash.summary()
+
+
+def test_manifest_records_model_and_placeholder(tmp_path: Path, cache: TTSCache) -> None:
+    m = render_lines(LINES[:1], VOICES, tmp_path / "a", client=FakeClient(), cache=cache)
+    assert m["l1"]["model"] == "eleven_v3" and "placeholder" not in m["l1"]
+    disk = json.loads((tmp_path / "a" / "manifest.json").read_text(encoding="utf-8"))
+    assert disk["l1"]["model"] == "eleven_v3"
+    m = render_lines(LINES[:1], {}, tmp_path / "b", model=PLACEHOLDER_MODEL, cache=cache)
+    assert m["l1"]["model"] == PLACEHOLDER_MODEL and m["l1"]["placeholder"] is True
+    dry = render_lines(LINES[:1], {}, tmp_path / "c", True, model=PLACEHOLDER_MODEL, cache=cache)
+    assert dry["l1"]["placeholder"] is True
+
+
+def test_rerender_forces_fresh_take(tmp_path: Path, cache: TTSCache) -> None:
+    fake = FakeClient()
+    render_lines(LINES, VOICES, tmp_path / "a", client=fake, cache=cache)
+    assert len(fake.calls) == 2
+    est = plan_lines(LINES, VOICES, cache=cache, rerender=["l2"])
+    assert est.to_render == 1 and est.characters == len(LINES[1]["text"])
+    render_lines(LINES, VOICES, tmp_path / "b", client=fake, cache=cache, rerender=["l2"])
+    assert [c[0] for c in fake.calls[2:]] == [LINES[1]["text"]]
+    render_lines(LINES, VOICES, tmp_path / "c", client=fake, cache=cache)
+    assert len(fake.calls) == 3  # the fresh take replaced the cached one
+    render_lines(LINES, VOICES, tmp_path / "d", client=fake, cache=cache, no_raw_cache=True)
+    assert len(fake.calls) == 5
+    with pytest.raises(ValueError, match="unknown line id"):
+        plan_lines(LINES, VOICES, cache=cache, rerender=["nope"])
+
+
+def test_cli_rerender_and_offline_model_warning(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    seen = _capture_render(monkeypatch)
+    lines = tmp_path / "lines.yaml"
+    lines.write_text("lines:\n  - {id: a, speaker: s, text: Hi.}\n", encoding="utf-8")
+    none = tmp_path / "none.json"
+    none.write_text("{}", encoding="utf-8")
+    argv = [str(lines), "--voices", str(none), "--rerender", "a", "--rerender", "b"]
+    assert cli.main([*argv, "--no-raw-cache"]) == 0
+    assert seen["rerender"] == ["a", "b"] and seen["no_raw_cache"] is True
+    assert cli.main([str(lines), "--voices", str(none), "--offline", "--model", "eleven_v3"]) == 0
+    assert seen["model"] == PLACEHOLDER_MODEL
+    assert "offline mode ignores --model eleven_v3" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    ("value", "offline"),
+    [
+        ("1", True),
+        ("true", True),
+        ("YES", True),
+        ("on", True),
+        ("0", False),
+        ("false", False),
+        ("no", False),
+        ("off", False),
+        ("", False),
+    ],
+)
+def test_env_offline_truthy_only(
+    monkeypatch: pytest.MonkeyPatch, value: str, offline: bool
+) -> None:
+    monkeypatch.setenv("DMS_VOICE_OFFLINE", value)
+    assert cli.env_offline() is offline

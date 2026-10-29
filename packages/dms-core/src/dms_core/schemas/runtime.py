@@ -28,7 +28,14 @@ class Budgets(DMSModel):
 
     max_active_ground: int = Field(default=150, ge=0, description="Max active ground units.")
     max_active_air: int = Field(default=16, ge=0, description="Max active air units.")
-    spawns_per_min: float = Field(default=3, ge=0, description="Max spawns per minute.")
+    spawns_per_min: float = Field(
+        default=3,
+        ge=1,
+        description=(
+            "Director spawn budget: summed spawn cost per rolling 60 s window (each spawned group"
+            " notes its cost), scaled by difficulty level; at least 1 (the runtime floors it at 1)."
+        ),
+    )
     max_active_ship: int | None = Field(
         default=None, ge=0, description="Max active ship units (unset = unlimited)."
     )
@@ -493,14 +500,27 @@ class TestCheck(DMSModel):
         "convoy_halt",
         "outcome",
         "ambient_cycle",
+        "marks",
+        "fog_hidden",
+        "comms_no_overlap",
+        "comms_beats",
     ] = Field(description="Check kind.")
     name: str | None = Field(default=None, description="Name in [DMS.TEST] lines (default kind).")
     deadline_sec: float | None = Field(
         default=None, ge=0, description="Model seconds after start before a pending check fails."
     )
-    min: int | None = Field(default=None, ge=0, description="spawns / comms: minimum count.")
+    min: int | None = Field(
+        default=None, ge=0, description="spawns / comms / marks: minimum count."
+    )
     beats: list[Ident] | None = Field(
-        default=None, description="beats_in_order: beat ids expected in this order."
+        default=None,
+        description=(
+            "beats_in_order: beat ids expected in this order; comms_beats: beats whose line must "
+            "play (default: every guaranteed beat with speech)."
+        ),
+    )
+    tolerance_sec: float | None = Field(
+        default=None, ge=0, description="comms_no_overlap: allowed overlap in seconds (0.05)."
     )
     id: Ident | None = Field(default=None, description="beat / encounter: the id to watch.")
     result: Literal["success", "failure"] | None = Field(
@@ -589,6 +609,13 @@ class RuntimeConfig(DMSModel):
     qualities: dict[str, float] = Field(
         default_factory=dict,
         description="Campaign quality values at plan time (state/qualities.yaml); seed beat requires.",
+    )
+    flags: dict[str, bool] = Field(
+        default_factory=dict,
+        description=(
+            "Campaign flags at plan time (state/qualities.yaml flags, e.g. m01_success); beat "
+            "requires.flags fall back to them when the mission has not set the flag."
+        ),
     )
     speakers: dict[str, Speaker] = Field(
         default_factory=dict, description="Character id -> radio identity."

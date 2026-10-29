@@ -116,7 +116,20 @@ class BeatTrigger(DMSModel):
         default=None, description="Group name prefix filter, e.g. 'AAA_KIRK' matches AAA_KIRK_1..n."
     )
     unit: str | None = Field(default=None, description="Exact unit name filter.")
-    zone: Ident | None = Field(default=None, description="Zone/area id (zone.entered).")
+    zone: Ident | None = Field(
+        default=None,
+        description=(
+            "Zone/area id. zone.entered: the zone entered. unit.landed/unit.takeoff: position "
+            "filter, the unit must be inside this zone at the event (e.g. 'land at fob_pad')."
+        ),
+    )
+    place: str | None = Field(
+        default=None,
+        description=(
+            "unit.landed/unit.takeoff only: airbase/FARP/ship name the unit landed at or took "
+            "off from (payload.place, case-insensitive), e.g. 'Kutaisi'. Alias: airbase."
+        ),
+    )
     flag: Ident | None = Field(default=None, description="Flag name (flag event).")
     beat: Ident | None = Field(default=None, description="Beat id (beat.fired).")
     encounter: Ident | None = Field(default=None, description="Encounter id (encounter.spawned).")
@@ -157,6 +170,9 @@ class BeatTrigger(DMSModel):
         if not isinstance(data, dict):
             return data
         d = _snake_keys(data)
+        if "airbase" in d:
+            ab = d.pop("airbase")
+            d.setdefault("place", ab)
         if "director_state" in d:
             d.setdefault("director", d.pop("director_state"))
         if d.get("event") is None:
@@ -183,6 +199,8 @@ class BeatTrigger(DMSModel):
         need = _REQUIRED_BY_EVENT.get(self.event)
         if need and all(getattr(self, f) is None for f in need):
             raise ValueError(f"event '{self.event}' requires one of: {', '.join(need)}")
+        if self.place is not None and self.event not in ("unit.landed", "unit.takeoff"):
+            raise ValueError("'place' filters only unit.landed / unit.takeoff")
         return self
 
 

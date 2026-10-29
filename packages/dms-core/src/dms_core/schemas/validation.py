@@ -25,7 +25,13 @@ class Issue(DMSModel):
     path: str = Field(description="Location, e.g. 'beats.yaml:beats[3].lines[1]'.")
     problem: str = Field(description="What is wrong.")
     suggestions: list[str] = Field(default_factory=list, description="Likely intended values.")
-    severity: Literal["error", "warning"] = Field(default="error", description="Severity.")
+    severity: Literal["error", "warning", "info"] = Field(
+        default="error", description="Severity ('info' is advisory and never fails validate)."
+    )
+    code: str | None = Field(
+        default=None, description="Rule id for lint findings, e.g. 'spine_no_fallback'."
+    )
+    hint: str | None = Field(default=None, description="How to fix it (lint findings).")
 
 
 def suggest(value: str, choices: Iterable[str], n: int = 3) -> list[str]:

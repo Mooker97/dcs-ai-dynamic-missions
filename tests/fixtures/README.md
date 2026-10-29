@@ -34,3 +34,11 @@ Not copied: `miz-files/input/temp_unit_ref/` (extraction temp dir) and `miz-file
 `assets/audio/` and `assets/images/` hold the rendered voice lines and briefing images copied from
 the local `mission assets/` folder (also LFS). The original untracked folders (`miz-files/`,
 `mission assets/`, `supporting Files/`) were left in place.
+
+## `dcs-logs/` — dcs.log excerpts for `dms outcome` / `dms debrief`
+
+| File | Origin |
+|---|---|
+| `multi-session-dcs.log.txt` | Hand-written, several sessions (banner, restart, malformed lines) |
+| `headless-m03-dms-test.log.txt` | Real lines from a headless DCS run of viper m03 (`Saved Games\DCS.dms_test\Logs\dcs.log`, 2026-10-28): banner, two `[DMS]` warnings, one `update` `[DMS.OUTCOME]` (no `end`) |
+| `synthetic-m01-{win,window-lost,player-lost}.log.txt` | Synthetic viper m01 flights in the real line format (m01 not flown yet); used by `tests/integration/test_campaign_loop.py` |

@@ -9,42 +9,9 @@ from dataclasses import dataclass, field
 
 from dms_core import catalog as cat
 
-#: Spec threat role -> catalog template ids, roughly light -> heavy.
-ROLE_TEMPLATES: dict[str, list[str]] = {
-    "sam_short": [
-        "sa9_single",
-        "sa9_gaskin_section",
-        "strela_section",
-        "sa13_gopher_section",
-        "sa8",
-        "sa8_section",
-        "sa15_single",
-        "tunguska",
-        "sa19_tunguska_section",
-        "sa15_tor_battery",
-    ],
-    "sam_medium": ["sa3_goa_battery", "sa6_gainful_battery", "sa11_gadfly_battery"],
-    "sam_long": ["sa10_grumble_battalion"],
-    "aaa": [
-        "zu23_emplacement",
-        "zu23_technical",
-        "zu23_truck",
-        "shilka",
-        "zu23_technical_pair",
-        "zu23_battery",
-        "zsu23_shilka_section",
-    ],
-    "manpads": ["manpads_single", "manpads_team", "aa_ambush"],
-    "armor": ["recon_patrol", "t72_single", "btr_squad", "t72_platoon", "qrf_heavy"],
-    "ifv": ["bmp_section", "qrf_medium"],
-    "technicals": ["technical_mg", "technical_pair", "technical_aa_mg", "qrf_light"],
-    "infantry": ["rpg_team", "infantry_fireteam", "mg_nest", "insurgent_cell", "infantry_squad"],
-    "artillery": ["mortar_team", "artillery_battery"],
-    "hvt": ["hvt_vehicle", "supply_convoy", "scud_site"],
-    "fighters": ["mig21_cap_2ship", "mig29_cap_2ship", "su27_cap_2ship", "mig29_cap_4ship"],
-    "attack_helicopters": ["mi24_attack_2ship", "ka50_attack_2ship"],
-    "ship": [],
-}
+#: Spec threat role -> catalog template ids, roughly light -> heavy (defined in dms_core so
+#: ``dms catalog templates --role <ThreatRole>`` agrees with the planner).
+ROLE_TEMPLATES: dict[str, list[str]] = cat.THREAT_ROLE_TEMPLATES
 
 #: Spec threat role -> catalog *unit* roles usable to synthesize a faction template.
 ROLE_UNIT_ROLES: dict[str, list[str]] = {

@@ -1559,6 +1559,19 @@
       "description": "Planner seed; null picks one and records it.",
       "title": "Seed"
     },
+    "plugins": {
+      "description": "Optional pinned Lua plugins to embed before dms.lua (opt-in; the DMS core never needs them): 'mist', 'skynet' (Skynet-IADS; pulls in mist and the DMS Skynet adapter), 'moose'. Order and versions are fixed by the generator.",
+      "items": {
+        "enum": [
+          "mist",
+          "skynet",
+          "moose"
+        ],
+        "type": "string"
+      },
+      "title": "Plugins",
+      "type": "array"
+    },
     "test": {
       "anyOf": [
         {

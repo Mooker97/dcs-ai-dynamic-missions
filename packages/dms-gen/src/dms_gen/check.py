@@ -11,16 +11,20 @@ fog-of-war hidden flags and map bounds. See docs/CONTRACTS.md "dms check".
 from __future__ import annotations
 
 import os
+import re
 from collections import Counter
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal, get_args
 
+import yaml  # type: ignore[import-untyped, unused-ignore]
 from dms_core import luaio
 from dms_core.miz import MizFile
 from dms_core.schemas.beats import BeatEvent
 from dms_core.schemas.runtime import RuntimeConfig
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
+
+from . import plugins as _plugins
 
 Severity = Literal["error", "warning", "info"]
 L10N = "l10n/DEFAULT/"
@@ -154,11 +158,14 @@ def check_miz(path: str | os.PathLike[str]) -> CheckReport:
     scripts = _check_triggers(rep, mission, res, files)
     if "dms_test.lua" in scripts:
         _relax_for_test_build(rep, scripts)
+    _check_plugins(rep, miz, files, scripts)
     config = _check_config(rep, miz, files, scripts)
     _check_lua_syntax(rep, miz, files)
     if config is not None:
         _check_fog(rep, mission, config)
-        _check_beat_reachability(rep, mission, config)
+        _check_beat_reachability(
+            rep, mission, config, _earlier_mission_keys(path, config.get("missionId"))
+        )
     rep.stats.update(
         resources=len(res),
         scripts=len(scripts),
@@ -457,6 +464,57 @@ def _check_ambient(rep: CheckReport, ambient: dict[Any, Any], templates: dict[st
     rep.stats["ambient_sites"] = len(_as_list(ambient.get("sites")))
 
 
+def _check_plugins(rep: CheckReport, miz: MizFile, files: set[str], scripts: list[str]) -> None:
+    """Optional pinned plugins (CONTRACTS "Optional plugins"): order, dependencies, sha256 pins.
+
+    Plugins must load before ``dms_config.lua``/``dms.lua`` and after what they require; DMS
+    adapters must load after ``dms.lua`` (they use DMS.Log/Clock/Bus) and after their plugin.
+    """
+    loaded: list[str] = []
+    for i, fname in enumerate(scripts):
+        plug = _plugins.BY_BASENAME.get(fname)
+        if plug is None:
+            continue
+        loaded.append(plug.name)
+        before = scripts[:i]
+        for dep in plug.requires:
+            dep_file = _plugins.PLUGINS[dep].basename
+            if dep_file not in before:
+                sev: Severity = "warning" if plug.adapter else "error"
+                why = "no-ops" if plug.adapter else "fails"
+                rep.add(
+                    sev,
+                    "plugin_dependency",
+                    f"{plug.name} needs {dep} ({dep_file}) loaded before it; it {why} without it",
+                    fname,
+                )
+        if plug.adapter:
+            if "dms.lua" in scripts and scripts.index("dms.lua") > i:
+                rep.add("error", "plugin_order", f"adapter {fname} must load after dms.lua", fname)
+        else:
+            for core in ("dms_config.lua", "dms.lua"):
+                if core in before:
+                    rep.add(
+                        "error",
+                        "plugin_order",
+                        f"plugin {fname} must load before {core}",
+                        fname,
+                    )
+            if plug.sha256 and L10N + fname in files:
+                digest = _plugins.file_sha256(miz.read_bytes(L10N + fname))
+                if digest != plug.sha256:
+                    rep.add(
+                        "warning",
+                        "plugin_unpinned",
+                        f"{fname} sha256 {digest[:12]}... is not the pinned {plug.name} "
+                        f"{plug.version} ({plug.sha256[:12]}...)",
+                        fname,
+                    )
+    if loaded:
+        rep.stats["plugins"] = len(loaded)
+        rep.add("info", "plugins", "plugins: " + ", ".join(loaded))
+
+
 def _check_lua_syntax(rep: CheckReport, miz: MizFile, files: set[str]) -> None:
     for f in sorted(files):
         if f.lower().endswith(".lua"):
@@ -468,7 +526,7 @@ def _check_lua_syntax(rep: CheckReport, miz: MizFile, files: set[str]) -> None:
 def _check_fog(rep: CheckReport, mission: dict[Any, Any], cfg: dict[str, Any]) -> None:
     intel_v = cfg.get("intel")
     intel: dict[str, Any] = intel_v if isinstance(intel_v, dict) else {}
-    if not intel.get("fogOfWar"):
+    if intel.get("fogOfWar") is False:  # on unless explicitly false (matches the Lua runtime)
         return
     players_v = cfg.get("players")
     players: dict[str, Any] = players_v if isinstance(players_v, dict) else {}
@@ -543,10 +601,60 @@ def _when_event(w: dict[Any, Any]) -> Any:
     return None
 
 
+_MISSION_KEY_RE = re.compile(r"^m\d+[a-z]*$", re.IGNORECASE)
+
+
+def _earlier_mission_keys(path: str | os.PathLike[str], mission_id: Any) -> set[str] | None:
+    """``mNN`` keys of arc missions played before ``mission_id``, or None without an arc.
+
+    The arc is ``campaigns/<slug>/arc.yaml`` found by walking up from the .miz (a .miz copied
+    out of the campaign has none; then any other ``mNN`` key counts as earlier).
+    """
+    from dms_core.outcomes import mission_key
+
+    if not mission_id:
+        return None
+    own = mission_key(str(mission_id))
+    for d in Path(path).resolve().parents:
+        arc = d / "arc.yaml"
+        if not arc.is_file():
+            continue
+        try:
+            data = yaml.safe_load(arc.read_text(encoding="utf-8")) or {}
+        except (OSError, yaml.YAMLError):
+            return None
+        ids = [
+            str(_as_map(m).get("id"))
+            for a in _as_list(_as_map(data).get("acts"))
+            for m in _as_list(_as_map(a).get("missions"))
+        ]
+        keys = [mission_key(i) for i in ids]
+        if own not in keys:
+            return None
+        return set(keys[: keys.index(own)])
+    return None
+
+
+def _is_campaign_flag(flag: str, own_key: str | None, earlier: set[str] | None) -> bool:
+    """``<mNN>_<fact>`` flags an earlier mission's outcome sets (``outcomes.derive_flags``)."""
+    key = flag.split("_", 1)[0]
+    if "_" not in flag or not _MISSION_KEY_RE.match(key) or key == own_key:
+        return False
+    return earlier is None or key in earlier
+
+
 def _check_beat_reachability(
-    rep: CheckReport, mission: dict[Any, Any], cfg: dict[str, Any]
+    rep: CheckReport,
+    mission: dict[Any, Any],
+    cfg: dict[str, Any],
+    earlier_keys: set[str] | None = None,
 ) -> None:
-    """Beats whose trigger can never fire (contract: guaranteed beats must be reachable)."""
+    """Beats whose trigger can never fire (contract: guaranteed beats must be reachable).
+
+    A beat gated only on campaign flags an earlier mission can set (``m01_player_lost``) is
+    reported as info: those flags arrive through ``DMS_CONFIG.flags`` once that mission is
+    flown and debriefed, so "never set" at plan time is expected.
+    """
     beats = [_as_map(b) for b in _as_list(cfg.get("beats"))]
     if not beats:
         return
@@ -626,20 +734,53 @@ def _check_beat_reachability(
     by_id = {str(b.get("id")): b for b in beats}
     problems = {bid: static_problem(b) for bid, b in by_id.items()}
     reachable: set[str] = set()
-    flags_available = _me_flags(mission)
-    changed = True
-    while changed:
-        changed = False
-        for bid, b in by_id.items():
-            if bid in reachable or problems[bid]:
-                continue
-            flags, deps = needs(b)
-            if flags <= flags_available and deps <= reachable:
-                reachable.add(bid)
-                flags_available |= _set_flags(_as_map(b.get("effects")))
-                changed = True
+    flags_available = _me_flags(mission) | {
+        str(k) for k, v in _as_map(cfg.get("flags")).items() if v is True
+    }
+
+    def settle(reached: set[str], available: set[str]) -> None:
+        changed = True
+        while changed:
+            changed = False
+            for bid, b in by_id.items():
+                if bid in reached or problems[bid]:
+                    continue
+                flags, deps = needs(b)
+                if flags <= available and deps <= reached:
+                    reached.add(bid)
+                    available |= _set_flags(_as_map(b.get("effects")))
+                    changed = True
+
+    settle(reachable, flags_available)
+    # second pass: assume campaign flags from earlier missions may arrive (DMS_CONFIG.flags)
+    # (only for missions not debriefed yet: once m01 is flown its flags are in DMS_CONFIG.flags,
+    # true or false, and a still-missing m01_* flag really is never set)
+    mid = cfg.get("missionId")
+    own_key = str(mid).split("-", 1)[0] if mid else None
+    flown = {str(k).split("_", 1)[0] for k in _as_map(cfg.get("flags"))}
+    campaign = {
+        f
+        for bid, b in by_id.items()
+        if bid not in reachable
+        for f in needs(b)[0]
+        if f not in flags_available
+        and f.split("_", 1)[0] not in flown
+        and _is_campaign_flag(f, own_key, earlier_keys)
+    }
+    later = set(reachable)
+    settle(later, flags_available | campaign)
     for bid, b in by_id.items():
         if bid in reachable:
+            continue
+        if bid in later:
+            gate = sorted(f for f in needs(b)[0] if f in campaign)
+            rep.add(
+                "info",
+                "beat_campaign_gated",
+                f"beat '{bid}' waits on campaign flag(s) {', '.join(gate) or '(via a gated beat)'}"
+                ": not set at plan time; an earlier mission's outcome sets them",
+                f"beats.{bid}",
+            )
             continue
         why = problems[bid]
         if why is None:

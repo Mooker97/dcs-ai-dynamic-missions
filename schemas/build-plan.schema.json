@@ -938,8 +938,21 @@
             }
           ],
           "default": null,
-          "description": "Zone/area id (zone.entered).",
+          "description": "Zone/area id. zone.entered: the zone entered. unit.landed/unit.takeoff: position filter, the unit must be inside this zone at the event (e.g. 'land at fob_pad').",
           "title": "Zone"
+        },
+        "place": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "unit.landed/unit.takeoff only: airbase/FARP/ship name the unit landed at or took off from (payload.place, case-insensitive), e.g. 'Kutaisi'. Alias: airbase.",
+          "title": "Place"
         },
         "flag": {
           "anyOf": [
@@ -1154,8 +1167,8 @@
         },
         "spawns_per_min": {
           "default": 3,
-          "description": "Max spawns per minute.",
-          "minimum": 0,
+          "description": "Director spawn budget: summed spawn cost per rolling 60 s window (each spawned group notes its cost), scaled by difficulty level; at least 1 (the runtime floors it at 1).",
+          "minimum": 1,
           "title": "Spawns Per Min",
           "type": "number"
         },
@@ -2331,6 +2344,109 @@
       "title": "PlanBriefing",
       "type": "object"
     },
+    "PlanComm": {
+      "additionalProperties": false,
+      "description": "One radio agency in the mission's comms plan (briefing / kneeboard comms table).",
+      "properties": {
+        "id": {
+          "description": "Agency id: flight callsign, support id or speaker id.",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Agency kind.",
+          "enum": [
+            "flight",
+            "support",
+            "agency",
+            "tower"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "callsign": {
+          "description": "Radio callsign, e.g. 'Magic', 'Hatay Ops'.",
+          "title": "Callsign",
+          "type": "string"
+        },
+        "frequency_mhz": {
+          "description": "Frequency, MHz.",
+          "exclusiveMinimum": 0,
+          "title": "Frequency Mhz",
+          "type": "number"
+        },
+        "modulation": {
+          "description": "Modulation.",
+          "enum": [
+            "AM",
+            "FM"
+          ],
+          "title": "Modulation",
+          "type": "string"
+        },
+        "band": {
+          "description": "Radio band.",
+          "enum": [
+            "uhf",
+            "vhf",
+            "fm"
+          ],
+          "title": "Band",
+          "type": "string"
+        },
+        "speaker": {
+          "anyOf": [
+            {
+              "description": "Stable identifier. Use lower_snake_case for authored ids (e.g. 'ops_mustang', 'convoy_hit'); letters, digits, '_', '.', '-' only, no spaces.",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Character id who talks on it.",
+          "title": "Speaker"
+        },
+        "source": {
+          "description": "Where the number came from: the spec, the planner, the airbase ATC, or the aircraft default.",
+          "enum": [
+            "spec",
+            "planner",
+            "airbase",
+            "aircraft"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "preset": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Preset on the first player flight, e.g. 'radio 2 ch 1'.",
+          "title": "Preset"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "callsign",
+        "frequency_mhz",
+        "modulation",
+        "band",
+        "source"
+      ],
+      "title": "PlanComm",
+      "type": "object"
+    },
     "PlanGroup": {
       "additionalProperties": false,
       "description": "One group, exact.",
@@ -2502,6 +2618,14 @@
           "description": "TACAN channel of a tanker, e.g. '51Y'. Null = builder default ('10X').",
           "title": "Tacan"
         },
+        "radio_presets": {
+          "description": "Client groups: radio preset channels for the mission's agencies (every unit).",
+          "items": {
+            "$ref": "#/$defs/PlanRadioPreset"
+          },
+          "title": "Radio Presets",
+          "type": "array"
+        },
         "radio_callsign": {
           "anyOf": [
             {
@@ -2568,6 +2692,50 @@
         }
       },
       "title": "PlanOptions",
+      "type": "object"
+    },
+    "PlanRadioPreset": {
+      "additionalProperties": false,
+      "description": "One radio preset channel on a client aircraft.",
+      "properties": {
+        "radio": {
+          "description": "Aircraft radio index (pydcs panel_radio key), e.g. 2.",
+          "minimum": 1,
+          "title": "Radio",
+          "type": "integer"
+        },
+        "channel": {
+          "description": "Preset channel number on that radio.",
+          "minimum": 1,
+          "title": "Channel",
+          "type": "integer"
+        },
+        "frequency_mhz": {
+          "description": "Preset frequency, MHz.",
+          "exclusiveMinimum": 0,
+          "title": "Frequency Mhz",
+          "type": "number"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Agency on this channel, e.g. 'Ops'.",
+          "title": "Name"
+        }
+      },
+      "required": [
+        "radio",
+        "channel",
+        "frequency_mhz"
+      ],
+      "title": "PlanRadioPreset",
       "type": "object"
     },
     "PlanResource": {
@@ -3491,6 +3659,14 @@
           "title": "Qualities",
           "type": "object"
         },
+        "flags": {
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "description": "Campaign flags at plan time (state/qualities.yaml flags, e.g. m01_success); beat requires.flags fall back to them when the mission has not set the flag.",
+          "title": "Flags",
+          "type": "object"
+        },
         "speakers": {
           "additionalProperties": {
             "$ref": "#/$defs/Speaker"
@@ -3764,7 +3940,11 @@
             "encounter",
             "convoy_halt",
             "outcome",
-            "ambient_cycle"
+            "ambient_cycle",
+            "marks",
+            "fog_hidden",
+            "comms_no_overlap",
+            "comms_beats"
           ],
           "title": "Kind",
           "type": "string"
@@ -3807,7 +3987,7 @@
             }
           ],
           "default": null,
-          "description": "spawns / comms: minimum count.",
+          "description": "spawns / comms / marks: minimum count.",
           "title": "Min"
         },
         "beats": {
@@ -3826,8 +4006,22 @@
             }
           ],
           "default": null,
-          "description": "beats_in_order: beat ids expected in this order.",
+          "description": "beats_in_order: beat ids expected in this order; comms_beats: beats whose line must play (default: every guaranteed beat with speech).",
           "title": "Beats"
+        },
+        "tolerance_sec": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "comms_no_overlap: allowed overlap in seconds (0.05).",
+          "title": "Tolerance Sec"
         },
         "id": {
           "anyOf": [
@@ -4312,6 +4506,14 @@
       ],
       "default": null,
       "description": "Briefing texts."
+    },
+    "comms": {
+      "description": "Comms plan: every radio agency and its frequency.",
+      "items": {
+        "$ref": "#/$defs/PlanComm"
+      },
+      "title": "Comms",
+      "type": "array"
     },
     "options": {
       "$ref": "#/$defs/PlanOptions"

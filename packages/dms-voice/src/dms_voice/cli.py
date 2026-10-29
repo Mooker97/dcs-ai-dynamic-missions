@@ -1,6 +1,11 @@
 """``dms voice <lines.yaml> [--out DIR] [--dry-run]`` entry point (called by ``dms_cli``).
 
 Model: ``--model`` if given, else ``VoiceLineSet.model`` from lines.yaml.
+Offline: ``--offline`` (or env ``DMS_VOICE_OFFLINE`` = 1/true/yes/on) renders placeholder tone clips
+through the same FX/cache/manifest path with no API key and no cost (model id ``placeholder``;
+manifest entries get ``placeholder: true``). ``--offline`` ignores ``--model`` with a warning.
+Fresh takes: ``--rerender LINE_ID`` (repeatable) or ``--no-raw-cache`` (every line) skip both the
+final and raw TTS cache and bill ElevenLabs again; the new take replaces the cached one.
 Voices: the campaign bible (two levels above the mission folder) first, then ``--voices`` or the
 discovered ``data/voice/voices.json`` as fallback.
 """
@@ -9,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -20,6 +26,7 @@ from .fx import PRESETS
 from .models import VoiceLineSet
 from .render import (
     DEFAULT_FX,
+    PLACEHOLDER_MODEL,
     find_bible,
     load_bible_voices,
     load_voices,
@@ -56,7 +63,32 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--model", default=None, help="TTS model (default: lines.yaml `model`)")
     p.add_argument("--fx", default=DEFAULT_FX, choices=sorted(PRESETS))
     p.add_argument("--dry-run", action="store_true", help="estimate characters; no API calls")
+    p.add_argument(
+        "--offline",
+        action="store_true",
+        help="placeholder tone clips, no API key or cost (env DMS_VOICE_OFFLINE=1)",
+    )
+    p.add_argument(
+        "--rerender",
+        action="append",
+        default=[],
+        metavar="LINE_ID",
+        help="force a fresh take of this line (repeatable; bills ElevenLabs again)",
+    )
+    p.add_argument(
+        "--no-raw-cache",
+        action="store_true",
+        help="force a fresh take of every line (ignore cached raw TTS; bills every line)",
+    )
     return p
+
+
+TRUTHY = frozenset({"1", "true", "yes", "on"})
+
+
+def env_offline() -> bool:
+    """``DMS_VOICE_OFFLINE`` is on only for 1/true/yes/on (case-insensitive)."""
+    return os.environ.get("DMS_VOICE_OFFLINE", "").strip().lower() in TRUTHY
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -64,10 +96,23 @@ def main(argv: list[str] | None = None) -> int:
     try:
         line_set = load_line_set(args.lines)
         voices = resolve_voices(args.lines, args.voices)
-        model = args.model or line_set.model
+        offline = args.offline or env_offline()
+        if offline and args.model and args.model != PLACEHOLDER_MODEL:
+            print(
+                f"warning: offline mode ignores --model {args.model}; using {PLACEHOLDER_MODEL}",
+                file=sys.stderr,
+            )
+        model = PLACEHOLDER_MODEL if offline else (args.model or line_set.model)
         out = args.out or args.lines.parent / "voice"
         manifest = render_lines(
-            line_set.lines, voices, out, dry_run=args.dry_run, model=model, fx_preset=args.fx
+            line_set.lines,
+            voices,
+            out,
+            dry_run=args.dry_run,
+            model=model,
+            fx_preset=args.fx,
+            rerender=args.rerender,
+            no_raw_cache=args.no_raw_cache,
         )
     except (MissingApiKeyError, VoiceApiError, KeyError, ValueError, OSError) as exc:
         print(f"error: {exc}", file=sys.stderr)

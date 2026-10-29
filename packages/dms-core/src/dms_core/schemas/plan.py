@@ -91,6 +91,36 @@ class PlanWaypoint(DMSModel):
     tasks: list[PlanTask] = Field(default_factory=list, description="Tasks at this point.")
 
 
+class PlanRadioPreset(DMSModel):
+    """One radio preset channel on a client aircraft."""
+
+    radio: int = Field(ge=1, description="Aircraft radio index (pydcs panel_radio key), e.g. 2.")
+    channel: int = Field(ge=1, description="Preset channel number on that radio.")
+    frequency_mhz: float = Field(gt=0, description="Preset frequency, MHz.")
+    name: str | None = Field(default=None, description="Agency on this channel, e.g. 'Ops'.")
+
+
+class PlanComm(DMSModel):
+    """One radio agency in the mission's comms plan (briefing / kneeboard comms table)."""
+
+    id: str = Field(description="Agency id: flight callsign, support id or speaker id.")
+    kind: Literal["flight", "support", "agency", "tower"] = Field(description="Agency kind.")
+    callsign: str = Field(description="Radio callsign, e.g. 'Magic', 'Hatay Ops'.")
+    frequency_mhz: float = Field(gt=0, description="Frequency, MHz.")
+    modulation: Literal["AM", "FM"] = Field(description="Modulation.")
+    band: Literal["uhf", "vhf", "fm"] = Field(description="Radio band.")
+    speaker: Ident | None = Field(default=None, description="Character id who talks on it.")
+    source: Literal["spec", "planner", "airbase", "aircraft"] = Field(
+        description=(
+            "Where the number came from: the spec, the planner, the airbase ATC, or the "
+            "aircraft default."
+        )
+    )
+    preset: str | None = Field(
+        default=None, description="Preset on the first player flight, e.g. 'radio 2 ch 1'."
+    )
+
+
 class PlanGroup(DMSModel):
     """One group, exact."""
 
@@ -122,6 +152,12 @@ class PlanGroup(DMSModel):
     tacan: str | None = Field(
         default=None,
         description="TACAN channel of a tanker, e.g. '51Y'. Null = builder default ('10X').",
+    )
+    radio_presets: list[PlanRadioPreset] = Field(
+        default_factory=list,
+        description=(
+            "Client groups: radio preset channels for the mission's agencies (every unit)."
+        ),
     )
     radio_callsign: str | None = Field(
         default=None,
@@ -242,6 +278,9 @@ class BuildPlan(DMSModel):
     triggers: list[PlanTrigger] = Field(default_factory=list, description="Trigger rules.")
     resources: list[PlanResource] = Field(default_factory=list, description="Embedded files.")
     briefing: PlanBriefing | None = Field(default=None, description="Briefing texts.")
+    comms: list[PlanComm] = Field(
+        default_factory=list, description="Comms plan: every radio agency and its frequency."
+    )
     options: PlanOptions = Field(default_factory=PlanOptions, description="Mission options.")
     runtime: RuntimeConfig | None = Field(
         default=None, description="DMS_CONFIG to emit as dms_config.lua."

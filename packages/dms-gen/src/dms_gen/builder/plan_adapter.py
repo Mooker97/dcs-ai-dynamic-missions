@@ -226,6 +226,7 @@ def _add_group(b: MissionBuilder, g: PlanGroup) -> None:
             land_name=landing.name if landing else None,
             modulation=g.modulation,
         )
+        _apply_radio_presets(group, g)
     else:
         kind = _AI_TASKS.get(str(g.task or ""))
         if kind is None:
@@ -259,6 +260,20 @@ def _add_group(b: MissionBuilder, g: PlanGroup) -> None:
     group.late_activation = g.late_activation
     group.hidden = g.hidden
     group.uncontrolled = g.uncontrolled
+
+
+def _apply_radio_presets(group: Any, g: PlanGroup) -> None:
+    """Planner comms presets onto every unit (a radio/channel the type lacks is skipped)."""
+    if not g.radio_presets:
+        return
+    for unit in getattr(group, "units", []):
+        if getattr(unit, "radio", None) is None and hasattr(unit, "set_radio_preset"):
+            unit.set_radio_preset()  # airframe defaults, then our channels on top
+        for p in g.radio_presets:
+            try:
+                unit.set_radio_channel_preset(p.radio, p.channel, p.frequency_mhz)
+            except (TypeError, KeyError):
+                continue
 
 
 def _parse_callsign(text: str | None) -> tuple[str, int] | None:

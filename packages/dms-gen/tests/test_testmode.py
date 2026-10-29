@@ -103,7 +103,17 @@ def test_test_lua_compiles_and_sets_config(m01: Any) -> None:
     assert kinds[:4] == ["booted", "spawns", "beats_in_order", "comms"]
     assert tb.plan.runtime is not None
     assert kinds.count("encounter") == len(tb.plan.runtime.encounters)
-    assert kinds[-2:] == ["convoy_halt", "outcome"]
+    # end-of-run checks (CONTRACTS test section), then convoy_halt and the outcome
+    assert kinds[-6:] == [
+        "marks",
+        "fog_hidden",
+        "comms_no_overlap",
+        "comms_beats",
+        "convoy_halt",
+        "outcome",
+    ]
+    names = [t.checks[i].name for i in range(1, len(t.checks) + 1)]
+    assert names[-6:-2] == ["f10_marks", "fog_hidden", "radio_no_overlap", "spine_lines_played"]
     spine = t.checks[3].beats
     assert [spine[i] for i in range(1, len(spine) + 1)] == [
         "mission_start",

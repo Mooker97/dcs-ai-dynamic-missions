@@ -116,3 +116,24 @@ def test_check_duplicates_and_slots(tmp_path: Path) -> None:
     miz.save(tmp_path / "dup.miz")
     codes = {i.code for i in check_miz(tmp_path / "dup.miz").issues}
     assert {"duplicate_unit_id", "no_player_slot", "unit_off_map"} <= codes
+
+
+def test_check_fog_defaults_on_unless_false() -> None:
+    from dms_gen.check import CheckReport, _check_fog
+
+    mission = {
+        "coalition": {
+            "red": {
+                "country": [{"vehicle": {"group": [{"name": "red_1", "hidden": False}]}}],
+            }
+        }
+    }
+    for cfg, expect in (
+        ({}, True),  # no intel table: fog of war is on
+        ({"intel": {}}, True),  # fogOfWar nil: on
+        ({"intel": {"fogOfWar": True}}, True),
+        ({"intel": {"fogOfWar": False}}, False),
+    ):
+        rep = CheckReport(path="x.miz")
+        _check_fog(rep, mission, cfg)
+        assert ("enemy_not_hidden" in {i.code for i in rep.issues}) is expect, cfg

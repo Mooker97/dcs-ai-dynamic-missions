@@ -13,7 +13,14 @@ uv run pytest packages/dms-mcp
 Relative paths in tool arguments resolve against the repo root. That root is `$DMS_ROOT` if set,
 otherwise the uv workspace found from the working directory.
 
-## Example `.mcp.json`
+## Claude Code
+
+The repo root's `.mcp.json` registers the server for Claude Code as `dms` (project scope,
+`uv run dms-mcp`, started in the repo root). Approve it when Claude Code asks, then the tools show
+up as `mcp__dms__validate` and so on. `tests/test_stdio.py` exercises exactly that command line over
+real stdio.
+
+To use the server from another directory or another client, point it at the repo explicitly:
 
 ```json
 {

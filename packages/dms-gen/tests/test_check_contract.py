@@ -26,7 +26,12 @@ from dms_core.schemas.runtime import (
 )
 from dms_gen.builder import build_from_plan, inspect
 from dms_gen.check import CheckReport, check_miz
-from dms_gen.planner import build_test_lua, load_campaign_qualities, plan_mission
+from dms_gen.planner import (
+    build_test_lua,
+    load_campaign_flags,
+    load_campaign_qualities,
+    plan_mission,
+)
 from pydantic import ValidationError
 
 REPO = Path(__file__).resolve().parents[3]
@@ -339,3 +344,70 @@ def test_load_campaign_qualities(tmp_path: Path) -> None:
     real = REPO / "campaigns" / "dustoff-valley" / "missions" / "m01-first-light"
     if real.is_dir():
         assert load_campaign_qualities(real).get("enemy_aa") == 2.0
+
+
+def test_load_campaign_flags(tmp_path: Path) -> None:
+    mission = tmp_path / "camp" / "missions" / "m02-x"
+    mission.mkdir(parents=True)
+    assert load_campaign_flags(mission) == {}
+    state = tmp_path / "camp" / "state"
+    state.mkdir()
+    (state / "qualities.yaml").write_text(
+        "values: {}\nflags: {m01_success: true, m01_failure: false}\n", encoding="utf-8"
+    )
+    assert load_campaign_flags(mission) == {"m01_success": True, "m01_failure": False}
+    (state / "qualities.yaml").write_text("flags: {m01_x: [1]}\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="qualities"):
+        load_campaign_flags(mission)
+
+
+def test_campaign_flags_count_as_set(tmp_path: Path) -> None:
+    beats = [
+        _beat("sa6_gone", {"event": "mission.start"}, requires={"flags": {"m01_sa6_dead": True}}),
+        _beat("on_flag", {"event": "flag", "flag": "m01_success"}),
+        _beat("still_up", {"event": "mission.start"}, requires={"flags": ["m01_failure"]}),
+    ]
+    rt = _rt(beats=beats)
+    rt.flags = {"m01_sa6_dead": True, "m01_success": True, "m01_failure": False}
+    rep = _build(tmp_path, rt.to_lua_source())
+    bad = {i.where: i.message for i in rep.issues if i.code == "guaranteed_unreachable"}
+    assert set(bad) == {"beats.still_up"}, bad
+    assert "flag 'm01_failure' is never set" in bad["beats.still_up"]
+
+
+def test_campaign_flag_gated_beats_are_info(tmp_path: Path) -> None:
+    beats = [
+        _beat(
+            "cont", {"event": "mission.start"}, guaranteed=False, requires={"flags": ["m01_lost"]}
+        ),
+        _beat("chain", {"event": "beat.fired", "beat": "cont"}, guaranteed=False),
+        _beat("own", {"event": "mission.start"}, guaranteed=False, requires={"flags": ["c01_x"]}),
+        _beat("later", {"event": "mission.start"}, guaranteed=False, requires={"flags": ["m05_y"]}),
+    ]
+    src = _rt(mission_id="m03-third", beats=beats).to_lua_source()
+    rep = _build(tmp_path, src)  # no arc above the .miz: any other mNN key counts
+    info = {i.where for i in rep.issues if i.code == "beat_campaign_gated"}
+    warn = {i.where for i in rep.warnings if i.code == "beat_unreachable"}
+    assert info == {"beats.cont", "beats.chain", "beats.later"}, rep.issues
+    assert warn == {"beats.own"}
+    assert all(i.severity == "info" for i in rep.issues if i.code == "beat_campaign_gated")
+
+    # with an arc: only missions before m03 in play order can set campaign flags
+    camp = tmp_path / "camp"
+    camp.mkdir()
+    (camp / "arc.yaml").write_text(
+        "acts:\n  - id: a1\n    missions:\n      - {id: m01-first}\n      - {id: m03-third}\n"
+        "      - {id: m05-fifth}\n",
+        encoding="utf-8",
+    )
+    rep = _build(camp, src)
+    info = {i.where for i in rep.issues if i.code == "beat_campaign_gated"}
+    warn = {i.where for i in rep.warnings if i.code == "beat_unreachable"}
+    assert info == {"beats.cont", "beats.chain"}, rep.issues
+    assert warn == {"beats.own", "beats.later"}
+
+    # m01 already debriefed (its flags are known): a missing m01_* flag is never set
+    rt = _rt(mission_id="m03-third", beats=beats)
+    rt.flags = {"m01_success": True}
+    rep = _build(camp, rt.to_lua_source(), "flown.miz")
+    assert "beats.cont" in {i.where for i in rep.warnings if i.code == "beat_unreachable"}

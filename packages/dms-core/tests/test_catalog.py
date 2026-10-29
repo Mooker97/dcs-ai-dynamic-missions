@@ -153,3 +153,19 @@ def test_airbases_syria() -> None:
     assert "Ramat David" in catalog.suggest("Ramat Dvid", "airbase", theater="Syria")
     with pytest.raises(CatalogLookupError):
         catalog.find_airbases("Syrai")
+
+
+def test_threat_role_aliases(cat: catalog.Catalog) -> None:
+    from typing import get_args
+
+    from dms_core.schemas.mission import ThreatRole
+
+    assert set(get_args(ThreatRole)) == set(catalog.THREAT_ROLE_TEMPLATES)
+    for role, ids in catalog.THREAT_ROLE_TEMPLATES.items():
+        assert all(i in cat.templates for i in ids), (role, ids)
+        found = {t.id for t in cat.find_templates(role=role)}
+        assert set(ids) <= found
+    aaa = {t.id for t in cat.find_templates(role="aaa")}
+    assert "zu23_emplacement" in aaa and "sa10_grumble_battalion" not in aaa
+    assert {t.id for t in cat.find_templates(role="technicals")} >= {"technical_mg"}
+    assert "air_defense" in cat.template_roles() and "manpads" in cat.template_roles()

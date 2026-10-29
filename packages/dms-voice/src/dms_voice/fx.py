@@ -7,6 +7,7 @@ OGG Vorbis at 22.05 kHz, which DCS plays happily via ``trigger.action.outSound*`
 
 from __future__ import annotations
 
+import json
 import subprocess
 from dataclasses import dataclass
 from functools import lru_cache
@@ -68,6 +69,28 @@ PRESETS: dict[str, FxPreset] = {
         squelch_amp=0.0,
     ),
 }
+
+
+DEFAULT_SAMPLE_RATE = 22050
+"""Output sample rate of :func:`apply_fx` (part of :func:`fx_signature`)."""
+OGG_CODEC_ARGS: tuple[str, ...] = ("-c:a", "libvorbis", "-q:a", "4", "-f", "ogg")
+"""ffmpeg encoder args for the final .ogg (part of :func:`fx_signature`)."""
+
+
+def fx_signature(preset: str, sample_rate: int = DEFAULT_SAMPLE_RATE) -> str:
+    """Short hash of everything that shapes a preset's output: its parameters, the output sample
+    rate and the codec args. The final (post-FX) cache key includes it, so re-tuning a preset
+    invalidates the old clips; the raw TTS key does not, so the re-render costs 0 credits."""
+    import hashlib
+    from dataclasses import asdict
+
+    params = asdict(PRESETS[preset]) if preset in PRESETS else {"name": preset}
+    blob = json.dumps(
+        {"preset": params, "sample_rate": sample_rate, "codec": list(OGG_CODEC_ARGS)},
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(blob.encode()).hexdigest()[:12]
 
 
 @lru_cache(maxsize=1)
@@ -148,14 +171,14 @@ def apply_fx(
     preset: str = "uhf_clean",
     *,
     output_format: OutputFormat = "ogg",
-    sample_rate: int = 22050,
+    sample_rate: int = DEFAULT_SAMPLE_RATE,
 ) -> bytes:
     """Apply a radio preset to any ffmpeg-readable audio (mp3/wav/...) and return encoded bytes."""
     if preset not in PRESETS:
         raise ValueError(f"unknown fx preset {preset!r}; choose from {sorted(PRESETS)}")
     graph = build_filtergraph(PRESETS[preset], sample_rate)
     codec = (
-        ["-c:a", "libvorbis", "-q:a", "4", "-f", "ogg"]
+        list(OGG_CODEC_ARGS)
         if output_format == "ogg"
         else [
             "-c:a",

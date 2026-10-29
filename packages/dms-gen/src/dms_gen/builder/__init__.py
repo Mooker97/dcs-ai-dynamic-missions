@@ -1,6 +1,7 @@
 """Low-level .miz builder (pydcs-backed) driven by the planner."""
 
 from .briefing import BriefingText, briefing_from_markdown, load_briefing
+from .conditional import render_conditionals
 from .docs import apply_mission_docs, build_from_plan
 from .env import configure_dcs_environment
 from .geo import latlon_to_xy, point_in_polygon, random_point_in_polygon, xy_to_latlon
@@ -27,6 +28,7 @@ __all__ = [
     "point_in_polygon",
     "pylon_options",
     "random_point_in_polygon",
+    "render_conditionals",
     "render_kneeboard",
     "resolve_payload",
     "terrain_by_name",

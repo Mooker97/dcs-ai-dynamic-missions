@@ -253,6 +253,8 @@ def validate(
     # --- threats --------------------------------------------------------------------------
     roles = Counter(t.role for t in spec.threats)
     est_units = 0
+    player_side = spec.player_flights[0].coalition if spec.player_flights else "blue"
+    enemy_side = "blue" if player_side == "red" else "red"
     for i, t in enumerate(spec.threats):
         tp = f"threats[{i}]"
         if t.faction and bible is not None and t.faction not in factions:
@@ -261,8 +263,15 @@ def validate(
                     tp + ".faction", f"unknown faction '{t.faction}'", suggest(t.faction, factions)
                 )
             )
-        if t.faction and t.faction in factions and factions[t.faction][1] not in ("red", "neutral"):
-            issues.append(_warn(tp + ".faction", f"faction '{t.faction}' is not red"))
+        fside = factions[t.faction][1] if t.faction in factions else None
+        if t.faction and fside is not None and fside not in (enemy_side, "neutral"):
+            issues.append(
+                _warn(
+                    tp + ".faction",
+                    f"faction '{t.faction}' is not {enemy_side} (the side opposite the "
+                    f"players' {player_side})",
+                )
+            )
         ch = forces.candidates(t.role, era, factions.get(t.faction or ""), t.faction, t.strength)
         if t.templates:
             role_ids = forces.ROLE_TEMPLATES.get(t.role, [])

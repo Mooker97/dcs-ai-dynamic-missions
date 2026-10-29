@@ -95,10 +95,132 @@ PRESETS: dict[str, dict[str, dict[int, str]]] = {
             11: "AN_AAQ_28_LITENING___Targeting_Pod_",
         },
     },
+    # A-10C II. Stations 1-11 left to right: 1/11 outboard, 3/9 Maverick rails, 6 centreline
+    # (left empty when 5/7 carry stores), 10 targeting pod. pydcs/DCS default is clean pylons.
+    "A-10C_2": {
+        # CAS: ALQ-131, 7x M151 rockets, 4x AGM-65D (IIR), 2x GBU-12,
+        # 2x GBU-38, LITENING, 2x AIM-9M.
+        "cas": {
+            1: "ALQ_131___ECM_Pod",
+            2: "LAU_131___7_x_UnGd_Rkts__70_mm_Hydra_70_M151_HE",
+            3: "LAU_88___2_x_AGM_65D___Maverick_D__IIR_ASM_",
+            4: "GBU_12___500lb_Laser_Guided_Bomb",
+            5: "GBU_38_V_1_B___JDAM__500lb_GPS_Guided_Bomb",
+            7: "GBU_38_V_1_B___JDAM__500lb_GPS_Guided_Bomb",
+            8: "GBU_12___500lb_Laser_Guided_Bomb",
+            9: "LAU_88___2_x_AGM_65D___Maverick_D__IIR_ASM__",  # right-hand rack name
+            10: "AN_AAQ_28_LITENING___Targeting_Pod_",
+            11: "LAU_105___2_x_AIM_9M_Sidewinder_IR_AAM",
+        },
+    },
 }
 
-#: Aircraft that must never get a silent default loadout (pydcs/DCS default is fuel tanks).
-DEFAULT_PRESET: dict[str, str] = {"AH-64D_BLK_II": "hellfire_rockets"}
+
+# --- Player-flyable helicopters (catalog `tags: [player]`). Weapon names are pydcs
+# ``PylonN`` attributes, so every preset resolves to real CLSIDs (tests check this).
+_B8 = "B_8V20A___20_x_UnGd_Rkts__80_mm_S_8KOM_HEAT_Frag"  # B-8V20A, 20x S-8KOM
+_B13 = "B_13L___5_x_UnGd_Rkts__122_mm_S_13OF_Blast_Fragmentation"
+_VIKHR = "APU_6___6_x_9M127_Vikhr___ATGM__LOSBR__Tandem_HEAT_Frag"
+_UB32 = "UB_32A_24___32_x_UnGd_Rkts__57_mm_S_5KO_HEAT_Frag"
+_MI24_GUNS = {7: "KORD_12_7_MI24_L", 8: "KORD_12_7_MI24_R"}  # cabin window KORDs
+
+PRESETS.update(
+    {
+        # Mi-8MTV2. Pylons 1-6 are the outrigger racks, 7 = nose/tail KORD 12.7 mm,
+        # 8 = door PKT 7.62 mm. Transport: clean racks, defensive guns only.
+        "Mi-8MT": {
+            "transport": {7: "KORD_12_7", 8: "PKT_7_62"},
+            # Armed escort / CAS: 4x B-8V20A (80x S-8KOM) on the outer racks, guns.
+            "rockets": {1: _B8, 2: _B8, 5: _B8, 6: _B8, 7: "KORD_12_7", 8: "PKT_7_62"},
+        },
+        # UH-1H. 1/6 = fixed M134 (gunship), 2/5 = rocket racks, 3/4 = door guns.
+        "UH-1H": {
+            # Slick: two M60D door guns.
+            "transport": {3: "M60_SIDE_L", 4: "M60_SIDE_R"},
+            # Gunship: 2x M134 fixed, 2x XM158 (14x M151 HE), M60D doors.
+            "rockets": {
+                1: "M134_L",
+                2: "XM158_M151",
+                3: "M60_SIDE_L",
+                4: "M60_SIDE_R",
+                5: "XM158_M151",
+                6: "M134_R",
+            },
+        },
+        # CH-47F: three M240H crew-served guns (left door, right window, ramp).
+        "CH-47Fbl1": {"transport": {1: "M240H", 2: "M240H_", 3: "M240H__"}},
+        # Mi-24P. 1/6 = ATGM rails, 2-5 = wing racks, 7/8 = cabin KORD.
+        "Mi-24P": {
+            # Anti-armour: 4x 9M120 Ataka, 2x B-8V20A + 2x UB-32 rockets.
+            "atgm_rockets": {
+                1: "_2_x_9M120_Ataka__AT_9_Spiral_2____ATGM__SACLOS__Tandem_HEAT",
+                2: _B8,
+                3: _UB32,
+                4: _UB32,
+                5: _B8,
+                6: "_2_x_9M120_Ataka__AT_9_Spiral_2____ATGM__SACLOS__Tandem_HEAT",
+                **_MI24_GUNS,
+            },
+            # Rocket CAS: 4x B-8V20A (80x S-8KOM), empty ATGM rails.
+            "rockets": {2: _B8, 3: _B8, 4: _B8, 5: _B8, **_MI24_GUNS},
+            # Troop lift with self-defence: 2x B-8V20A outboard, inboard racks clean.
+            "transport": {2: _B8, 5: _B8, **_MI24_GUNS},
+        },
+        # Ka-50 (2011 and III). 1/4 = outer (Vikhr capable), 2/3 = inner.
+        "Ka-50": {
+            "atgm_rockets": {1: _VIKHR, 2: _B8, 3: _B8, 4: _VIKHR},
+            "rockets": {1: _B8, 2: _B13, 3: _B13, 4: _B8},
+        },
+        "Ka-50_3": {
+            # Ka-50 III adds 5/6 = Igla (9S846 Strelets) launchers.
+            "atgm_rockets": {
+                1: _VIKHR,
+                2: _B8,
+                3: _B8,
+                4: _VIKHR,
+                5: "_9S846_Strelets___2_x_9M39_Igla",
+                6: "_9S846_Strelets___2_x_9M39_Igla",
+            },
+            "rockets": {1: _B8, 2: _B13, 3: _B13, 4: _B8},
+        },
+        # SA342M Gazelle: 4x HOT 3 plus IR deflector and sand filter.
+        "SA342M": {
+            "atgm": {
+                1: "_2_x_HOT_3___ATGM__SACLOS__HEAT__",
+                2: "_2_x_HOT_3___ATGM__SACLOS__HEAT",
+                3: "Sand_Filter",
+                4: "IR_Deflector",
+            },
+        },
+        # OH-58D Kiowa Warrior: 1 = left, 5 = right weapons station.
+        "OH58D": {
+            "hellfire_rockets": {
+                1: "OH58D_AGM_114_L",
+                5: "M260___7_x_UnGd_Rkts__70_mm_Hydra_70_M151_HE",
+            },
+            "hellfire": {1: "OH58D_AGM_114_L", 5: "OH58D_AGM_114_R"},
+            "rockets": {
+                1: "M260___7_x_UnGd_Rkts__70_mm_Hydra_70_M151_HE",
+                5: "M260___7_x_UnGd_Rkts__70_mm_Hydra_70_M151_HE",
+            },
+        },
+    }
+)
+
+#: Aircraft that must never get a silent default loadout (pydcs/DCS default is fuel tanks
+#: or bare pylons).
+DEFAULT_PRESET: dict[str, str] = {
+    "AH-64D_BLK_II": "hellfire_rockets",
+    "A-10C_2": "cas",
+    "Mi-8MT": "transport",
+    "UH-1H": "transport",
+    "CH-47Fbl1": "transport",
+    "Mi-24P": "atgm_rockets",
+    "Ka-50": "atgm_rockets",
+    "Ka-50_3": "atgm_rockets",
+    "SA342M": "atgm",
+    "OH58D": "hellfire_rockets",
+}
 
 
 def pylon_options(aircraft: type[FlyingType]) -> dict[int, dict[str, dict[str, Any]]]:

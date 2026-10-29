@@ -225,6 +225,26 @@ def test_build_and_check(mission: Path, fakes: types.SimpleNamespace, lua_file: 
     assert "check: OK" in res.output and "lua resource added" in res.output
 
 
+def test_build_warns_on_placeholder_voice(
+    mission: Path, fakes: types.SimpleNamespace, lua_file: Path
+) -> None:
+    assert invoke("plan", str(mission)).exit_code == 0
+    (mission / "voice").mkdir()
+    manifest = {
+        "a": {"file": "a.ogg", "model": "placeholder", "placeholder": True},
+        "b": {"file": "b.ogg", "model": "eleven_v3"},
+    }
+    (mission / "voice" / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    res = invoke("build", str(mission), "--lua", str(lua_file))
+    assert res.exit_code == 0, res.output
+    assert (
+        "WARNING: 1/2 voice clips are offline placeholders" in res.output and ": a;" in res.output
+    )
+    manifest["a"] = {"file": "a.ogg", "model": "eleven_v3"}
+    (mission / "voice" / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    assert "placeholders" not in invoke("build", str(mission), "--lua", str(lua_file)).output
+
+
 def test_build_check_failure(
     mission: Path, fakes: types.SimpleNamespace, lua_file: Path, tmp_path: Path
 ) -> None:
@@ -317,6 +337,27 @@ def test_check_command(fakes: types.SimpleNamespace, tmp_path: Path) -> None:
     assert res.exit_code == 1 and "ERROR mission bad id" in res.output
 
 
+def test_check_mission_folder_checks_every_variant(
+    mission: Path, fakes: types.SimpleNamespace, lua_file: Path
+) -> None:
+    res = invoke("check", str(mission))
+    assert res.exit_code == 2 and "no built .miz" in res.output
+    assert invoke("plan", str(mission)).exit_code == 0
+    _add_variant_groups(mission / "out" / "plan.json")
+    assert invoke("build", str(mission), "--lua", str(lua_file)).exit_code == 0
+    out = mission / "out"
+    ramp, air = out / "m01-first-light-ramp.miz", out / "m01-first-light-air.miz"
+    fakes.checked.clear()
+    res = invoke("check", str(mission))
+    assert res.exit_code == 0, res.output
+    assert fakes.checked == [ramp, air]
+    assert "m01-first-light-air.miz:" in res.output
+    fakes.checked.clear()
+    res = invoke("check", str(out), "--json")
+    assert res.exit_code == 0 and fakes.checked == [ramp, air]
+    assert set(json.loads(res.output)) == {str(ramp), str(air)}
+
+
 def test_run_pipeline(
     mission: Path, fakes: types.SimpleNamespace, monkeypatch: pytest.MonkeyPatch, lua_file: Path
 ) -> None:
@@ -366,6 +407,29 @@ def test_voice_delegates(mission: Path, monkeypatch: pytest.MonkeyPatch, tmp_pat
     assert res.exit_code == 0, res.output
     assert seen == [
         [str(mission / "lines.yaml"), "--out", str(tmp_path), "--fx", "uhf", "--dry-run"]
+    ]
+    seen.clear()
+    res = invoke(
+        "voice",
+        str(mission),
+        "--offline",
+        "--rerender",
+        "l1",
+        "--rerender",
+        "l2",
+        "--no-raw-cache",
+    )
+    assert res.exit_code == 0, res.output
+    assert seen == [
+        [
+            str(mission / "lines.yaml"),
+            "--rerender",
+            "l1",
+            "--rerender",
+            "l2",
+            "--offline",
+            "--no-raw-cache",
+        ]
     ]
     monkeypatch.setattr(dms_voice.cli, "main", lambda argv: 2)
     assert invoke("voice", str(mission / "lines.yaml")).exit_code == 2
@@ -440,6 +504,20 @@ def test_catalog_templates_and_mission_types() -> None:
     assert res.exit_code == 0 and "SEAD" in res.output
 
 
+@pytest.mark.parametrize("role", ["aaa", "manpads", "technicals", "sam_short"])
+def test_catalog_templates_accept_threat_roles(role: str) -> None:
+    res = invoke("catalog", "templates", "--role", role, "--json")
+    assert res.exit_code == 0, res.output
+    assert json.loads(res.output), f"no templates for ThreatRole {role!r}"
+
+
+def test_catalog_templates_no_results_lists_valid_roles() -> None:
+    res = invoke("catalog", "templates", "--role", "flak")
+    assert res.exit_code == 0 and "Valid roles:" in res.output and "aaa" in res.output
+    res = invoke("catalog", "templates", "--role", "civilian")
+    assert res.exit_code == 0 and "neutral bible faction" in res.output
+
+
 def test_catalog_airbases() -> None:
     pytest.importorskip("dcs")
     res = invoke(
@@ -503,13 +581,18 @@ def test_debrief(campaign: Path) -> None:
     q = yaml.safe_load((campaign / "state" / "qualities.yaml").read_text("utf-8"))
     assert q["values"]["intel"] == 2 and q["values"]["trust"] == 1
     assert q["flags"]["m01_patrol_complete"] is True and q["updated_after"] == "m01-first-light"
+    cont = (campaign / "continuity.md").read_text("utf-8")
+    assert "— dms debrief — m01-first-light flown (success)" in cont
 
     again = invoke(*args)
     assert again.exit_code == 1 and "already" in again.output
     forced = invoke(*args, "--force", "--json")
     assert forced.exit_code == 0, forced.output
     data = json.loads(forced.output)
-    assert data["qualities"]["values"]["intel"] == 4  # applied twice on purpose with --force
+    # --force rolls the first application back before re-applying: same value, not doubled
+    assert data["qualities"]["values"]["intel"] == 2
+    cont = (campaign / "continuity.md").read_text(encoding="utf-8")
+    assert cont.count("— dms debrief — m01-first-light flown") == 1
 
 
 def test_debrief_errors(campaign: Path, tmp_path: Path) -> None:
@@ -529,7 +612,15 @@ def test_new_campaign(tmp_path: Path) -> None:
     args = ["--root", str(tmp_path), "new-campaign"]
     res = runner.invoke(app, [*args, "red-sky"])
     assert res.exit_code == 0, res.output
-    assert (tmp_path / "campaigns" / "red-sky" / "bible.yaml").is_file()
+    camp = tmp_path / "campaigns" / "red-sky"
+    assert (camp / "bible.yaml").is_file()
+    assert (camp / "missions").is_dir() and not any((camp / "missions").iterdir())
+    assert (camp / "state" / "outcomes").is_dir()
+    assert not any((camp / "state" / "outcomes").iterdir())
+    assert not [p for p in camp.rglob("*") if "example" in p.name]
+    res = runner.invoke(app, [*args, "blue-sky", "--with-example"])
+    assert res.exit_code == 0, res.output
+    assert (tmp_path / "campaigns" / "blue-sky" / "missions" / "m01-example").is_dir()
     assert runner.invoke(app, [*args, "red-sky"]).exit_code == 2
     assert runner.invoke(app, [*args, "Bad Slug"]).exit_code == 2
 
@@ -597,3 +688,23 @@ def test_build_test_writes_out_test_only(mission: Path, lua_file: Path) -> None:
     assert "run_mission.py" in res.output and "--accel 16" in res.output
     with zipfile.ZipFile(out / "m01-first-light-test.miz") as z:
         assert "l10n/DEFAULT/dms_test.lua" in z.namelist()
+
+
+@pytest.mark.parametrize("existing", [["mist", "skynet", "adapter"], ["adapter"], []])
+def test_attach_lua_fallback_keeps_plugin_order(tmp_path: Path, existing: list[str]) -> None:
+    """A plan without dms.lua: dms.lua goes after the plugins, before the DMS adapters."""
+    from dms_core.schemas import PlanResource
+    from dms_gen.plugins import PLUGINS
+
+    files = {"mist": PLUGINS["mist"].file, "skynet": PLUGINS["skynet"].file}
+    files["adapter"] = PLUGINS["skynet_adapter"].file
+    res = [
+        PlanResource(path=f"l10n/DEFAULT/{Path(files[k]).name}", source=files[k], kind="script")
+        for k in existing
+    ]
+    plan = types.SimpleNamespace(resources=res, runtime=None)
+    assert cli._attach_lua(plan, tmp_path / "dms.lua", tmp_path) == "added"
+    names = [Path(r.path).name for r in plan.resources]
+    want = [Path(files[k]).name for k in existing if k != "adapter"] + ["dms.lua"]
+    want += [Path(files["adapter"]).name] if "adapter" in existing else []
+    assert names == want

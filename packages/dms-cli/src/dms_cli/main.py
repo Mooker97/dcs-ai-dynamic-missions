@@ -192,6 +192,12 @@ def _plan(bundle: Bundle, seed: int | None, manifest: Path | None) -> Any:
             kwargs["qualities"] = loader(bundle.mission_dir)
         except ValueError as exc:
             raise CliError(f"campaign qualities: {exc}", 1) from exc
+    flag_loader = getattr(planner, "load_campaign_flags", None)
+    if bundle.mission_dir is not None and flag_loader is not None and "flags" in params:
+        try:  # campaign flags at plan time -> DMS_CONFIG.flags
+            kwargs["flags"] = flag_loader(bundle.mission_dir)
+        except ValueError as exc:
+            raise CliError(f"campaign flags: {exc}", 1) from exc
     try:
         return planner.plan_mission(bundle.spec, **kwargs)
     except Exception as exc:
@@ -278,6 +284,9 @@ def _resolve_resources(plan: Any, mission_dir: Path, root: Path, plan_dir: Path)
 def _attach_lua(plan: Any, lua: Path, tmp: Path) -> str:
     """Point the plan's dms.lua script resource at ``lua``; add it if the plan has none."""
     from dms_core.schemas import PlanResource
+    from dms_gen.plugins import (  # type: ignore[import-untyped,unused-ignore]
+        dms_lua_insert_index,
+    )
 
     for r in plan.resources:
         if r.kind == "script" and (
@@ -293,7 +302,10 @@ def _attach_lua(plan: Any, lua: Path, tmp: Path) -> str:
         cfg.write_text(plan.runtime.to_lua_source(), encoding="utf-8")
         new.append(PlanResource(path="l10n/DEFAULT/dms_config.lua", source=str(cfg), kind="script"))
     new.append(PlanResource(path="l10n/DEFAULT/dms.lua", source=str(lua), kind="script"))
-    plan.resources = new + list(plan.resources)
+    # after the plugins (mist/moose/skynet) and any existing config, before the DMS adapters
+    res = list(plan.resources)
+    at = dms_lua_insert_index(x.path for x in res)
+    plan.resources = [*res[:at], *new, *res[at:]]
     return "added"
 
 
@@ -514,11 +526,49 @@ def validate(
         Path | None, typer.Option(help="bible.yaml (default: nearest one walking up).")
     ] = None,
     as_json: JsonOpt = False,
+    lint: Annotated[
+        bool,
+        typer.Option(
+            "--lint/--no-lint",
+            help="Run the mission-quality lint (dms_core.lint; arc rules for this mission).",
+        ),
+    ] = True,
+    strict: Annotated[
+        bool, typer.Option("--strict", help="Treat warnings as errors (exit 1 on any).")
+    ] = False,
 ) -> None:
-    """Validate mission-spec/beats/lines (schema + cross-file + planner checks)."""
-    mp = resolve_mission(target, beats=beats, lines=lines, bible=bible, root=_root())
-    findings, _bundle, note = _validate(mp)
-    errs = _errors(findings)
+    """Validate mission-spec/beats/lines (schema + cross-file + planner checks + quality lint).
+
+    TARGET may also be a campaign's arc.yaml: schema check plus the campaign-wide arc lint.
+    """
+    mp: MissionPaths | None
+    findings: list[Finding]
+    note: str | None
+    if target.is_file() and target.name == "arc.yaml":
+        from dms_core.lint import lint_arc
+        from dms_core.schemas import CampaignArc
+
+        try:
+            arc_obj = CampaignArc.model_validate(load_yaml(target))
+        except ValidationError as exc:
+            findings = pydantic_findings(exc, target.name, CampaignArc)
+        else:
+            findings = [finding_from(i) for i in lint_arc(arc_obj, target.parent)] if lint else []
+        mp = None
+        note = None
+    else:
+        mp = resolve_mission(target, beats=beats, lines=lines, bible=bible, root=_root())
+        findings, bundle, note = _validate(mp)
+        if lint and bundle is not None:
+            from dms_core.lint import lint_mission_dir
+
+            findings += [
+                finding_from(i)
+                for i in lint_mission_dir(
+                    bundle.mission_dir, bundle.spec, bundle.beats, bundle.lines, bundle.bible
+                )
+            ]
+    errs = [f for f in findings if f.severity == "error" or (strict and f.severity == "warning")]
     if as_json:
         _echo(
             dumps(
@@ -526,7 +576,11 @@ def validate(
                     "ok": not errs,
                     "errors": len(errs),
                     "warnings": len(findings) - len(errs),
-                    "files": {k: v for k, v in dataclasses.asdict(mp).items() if k != "dir"},
+                    "files": (
+                        {k: v for k, v in dataclasses.asdict(mp).items() if k != "dir"}
+                        if mp is not None
+                        else {"arc": target}
+                    ),
                     "note": note,
                     "issues": [f.to_dict() for f in findings],
                 }
@@ -536,7 +590,11 @@ def validate(
         _print_findings(findings)
         if note:
             _echo(f"note: {note}")
-        used = ", ".join(p.name for p in (mp.spec, mp.beats, mp.lines, mp.bible) if p)
+        used = (
+            ", ".join(p.name for p in (mp.spec, mp.beats, mp.lines, mp.bible) if p)
+            if mp is not None
+            else target.name
+        )
         status = "OK" if not errs else "FAILED"
         _echo(f"{status}: {len(errs)} error(s), {len(findings) - len(errs)} warning(s) [{used}]")
     if errs:
@@ -588,6 +646,20 @@ def voice(
     fx: Annotated[str | None, typer.Option(help="Radio FX preset.")] = None,
     voices: Annotated[Path | None, typer.Option(help="speaker->voice JSON.")] = None,
     model: Annotated[str | None, typer.Option(help="TTS model id.")] = None,
+    offline: Annotated[
+        bool,
+        typer.Option("--offline", help="Placeholder tone clips: no API key, no cost."),
+    ] = False,
+    rerender: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--rerender", metavar="LINE_ID", help="Force a fresh take of this line (repeatable)."
+        ),
+    ] = None,
+    no_raw_cache: Annotated[
+        bool,
+        typer.Option("--no-raw-cache", help="Force a fresh take of every line (bills all)."),
+    ] = False,
 ) -> None:
     """Render lines.yaml to radio-FX .ogg files (delegates to dms_voice)."""
     from dms_voice.cli import main as voice_main
@@ -601,8 +673,15 @@ def voice(
     for flag, val in (("--out", out), ("--fx", fx), ("--voices", voices), ("--model", model)):
         if val is not None:
             argv += [flag, str(val)]
-    if dry_run:
-        argv.append("--dry-run")
+    for line_id in rerender or []:
+        argv += ["--rerender", line_id]
+    for flag, on in (
+        ("--dry-run", dry_run),
+        ("--offline", offline),
+        ("--no-raw-cache", no_raw_cache),
+    ):
+        if on:
+            argv.append(flag)
     try:
         rc = voice_main(argv)
     except SystemExit as exc:  # argparse errors
@@ -646,6 +725,7 @@ def _build_and_check(
 ) -> bool:
     """Build all variants of plan.json and check each .miz; True when every check passed."""
     ok = True
+    _warn_placeholder_voice(mission_dir_for_plan(plan_path), indent)
     builds = _build_variants(plan_path, output, lua, variant)
     for v, built, notes in builds:
         for n in notes:
@@ -656,6 +736,30 @@ def _build_and_check(
         if not _print_check(_check(built)):
             ok = False
     return ok
+
+
+def _warn_placeholder_voice(mission_dir: Path, indent: str) -> None:
+    """Warn when voice/manifest.json holds offline placeholder clips (tone bursts, not speech).
+
+    Lives on the build path: ``dms check`` only sees the .miz, which has no manifest."""
+    path = mission_dir / "voice" / "manifest.json"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return
+    if not isinstance(data, dict):
+        return
+    ids = sorted(
+        str(k)
+        for k, v in data.items()
+        if isinstance(v, dict) and (v.get("placeholder") or v.get("model") == "placeholder")
+    )
+    if ids:
+        _echo(
+            f"{indent}WARNING: {len(ids)}/{len(data)} voice clips are offline placeholders "
+            f"(tone bursts, not speech): {', '.join(ids[:5])}{' ...' if len(ids) > 5 else ''}; "
+            "re-render with `dms voice <mission>` (no --offline) before flying"
+        )
 
 
 def _build_test_cmd(
@@ -679,6 +783,7 @@ def _build_test_cmd(
     plan_obj = _plan(bundle, seed, manifest_path)
     _echo(f"test: planned seed {plan_obj.seed}")
     tb = _make_test(mp, bundle, plan_obj, minutes, variant)
+    _warn_placeholder_voice(mp.dir, "")
     built, notes = _build_test(mp, tb, output, lua)
     for n in notes:
         _echo(n)
@@ -693,20 +798,63 @@ def _build_test_cmd(
 @app.command()
 @_guard
 def check(
-    miz: Annotated[Path, typer.Argument(help=".miz file.")],
+    miz: Annotated[
+        Path, typer.Argument(help=".miz file, or a mission folder (checks every built variant).")
+    ],
     as_json: JsonOpt = False,
 ) -> None:
     """Structural check of a .miz (IDs, slots, resources, config, Lua syntax)."""
-    if not miz.is_file():
-        raise CliError(f"not found: {miz}")
-    report = _check(miz.resolve())
+    targets = _check_targets(miz)
+    reports = [_check(m) for m in targets]
     if as_json:
-        _echo(dumps(report))
-        ok = bool(getattr(report, "ok", False))
+        if len(reports) == 1:
+            _echo(dumps(reports[0]))
+        else:
+            _echo(dumps({str(m): r for m, r in zip(targets, reports, strict=True)}))
+        ok = all(bool(getattr(r, "ok", False)) for r in reports)
     else:
-        ok = _print_check(report)
+        ok = True
+        for m, r in zip(targets, reports, strict=True):
+            if len(targets) > 1:
+                _echo(f"{m.name}:")
+            ok = _print_check(r) and ok
     if not ok:
         raise typer.Exit(1)
+
+
+def _check_targets(target: Path) -> list[Path]:
+    """The .miz files ``dms check`` should check for ``target``.
+
+    A .miz is itself. A mission folder (or its ``out/``) resolves like ``dms build`` writes:
+    ``out/<id>-<variant>.miz`` for each player-flight variant in ``out/plan.json``, else
+    ``out/<id>.miz``. Without a plan, every non-test ``out/*.miz``."""
+    if target.is_file():
+        return [target.resolve()]
+    if not target.is_dir():
+        raise CliError(f"not found: {target}")
+    t = target.resolve()
+    out = t if t.name == "out" and not (t / "out").is_dir() else t / "out"
+    plan_path = out / PLAN_FILE
+    names: list[str] = []
+    if plan_path.is_file():
+        from dms_core.schemas import BuildPlan
+        from dms_core.variants import plan_variants, variant_miz_name
+
+        try:
+            plan = BuildPlan.model_validate_json(plan_path.read_text(encoding="utf-8"))
+        except ValidationError:
+            plan = None
+        if plan is not None:
+            variants = plan_variants(plan)
+            names = [variant_miz_name(plan.mission_id, v) for v in variants] or [
+                variant_miz_name(plan.mission_id, None)
+            ]
+    found = [out / n for n in names if (out / n).is_file()]
+    if not found:
+        found = sorted(p for p in out.glob("*.miz") if not p.name.endswith("-test.miz"))
+    if not found:
+        raise CliError(f"no built .miz in {out}; run `dms build {target}` first")
+    return found
 
 
 @app.command()
@@ -718,6 +866,13 @@ def run(
     output: Annotated[Path | None, typer.Option("-o", "--output", help=".miz path.")] = None,
     test: TestOpt = False,
     test_minutes: TestMinutesOpt = None,
+    install: Annotated[
+        bool,
+        typer.Option("--install", help="After a clean build, copy the .miz files into DCS."),
+    ] = False,
+    dcs: Annotated[
+        str, typer.Option("--dcs", help="--install target: stable | openbeta | auto.")
+    ] = "auto",
 ) -> None:
     """validate -> voice -> plan -> build -> check, stopping at the first failure."""
     root = _root()
@@ -758,7 +913,11 @@ def run(
             _echo("FAILED: the .miz was written but check found problems")
             raise typer.Exit(1)
         _echo(f"DONE: {mp.out_dir}")
+        if install:
+            _install(mp.dir, dcs, dry_run=False, include_test=False)
         return
+    if install:
+        _echo("note: --install is ignored with --test (use `dms install --test`)")
     built, notes = _build_test(mp, tb, output, None)
     for n in notes:
         _echo(f"  {n}")
@@ -828,6 +987,59 @@ def bundle_lua(
     root = _root()
     path = _bundle_lua(root, (out or root / "dist" / "dms.lua").resolve())
     _echo(f"wrote {path}")
+
+
+# ---- install / doctor --------------------------------------------------------------------------
+
+
+def _install(target: Path, dcs: str, *, dry_run: bool, include_test: bool) -> Any:
+    from . import install as inst
+
+    plan_obj = inst.plan_install(target, dcs, include_test)
+    inst.execute_install(plan_obj, dry_run, _echo)
+    return plan_obj
+
+
+DcsOpt = Annotated[str, typer.Option("--dcs", help="stable | openbeta | auto (newest dcs.log).")]
+
+
+@app.command("install")
+@_guard
+def install_cmd(
+    target: Annotated[
+        Path, typer.Argument(help="Mission folder, mission-spec.yaml, its out/ dir or a .miz.")
+    ],
+    dcs: DcsOpt = "auto",
+    dry_run: Annotated[bool, typer.Option("--dry-run", help="Print, copy nothing.")] = False,
+    test: Annotated[bool, typer.Option("--test", help="Also install <id>-test.miz.")] = False,
+    as_json: JsonOpt = False,
+) -> None:
+    """Copy built .miz files to <Saved Games>/DCS[.openbeta]/Missions/DMS/<campaign>/."""
+    from . import install as inst
+
+    if not as_json:
+        _install(target, dcs, dry_run=dry_run, include_test=test)
+        return
+    plan_obj = inst.plan_install(target, dcs, test)
+    inst.execute_install(plan_obj, dry_run, None)
+    _echo(dumps(plan_obj.to_dict(dry_run)))
+
+
+@app.command()
+@_guard
+def doctor(as_json: JsonOpt = False) -> None:
+    """Check the toolchain: packages, Lua 5.1, ffmpeg, voice key, DCS folders, bundle, LFS, uv."""
+    from . import install as inst
+
+    rows = inst.run_doctor(_root())
+    failed = any(r.status == "FAIL" for r in rows)
+    if as_json:
+        _echo(dumps({"ok": not failed, "checks": [r.to_dict() for r in rows]}))
+    else:
+        for line in inst.render_doctor(rows):
+            _echo(line)
+    if failed:
+        raise typer.Exit(1)
 
 
 # ---- catalog -----------------------------------------------------------------------------------
@@ -927,6 +1139,14 @@ def catalog_templates(
     rows = [t.model_dump(mode="json") for t in tpls]
     for r, t in zip(rows, tpls, strict=True):
         r["n_units"] = len(t.units)
+    if not rows and role is not None and not as_json:
+        if role == "civilian":
+            _echo(
+                "no catalog templates for 'civilian': the planner builds civilian groups from "
+                "a neutral bible faction's dcs.units (see `dms catalog units --coalition neutral`)"
+            )
+        elif role not in cat.template_roles():
+            _echo(f"unknown role '{role}'. Valid roles: {', '.join(cat.template_roles())}")
     _emit(rows, ["id", "name", "role", "coalition", "category", "n_units", "eras"], as_json)
 
 
@@ -1036,9 +1256,24 @@ def debrief(
         bool, typer.Option("--force", help="Re-apply even if this flight was already debriefed.")
     ] = False,
     seed: Annotated[int | None, typer.Option(help="Seed for branch `chance` rolls.")] = None,
+    no_arc_effects: Annotated[
+        bool,
+        typer.Option("--no-arc-effects", help="Apply beat qualityDeltas only, not arc effects."),
+    ] = False,
+    force_arc_effects: Annotated[
+        bool,
+        typer.Option(
+            "--force-arc-effects",
+            help="Apply arc quality_effects even though the flight did not end (no end line).",
+        ),
+    ] = False,
+    no_continuity: Annotated[
+        bool, typer.Option("--no-continuity", help="Do not append to continuity.md.")
+    ] = False,
     as_json: JsonOpt = False,
 ) -> None:
-    """dcs.log [DMS.OUTCOME] -> state/outcomes/<mNN>.yaml + state/qualities.yaml + next mission."""
+    """dcs.log [DMS.OUTCOME] -> state/outcomes/<mNN>.yaml, qualities, continuity, next mission."""
+    import datetime
     import random
 
     from dms_core import outcomes as oc
@@ -1066,14 +1301,28 @@ def debrief(
         outcome_obj = oc.build_outcome(session, mission_id, log_path)
     except oc.DebriefError as exc:
         raise CliError(str(exc), 1) from None
-    if not force and not dry_run and oc.already_debriefed(camp, mission_id, outcome_obj):
+    same_flight = oc.already_debriefed(camp, mission_id, outcome_obj)
+    if same_flight and not force and not dry_run:
         raise CliError(
             f"this flight ({log_path}, session {outcome_obj.extra.get('session_start')}) is "
             f"already in {oc.outcome_path(camp, mission_id)}; use --force to re-apply",
             1,
         )
+    rollback_notes: list[str] = []
+    if same_flight and force:
+        # Re-applying the same flight: undo its previous quality changes/flags first.
+        state, rollback_notes = oc.rollback_previous(camp, mission_id, state, arc)
     rng = random.Random(seed) if seed is not None else None
-    update = oc.apply_outcome(state, outcome_obj, mission_id, arc, rng)
+    update = oc.apply_outcome(
+        state,
+        outcome_obj,
+        mission_id,
+        arc,
+        rng,
+        arc_effects=not no_arc_effects,
+        force_arc_effects=force_arc_effects,
+    )
+    update.warnings[:0] = rollback_notes
     outcome_obj = outcome_obj.model_copy(
         update={
             "extra": {
@@ -1088,7 +1337,12 @@ def debrief(
     )
     written: list[Path] = []
     if not dry_run:
-        written = oc.write_debrief(camp, mission_id, outcome_obj, update)
+        entry = None
+        if not no_continuity:
+            today = datetime.date.today().isoformat()
+            entry = oc.continuity_entry(mission_id, outcome_obj, update, today)
+        # continuity -> qualities -> outcomes/<mNN>.yaml (the guard) last, each atomic
+        written = oc.commit_debrief(camp, mission_id, outcome_obj, update, entry)
 
     if as_json:
         _echo(
@@ -1141,8 +1395,17 @@ _SLUG = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 @app.command("new-campaign")
 @_guard
-def new_campaign(slug: Annotated[str, typer.Argument(help="lower-case-slug")]) -> None:
-    """Create campaigns/<slug> from campaigns/_template."""
+def new_campaign(
+    slug: Annotated[str, typer.Argument(help="lower-case-slug")],
+    with_example: Annotated[
+        bool,
+        typer.Option(
+            "--with-example",
+            help="Also copy the template's example mission and outcome (skipped by default).",
+        ),
+    ] = False,
+) -> None:
+    """Create campaigns/<slug> from campaigns/_template (example files skipped by default)."""
     if not _SLUG.match(slug) or slug == "_template":
         raise CliError("slug must be lower-case letters, digits and hyphens, e.g. 'dustoff-valley'")
     root = _root()
@@ -1151,12 +1414,14 @@ def new_campaign(slug: Annotated[str, typer.Argument(help="lower-case-slug")]) -
         raise CliError(f"{dest} already exists")
     template = root / "campaigns" / "_template"
     if template.is_dir():
-        shutil.copytree(template, dest)
-        _echo(f"copied {template} -> {dest}")
+        ignore = None if with_example else shutil.ignore_patterns("*example*")
+        shutil.copytree(template, dest, ignore=ignore)
+        skipped = "" if with_example else " (example files skipped; --with-example keeps them)"
+        _echo(f"copied {template} -> {dest}{skipped}")
     else:
-        for sub in ("missions", os.path.join("state", "outcomes")):
-            (dest / sub).mkdir(parents=True, exist_ok=True)
         _echo(f"created {dest} (no _template found; empty skeleton)")
+    for sub in ("missions", os.path.join("state", "outcomes")):
+        (dest / sub).mkdir(parents=True, exist_ok=True)
     _echo("next: write premise.md, then use the story-writer skill to produce bible.yaml")
 
 

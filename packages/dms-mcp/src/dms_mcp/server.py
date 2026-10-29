@@ -34,10 +34,20 @@ def validate(
             "the nearest bible), or a bible.yaml / arc.yaml / qualities.yaml file."
         ),
     ],
+    strict: Annotated[
+        bool, Field(description="Count warnings (incl. quality-lint warnings) as errors.")
+    ] = False,
+    lint: Annotated[
+        bool,
+        Field(
+            description="Run the mission-quality lint (rule ids in the issue problem text as "
+            "'[code]', with a 'Fix:' hint). arc.yaml gets the campaign-wide arc rules."
+        ),
+    ] = True,
 ) -> dict[str, Any]:
-    """Schema + cross-file + planner checks. Returns ok, error/warning counts and issues
-    (path, problem, suggestions, severity)."""
-    return ops.guarded(ops.validate)(path)
+    """Schema + cross-file + planner checks + mission-quality lint. Returns ok, error/warning
+    counts and issues (path, problem, suggestions, severity)."""
+    return ops.guarded(ops.validate)(path, lint=lint, strict=strict)
 
 
 @mcp.tool()

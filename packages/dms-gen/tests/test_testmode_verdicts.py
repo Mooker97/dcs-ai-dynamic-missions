@@ -12,7 +12,7 @@ from typing import Any
 import pytest
 import yaml
 from dms_core.schemas import BeatSheet, MissionSpec, StoryBible, VoiceLineSet
-from dms_core.schemas.beats import Beat
+from dms_core.schemas.beats import Beat, BeatMark
 from dms_core.schemas.mission import MissionTestHints
 from dms_core.schemas.runtime import CircleZone, Encounter, PolygonZone, TestSettings, from_lua
 from dms_gen.planner import make_test_plan, plan_mission
@@ -309,3 +309,24 @@ def test_m01_helicopter_has_no_loiter_and_spec_hint_sets_require_result(m01: Any
     t = lua.eval("DMS_CONFIG.test")
     assert t.loiter is None
     assert t.checks[len(t.checks)].requireResult == "success"
+
+
+def test_end_of_run_checks_for_marks_fog_and_comms() -> None:
+    beats = _beats(M04_BEATS)
+    checks = default_checks(60, beats, [])
+    by_kind = {c["kind"]: c for c in checks}
+    assert by_kind["marks"] == {"kind": "marks", "name": "f10_marks", "min": 0}
+    assert by_kind["fog_hidden"]["name"] == "fog_hidden"
+    assert by_kind["comms_no_overlap"]["name"] == "radio_no_overlap"
+    assert by_kind["comms_beats"]["name"] == "spine_lines_played"
+    assert checks[-1]["kind"] == "outcome"
+    beats[1].mark = BeatMark.model_validate("zone:push")
+    assert {c["kind"]: c for c in default_checks(60, beats, [])}["marks"]["min"] == 1
+    # the generated DMS_CONFIG.test validates against the contract model
+    lua = build_test_lua("Proxy", 60, beats, [])
+    assert 'kind = "comms_beats"' in lua and 'kind = "fog_hidden"' in lua
+    cfg = TestSettings.model_validate(
+        from_lua(TestSettings, {"enabled": True, "checks": default_checks(60, beats, [])})
+    )
+    kinds = [c.kind for c in cfg.checks]
+    assert kinds[-6:-2] == ["marks", "fog_hidden", "comms_no_overlap", "comms_beats"]

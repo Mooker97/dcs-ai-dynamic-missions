@@ -520,8 +520,21 @@
             }
           ],
           "default": null,
-          "description": "Zone/area id (zone.entered).",
+          "description": "Zone/area id. zone.entered: the zone entered. unit.landed/unit.takeoff: position filter, the unit must be inside this zone at the event (e.g. 'land at fob_pad').",
           "title": "Zone"
+        },
+        "place": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "unit.landed/unit.takeoff only: airbase/FARP/ship name the unit landed at or took off from (payload.place, case-insensitive), e.g. 'Kutaisi'. Alias: airbase.",
+          "title": "Place"
         },
         "flag": {
           "anyOf": [

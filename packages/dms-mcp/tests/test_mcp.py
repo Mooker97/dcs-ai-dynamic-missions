@@ -6,6 +6,7 @@ import asyncio
 import json
 import shutil
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -109,6 +110,18 @@ def test_plan_writes_plan_json(repo: Path, mission: Path) -> None:
     assert data["seed"] == 7
 
 
+def test_plan_passes_campaign_flags(repo: Path, mission: Path) -> None:
+    """Like `dms plan`: state/qualities.yaml flags reach DMS_CONFIG.flags."""
+    q = repo / "campaigns" / "dustoff-valley" / "state" / "qualities.yaml"
+    q.write_text(
+        q.read_text(encoding="utf-8").replace("flags: {}", "flags:\n  m00_success: true"),
+        encoding="utf-8",
+    )
+    assert ops.plan(mission, seed=7, root=repo)["ok"] is True
+    data = json.loads((mission / "out" / "plan.json").read_text(encoding="utf-8"))
+    assert data["runtime"]["flags"] == {"m00_success": True}
+
+
 def test_build_check_and_status(repo: Path, mission: Path, lua_bundle: Path) -> None:
     built = ops.build(mission, root=repo, lua=lua_bundle)
     assert built["miz"].endswith(".miz")
@@ -199,3 +212,23 @@ def test_server_call_tool(repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     assert "no campaign" in text
     result = asyncio.run(server.mcp.call_tool("schema", {"name": "beats"}))
     assert "BeatSheet" in json.dumps(result, default=str)
+
+
+@pytest.mark.parametrize("existing", [["mist", "skynet", "adapter"], ["adapter"], []])
+def test_attach_lua_fallback_keeps_plugin_order(tmp_path: Path, existing: list[str]) -> None:
+    """A plan without dms.lua: dms.lua goes after the plugins, before the DMS adapters."""
+    from dms_core.schemas import PlanResource
+    from dms_gen.plugins import PLUGINS
+
+    files = {"mist": PLUGINS["mist"].file, "skynet": PLUGINS["skynet"].file}
+    files["adapter"] = PLUGINS["skynet_adapter"].file
+    res = [
+        PlanResource(path=f"l10n/DEFAULT/{Path(files[k]).name}", source=files[k], kind="script")
+        for k in existing
+    ]
+    plan = SimpleNamespace(resources=res, runtime=None)
+    assert ops._attach_lua(plan, tmp_path / "dms.lua", tmp_path) == "added"
+    names = [Path(r.path).name for r in plan.resources]
+    want = [Path(files[k]).name for k in existing if k != "adapter"] + ["dms.lua"]
+    want += [Path(files["adapter"]).name] if "adapter" in existing else []
+    assert names == want

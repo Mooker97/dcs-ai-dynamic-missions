@@ -938,8 +938,21 @@
             }
           ],
           "default": null,
-          "description": "Zone/area id (zone.entered).",
+          "description": "Zone/area id. zone.entered: the zone entered. unit.landed/unit.takeoff: position filter, the unit must be inside this zone at the event (e.g. 'land at fob_pad').",
           "title": "Zone"
+        },
+        "place": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "unit.landed/unit.takeoff only: airbase/FARP/ship name the unit landed at or took off from (payload.place, case-insensitive), e.g. 'Kutaisi'. Alias: airbase.",
+          "title": "Place"
         },
         "flag": {
           "anyOf": [
@@ -1154,8 +1167,8 @@
         },
         "spawns_per_min": {
           "default": 3,
-          "description": "Max spawns per minute.",
-          "minimum": 0,
+          "description": "Director spawn budget: summed spawn cost per rolling 60 s window (each spawned group notes its cost), scaled by difficulty level; at least 1 (the runtime floors it at 1).",
+          "minimum": 1,
           "title": "Spawns Per Min",
           "type": "number"
         },
@@ -2688,7 +2701,11 @@
             "encounter",
             "convoy_halt",
             "outcome",
-            "ambient_cycle"
+            "ambient_cycle",
+            "marks",
+            "fog_hidden",
+            "comms_no_overlap",
+            "comms_beats"
           ],
           "title": "Kind",
           "type": "string"
@@ -2731,7 +2748,7 @@
             }
           ],
           "default": null,
-          "description": "spawns / comms: minimum count.",
+          "description": "spawns / comms / marks: minimum count.",
           "title": "Min"
         },
         "beats": {
@@ -2750,8 +2767,22 @@
             }
           ],
           "default": null,
-          "description": "beats_in_order: beat ids expected in this order.",
+          "description": "beats_in_order: beat ids expected in this order; comms_beats: beats whose line must play (default: every guaranteed beat with speech).",
           "title": "Beats"
+        },
+        "tolerance_sec": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "comms_no_overlap: allowed overlap in seconds (0.05).",
+          "title": "Tolerance Sec"
         },
         "id": {
           "anyOf": [
@@ -3223,6 +3254,14 @@
       },
       "description": "Campaign quality values at plan time (state/qualities.yaml); seed beat requires.",
       "title": "Qualities",
+      "type": "object"
+    },
+    "flags": {
+      "additionalProperties": {
+        "type": "boolean"
+      },
+      "description": "Campaign flags at plan time (state/qualities.yaml flags, e.g. m01_success); beat requires.flags fall back to them when the mission has not set the flag.",
+      "title": "Flags",
       "type": "object"
     },
     "speakers": {

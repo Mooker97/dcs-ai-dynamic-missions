@@ -31,6 +31,7 @@ import yaml  # type: ignore[import-untyped, unused-ignore]
 from pydantic import BaseModel, ConfigDict, Field
 
 __all__ = [
+    "THREAT_ROLE_TEMPLATES",
     "Airbase",
     "Catalog",
     "CatalogLookupError",
@@ -75,6 +76,49 @@ _THEATERS: dict[str, str] = {
 
 
 _THREAT_REF_KEYS = ("templates", "aa", "cap_templates", "packages")
+
+#: Spec ``ThreatRole`` -> catalog template ids, roughly light -> heavy. Template ``role``
+#: fields are coarser (``air_defense``, ``technical``, ...), so this table is the one source
+#: for "which templates fill a threat role": the planner (``dms_gen.planner.forces``) and
+#: ``Catalog.find_templates(role=<ThreatRole>)`` / ``dms catalog templates --role`` both use it.
+#: ``civilian`` has no catalog templates: the planner builds civilian groups from a neutral
+#: bible faction's ``dcs.units``.
+THREAT_ROLE_TEMPLATES: dict[str, list[str]] = {
+    "sam_short": [
+        "sa9_single",
+        "sa9_gaskin_section",
+        "strela_section",
+        "sa13_gopher_section",
+        "sa8",
+        "sa8_section",
+        "sa15_single",
+        "tunguska",
+        "sa19_tunguska_section",
+        "sa15_tor_battery",
+    ],
+    "sam_medium": ["sa3_goa_battery", "sa6_gainful_battery", "sa11_gadfly_battery"],
+    "sam_long": ["sa10_grumble_battalion"],
+    "aaa": [
+        "zu23_emplacement",
+        "zu23_technical",
+        "zu23_truck",
+        "shilka",
+        "zu23_technical_pair",
+        "zu23_battery",
+        "zsu23_shilka_section",
+    ],
+    "manpads": ["manpads_single", "manpads_team", "aa_ambush"],
+    "armor": ["recon_patrol", "t72_single", "btr_squad", "t72_platoon", "qrf_heavy"],
+    "ifv": ["bmp_section", "qrf_medium"],
+    "technicals": ["technical_mg", "technical_pair", "technical_aa_mg", "qrf_light"],
+    "infantry": ["rpg_team", "infantry_fireteam", "mg_nest", "insurgent_cell", "infantry_squad"],
+    "artillery": ["mortar_team", "artillery_battery"],
+    "hvt": ["hvt_vehicle", "supply_convoy", "scud_site"],
+    "fighters": ["mig21_cap_2ship", "mig29_cap_2ship", "su27_cap_2ship", "mig29_cap_4ship"],
+    "attack_helicopters": ["mi24_attack_2ship", "ka50_attack_2ship"],
+    "ship": [],
+    "civilian": [],
+}
 
 
 class CatalogLookupError(KeyError):
@@ -298,14 +342,27 @@ class Catalog(BaseModel):
         era: str | None = None,
         category: str | None = None,
     ) -> list[GroupTemplate]:
+        """Templates matching all filters.
+
+        ``role`` matches a template's ``role`` or a tag, or is a spec ``ThreatRole``
+        (``aaa``, ``manpads``, ``technicals``, ...) resolved through ``THREAT_ROLE_TEMPLATES``.
+        """
+        alias = set(THREAT_ROLE_TEMPLATES.get(role, ())) if role is not None else set()
         return [
             t
             for t in self.templates.values()
-            if (role is None or role == t.role or role in t.tags)
+            if (role is None or role == t.role or role in t.tags or t.id in alias)
             and (coalition is None or t.coalition == coalition)
             and (era is None or era in t.eras)
             and (category is None or t.category == category)
         ]
+
+    def template_roles(self) -> list[str]:
+        """Every value ``find_templates(role=...)`` accepts: template roles, tags, ThreatRoles."""
+        roles = {t.role for t in self.templates.values()}
+        roles |= {tag for t in self.templates.values() for tag in t.tags}
+        roles |= set(THREAT_ROLE_TEMPLATES)
+        return sorted(roles)
 
     def mission_type(self, mission_type_id: str) -> MissionType:
         key = mission_type_id.strip().upper().replace("-", "_").replace(" ", "_")

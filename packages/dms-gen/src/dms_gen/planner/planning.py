@@ -67,6 +67,7 @@ from ..builder.mission import (
     closest_callsign,
     support_callsign_names,
 )
+from ..plugins import split_files as plugin_files
 from . import forces
 from .ambient import plan_ambient
 from .context import (
@@ -81,6 +82,7 @@ from .context import (
     resolve_areas,
 )
 from .loadouts import payload_for
+from .radios import plan_comms
 
 Manifest = Mapping[str, Mapping[str, Any]]
 
@@ -1179,14 +1181,18 @@ def plan_mission(
     extra_places: dict[str, tuple[float, float]] | None = None,
     config_source: str = "dms_config.lua",
     qualities: Mapping[str, float] | None = None,
+    flags: Mapping[str, bool] | None = None,
 ) -> BuildPlan:
     """Plan ``spec`` into an exact, seeded :class:`BuildPlan` with ``plan.runtime`` populated.
 
-    Script order is plugins -> ``dms_config.lua`` -> ``dms.lua``. Resource ``source`` paths
-    are relative to the ``base_dir`` later given to ``build_from_plan`` unless absolute. Call
-    :func:`write_runtime_config` (writes ``plan.runtime`` to the ``dms_config.lua`` source)
-    before building. Lines without rendered audio become subtitle-only voice entries.
-    Raises :class:`PlanError` when the spec cannot be resolved (run ``validate`` first).
+    Script order is plugins -> ``dms_config.lua`` -> ``dms.lua`` -> plugin adapters.
+    ``spec.plugins`` (e.g. ``[skynet]``) expand to pinned, repo-relative ``lua/plugins/`` files
+    (:mod:`dms_gen.plugins`); ``plugins`` adds explicit plugin file paths after them.
+    Resource ``source`` paths are relative to the ``base_dir`` later given to
+    ``build_from_plan`` unless absolute. Call :func:`write_runtime_config` (writes
+    ``plan.runtime`` to the ``dms_config.lua`` source) before building. Lines without
+    rendered audio become subtitle-only voice entries. Raises :class:`PlanError` when the
+    spec cannot be resolved (run ``validate`` first).
     """
     s = resolve_seed(spec, seed)
     p = _Planner(spec, s, bible, extra_places)
@@ -1202,12 +1208,34 @@ def plan_mission(
     voice = build_voice_map(lines, manifest)
     runtime = p.runtime(rt_zones, beat_list, voice, debug)
     runtime.speakers = build_speakers(spec, bible, lines)
+    line_speakers = [ln.speaker for ln in lines.lines] if lines is not None else []
+    comms = plan_comms(
+        spec,
+        bible,
+        list(dict.fromkeys([*spec.cast, *line_speakers])),
+        p.groups,
+        runtime.speakers,
+        start_airbases=[p.area(f.start_area).airbase for f in spec.player_flights],
+    ).comms
     runtime.ambient = plan_ambient(spec.ambient, p.groups, theater=spec.theater, era=p.era, seed=s)
     if qualities:
         runtime.qualities = {str(k): float(v) for k, v in qualities.items()}
+    if flags:
+        runtime.flags = {str(k): bool(v) for k, v in flags.items()}
 
     resources: list[PlanResource] = []
-    for plug in plugins:
+    try:
+        spec_before, spec_after = plugin_files(spec.plugins)
+    except KeyError as exc:
+        raise PlanError(str(exc)) from exc
+    # explicit plugin paths: dedup by file name (the embedded l10n/DEFAULT/<name> must be unique)
+    seen_names = {Path(f).name for f in (*spec_before, *spec_after)}
+    explicit: list[str] = []
+    for ep in plugins:
+        if Path(ep).name not in seen_names:
+            seen_names.add(Path(ep).name)
+            explicit.append(str(ep))
+    for plug in [*spec_before, *explicit]:
         resources.append(
             PlanResource(path=f"l10n/DEFAULT/{Path(plug).name}", source=str(plug), kind="script")
         )
@@ -1215,6 +1243,10 @@ def plan_mission(
         PlanResource(path="l10n/DEFAULT/dms_config.lua", source=config_source, kind="script")
     )
     resources.append(PlanResource(path="l10n/DEFAULT/dms.lua", source=dms_lua, kind="script"))
+    for plug in spec_after:  # DMS adapters use DMS.Log/Clock/Bus, so they load after dms.lua
+        resources.append(
+            PlanResource(path=f"l10n/DEFAULT/{Path(plug).name}", source=plug, kind="script")
+        )
     for v in voice.values():
         if not v.file:
             continue  # subtitle-only: nothing to embed
@@ -1227,6 +1259,10 @@ def plan_mission(
     task_lines = [f"- {o.description}" for o in prim]
     if sec:
         task_lines += ["", "Secondary:"] + [f"- {o.description}" for o in sec]
+    if comms:
+        task_lines += ["", "Comms:"] + [
+            f"- {c.callsign}: {c.frequency_mhz:.3f} {c.modulation}" for c in comms
+        ]
     return BuildPlan(
         mission_id=spec.id,
         seed=s,
@@ -1241,6 +1277,7 @@ def plan_mission(
         zones=plan_zones,
         triggers=[],
         resources=resources,
+        comms=comms,
         briefing=PlanBriefing(
             title=spec.title,
             description=f"{spec.title} ({spec.mission_type}).",
@@ -1251,6 +1288,18 @@ def plan_mission(
     )
 
 
+def _load_campaign_state(mission_dir: str | os.PathLike[str]) -> Qualities | None:
+    """``campaigns/<slug>/state/qualities.yaml`` for a mission dir; ``None`` when absent."""
+    path = Path(mission_dir) / ".." / ".." / "state" / "qualities.yaml"
+    if not path.is_file():
+        return None
+    raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    try:
+        return Qualities.model_validate(raw)
+    except ValidationError as exc:
+        raise ValueError(f"{path.resolve()}: invalid qualities file: {exc}") from exc
+
+
 def load_campaign_qualities(mission_dir: str | os.PathLike[str]) -> dict[str, float]:
     """Campaign quality values for ``plan_mission(qualities=...)``.
 
@@ -1258,15 +1307,17 @@ def load_campaign_qualities(mission_dir: str | os.PathLike[str]) -> dict[str, fl
     ``campaigns/<slug>/state/qualities.yaml``), validated as :class:`Qualities`. Returns ``{}``
     when the file is absent (standalone missions). Raises ``ValueError`` if it is invalid.
     """
-    path = Path(mission_dir) / ".." / ".." / "state" / "qualities.yaml"
-    if not path.is_file():
-        return {}
-    raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    try:
-        q = Qualities.model_validate(raw)
-    except ValidationError as exc:
-        raise ValueError(f"{path.resolve()}: invalid qualities file: {exc}") from exc
-    return {str(k): float(v) for k, v in q.values.items()}
+    q = _load_campaign_state(mission_dir)
+    return {} if q is None else {str(k): float(v) for k, v in q.values.items()}
+
+
+def load_campaign_flags(mission_dir: str | os.PathLike[str]) -> dict[str, bool]:
+    """Campaign flags for ``plan_mission(flags=...)`` (``state/qualities.yaml`` ``flags``).
+
+    Same file and error handling as :func:`load_campaign_qualities`; ``{}`` when absent.
+    """
+    q = _load_campaign_state(mission_dir)
+    return {} if q is None else {str(k): bool(v) for k, v in q.flags.items()}
 
 
 def write_runtime_config(plan: BuildPlan, base_dir: str | os.PathLike[str] | None = None) -> Path:

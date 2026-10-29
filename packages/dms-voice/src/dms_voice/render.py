@@ -1,6 +1,7 @@
 """Render a set of voice lines to ``<line_id>.ogg`` + ``manifest.json``.
 
-The manifest ``{line_id: {file, dur_sec, text, speaker}}`` feeds ``DMS_CONFIG.voice`` (durSec).
+The manifest ``{line_id: {file, dur_sec, text, speaker, model[, placeholder]}}`` feeds
+``DMS_CONFIG.voice`` (durSec).
 Lines with ``turns`` are rendered as one clip with ElevenLabs Text-to-Dialogue.
 
 Voice ids resolve per speaker from the campaign bible (``characters[].voice``, a
@@ -32,8 +33,16 @@ from .models import (
 )
 
 DEFAULT_FX = "uhf_clean"
+HALF_RATE_MODELS = {"eleven_flash_v2_5": 0.5, "eleven_turbo_v2_5": 0.5}
+"""Models billed at 0.5 credit per character; everything else is 1 credit per character."""
 VOICES_JSON = Path("data") / "voice" / "voices.json"
 BIBLE_FILE = "bible.yaml"
+
+
+PLACEHOLDER_MODEL = "placeholder"
+"""Offline model id: no API calls, a tone-burst clip per line sized to the text (see
+:class:`PlaceholderSynth`). The model is part of the cache key, so placeholder clips never
+collide with real ElevenLabs renders."""
 
 
 class Synthesizer(Protocol):
@@ -59,6 +68,9 @@ class PlannedLine:
     key: str
     cached: bool
     turns: list[PlannedTurn] | None = None
+    raw_key: str = ""
+    fresh: bool = False
+    """Force a fresh take: ignore both the final and the raw TTS cache (``--rerender``)."""
 
     @property
     def characters(self) -> int:
@@ -74,13 +86,43 @@ class CostEstimate:
     to_render: int
     characters: int
     lines: list[PlannedLine] = field(default_factory=list)
+    offline: bool = False
+    model: str = DEFAULT_MODEL
+
+    @property
+    def credits(self) -> int:
+        """ElevenLabs credits: 1 per character (v3, multilingual), 0.5 for flash/turbo."""
+        if self.offline:
+            return 0
+        rate = HALF_RATE_MODELS.get(self.model, 1.0)
+        return round(self.characters * rate)
 
     def summary(self) -> str:
         cached = self.total_lines - self.to_render
-        return (
-            f"{self.total_lines} lines ({cached} cached, {self.to_render} to render): "
-            f"{self.characters} characters ~= {self.characters} ElevenLabs credits"
-        )
+        head = f"{self.total_lines} lines ({cached} cached, {self.to_render} to render): "
+        if self.offline:
+            return head + "offline placeholder clips, 0 ElevenLabs credits"
+        return head + f"{self.characters} characters ~= {self.credits} ElevenLabs credits"
+
+
+class PlaceholderSynth:
+    """Offline stand-in for ElevenLabs: a quiet 600 Hz tone whose length tracks the spoken text
+    (~14 characters per second, 0.8-12 s). The clip goes through the same radio FX, cache, manifest
+    and .miz embedding path as real TTS, so a mission can be built and tested headlessly."""
+
+    CHARS_PER_SEC = 14.0
+
+    def _clip(self, text: str) -> bytes:
+        from .fx import tone
+
+        secs = min(12.0, max(0.8, len(text) / self.CHARS_PER_SEC))
+        return tone(round(secs, 2), 600.0)
+
+    def synthesize(self, text: str, voice_id: str, model: str = PLACEHOLDER_MODEL) -> bytes:
+        return self._clip(text)
+
+    def dialogue(self, turns: list[dict[str, str]], model: str = PLACEHOLDER_MODEL) -> bytes:
+        return self._clip(" ".join(t["text"] for t in turns))
 
 
 def find_voices_json(start: Path | None = None) -> Path | None:
@@ -139,9 +181,11 @@ def merge_voices(bible: Mapping[str, VoiceProfile], fallback: Mapping[str, Any])
     return merged
 
 
-def resolve_voice(speaker: str, voices: Mapping[str, Any]) -> str:
+def resolve_voice(speaker: str, voices: Mapping[str, Any], *, offline: bool = False) -> str:
     entry = voices.get(speaker)
     vid = voice_id_of(entry) if entry is not None else None
+    if not vid and offline:
+        return f"placeholder:{speaker}"
     if not vid:
         raise KeyError(
             f"no ElevenLabs voice id for speaker {speaker!r}; set the character's "
@@ -157,8 +201,14 @@ def plan_lines(
     model: str = DEFAULT_MODEL,
     fx_preset: str = DEFAULT_FX,
     cache: TTSCache | None = None,
+    rerender: Iterable[str] = (),
+    no_raw_cache: bool = False,
 ) -> CostEstimate:
+    """``rerender`` line ids (or every line with ``no_raw_cache``) skip both caches and are billed
+    again: a fresh ElevenLabs take that then replaces the cached one."""
     cache = cache or TTSCache()
+    offline = model == PLACEHOLDER_MODEL
+    fresh_ids = set(rerender)
     planned: list[PlannedLine] = []
     seen: set[str] = set()
     for line in lines:
@@ -172,17 +222,29 @@ def plan_lines(
         raw_turns = line_turns(line)
         turns: list[PlannedTurn] | None = None
         if raw_turns:
-            turns = [PlannedTurn(s, resolve_voice(s, voices), t) for s, t in raw_turns]
+            turns = [
+                PlannedTurn(s, resolve_voice(s, voices, offline=offline), t) for s, t in raw_turns
+            ]
             vid = turns[0].voice_id
-            key = dialogue_cache_key([(t.voice_id, t.text) for t in turns], model, fx)
+            inputs = [(t.voice_id, t.text) for t in turns]
+            key = dialogue_cache_key(inputs, model, fx)
+            rkey = dialogue_cache_key(inputs, model, "")
         else:
-            vid = resolve_voice(speaker, voices)
+            vid = resolve_voice(speaker, voices, offline=offline)
             key = cache_key(vid, model, text, fx)
+            rkey = cache_key(vid, model, text, "")
+        fresh = no_raw_cache or line_id in fresh_ids
+        cached = not fresh and cache.get(key) is not None
         planned.append(
-            PlannedLine(line_id, speaker, text, vid, fx, key, cache.get(key) is not None, turns)
+            PlannedLine(line_id, speaker, text, vid, fx, key, cached, turns, rkey, fresh)
         )
-    todo = [p for p in planned if not p.cached]
-    return CostEstimate(len(planned), len(todo), sum(p.characters for p in todo), planned)
+    unknown = sorted(fresh_ids - seen)
+    if unknown:
+        raise ValueError(f"--rerender: unknown line id(s) {unknown}")
+    # Lines whose raw TTS is cached (only the FX changed) cost nothing to re-render.
+    todo = [p for p in planned if not p.cached and (p.fresh or cache.get_raw(p.raw_key) is None)]
+    chars = sum(p.characters for p in todo)
+    return CostEstimate(len(planned), len(todo), chars, planned, offline, model)
 
 
 def _synthesize(p: PlannedLine, client: Synthesizer, model: str) -> bytes:
@@ -202,12 +264,23 @@ def render_lines(
     fx_preset: str = DEFAULT_FX,
     client: Synthesizer | None = None,
     cache: TTSCache | None = None,
+    rerender: Iterable[str] = (),
+    no_raw_cache: bool = False,
 ) -> dict[str, dict[str, Any]]:
     """Render lines; returns the manifest. In dry-run nothing is written and dur_sec is only
-    filled for cache hits."""
+    filled for cache hits. ``rerender``/``no_raw_cache``: see :func:`plan_lines`."""
     cache = cache or TTSCache()
     voices = load_voices() if voices is None else voices
-    est = plan_lines(lines, voices, model=model, fx_preset=fx_preset, cache=cache)
+    est = plan_lines(
+        lines,
+        voices,
+        model=model,
+        fx_preset=fx_preset,
+        cache=cache,
+        rerender=rerender,
+        no_raw_cache=no_raw_cache,
+    )
+    placeholder = model == PLACEHOLDER_MODEL
     out = Path(out_dir)
     manifest: dict[str, dict[str, Any]] = {}
 
@@ -220,20 +293,28 @@ def render_lines(
                 "dur_sec": hit.get("duration") if hit else None,
                 "text": p.text,
                 "speaker": p.speaker,
+                "model": model,
                 "cached": p.cached,
             }
+            if placeholder:
+                manifest[p.line_id]["placeholder"] = True
         return manifest
 
+    if est.to_render and client is None and model == PLACEHOLDER_MODEL:
+        client = PlaceholderSynth()
     if est.to_render and client is None:
         from .client import default_client
 
         client = default_client()
     out.mkdir(parents=True, exist_ok=True)
     for p in est.lines:
-        cached_path = cache.get(p.key)
+        cached_path = None if p.fresh else cache.get(p.key)
         if cached_path is None:
-            assert client is not None
-            raw = _synthesize(p, client, model)
+            raw = None if p.fresh else cache.get_raw(p.raw_key)
+            if raw is None:
+                assert client is not None
+                raw = _synthesize(p, client, model)
+                cache.put_raw(p.raw_key, raw)
             ogg = apply_fx(raw, p.fx)
             dur = round(duration_seconds(ogg), 2)
             meta: dict[str, Any] = {
@@ -262,7 +343,10 @@ def render_lines(
             "dur_sec": dur,
             "text": p.text,
             "speaker": p.speaker,
+            "model": model,
         }
+        if placeholder:
+            manifest[p.line_id]["placeholder"] = True
     (out / "manifest.json").write_text(
         json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"
     )

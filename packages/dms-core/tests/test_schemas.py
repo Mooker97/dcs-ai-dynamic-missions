@@ -26,7 +26,7 @@ from dms_core.schemas import (
     summarize_outcomes,
     validate_mission_bundle,
 )
-from dms_core.schemas.runtime import _fallback_dumps, snake_to_camel
+from dms_core.schemas.runtime import Budgets, _fallback_dumps, snake_to_camel
 from pydantic import BaseModel, ValidationError
 
 # ---------------------------------------------------------------------------
@@ -538,6 +538,26 @@ def test_beat_rules() -> None:
     assert BeatSheet.model_validate({"beats": []}).beats == []
 
 
+def test_beat_landed_zone_and_place_filters() -> None:
+    b = Beat.model_validate(
+        {"id": "b", "when": {"event": "unit.landed", "zone": "fob_pad", "airbase": "FARP London"}}
+    )
+    assert b.when.zone == "fob_pad" and b.when.place == "FARP London"
+    assert (
+        Beat.model_validate(
+            {"id": "t", "when": {"event": "unit.takeoff", "place": "Kutaisi"}}
+        ).when.place
+        == "Kutaisi"
+    )
+    with pytest.raises(ValidationError, match="'place' filters only"):
+        Beat.model_validate({"id": "b", "when": {"event": "unit.hit", "place": "Kutaisi"}})
+    rt = RuntimeConfig.model_validate(
+        {**make_runtime().model_dump(), "beats": [b.model_dump()]}
+    ).to_lua_table()
+    assert rt["beats"][0]["when"]["place"] == "FARP London"
+    assert rt["beats"][0]["when"]["zone"] == "fob_pad"
+
+
 def test_plan_unique_names() -> None:
     data = make_plan().model_dump()
     data["groups"][1]["name"] = "Gunfighter"
@@ -752,3 +772,11 @@ def _submodels(cls: type[BaseModel]) -> list[type[BaseModel]]:
     for f in cls.model_fields.values():
         visit(f.annotation)
     return out
+
+
+@pytest.mark.parametrize("bad", [0, 0.5, -1])
+def test_budgets_spawns_per_min_below_one_rejected(bad: float) -> None:
+    # the Lua director floors the spawn budget at 1/min; the schema must not promise less
+    with pytest.raises(ValidationError):
+        Budgets(spawns_per_min=bad)
+    assert Budgets(spawns_per_min=1).spawns_per_min == 1

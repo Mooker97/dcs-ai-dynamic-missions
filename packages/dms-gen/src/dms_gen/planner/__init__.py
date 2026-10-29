@@ -5,6 +5,7 @@ from .places import PLACES, find_place
 from .planning import (
     build_speakers,
     build_voice_map,
+    load_campaign_flags,
     load_campaign_qualities,
     placeholder_duration,
     plan_mission,
@@ -26,6 +27,7 @@ __all__ = [
     "era_for_year",
     "find_place",
     "has_errors",
+    "load_campaign_flags",
     "load_campaign_qualities",
     "make_test_plan",
     "pick_test_proxy",

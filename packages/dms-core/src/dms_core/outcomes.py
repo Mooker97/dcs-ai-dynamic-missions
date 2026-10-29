@@ -7,7 +7,9 @@ See docs/CONTRACTS.md "Debrief". Parsing and state updates are pure functions; o
 from __future__ import annotations
 
 import dataclasses
+import hashlib
 import json
+import os
 import random
 import re
 from collections.abc import Callable, Iterable, Sequence
@@ -21,27 +23,40 @@ from .schemas import CampaignArc, MissionOutcome, Qualities, Requires
 __all__ = [
     "RESULT_FLAGS",
     "DebriefError",
+    "EffectClause",
     "LogIssue",
     "LogSession",
     "MalformedLine",
     "QualityChange",
     "StateUpdate",
     "already_debriefed",
+    "append_continuity",
+    "apply_arc_effects",
     "apply_outcome",
     "build_outcome",
     "choose_next_mission",
+    "commit_debrief",
+    "condition_holds",
+    "condition_keys",
+    "continuity_entry",
     "default_log_paths",
     "derive_flags",
+    "effect_facts",
     "explicit_log_paths",
     "find_mission_session",
     "load_debrief_inputs",
     "mission_key",
     "missions_match",
     "outcome_path",
+    "parse_condition",
+    "parse_quality_effect",
     "parse_sessions",
     "read_log",
     "requires_hold",
     "resolve_arc_mission",
+    "rollback_previous",
+    "session_hash",
+    "upsert_continuity",
     "write_debrief",
 ]
 
@@ -341,6 +356,17 @@ def _no_records_msg(path: Path, s: LogSession, mission_id: str) -> str:
 # ---- outcome -----------------------------------------------------------------------------------
 
 
+def session_hash(records: Sequence[MissionOutcome]) -> str:
+    """First 16 hex of the SHA-256 of ``records`` as canonical JSON (the re-debrief guard key)."""
+    blob = json.dumps(
+        [r.model_dump(mode="json") for r in records],
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    )
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()[:16]
+
+
 def build_outcome(session: LogSession, mission_id: str, log_file: Path | None) -> MissionOutcome:
     """Merge a session's records for `mission_id` into one ``kind: summary`` MissionOutcome."""
     recs = [r for r in session.records if missions_match(r.mission_id, mission_id)]
@@ -357,6 +383,7 @@ def build_outcome(session: LogSession, mission_id: str, log_file: Path | None) -
         "log_file": str(log_file) if log_file else None,
         "session_start": session.start_timestamp or recs[0].log_timestamp,
         "session_line": session.start_line,
+        "session_hash": session_hash(recs),
         "dms_version": session.version,
         "records": len(recs),
         "ended": ended,
@@ -374,6 +401,194 @@ def build_outcome(session: LogSession, mission_id: str, log_file: Path | None) -
             "extra": extra,
         }
     )
+
+
+# ---- arc quality_effects ---------------------------------------------------------------------
+
+_PAREN_RE = re.compile(r"\([^)]*\)")
+_ADD_RE = re.compile(r"^([+-]\d+)(?:\s+more)?\s+if\s+(.+)$")
+_SET_RE = re.compile(r"^set\s+to\s+(-?\d+)\s+if\s+(.+)$")
+_TERM_KEY_RE = re.compile(r"^(not\s+)?([a-z][a-z0-9_]*)$")
+_TERM_CMP_RE = re.compile(r"^([a-z][a-z0-9_]*)\s*(>=|<=|==|!=|>|<)\s*(-?\d+(?:\.\d+)?)$")
+
+#: Words of the condition grammar; never outcome keys.
+_RESERVED = frozenset({"and", "or", "not"})
+#: Words in a dropped parenthetical that mean it carried a limit or a condition.
+_PAREN_MEANINGFUL_RE = re.compile(r"\b(min|max|only|or|and)\b", re.IGNORECASE)
+
+#: One condition term: (outcome key, comparison op or "truthy", value, negated).
+Term = tuple[str, str, float, bool]
+
+
+@dataclasses.dataclass(frozen=True)
+class EffectClause:
+    """One machine-readable clause of an arc ``quality_effects`` value (CONTRACTS "Debrief")."""
+
+    text: str
+    op: str  # "add" | "set"
+    amount: int
+    any_of: tuple[tuple[Term, ...], ...]  # OR of AND-groups
+
+    def holds(self, facts: dict[str, Any]) -> bool:
+        return any(all(_term_holds(t, facts) for t in group) for group in self.any_of)
+
+
+def _num(v: Any) -> float | None:
+    if isinstance(v, bool | int | float):
+        return float(v)
+    return None
+
+
+def _term_holds(term: Term, facts: dict[str, Any]) -> bool:
+    key, op, value, negated = term
+    v = facts.get(key)
+    n = _num(v)
+    if op == "truthy":
+        truth = (n > 0) if n is not None else bool(v)
+        return truth != negated
+    return _compare(n if n is not None else 0.0, op, value)
+
+
+def _parse_term(text: str) -> Term | None:
+    t = text.strip()
+    m = _TERM_KEY_RE.match(t)
+    if m:
+        if m.group(2) in _RESERVED:
+            return None
+        return m.group(2), "truthy", 0.0, bool(m.group(1))
+    m = _TERM_CMP_RE.match(t)
+    if m:
+        if m.group(1) in _RESERVED:
+            return None
+        return m.group(1), m.group(2), float(m.group(3)), False
+    return None
+
+
+def _parse_condition(text: str) -> tuple[tuple[Term, ...], ...] | None:
+    groups: list[tuple[Term, ...]] = []
+    for alt in re.split(r"\s+or\s+", text.strip()):
+        terms: list[Term] = []
+        for part in re.split(r"\s+and\s+", alt.strip()):
+            term = _parse_term(part)
+            if term is None:
+                return None
+            terms.append(term)
+        groups.append(tuple(terms))
+    return tuple(groups)
+
+
+#: A parsed condition: OR of AND-groups of terms (see :func:`parse_condition`).
+Condition = tuple[tuple[Term, ...], ...]
+
+
+def parse_condition(text: str) -> Condition | None:
+    """Parse a ``quality_effects`` condition (``a and not b or c >= 2``); ``None`` if invalid.
+
+    Shared with the conditional briefing blocks (``dms_gen.builder.conditional``).
+    """
+    if not text.strip():
+        return None
+    return _parse_condition(text)
+
+
+def condition_holds(cond: Condition, facts: dict[str, Any]) -> bool:
+    """Evaluate a :func:`parse_condition` result against ``facts`` (missing keys are false/0)."""
+    return any(all(_term_holds(t, facts) for t in group) for group in cond)
+
+
+def condition_keys(cond: Condition) -> list[str]:
+    """The outcome keys a condition reads, in first-use order."""
+    return list(dict.fromkeys(t[0] for group in cond for t in group))
+
+
+def parse_quality_effect(
+    text: str, notes: list[str] | None = None
+) -> tuple[list[EffectClause], list[str]]:
+    """Split an arc ``quality_effects`` value into applicable clauses and unparsed clause texts.
+
+    Parentheticals are dropped; one that carries a limit or condition (``min``/``max``/``only``/
+    ``or``/``and``) is reported in ``notes`` (if given) so the debriefer judges it by hand.
+    """
+    clauses: list[EffectClause] = []
+    unparsed: list[str] = []
+    for raw in text.split(";"):
+        if notes is not None:
+            for paren in _PAREN_RE.findall(raw):
+                if _PAREN_MEANINGFUL_RE.search(paren):
+                    notes.append(
+                        f'dropped parenthetical {paren} in "{raw.strip()}" is not applied '
+                        "by code; check it by hand"
+                    )
+        clause = " ".join(_PAREN_RE.sub(" ", raw).split())
+        if not clause:
+            continue
+        op = "add"
+        m = _ADD_RE.match(clause)
+        if m is None:
+            op, m = "set", _SET_RE.match(clause)
+        cond = _parse_condition(m.group(2)) if m else None
+        if m is None or cond is None:
+            unparsed.append(raw.strip())
+            continue
+        clauses.append(EffectClause(clause, op, int(m.group(1)), cond))
+    return clauses, unparsed
+
+
+def apply_arc_effects(
+    arc: CampaignArc,
+    mission_id: str,
+    facts: dict[str, Any],
+    values: dict[str, int],
+    skip: Iterable[str] = (),
+) -> tuple[dict[str, int], list[QualityChange], list[str]]:
+    """Pure: apply the flown mission's machine-readable arc ``quality_effects`` to ``values``.
+
+    ``skip`` = qualities the beats already moved (their arc effects are not applied twice).
+    Returns (new values, changes, warnings).
+    """
+    entry = next((m for m in arc.all_missions() if m.id == mission_id), None)
+    out = dict(values)
+    changes: list[QualityChange] = []
+    warnings: list[str] = []
+    if entry is None:
+        return out, changes, warnings
+    defs = {q.id: q for q in arc.qualities}
+    skipped = set(skip)
+    for q, text in entry.quality_effects.items():
+        if q not in defs:
+            warnings.append(f"arc quality_effects: quality '{q}' is not declared; not applied")
+            continue
+        if q in skipped:
+            warnings.append(
+                f"arc quality_effects for '{q}' not applied: the beats already reported a "
+                f"qualityDelta for it (check by hand: {text})"
+            )
+            continue
+        notes: list[str] = []
+        clauses, unparsed = parse_quality_effect(text, notes)
+        for u in unparsed:
+            warnings.append(f"arc quality_effects '{q}' not machine-readable, judge by hand: {u}")
+        warnings.extend(f"arc quality_effects '{q}': {n}" for n in notes)
+        qd = defs[q]
+        for c in clauses:
+            missing = [k for k in condition_keys(c.any_of) if k not in facts]
+            if missing:
+                warnings.append(
+                    f"arc quality_effects '{q}': key(s) {', '.join(missing)} not in this flight's "
+                    f'outcome facts (counted as false/0) in "{c.text}"'
+                )
+            if not c.holds(facts):
+                continue
+            before = out.get(q, qd.initial)
+            raw = c.amount if c.op == "set" else before + c.amount
+            after = max(qd.min, min(qd.max, raw))
+            reason = f'arc quality_effects: "{c.text}"'
+            if after != raw:
+                reason += f" (clamped to [{qd.min}, {qd.max}])"
+            out[q] = after
+            if after != before:
+                changes.append(QualityChange(q, before, after, float(after - before), reason))
+    return out, changes, warnings
 
 
 # ---- campaign state ----------------------------------------------------------------------------
@@ -395,6 +610,16 @@ def derive_flags(mission_id: str, outcome: MissionOutcome) -> dict[str, bool]:
             flags[f"{key}_{r}"] = False
         flags[f"{key}_{outcome.result}"] = True
     return flags
+
+
+def effect_facts(outcome: MissionOutcome) -> dict[str, Any]:
+    """Facts for arc ``quality_effects``: outcome keys + ``result``/``success``/``failure``."""
+    facts: dict[str, Any] = dict(outcome.outcomes)
+    if outcome.result:
+        facts["result"] = outcome.result
+        facts["success"] = outcome.result == "success"
+        facts["failure"] = outcome.result == "failure"
+    return facts
 
 
 def _compare(a: float, op: str, b: float) -> bool:
@@ -481,8 +706,16 @@ def apply_outcome(
     mission_id: str,
     arc: CampaignArc | None = None,
     rng: random.Random | None = None,
+    *,
+    arc_effects: bool = True,
+    force_arc_effects: bool = False,
 ) -> StateUpdate:
-    """Pure: fold one flown mission into the campaign state (see CONTRACTS "Debrief")."""
+    """Pure: fold one flown mission into the campaign state (see CONTRACTS "Debrief").
+
+    Beat ``qualityDeltas`` first, then (``arc_effects``) the arc's machine-readable
+    ``quality_effects`` for the qualities the beats did not move. Arc effects are skipped
+    (warning) when the flight did not end, unless ``force_arc_effects``.
+    """
     defs = {q.id: q for q in arc.qualities} if arc else {}
     values = dict(state.values)
     for qd in defs.values():
@@ -504,6 +737,20 @@ def apply_outcome(
         if delta != 0:
             values[q] = after
             changes.append(QualityChange(q, before, after, delta, reason))
+    unended = outcome.result is None or outcome.extra.get("ended") is False
+    if arc is not None and arc_effects and unended and not force_arc_effects:
+        warnings.append(
+            "arc quality_effects not applied: the flight did not end (no end line / no result); "
+            "ask the player how it ended, then judge them by hand or rerun with "
+            "--force-arc-effects"
+        )
+    elif arc is not None and arc_effects:
+        moved = {q for q, d in outcome.quality_deltas.items() if d != 0}
+        values, arc_changes, arc_warnings = apply_arc_effects(
+            arc, mission_id, effect_facts(outcome), values, moved
+        )
+        changes.extend(arc_changes)
+        warnings.extend(arc_warnings)
     flags_set = derive_flags(mission_id, outcome)
     flags = {**state.flags, **flags_set}
     if outcome.result is None:
@@ -568,33 +815,195 @@ def outcome_path(campaign_dir: Path, mission_id: str) -> Path:
 def write_debrief(
     campaign_dir: Path, mission_id: str, outcome: MissionOutcome, update: StateUpdate
 ) -> list[Path]:
-    """Write state/outcomes/<mNN>.yaml and state/qualities.yaml; return the paths written."""
-    out = outcome_path(campaign_dir, mission_id)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(
-        _OUTCOME_HEADER + _dump(outcome.model_dump(mode="json", exclude_none=True)),
-        encoding="utf-8",
-        newline="\n",
-    )
-    q = campaign_dir / "state" / "qualities.yaml"
-    q.write_text(
-        _QUALITIES_HEADER + _dump(update.state.model_dump(mode="json")),
-        encoding="utf-8",
-        newline="\n",
-    )
-    return [out, q]
+    """Write state/qualities.yaml then state/outcomes/<mNN>.yaml (see :func:`commit_debrief`)."""
+    return commit_debrief(campaign_dir, mission_id, outcome, update)
+
+
+def _previous_outcome(campaign_dir: Path, mission_id: str) -> MissionOutcome | None:
+    p = outcome_path(campaign_dir, mission_id)
+    if not p.is_file():
+        return None
+    try:
+        return MissionOutcome.model_validate(_load_yaml(p) or {})
+    except (ValueError, yaml.YAMLError):
+        return None
 
 
 def already_debriefed(campaign_dir: Path, mission_id: str, outcome: MissionOutcome) -> bool:
-    """True if state/outcomes/<mNN>.yaml records this same log file + session start."""
-    p = outcome_path(campaign_dir, mission_id)
-    if not p.is_file():
+    """True if state/outcomes/<mNN>.yaml records this same flight (session start + records hash).
+
+    The log file path is not compared (``dcs.log`` -> ``dcs.log.old`` rotation, path spelling).
+    A file written before ``session_hash`` existed matches on ``session_start`` alone.
+    """
+    old = _previous_outcome(campaign_dir, mission_id)
+    if old is None:
         return False
-    try:
-        old = MissionOutcome.model_validate(_load_yaml(p) or {})
-    except ValueError:
-        return False
-    keys = ("log_file", "session_start")
-    return all(old.extra.get(k) is not None for k in keys) and all(
-        old.extra.get(k) == outcome.extra.get(k) for k in keys
+    new_start, new_hash = outcome.extra.get("session_start"), outcome.extra.get("session_hash")
+    old_start, old_hash = old.extra.get("session_start"), old.extra.get("session_hash")
+    if old_hash is not None and new_hash is not None:
+        return bool(old_hash == new_hash and old_start == new_start)
+    return old_start is not None and old_start == new_start
+
+
+def rollback_previous(
+    campaign_dir: Path, mission_id: str, state: Qualities, arc: CampaignArc | None
+) -> tuple[Qualities, list[str]]:
+    """Undo the previous debrief of this mission (``--force``): its ``quality_changes`` and flags.
+
+    Each recorded change's ``to - from`` is subtracted (newest first) and clamped to the arc
+    ``QualityDef``; its ``flags_set`` keys are removed. Returns (state, notes).
+    """
+    old = _previous_outcome(campaign_dir, mission_id)
+    if old is None:
+        return state, []
+    defs = {q.id: q for q in arc.qualities} if arc else {}
+    values = dict(state.values)
+    notes: list[str] = []
+    for ch in reversed(old.extra.get("quality_changes") or []):
+        if not isinstance(ch, dict):
+            continue
+        q, frm, to = ch.get("quality"), ch.get("from"), ch.get("to")
+        if not isinstance(q, str) or not isinstance(frm, int) or not isinstance(to, int):
+            continue
+        before = values.get(q, defs[q].initial if q in defs else 0)
+        after = before - (to - frm)
+        if q in defs:
+            after = max(defs[q].min, min(defs[q].max, after))
+        values[q] = after
+        notes.append(f"rolled back previous debrief: {q} {before}->{after} (undo {frm}->{to})")
+    flags = dict(state.flags)
+    for f in old.extra.get("flags_set") or {}:
+        flags.pop(f, None)
+    outcomes_ = {k: v for k, v in state.outcomes.items() if k != mission_id}
+    new_state = state.model_copy(update={"values": values, "flags": flags, "outcomes": outcomes_})
+    return new_state, notes
+
+
+def _marker(mission_id: str, outcome: MissionOutcome) -> str:
+    h = outcome.extra.get("session_hash") or outcome.extra.get("session_start") or "unknown"
+    return f"<!-- dms-debrief: {mission_key(mission_id)} {h} -->"
+
+
+def continuity_entry(
+    mission_id: str, outcome: MissionOutcome, update: StateUpdate, date: str
+) -> str:
+    """The factual continuity.md entry ``dms debrief`` appends (CONTRACTS "Debrief")."""
+    ex = outcome.extra
+    ended = "yes" if ex.get("ended") else "no (no end line: ask the player how it ended)"
+    facts = ", ".join(f"{k}={json.dumps(v)}" for k, v in outcome.outcomes.items()) or "none"
+    qc = (
+        "; ".join(f"{c.quality} {c.before}→{c.after} ({c.reason})" for c in update.changes)
+        or "no changes"
     )
+    true_flags = [k for k, v in update.flags_set.items() if v]
+    lines = [
+        f"### {date} — dms debrief — {mission_id} flown ({outcome.result or 'unknown'})",
+        _marker(mission_id, outcome),
+        f"- Source: {ex.get('log_file')} (session {ex.get('session_start')}); ended: {ended}.",
+        f"- Outcome: {facts}.",
+        f"- Qualities: {qc}.",
+        f"- Flags set: {', '.join(true_flags) or 'none'}.",
+    ]
+    lines += [f"- Debriefer to check: {w}" for w in update.warnings]
+    errs = ex.get("log_errors") or []
+    if errs:
+        lines.append(f"- dcs.log: {len(errs)} [DMS] error(s), first: {errs[0].get('message')}")
+    lines.append(f"- Next: {update.next_mission or '(end of arc)'} ({update.next_reason}).")
+    return "\n".join(lines) + "\n"
+
+
+def _read_text_keep_newlines(p: Path) -> tuple[str, str]:
+    """(text with LF line ends, the file's newline: CRLF if it has any, else LF)."""
+    if not p.is_file():
+        return "", "\n"
+    raw = p.read_bytes().decode("utf-8")
+    nl = "\r\n" if "\r\n" in raw else "\n"
+    return raw.replace("\r\n", "\n"), nl
+
+
+def _atomic_write(p: Path, text: str, newline: str = "\n") -> None:
+    """Write ``text`` (LF line ends) to ``p`` via a temp file + rename."""
+    p.parent.mkdir(parents=True, exist_ok=True)
+    tmp = p.with_name(p.name + ".tmp")
+    with tmp.open("w", encoding="utf-8", newline=newline) as fh:
+        fh.write(text)
+    os.replace(tmp, p)
+
+
+def _join_entry(old: str, entry: str) -> str:
+    sep = "" if not old or old.endswith("\n\n") else ("\n" if old.endswith("\n") else "\n\n")
+    return old + sep + entry
+
+
+def _find_entry(lines: list[str], marker: str, heading: str, session: str | None) -> range | None:
+    """Line range of an existing dms debrief entry for the same flight, if any."""
+    for i, line in enumerate(lines):
+        if not (line.startswith("### ") and heading in line):
+            continue
+        end = next((j for j in range(i + 1, len(lines)) if lines[j].startswith("#")), len(lines))
+        body = lines[i + 1 : end]
+        if marker in body or (
+            session is not None and any(f"(session {session})" in b for b in body)
+        ):
+            while end > i + 1 and not lines[end - 1].strip():
+                end -= 1
+            return range(i, end)
+    return None
+
+
+def _continuity_text(
+    campaign_dir: Path, entry: str, mission_id: str | None, outcome: MissionOutcome | None
+) -> tuple[Path, str, str]:
+    p = campaign_dir / "continuity.md"
+    old, nl = _read_text_keep_newlines(p)
+    if mission_id is not None and outcome is not None:
+        lines = old.split("\n")
+        hit = _find_entry(
+            lines,
+            _marker(mission_id, outcome),
+            f"— dms debrief — {mission_id} flown",
+            outcome.extra.get("session_start"),
+        )
+        if hit is not None:
+            new_lines = [*lines[: hit.start], *entry.rstrip("\n").split("\n"), *lines[hit.stop :]]
+            return p, "\n".join(new_lines), nl
+    return p, _join_entry(old, entry), nl
+
+
+def upsert_continuity(
+    campaign_dir: Path, entry: str, mission_id: str, outcome: MissionOutcome
+) -> Path:
+    """Append ``entry``, or replace the same flight's earlier ``dms debrief`` entry in place."""
+    p, text, nl = _continuity_text(campaign_dir, entry, mission_id, outcome)
+    _atomic_write(p, text, nl)
+    return p
+
+
+def append_continuity(campaign_dir: Path, entry: str) -> Path:
+    """Append ``entry`` to campaign_dir/continuity.md (created if missing), keeping its newlines."""
+    p, text, nl = _continuity_text(campaign_dir, entry, None, None)
+    _atomic_write(p, text, nl)
+    return p
+
+
+def commit_debrief(
+    campaign_dir: Path,
+    mission_id: str,
+    outcome: MissionOutcome,
+    update: StateUpdate,
+    entry: str | None = None,
+) -> list[Path]:
+    """Write a debrief in a crash-safe order; return [outcome, qualities(, continuity)].
+
+    Each file is atomic. Order: continuity.md (idempotent: same-flight entries are replaced),
+    state/qualities.yaml, then state/outcomes/<mNN>.yaml last, since that file is the re-debrief
+    guard: a failure before it leaves the flight un-guarded so a rerun redoes everything.
+    """
+    cont: Path | None = None
+    if entry is not None:
+        cont = upsert_continuity(campaign_dir, entry, mission_id, outcome)
+    q = campaign_dir / "state" / "qualities.yaml"
+    _atomic_write(q, _QUALITIES_HEADER + _dump(update.state.model_dump(mode="json")))
+    out = outcome_path(campaign_dir, mission_id)
+    _atomic_write(out, _OUTCOME_HEADER + _dump(outcome.model_dump(mode="json", exclude_none=True)))
+    return [out, q, *([cont] if cont else [])]

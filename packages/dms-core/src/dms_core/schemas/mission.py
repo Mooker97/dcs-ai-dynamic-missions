@@ -415,6 +415,10 @@ class MissionTestHints(DMSModel):
     )
 
 
+PluginName = Literal["mist", "skynet", "moose"]
+"""Optional pinned Lua plugins (lua/plugins/, docs/CONTRACTS.md "Optional plugins")."""
+
+
 class MissionSpec(DMSModel):
     """Declarative mission spec (mission-spec.yaml). Areas by reference, forces by role."""
 
@@ -459,6 +463,14 @@ class MissionSpec(DMSModel):
     seed: int | None = Field(
         default=None, description="Planner seed; null picks one and records it."
     )
+    plugins: list[PluginName] = Field(
+        default_factory=list,
+        description=(
+            "Optional pinned Lua plugins to embed before dms.lua (opt-in; the DMS core never needs"
+            " them): 'mist', 'skynet' (Skynet-IADS; pulls in mist and the DMS Skynet adapter),"
+            " 'moose'. Order and versions are fixed by the generator."
+        ),
+    )
     test: MissionTestHints | None = Field(
         default=None, description="Headless test-build hints (dms build --test)."
     )
@@ -470,6 +482,9 @@ class MissionSpec(DMSModel):
         dupes = {i for i in area_ids if area_ids.count(i) > 1}
         if dupes:
             raise ValueError(f"duplicate area ids: {sorted(dupes)}")
+        twice = sorted({p for p in self.plugins if self.plugins.count(p) > 1})
+        if twice:
+            raise ValueError(f"duplicate plugins: {twice}")
         return self
 
     def area_ids(self) -> list[str]:

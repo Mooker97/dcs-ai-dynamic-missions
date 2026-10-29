@@ -23,7 +23,23 @@ MISSION_TYPE_PRESET: dict[str, dict[str, str]] = {
         "INTERDICTION": "lgb_strike",
         "CAS": "cas",
     },
+    # Transport helicopters: lift missions fly clean (door guns), CAS/escort carry rockets.
+    "Mi-8MT": {"TRANSPORT": "transport", "CSAR": "transport", "CAS": "rockets"},
+    "UH-1H": {"TRANSPORT": "transport", "CSAR": "transport", "CAS": "rockets"},
+    "Mi-24P": {"TRANSPORT": "transport", "CSAR": "transport", "CAS": "atgm_rockets"},
 }
+
+#: Free-text intent keywords shared by every aircraft that has the named preset (checked after
+#: the per-aircraft ``INTENT_RULES``).
+GENERIC_INTENT_RULES: tuple[tuple[str, str], ...] = (
+    (
+        r"transport|cargo|troop|passenger|refugee|unarmed|csar|medevac|casevac|rescue|"
+        r"\bno rockets?\b|\bslick\b|door ?guns? only",
+        "transport",
+    ),
+    (r"\batgm|vikhr|ataka|shturm|\bhot\b", "atgm_rockets"),
+    (r"\batgm|\bhot\b", "atgm"),
+)
 
 #: Per aircraft: ordered (keyword regex, preset) rules for free-text intents. First match wins,
 #: so SEAD keywords beat the LGB keywords in "SEAD/DEAD ... 2x AGM-88C HARM ..., 2x GBU-12".
@@ -69,7 +85,7 @@ def choose_loadout(aircraft: str, loadout: str, mission_type: str | None = None)
             None, None, f"unresolved: no presets for {aircraft}; DCS default payload used"
         )
     low = loadout.lower()
-    for pattern, preset in INTENT_RULES.get(aircraft, ()):
+    for pattern, preset in (*INTENT_RULES.get(aircraft, ()), *GENERIC_INTENT_RULES):
         if preset in presets and re.search(pattern, low):
             return LoadoutChoice(preset, None, f"interpreted: {preset}")
     hellfire = "hellfire" in low or "agm-114" in low or "agm114" in low

@@ -1270,6 +1270,16 @@ def debrief(
     no_continuity: Annotated[
         bool, typer.Option("--no-continuity", help="Do not append to continuity.md.")
     ] = False,
+    acmi: Annotated[
+        str | None,
+        typer.Option(help="Tacview ACMI file, or 'auto' (newest in Documents/Tacview)."),
+    ] = None,
+    acmi_player: Annotated[
+        str | None, typer.Option(help="ACMI player: object id, Pilot, Name, CallSign or Group.")
+    ] = None,
+    acmi_facts: Annotated[
+        bool, typer.Option("--acmi-facts", help="Also merge tv_* facts into outcomes.")
+    ] = False,
     as_json: JsonOpt = False,
 ) -> None:
     """dcs.log [DMS.OUTCOME] -> state/outcomes/<mNN>.yaml, qualities, continuity, next mission."""
@@ -1301,6 +1311,12 @@ def debrief(
         outcome_obj = oc.build_outcome(session, mission_id, log_path)
     except oc.DebriefError as exc:
         raise CliError(str(exc), 1) from None
+    if acmi is not None:
+        from .cmd_debrief_acmi import apply_acmi
+
+        outcome_obj = apply_acmi(
+            outcome_obj, camp, mission_id, acmi, player=acmi_player, merge_facts=acmi_facts
+        )
     same_flight = oc.already_debriefed(camp, mission_id, outcome_obj)
     if same_flight and not force and not dry_run:
         raise CliError(
@@ -1383,6 +1399,10 @@ def debrief(
         _echo(f"skipped malformed [DMS.OUTCOME] line {m['line']}: {m['reason']}")
     for w in update.warnings:
         _echo(f"warning: {w}")
+    from .cmd_debrief_acmi import report_lines
+
+    for line in report_lines(outcome_obj):
+        _echo(line)
     _echo(f"next mission: {update.next_mission or '(none)'} ({update.next_reason})")
     if dry_run:
         _echo("dry run: nothing written")

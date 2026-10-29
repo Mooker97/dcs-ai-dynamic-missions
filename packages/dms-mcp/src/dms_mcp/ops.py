@@ -456,7 +456,15 @@ def build(
         from dms_gen.planner import make_test_plan, write_test_lua
 
         try:
-            tb = make_test_plan(plan_obj, bundle.spec, bundle.beats, variant=variant)
+            tb = make_test_plan(
+                plan_obj,
+                bundle.spec,
+                bundle.beats,
+                variant=variant,
+                subtitle_only=[ln.id for ln in bundle.lines.lines if not ln.voiced]
+                if bundle.lines
+                else None,
+            )
         except ValueError as exc:
             raise OpError(f"test build failed: {exc}") from exc
         tdir = mp.out_dir / TEST_DIR

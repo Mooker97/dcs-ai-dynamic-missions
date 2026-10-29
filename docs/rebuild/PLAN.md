@@ -24,8 +24,9 @@ These came out of the planning passes and should be fixed first:
    emit `DMS_SKYNET = {prefixes = {...sam threat ids}}`.
 3. **The m03 and w01 test builds are stale.** They predate a0c1679, 3603721, facf2cc and 176251e,
    so rebuild both before re-running.
-4. **There is no DMS F10 menu in Viper m01 or m02.** The specs don't turn on the `comms` menu
-   option, so turn it on before cockpit session 1, or the Comms box can't be ticked.
+4. ~~There is no DMS F10 menu in Viper m01 or m02.~~ **Wrong:** `comms.lua` always builds the
+   per-group DMS F10 menu at `player.spawned` (Repeat last message, Mission status, BDA report).
+   Verified on the m01/m02 builds against the Lua mock. No spec change needed.
 5. **m02 has no voice manifest.** A plain `dms run` would pay for ElevenLabs, so use
    `--skip-voice` (or render it on purpose).
 6. **Arma doc drift.** `exfilHotRadius` is 200 in `fn_config.sqf:132` but 300 in `arma/README.md`.
@@ -199,7 +200,7 @@ Use F2/F6/F10/F11 and follow the `CAMERA:` hints.
 Ticks: voice heard on a real driver (v0.6), marks (v0.4), outcome (v0.5).
 
 ### S1: Viper m01 (ramp, voiced), debrief, m02 (air), debrief (~2 h)
-**Before you start:** turn on the m01/m02 comms menu (finding 4), and tune UHF **251.0** for
+**Before you start:** tune UHF **251.0** for
 Magic. Magic is the only voice on a set frequency; the others play to the whole coalition.
 ```
 uv run dms doctor
@@ -224,7 +225,7 @@ uv run dms debrief campaigns/viper-detachment --mission m02
 **Ticks:**
 - v0.3: the core bundle loads.
 - v0.4: plan, build, runtime F10 view, slice mission, `dms check`.
-- v0.5: narrative, comms (menu only if turned on), briefing and kneeboard.
+- v0.5: narrative, comms (F10 → DMS menu), briefing and kneeboard.
 - v0.6: voice, embedded audio, shuffle-bag (partial), voiced mission.
 - v0.7: director, difficulty, debriefer, and the next mission fitting the outcome.
 

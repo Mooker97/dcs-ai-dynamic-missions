@@ -460,7 +460,16 @@ def _make_test(
     )
 
     try:
-        tb = make_test_plan(plan_obj, bundle.spec, bundle.beats, minutes=minutes, variant=variant)
+        tb = make_test_plan(
+            plan_obj,
+            bundle.spec,
+            bundle.beats,
+            minutes=minutes,
+            variant=variant,
+            subtitle_only=[ln.id for ln in bundle.lines.lines if not ln.voiced]
+            if bundle.lines
+            else None,
+        )
     except ValueError as exc:
         raise CliError(f"test build failed: {exc}", 1) from exc
     tdir = mp.out_dir / TEST_DIR

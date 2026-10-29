@@ -206,6 +206,18 @@ describe("Spawner", function()
     assert.is_nil(MOCK.groups[blue].data.hidden)
   end)
 
+  it("treats a nil intel.fogOfWar as on and only false as off", function()
+    DMS_CONFIG.intel = {}
+    local red = DMS.Spawner.spawn("zsu", "town")
+    assert.is_true(MOCK.groups[red].data.hidden)
+    DMS_CONFIG.intel = nil
+    local red2 = DMS.Spawner.spawn("zsu", "town")
+    assert.is_true(MOCK.groups[red2].data.hidden)
+    DMS_CONFIG.intel = { fogOfWar = false }
+    local red3 = DMS.Spawner.spawn("zsu", "town")
+    assert.is_falsy(MOCK.groups[red3].data.hidden)
+  end)
+
   it("gives ground groups a 2-point hold route", function()
     local name = DMS.Spawner.spawn("zsu", "town")
     assert.are.equal(2, #MOCK.groups[name].data.route.points)
@@ -243,6 +255,34 @@ describe("Spawner", function()
         Group.getByName(g):destroy()
       end
     end
+  end)
+
+  it("poolCount rolls the pick range and spawnPool honours a fixed count unscaled", function()
+    for _ = 1, 50 do
+      local n = DMS.Spawner.poolCount("aaa")
+      assert.truthy(n >= 2 and n <= 4, "poolCount " .. n)
+    end
+    assert.are.equal(0, DMS.Spawner.poolCount("nope"))
+    DMS.Director.reset()
+    DMS.Director._level = 1 -- scaleCount would turn 3 into 4
+    local groups = DMS.Spawner.spawnPool("aaa", { count = 3 })
+    assert.are.equal(3, #groups)
+  end)
+
+  it("spawnPool notes opts.cost once per spawned group", function()
+    local evs = {}
+    DMS.Bus.on("spawner.spawned", function(ev)
+      evs[#evs + 1] = ev
+    end)
+    local groups = DMS.Spawner.spawnPool("aaa", { count = 3, cost = 2 })
+    assert.are.equal(3, #groups)
+    assert.are.equal(3, #evs)
+    local total = 0
+    for _, ev in ipairs(evs) do
+      assert.are.equal(2, ev.cost)
+      total = total + ev.cost
+    end
+    assert.are.equal(6, total)
   end)
 
   it("handles unknown templates, countries and zones gracefully", function()

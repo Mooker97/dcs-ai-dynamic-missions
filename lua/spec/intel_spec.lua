@@ -599,3 +599,330 @@ describe("DMS.Intel", function()
     end
   end)
 end)
+
+-- Replay the "[DMS][Intel] MARK add|remove" log lines -> id -> {kind, coal, text}; asserts the
+-- protocol (no add of a live id, no remove of an unknown id, every field parseable).
+local function replayMarkLog(w)
+  local live, adds, removes = {}, 0, 0
+  for _, line in ipairs(w.infos) do
+    local op, id, rest = string.match(line, "^%[DMS%]%[Intel%] MARK (%a+) id=(%d+) (.*)$")
+    if op == "add" then
+      id = tonumber(id)
+      local kind, coal, x, z, r, t, owner, text = string.match(
+        rest,
+        "^kind=(%a+) coal=(%-?%d) x=(%-?%d+) z=(%-?%d+) r=(%S+) t=([%d%.]+) owner=(%S+) text=(.*)$"
+      )
+      assert(kind and r and t, "unparseable MARK add: " .. line)
+      assert(live[id] == nil, "MARK add of a live id " .. id)
+      live[id] = { kind = kind, coal = tonumber(coal), text = text, x = tonumber(x), z = tonumber(z), owner = owner }
+      adds = adds + 1
+    elseif op == "remove" then
+      id = tonumber(id)
+      local kind, t, why = string.match(rest, "^kind=(%a+) t=([%d%.]+) why=(.*)$")
+      assert(kind and t and why ~= "", "unparseable MARK remove: " .. line)
+      assert(live[id], "MARK remove of an unknown id " .. id)
+      live[id] = nil
+      removes = removes + 1
+    end
+  end
+  return live, adds, removes
+end
+
+local function keys(t)
+  local n = 0
+  for _ in pairs(t) do
+    n = n + 1
+  end
+  return n
+end
+
+local function sameIds(a, b, msg)
+  for id in pairs(a) do
+    assert(b[id] ~= nil, (msg or "") .. ": id " .. id .. " only in first set")
+  end
+  for id in pairs(b) do
+    assert(a[id] ~= nil, (msg or "") .. ": id " .. id .. " only in second set")
+  end
+end
+
+describe("DMS.Intel F10 mark bookkeeping", function()
+  it("logs one parseable MARK line per add/remove, matching DCS calls and liveMarks()", function()
+    local cfg = intelCfg()
+    cfg.debug = true
+    withWorld(cfg, function(w)
+      setup(w)
+      DMS.Intel.start()
+      w.clock.advance(5)
+      local live, adds = replayMarkLog(w)
+      eq(adds, 2, "circle + text")
+      sameIds(live, liveIds(w), "log vs DCS")
+      sameIds(live, DMS.Intel.liveMarks(), "log vs liveMarks")
+      for _, m in pairs(live) do
+        eq(m.coal, 2)
+        eq(m.owner, "contact:SAM1")
+        assert(string.find(m.text, "Osa 9A33 ln x2", 1, true), m.text)
+      end
+      local st = DMS.Intel.markStats()
+      eq(st.added, 2)
+      eq(st.live, 2)
+      -- death removes both marks with a reason
+      for _, u in ipairs(w.groups.SAM1.units) do
+        u.alive = false
+      end
+      DMS.Bus.emit("group.dead", { group = "SAM1", coalition = 1 })
+      live = replayMarkLog(w)
+      eq(keys(live), 0, "no marks after group.dead")
+      eq(keys(liveIds(w)), 0)
+      local why = 0
+      for _, line in ipairs(w.infos) do
+        if string.find(line, "MARK remove", 1, true) and string.find(line, "why=destroyed", 1, true) then
+          why = why + 1
+        end
+      end
+      eq(why, 2, "both removals say why=destroyed")
+      eq(DMS.Intel.markStats().removed, 2)
+    end)
+  end)
+
+  it("removes every mark it drew on stop and never reuses ids after a restart", function()
+    local cfg = intelCfg()
+    cfg.debug = true
+    withWorld(cfg, function(w)
+      setup(w)
+      DMS.Intel.start()
+      w.clock.advance(5)
+      local h = DMS.Intel.mark({ type = "circle", at = "zone:town", text = "Town" })
+      assert(h)
+      eq(keys(liveIds(w)), 4)
+      DMS.Intel.stop()
+      eq(keys(liveIds(w)), 0, "stop clears the map")
+      eq(keys(DMS.Intel.liveMarks()), 0)
+      DMS.Intel.start()
+      w.clock.advance(5)
+      local seen = {}
+      for _, id in ipairs(allDrawnIds(w)) do
+        assert(not seen[id], "id reused after restart: " .. id)
+        seen[id] = true
+      end
+      sameIds(replayMarkLog(w), liveIds(w), "log vs DCS after restart")
+    end)
+  end)
+
+  it("starts ids above marks already on the map", function()
+    withWorld(intelCfg(), function(w)
+      setup(w)
+      local saved = world.getMarkPanels
+      world.getMarkPanels = function()
+        return { { idx = 3 }, { idx = 70000 } }
+      end
+      local ok, err = pcall(function()
+        DMS.Intel.start()
+        w.clock.advance(5)
+        for _, id in ipairs(allDrawnIds(w)) do
+          assert(id > 70000, "id " .. id .. " collides with existing marks")
+        end
+      end)
+      world.getMarkPanels = saved
+      assert(ok, err)
+    end)
+  end)
+
+  it("never follows player marks (~251,000,000+) or non-script panels outside our band", function()
+    withWorld(intelCfg(), function(w)
+      setup(w)
+      local saved = world.getMarkPanels
+      world.getMarkPanels = function()
+        return {
+          { idx = 60000 }, -- ours / script-made, in band: bump past it
+          { idx = 251000003, initiator = { player = true } }, -- player mark
+          { idx = 251000004 }, -- player range even without an initiator
+          { idx = 20000000, initiator = { player = true } }, -- above the band, not script-made
+        }
+      end
+      local ok, err = pcall(function()
+        DMS.Intel.start()
+        w.clock.advance(5)
+        local ids = allDrawnIds(w)
+        assert(#ids > 0, "drew marks")
+        for _, id in ipairs(ids) do
+          assert(id > 60000, "id " .. id .. " collides with an in-band panel")
+          assert(id < DMS.Intel.FIRST_MARK_ID + DMS.Intel.MARK_ID_BAND, "id " .. id .. " left our band")
+        end
+      end)
+      world.getMarkPanels = saved
+      assert(ok, err)
+    end)
+  end)
+
+  it("never reuses a mark id, even after removeMark", function()
+    withWorld(intelCfg(), function(w)
+      setup(w)
+      DMS.Intel.start()
+      local h = DMS.Intel.mark({ type = "circle", at = "zone:town", text = "Town" })
+      w.clock.advance(1)
+      DMS.Intel.removeMarkHandle(h)
+      DMS.Intel.mark({ type = "circle", at = "zone:town", text = "Town again" })
+      w.clock.advance(1)
+      local seen = {}
+      for _, id in ipairs(allDrawnIds(w)) do
+        assert(not seen[id], "id reused: " .. id)
+        seen[id] = true
+      end
+    end)
+  end)
+
+  it("honours the mark spec coalition and returns a stable handle for group marks", function()
+    withWorld(intelCfg(), function(w)
+      setup(w)
+      DMS.Intel.start()
+      local h = DMS.Intel.mark({ type = "circle", at = "zone:town", text = "Red Town", coalition = 1 })
+      assert(h)
+      local m = w.callsOf("markToCoalition")
+      eq(m[1][5], 1, "text mark for coalition 1")
+      eq(w.callsOf("circleToAll")[1][2], 1, "circle for coalition 1")
+      local gh = DMS.Intel.mark({ at = "group:FAR", text = "Armour" })
+      assert(gh, "group handle")
+      local c = DMS.Intel.contact("FAR")
+      local before = c.textId
+      w.units["FAR-1"].pos = { x = 61000, y = 0, z = 0 }
+      w.units["Viper1-1"].pos = { x = 59000, y = 0, z = 0 }
+      w.clock.advance(20)
+      assert(c.textId ~= before, "contact redrawn with new ids")
+      assert(DMS.Intel.removeMarkHandle(gh), "stable handle still removes the contact")
+      eq(DMS.Intel.contact("FAR"), nil)
+      eq(DMS.Intel.removeMarkHandle(gh), false, "handle is single-use")
+    end)
+  end)
+
+  it("reuses one handle per group and forgets the contact only if the mark created it", function()
+    withWorld(intelCfg(), function(w)
+      setup(w)
+      DMS.Intel.start()
+      w.clock.advance(5) -- SAM1 (4 km) detected by the scan
+      assert(DMS.Intel.contact("SAM1"), "SAM1 detected")
+      local h1 = DMS.Intel.mark({ at = "group:SAM1", text = "Target" })
+      local h2 = DMS.Intel.mark("group:SAM1")
+      assert(h1, "group handle")
+      eq(h2, h1, "same group -> same handle")
+      eq(DMS.Intel.contact("SAM1").label, "Target")
+      eq(DMS.Intel.removeMarkHandle(h1), true, "handle removed")
+      assert(DMS.Intel.contact("SAM1"), "independently detected contact is kept")
+      eq(DMS.Intel.contact("SAM1").label, nil, "mark label undone")
+      eq(DMS.Intel.removeMarkHandle(h1), false, "handle is single-use")
+      -- FAR (60 km) is only known through the mark: removing the mark forgets it
+      local hf = DMS.Intel.mark("group:FAR")
+      assert(DMS.Intel.contact("FAR"))
+      eq(DMS.Intel.removeMarkHandle(hf), true)
+      eq(DMS.Intel.contact("FAR"), nil)
+    end)
+  end)
+
+  it("returns true for a group handle whose contact is already gone", function()
+    withWorld(intelCfg(), function(w)
+      setup(w)
+      DMS.Intel.start()
+      local h = DMS.Intel.mark("group:FAR")
+      DMS.Intel.forget("FAR", "test")
+      eq(DMS.Intel.removeMarkHandle(h), true)
+    end)
+  end)
+
+  it("keeps marks drawn before the first start and wipes them only on a restart", function()
+    withWorld(intelCfg(), function(w)
+      setup(w)
+      local h = DMS.Intel.mark("zone:town")
+      assert(h, "pre-start mark drawn")
+      local n = DMS.Intel.markStats().live
+      DMS.Intel.start()
+      eq(DMS.Intel.markStats().live, n, "first start keeps earlier beat marks")
+      assert(DMS.Intel.liveMarks()[h], "text mark still live")
+      eq(DMS.Intel.removeMarkHandle(h), true, "handle survived the start")
+      local h2 = DMS.Intel.mark("zone:town")
+      assert(h2)
+      DMS.Intel.start() -- restart
+      eq(DMS.Intel.liveMarks()[h2], nil, "restart removes marks it drew")
+    end)
+  end)
+
+  it("does not track a mark DCS rejected", function()
+    withWorld(intelCfg(), function(w)
+      setup(w)
+      w.trigger.action.markToCoalition = function()
+        error("boom")
+      end
+      DMS.Intel.start()
+      w.clock.advance(5)
+      local st = DMS.Intel.markStats()
+      eq(st.failed, 1)
+      eq(st.live, 1, "only the circle is live")
+      for _, m in pairs(DMS.Intel.liveMarks()) do
+        eq(m.kind, "circle")
+      end
+      assert(#w.errors == 1 and string.find(w.errors[1], "MARK add failed", 1, true), tostring(w.errors[1]))
+      w.errors = {}
+    end)
+  end)
+
+  it("keeps log, DCS calls and liveMarks() in sync over 100 random seeds", function()
+    for seed = 1, 100 do
+      math.randomseed(seed * 7919)
+      local cfg = intelCfg({ seed = seed, debug = true })
+      cfg.intel = {
+        revealRadiusM = math.random(1000, 20000),
+        markRefreshSec = math.random(5, 30),
+        staleSec = math.random(20, 200),
+        scanSec = math.random(1, 10),
+      }
+      withWorld(cfg, function(w)
+        for i = 1, 2 do
+          w.addGroup("P" .. i, 2, { { name = "P" .. i .. "-1", x = 0, z = 0, player = "p" .. i } })
+        end
+        for i = 1, 5 do
+          local units = {}
+          for j = 1, math.random(1, 3) do
+            units[j] = { x = math.random(-20000, 20000), z = math.random(-20000, 20000) }
+          end
+          w.addGroup("E" .. i, 1, units)
+        end
+        local st0 = DMS.Intel.markStats() -- counters are mission-wide (they survive restarts)
+        DMS.Intel.start()
+        local handles = {}
+        for _ = 1, 40 do
+          local r = math.random()
+          local g = "E" .. math.random(1, 5)
+          if r < 0.1 then
+            for _, u in ipairs(w.groups[g].units) do
+              u.alive = false
+            end
+            DMS.Bus.emit("group.dead", { group = g, coalition = 1 })
+          elseif r < 0.2 then
+            local h = DMS.Intel.mark(math.random() < 0.5 and ("group:" .. g) or "zone:town")
+            if h then
+              handles[#handles + 1] = h
+            end
+          elseif r < 0.25 and #handles > 0 then
+            DMS.Intel.removeMarkHandle(table.remove(handles, math.random(1, #handles)))
+          elseif r < 0.6 then
+            local u = w.units["P" .. math.random(1, 2) .. "-1"]
+            u.pos = { x = math.random(-20000, 20000), y = 0, z = math.random(-20000, 20000) }
+          elseif r < 0.7 then
+            w.visible = not w.visible
+          end
+          w.clock.advance(math.random(1, 30))
+          local fromLog = replayMarkLog(w)
+          sameIds(fromLog, liveIds(w), "seed " .. seed .. " log vs DCS")
+          sameIds(fromLog, DMS.Intel.liveMarks(), "seed " .. seed .. " log vs liveMarks")
+        end
+        local st = DMS.Intel.markStats()
+        local _, adds, removes = replayMarkLog(w)
+        eq(st.added - st0.added, adds, "added count")
+        eq(st.removed - st0.removed, removes, "removed count")
+        for name, c in pairs(DMS.Intel.contacts()) do
+          assert(DMS.Intel.liveMarks()[c.textId], "contact " .. name .. " text mark live")
+        end
+        DMS.Intel.stop()
+        eq(keys(liveIds(w)), 0, "seed " .. seed .. ": stop clears the map")
+      end)
+    end
+  end)
+end)

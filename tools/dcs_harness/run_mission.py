@@ -23,6 +23,19 @@ How it works (details: docs/testing/STRATEGY.md):
   * The hook exits DCS after "[DMS.TEST] DONE", after --minutes of model time, or on wall
     timeout; this script also kills our DCS process (matched by write-dir name) on hard timeout.
 
+Log checks (on by default, --no-log-checks turns them off): after the run the harness replays
+dcs.log and puts its own results in the report's log_checks (status PASS|FAIL|SKIP|INFO; a FAIL
+fails the run like a [DMS.TEST] FAIL):
+  * log_marks: replays the debug "[DMS][Intel] MARK add|remove id=N ..." lines. FAIL on an add of
+    an id that is still live, a remove of an id never added (Intel logs a remove only for a mark
+    it tracks), a failed mark call, or counts that disagree with the Lua marks check's
+    "[DMS.TEST] ... added=A removed=R live=L" detail when that line is present. Without a Lua
+    marks line it is informational (PASS = log self-consistent). SKIP when the Lua check says
+    marks were drawn but no MARK lines were logged (debug off); INFO when there is nothing at all.
+  * log_comms_overlap: "[DMS][Comms] PLAY n= ... start=<model s> end=<model s>" lines (info) never
+    overlap: each start is >= the previous end + Comms.GAP_SEC (0.75) - 0.05. SKIP when the PLAY
+    lines carry no start=/end= (format in docs/CONTRACTS.md "Test mode").
+
 Exit codes: 0 = ran, no script errors, no FAIL; 1 = ran with failures/errors;
 2 = infra problem (DCS not found / already running / never reached simulation).
 """
@@ -32,6 +45,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import ctypes
+import itertools
 import json
 import os
 import re
@@ -384,6 +398,12 @@ LINE_RE = re.compile(
 TEST_RE = re.compile(r"\[DMS\.TEST\]\s+(PASS|FAIL|SKIP|INFO|DONE)\b\s*(\S+)?\s*(.*)$")
 OUTCOME_RE = re.compile(r"\[DMS\.OUTCOME\]\s*(.*)$")
 HARNESS_RE = re.compile(r"\[DMS\.HARNESS\]\s+(\S+)\s*(.*)$")
+MARK_RE = re.compile(r"\[DMS\]\[Intel\] MARK (add|remove)(?: failed)? id=(\d+)(.*)$")
+MARK_FAILED_RE = re.compile(r"\[DMS\]\[Intel\] MARK add failed id=(\d+)")
+LUA_MARKS_RE = re.compile(r"\badded=(\d+) removed=(\d+) live=(\d+) failed=(\d+)")
+PLAY_RE = re.compile(r"\[DMS\]\[Comms\] PLAY\b(.*)$")
+KV_RE = re.compile(r"(?:^|\s)(n|line|start|end)=(\S+)")
+COMMS_GAP_SEC = 0.75  # DMS.Comms.GAP_SEC: the queue waits end + GAP before the next PLAY
 
 
 @dataclass
@@ -398,6 +418,7 @@ class Report:
     model_seconds_last: float | None = None
     phases: list[str] = field(default_factory=list)
     tests: list[dict[str, str]] = field(default_factory=list)
+    log_checks: list[dict[str, str]] = field(default_factory=list)
     done: bool = False
     outcomes: list[object] = field(default_factory=list)
     script_errors: list[str] = field(default_factory=list)
@@ -408,7 +429,128 @@ class Report:
     verdict: str = "infra_error"
 
 
-def parse_log(log_path: Path, rep: Report) -> None:
+def _kv(rest: str) -> dict[str, str]:
+    """key=value pairs before the quoted text of a log line (the text itself may contain t=)."""
+    head = rest.split("'", 1)[0]
+    return {m[1]: m[2] for m in KV_RE.finditer(head)}
+
+
+def check_marks_log(msgs: list[str]) -> dict[str, str]:
+    """log_marks: replay Intel MARK add/remove lines; cross-check the Lua marks check counts.
+
+    ``msgs`` are the DMS log messages in log order, including ``[DMS.TEST]`` lines: the replay
+    counters are snapshotted at the (last) Lua marks line, so marks removed afterwards (e.g.
+    Intel.stop at mission end) do not count as a disagreement.
+    """
+    live: set[int] = set()
+    adds = removes = peak = failed = 0
+    unknown: list[int] = []
+    problems: list[str] = []
+    lua: tuple[int, int, int, int] | None = None
+    snap: tuple[int, int, int, int] = (0, 0, 0, 0)
+    for msg in msgs:
+        if TEST_RE.search(msg):
+            if lm := LUA_MARKS_RE.search(msg):
+                lua = (int(lm[1]), int(lm[2]), int(lm[3]), int(lm[4]))
+                snap = (adds, removes, len(live), failed)
+            continue
+        if MARK_FAILED_RE.search(msg):
+            failed += 1
+            continue
+        m = MARK_RE.search(msg)
+        if not m:
+            continue
+        op, mid = m[1], int(m[2])
+        if op == "add":
+            if mid in live:
+                problems.append(f"id {mid} added while live")
+            live.add(mid)
+            adds += 1
+            peak = max(peak, len(live))
+        elif mid in live:
+            live.discard(mid)
+            removes += 1
+        else:
+            unknown.append(mid)
+    if unknown:
+        problems.append(
+            f"{len(unknown)} remove(s) of never-added id(s): " + ",".join(map(str, unknown[:5]))
+        )
+    if failed:
+        problems.append(f"{failed} mark call(s) failed")
+    detail = f"adds={adds} removes={removes} live_at_end={len(live)} peak={peak}"
+    if adds == 0 and not unknown and not failed:
+        if lua and lua[0] > 0:
+            return {
+                "status": "SKIP",
+                "name": "log_marks",
+                "detail": f"Lua marks check reports added={lua[0]} but no MARK lines (debug off?)",
+            }
+        return {
+            "status": "INFO",
+            "name": "log_marks",
+            "detail": "no MARK lines (debug off, or Intel drew no marks)",
+        }
+    if lua is None:
+        detail += " (informational: no Lua marks check line)"
+    elif lua != snap:
+        problems.append(
+            "log replay (added={} removed={} live={} failed={}) disagrees with Lua marks check "
+            "(added={} removed={} live={} failed={})".format(*snap, *lua)
+        )
+    else:
+        detail += ", matches Lua marks check"
+    if problems:
+        bad = "; ".join(problems[:5])
+        return {"status": "FAIL", "name": "log_marks", "detail": f"{bad} [{detail}]"}
+    return {"status": "PASS", "name": "log_marks", "detail": detail}
+
+
+def check_comms_overlap_log(
+    msgs: list[str], tol: float = 0.05, gap: float = COMMS_GAP_SEC
+) -> dict[str, str]:
+    """log_comms_overlap: each Comms PLAY starts >= previous end + gap - tol (model time)."""
+    tx: list[tuple[float, float, str]] = []
+    untimed = 0
+    for msg in msgs:
+        m = PLAY_RE.search(msg)
+        if not m:
+            continue
+        kv = _kv(m[1])
+        try:
+            tx.append((float(kv["start"]), float(kv["end"]), kv.get("line", "?")))
+        except (KeyError, ValueError):
+            untimed += 1
+    if not tx:
+        if untimed:
+            return {
+                "status": "SKIP",
+                "name": "log_comms_overlap",
+                "detail": f"{untimed} PLAY line(s) without start=/end= (see CONTRACTS Test mode)",
+            }
+        return {"status": "INFO", "name": "log_comms_overlap", "detail": "no Comms PLAY lines"}
+    tx.sort(key=lambda e: e[0])
+    overlaps = [
+        f"{a[2]}@{a[0]:.1f}+{a[1] - a[0]:.1f} overlaps {b[2]}@{b[0]:.1f}"
+        for a, b in itertools.pairwise(tx)
+        if b[0] < a[1] + gap - tol
+    ]
+    detail = f"{len(tx)} timed PLAY line(s)" + (f", {untimed} untimed" if untimed else "")
+    if overlaps:
+        return {
+            "status": "FAIL",
+            "name": "log_comms_overlap",
+            "detail": f"{len(overlaps)} overlap(s): " + "; ".join(overlaps[:4]) + f" [{detail}]",
+        }
+    return {"status": "PASS", "name": "log_comms_overlap", "detail": detail + ", no overlap"}
+
+
+def run_log_checks(msgs: list[str]) -> list[dict[str, str]]:
+    """Harness-side checks over the DMS log lines, in log order (see the module docstring)."""
+    return [check_marks_log(msgs), check_comms_overlap_log(msgs)]
+
+
+def parse_log(log_path: Path, rep: Report, *, log_checks: bool = True) -> None:
     rep.log_path = str(log_path)
     if not log_path.is_file():
         rep.notes.append("dcs.log not found in write dir")
@@ -469,6 +611,9 @@ def parse_log(log_path: Path, rep: Report) -> None:
             rep.script_errors.append(f"{e['ts']} {sub}: {msg[:2000]}")
         elif lvl == "ERROR" and sub in ("LuaGUI", "Lua::Config", "DCS", "LuaNET", "NET"):
             rep.other_errors.append(f"{e['ts']} {sub}: {msg[:500]}")
+    if log_checks:
+        dms_msgs = [e["msg"] for e in entries if "[DMS][" in e["msg"] or "[DMS.TEST]" in e["msg"]]
+        rep.log_checks = run_log_checks(dms_msgs)
 
 
 CRASH_MARKERS = ("Out of memory in ed_malloc", "fatal_out_of_memory", "Minidump created")
@@ -495,7 +640,7 @@ def verdict(rep: Report) -> int:
     if not rep.reached_simulation:
         rep.verdict = "infra_error"
         return 2
-    fails = [t for t in rep.tests if t["status"] == "FAIL"]
+    fails = [t for t in rep.tests + rep.log_checks if t["status"] == "FAIL"]
     if rep.script_errors or rep.dms_errors or fails:
         rep.verdict = "fail"
         return 1
@@ -561,6 +706,11 @@ def main(argv: list[str] | None = None) -> int:
         "(Syria ran out of memory at 9 GB free)",
     )
     ap.add_argument("--ram-wait-sec", type=int, default=900, help="max wait for free RAM")
+    ap.add_argument(
+        "--no-log-checks",
+        action="store_true",
+        help="skip the harness-side dcs.log checks (log_marks, log_comms_overlap)",
+    )
     ap.add_argument(
         "--copy-login",
         action="store_true",
@@ -700,7 +850,7 @@ def main(argv: list[str] | None = None) -> int:
             break
     rep.wall_seconds = round(time.monotonic() - t0, 1)
     time.sleep(2)
-    parse_log(log_path, rep)
+    parse_log(log_path, rep, log_checks=not a.no_log_checks)
     code = verdict(rep)
     out = json.dumps(asdict(rep), indent=2, default=str)
     if a.report:

@@ -545,7 +545,8 @@ function Spawner.spawn(templateId, where, opts)
   if hidden == nil then
     local intel = cfg().intel
     local playersCoal = cfg().players and cfg().players.coalition or 2
-    hidden = (intel and intel.fogOfWar and coal ~= playersCoal) and true or false
+    -- fog of war is on unless DMS_CONFIG.intel.fogOfWar == false (same default as Intel/Test/dms check)
+    hidden = (not (intel and intel.fogOfWar == false) and coal ~= playersCoal) and true or false
   end
 
   local name = DMS.Registry.allocName(opts.prefix or (type(templateId) == "string" and templateId or "grp"))
@@ -600,20 +601,41 @@ function Spawner.spawn(templateId, where, opts)
   return name
 end
 
+local function poolOf(poolId)
+  local pools = cfg().pools or {}
+  return type(poolId) == "table" and poolId or pools[poolId]
+end
+
+-- poolCount(poolId) -> n: one roll of how many groups a launch of this pool spawns
+-- (Rng.range(pool.pick), rounded, then Director.scaleCount). Callers that gate on the director roll
+-- this first, check cost * n, then pass opts.count = n so the check and the spawn agree.
+function Spawner.poolCount(poolId)
+  local pool = poolOf(poolId)
+  if not pool then
+    return 0
+  end
+  local count = math.max(0, math.floor(DMS.Rng.range(pool.pick or 1) + 0.5))
+  if DMS.Director and DMS.Director.scaleCount then
+    count = DMS.Director.scaleCount(count)
+  end
+  return count
+end
+
 -- spawnPool(poolId, opts) -> {groupName...}
--- opts: zone (override pool zones), count (override pick), plus spawn opts
+-- opts: zone (override pool zones), count (override pick, not scaled), plus spawn opts.
+-- opts.cost is per group: each spawned group emits spawner.spawned{cost}.
 function Spawner.spawnPool(poolId, opts)
   opts = opts or {}
-  local pools = cfg().pools or {}
-  local pool = type(poolId) == "table" and poolId or pools[poolId]
+  local pool = poolOf(poolId)
   if not pool or not pool.members or #pool.members == 0 then
     DMS.Log.warn(P, "Unknown or empty pool '%s'", tostring(poolId))
     return {}
   end
-  local count = opts.count or DMS.Rng.range(pool.pick or 1)
-  count = math.max(0, math.floor(count + 0.5))
-  if DMS.Director and DMS.Director.scaleCount and not opts.count then
-    count = DMS.Director.scaleCount(count)
+  local count
+  if opts.count then
+    count = math.max(0, math.floor(opts.count + 0.5))
+  else
+    count = Spawner.poolCount(pool)
   end
   local zones = pool.zones or {}
   local out = {}

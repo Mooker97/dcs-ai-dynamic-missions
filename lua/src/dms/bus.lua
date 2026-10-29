@@ -21,7 +21,10 @@ Bus._nextToken = Bus._nextToken or 1
 Bus._units = Bus._units or {} -- unitName -> {group, groupId, coalition, category, typeName, pos, player}
 Bus._groups = Bus._groups or {} -- groupName -> {alive = {unitName=true}, coalition, deadSent}
 Bus._deadAt = Bus._deadAt or {} -- unitName -> time of last unit.dead
-Bus._players = Bus._players or {} -- unitName -> payload of player.spawned
+Bus._players = Bus._players or {} -- unitName -> payload of player.spawned (+ objId)
+-- DCS object id (unit.id_) -> unit name, filled at player BIRTH and cleared on leave/death: in
+-- PLAYER_LEAVE_UNIT / death handlers the initiator may already be destroyed, so getName fails.
+Bus._objNames = Bus._objNames or {}
 
 local function log()
   return DMS.Log
@@ -227,6 +230,43 @@ local function nameOf(obj)
   return call(obj, "getName")
 end
 
+local function objIdOf(obj)
+  if type(obj) ~= "table" then
+    return nil
+  end
+  local ok, id = pcall(function()
+    return obj.id_
+  end)
+  if ok and id ~= nil then
+    return id
+  end
+  return nil
+end
+
+-- Name of a possibly-destroyed object: getName, else the BIRTH-time object id map.
+local function nameOrCached(obj)
+  local n = nameOf(obj)
+  if n then
+    return n
+  end
+  local id = objIdOf(obj)
+  return id ~= nil and Bus._objNames[id] or nil
+end
+
+-- Remove a player entry and emit player.left once.
+local function dropPlayer(name, why)
+  local p = Bus._players[name]
+  if not p then
+    return
+  end
+  Bus._players[name] = nil
+  if p.objId ~= nil and Bus._objNames[p.objId] == name then
+    Bus._objNames[p.objId] = nil
+  end
+  log().debug("Bus", "player.left %s from %s (%s)", tostring(p.playerName), name, why)
+  Bus.emit("player.left", { unit = name, group = p.group, groupId = p.groupId, playerName = p.playerName })
+end
+
 local function weaponName(e)
   if e.weapon then
     local n = call(e.weapon, "getTypeName")
@@ -248,7 +288,7 @@ end
 local function handleDeath(victim, killer)
   local cat = objCategory(victim)
   -- dead units may fail getCategory: fall back to cache by name
-  local name = nameOf(victim)
+  local name = nameOrCached(victim)
   if not name then
     return
   end
@@ -294,10 +334,10 @@ local function handleDeath(victim, killer)
   log().debug("Bus", "unit.dead %s (group %s)", name, tostring(payload.group))
   Bus.emit("unit.dead", payload)
 
-  local p = Bus._players[name]
-  if p then
-    Bus._players[name] = nil
-    Bus.emit("player.left", { unit = name, group = p.group, groupId = p.groupId, playerName = p.playerName })
+  local pl = Bus._players[name]
+  local vid = objIdOf(victim)
+  if pl and not (vid ~= nil and pl.objId ~= nil and vid ~= pl.objId) then
+    dropPlayer(name, "dead") -- a stale death of an older object with this name keeps the new player
   end
 
   local gname = payload.group
@@ -339,6 +379,18 @@ H[EV.S_EVENT_BIRTH] = function(e)
   Bus._deadAt[name] = nil
   local player = call(e.initiator, "getPlayerName")
   if player ~= nil then
+    -- Slot / coalition change: DCS fires the new unit's BIRTH before the old unit's
+    -- PLAYER_LEAVE_UNIT, so subscribers see player.spawned(new) then player.left(old). Entries are
+    -- keyed by unit name and the leave is checked against the object id, so the late leave only
+    -- closes the old unit (or is ignored when it belongs to an older object with this name).
+    local objId = objIdOf(e.initiator)
+    local prev = Bus._players[name]
+    if prev and prev.objId ~= nil and Bus._objNames[prev.objId] == name then
+      Bus._objNames[prev.objId] = nil
+    end
+    if objId ~= nil then
+      Bus._objNames[objId] = name
+    end
     local payload = {
       unit = name,
       group = info.group,
@@ -350,17 +402,30 @@ H[EV.S_EVENT_BIRTH] = function(e)
     Bus._players[name] = payload
     log().debug("Bus", "player.spawned %s in %s", tostring(player), name)
     Bus.emit("player.spawned", payload)
+    payload.objId = objId -- after emit: subscribers see the documented payload only
   end
 end
 
+-- The initiator may already be destroyed (getName fails): fall back to the object id map. A leave
+-- whose object id differs from the current entry's is a stale leave of an older object with the
+-- same unit name (re-slot into the same slot; BIRTH comes first) and is ignored.
 H[EV.S_EVENT_PLAYER_LEAVE_UNIT] = function(e)
-  local name = nameOf(e.initiator)
+  local name = nameOrCached(e.initiator)
   local p = name and Bus._players[name]
   if not p then
+    local id = objIdOf(e.initiator)
+    if id ~= nil then
+      Bus._objNames[id] = nil
+    end
     return
   end
-  Bus._players[name] = nil
-  Bus.emit("player.left", { unit = name, group = p.group, groupId = p.groupId, playerName = p.playerName })
+  local id = objIdOf(e.initiator)
+  if id ~= nil and p.objId ~= nil and id ~= p.objId then
+    Bus._objNames[id] = nil
+    log().debug("Bus", "stale PLAYER_LEAVE_UNIT for %s (object %s, current %s): ignored", name, tostring(id), tostring(p.objId))
+    return
+  end
+  dropPlayer(name, "leave")
 end
 
 H[EV.S_EVENT_HIT] = function(e)
@@ -405,6 +470,30 @@ H[EV.S_EVENT_KILL] = function(e)
   local killer = isUnit(e.initiator) and e.initiator or nil
   handleDeath(e.target, killer)
 end
+
+-- EJECTION / PILOT_DEAD: initiator is the aircraft unit (Hoggit; for EJECTION the seat or pilot
+-- is e.target). Emitted for every unit (player or AI) with player=<name|nil> from the live player
+-- map; the Director uses them to count a player death that arrives after player.left (slot leave
+-- while going down). PILOT_DEAD can precede EJECTION (mortally wounded player ejects), and a
+-- parachute removal can raise PILOT_DEAD minutes later.
+local function pilotEvent(name)
+  return function(e)
+    if not isUnit(e.initiator) then
+      return
+    end
+    local p, info = unitPayload(e.initiator)
+    if not p then
+      return
+    end
+    local pl = Bus._players[p.unit]
+    p.groupId = info and info.groupId
+    p.player = pl and pl.playerName or nil
+    log().debug("Bus", "%s %s (player %s)", name, p.unit, tostring(p.player))
+    Bus.emit(name, p)
+  end
+end
+H[EV.S_EVENT_EJECTION] = pilotEvent("unit.ejected")
+H[EV.S_EVENT_PILOT_DEAD] = pilotEvent("unit.pilot_dead")
 
 local function landing(name)
   return function(e)

@@ -1438,12 +1438,71 @@ function world.getAirbases()
   end
   return out
 end
+-- Like DCS (Hoggit getMarkPanels): lists markTo* panels AND drawn shapes (circleToAll, textToAll, ...),
+-- one entry {idx, time, initiator, coalition, groupID, text, pos}. Shapes drawn for all coalitions
+-- (-1) report coalition 255; a shape's pos is the average of its points; its text is the trailing
+-- message/text argument. Script-made entries carry initiator = nil (still [?] in
+-- dcs-scripting-gotchas.md); MOCK.addPlayerMark adds a player-made mark with an initiator.
+local function isPoint(v)
+  return type(v) == "table" and type(v.x) == "number" and type(v.z) == "number"
+end
+local function panelOf(id, m)
+  local a = m.args or {}
+  local e = { idx = id, time = m.t or 0, initiator = m.initiator, coalition = -1, groupID = -1 }
+  if m.kind == "player" then
+    e.text, e.pos, e.coalition, e.groupID = m.text or "", m.pos, m.coalition or -1, m.groupID or -1
+  elseif m.kind == "markToAll" then
+    e.text, e.pos = a[1], a[2]
+  elseif m.kind == "markToCoalition" then
+    e.text, e.pos, e.coalition = a[1], a[2], a[3] or -1
+  elseif m.kind == "markToGroup" then
+    e.text, e.pos, e.groupID = a[1], a[2], a[3] or -1
+  else
+    local sx, sy, sz, n, text = 0, 0, 0, 0, nil
+    for i = 1, (a.n or #a) do
+      local v = a[i]
+      if isPoint(v) then
+        sx, sy, sz, n = sx + v.x, sy + (v.y or 0), sz + v.z, n + 1
+      elseif type(v) == "string" then
+        text = v
+      end
+    end
+    if n > 0 then
+      e.pos = { x = sx / n, y = sy / n, z = sz / n }
+    end
+    e.text = text or ""
+    local c = m.coalition
+    e.coalition = (c == nil or c == -1) and 255 or c
+  end
+  return e
+end
 function world.getMarkPanels()
   local r = {}
   for id, m in pairs(M.marks) do
-    r[#r + 1] = { idx = id, text = m.args[1], pos = m.args[2] }
+    r[#r + 1] = panelOf(id, m)
   end
+  table.sort(r, function(a, b)
+    return a.idx < b.idx
+  end)
   return r
+end
+
+-- MOCK.addPlayerMark{idx=, text=, pos=, coalition=, groupID=, initiator=}: a player-made F10 mark
+-- (DCS gives these ids around 251,000,000+). initiator defaults to a non-nil placeholder table.
+function M.addPlayerMark(spec)
+  spec = spec or {}
+  local id = spec.idx or 251000000
+  M.marks[id] = {
+    kind = "player",
+    id = id,
+    text = spec.text,
+    pos = spec.pos or vec3(),
+    coalition = spec.coalition,
+    groupID = spec.groupID,
+    initiator = spec.initiator or { player = true },
+    t = M.time,
+  }
+  return id
 end
 
 -- MOCK.fireEvent{id = world.event.X | "BIRTH" | "S_EVENT_BIRTH", initiator=, target=, weapon=, ...}

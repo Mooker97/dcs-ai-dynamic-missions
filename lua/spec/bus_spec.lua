@@ -65,6 +65,52 @@ describe("DMS.Bus DCS events", function()
     assert.equals("Mav", left[1].playerName)
   end)
 
+  it("player.left on PLAYER_LEAVE_UNIT whose initiator is already destroyed (object id map)", function()
+    local left = collect("player.left")
+    local u = MOCK.spawnPlayer({ name = "Viper1-1", group = "Viper1", playerName = "Mav" })
+    local gone = { id_ = u.id_ } -- destroyed object: no methods left, getName fails
+    MOCK.fireEvent({ id = "PLAYER_LEAVE_UNIT", initiator = gone })
+    assert.equals(1, #left)
+    assert.equals("Viper1-1", left[1].unit)
+    assert.equals("Mav", left[1].playerName)
+    assert.is_nil(DMS.Bus._players["Viper1-1"])
+    assert.is_nil(DMS.Bus._objNames[u.id_], "object id map cleaned on leave")
+  end)
+
+  it("slot change: new BIRTH before old PLAYER_LEAVE_UNIT closes only the old unit", function()
+    local order = {}
+    DMS.Bus.on("player.spawned", function(p)
+      order[#order + 1] = "spawned " .. p.unit
+    end)
+    DMS.Bus.on("player.left", function(p)
+      order[#order + 1] = "left " .. p.unit
+    end)
+    local a = MOCK.spawnPlayer({ name = "Viper1-1", group = "Viper1", playerName = "Mav" })
+    MOCK.spawnPlayer({ name = "Viper2-1", group = "Viper2", playerName = "Mav" }) -- BIRTH first
+    MOCK.fireEvent({ id = "PLAYER_LEAVE_UNIT", initiator = a }) -- then the old leave
+    MOCK.fireEvent({ id = "PLAYER_LEAVE_UNIT", initiator = a }) -- duplicate leave: no-op
+    assert.same({ "spawned Viper1-1", "spawned Viper2-1", "left Viper1-1" }, order)
+    assert.is_nil(DMS.Bus._players["Viper1-1"])
+    assert.is_truthy(DMS.Bus._players["Viper2-1"])
+  end)
+
+  it("a stale leave or death of an older object with the same unit name keeps the new player", function()
+    local left = collect("player.left")
+    local old = MOCK.spawnPlayer({ name = "Viper1-1", group = "Viper1", playerName = "Mav" })
+    -- re-slot into the same slot: a new object (new id) with the same name is born first
+    local new = setmetatable({ id_ = old.id_ + 1000, name_ = "Viper1-1" }, getmetatable(old))
+    MOCK.units["Viper1-1"].obj = new -- the old object is now destroyed (its methods fail)
+    MOCK.fireEvent({ id = "BIRTH", initiator = new })
+    MOCK.fireEvent({ id = "PLAYER_LEAVE_UNIT", initiator = { id_ = old.id_ } })
+    assert.equals(0, #left, "stale leave ignored")
+    assert.is_truthy(DMS.Bus._players["Viper1-1"])
+    MOCK.fireEvent({ id = "DEAD", initiator = { id_ = old.id_ } })
+    assert.equals(0, #left, "stale death of the old object keeps the new player")
+    MOCK.fireEvent({ id = "PLAYER_LEAVE_UNIT", initiator = new })
+    assert.equals(1, #left)
+    assert.is_nil(DMS.Bus._players["Viper1-1"])
+  end)
+
   it("AI births do not emit player.spawned", function()
     local sp = collect("player.spawned")
     MOCK.addGroup({ name = "R", coalition = 1, count = 2 })
@@ -185,6 +231,20 @@ describe("DMS.Bus DCS events", function()
     assert.equals(7, ma[1].idx)
     assert.equals("tgt", ma[1].text)
     assert.equals(5, ma[1].groupId)
+  end)
+
+  it("EJECTION / PILOT_DEAD emit unit.ejected / unit.pilot_dead with the player name", function()
+    local ej, pd = collect("unit.ejected"), collect("unit.pilot_dead")
+    local u = MOCK.spawnPlayer({ name = "P-1", group = "P", playerName = "Mav" })
+    MOCK.fireEvent({ id = "EJECTION", initiator = u })
+    MOCK.fireEvent({ id = "PLAYER_LEAVE_UNIT", initiator = u })
+    MOCK.fireEvent({ id = "PILOT_DEAD", initiator = u })
+    assert.equals(1, #ej)
+    assert.equals("P-1", ej[1].unit)
+    assert.equals("P", ej[1].group)
+    assert.equals("Mav", ej[1].player)
+    assert.equals(1, #pd)
+    assert.is_nil(pd[1].player) -- already left the slot
   end)
 
   it("a player dying emits player.left once", function()

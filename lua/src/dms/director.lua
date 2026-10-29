@@ -26,6 +26,7 @@ Director.defaults = {
 }
 
 local SKILLS = { "Average", "Good", "High", "Excellent" }
+local SEVERITY = { BUILD_UP = 0, RELAX = 1, PEAK = 2 }
 
 local function settings()
   local c = (DMS_CONFIG and DMS_CONFIG.director) or {}
@@ -65,9 +66,11 @@ function Director.reset()
   Director._tokens = {}
   Director._flights = {} -- flight(group) -> state record
   Director._unitFlight = {} -- player unit name -> flight group
+  Director._recentLeft = {} -- unit name -> {flight, t}: player.left without a death yet (LEFT_GRACE_SEC)
   Director._spawns = {} -- timestamps (with cost) of recent spawns
   Director._level = 0
   Director._lastDamage = nil
+  Director._startT = nil
   Director._started = false
   Director._cfg = settings()
 end
@@ -77,8 +80,24 @@ end
 
 -- ---------------------------------------------------------------- flights
 
+-- units: live player units mapped to this flight. A flight with units == 0 is an orphan (its last
+-- player died, or it was created by addIntensity): it keeps pacing (a death still earns a breather)
+-- and tick() prunes it once it is back in BUILD_UP. player.left keeps it as an orphan for
+-- LEFT_GRACE_SEC: a unit.dead / unit.ejected / unit.pilot_dead for that unit inside the window still
+-- counts as a player death (DCS may send PLAYER_LEAVE_UNIT first when a player ejects or leaves the
+-- slot while going down). Without a death the flight is deleted when the window ends.
+Director.LEFT_GRACE_SEC = 10
 local function newFlight(name)
-  return { name = name, intensity = 0, state = Director.BUILD_UP, since = DMS.Clock.now(), relaxFor = 0 }
+  return { name = name, intensity = 0, state = Director.BUILD_UP, since = DMS.Clock.now(), relaxFor = 0, units = 0 }
+end
+
+local function sortedNames()
+  local out = {}
+  for name in pairs(Director._flights) do
+    out[#out + 1] = name
+  end
+  table.sort(out)
+  return out
 end
 
 local function flight(name)
@@ -93,35 +112,69 @@ local function flight(name)
   return f
 end
 
-function Director.addPlayer(unitName, groupName)
-  groupName = groupName or unitName
-  Director._unitFlight[unitName] = groupName
-  flight(groupName)
+-- removePlayer(unit, keepFlight?): drop the unit. When it was the flight's last unit the flight is
+-- deleted, or kept as an orphan when keepFlight (player death, or player.left during its
+-- LEFT_GRACE_SEC death window: pacing continues).
+function Director.removePlayer(unitName, keepFlight)
+  local g = unitName and Director._unitFlight[unitName]
+  if not g then
+    return
+  end
+  Director._unitFlight[unitName] = nil
+  local f = Director._flights[g]
+  if not f then
+    return
+  end
+  f.units = math.max(0, (f.units or 1) - 1)
+  if f.units == 0 then
+    if keepFlight then
+      DMS.Log.info(P, "Flight '%s' has no live players; kept until BUILD_UP (now %s)", g, f.state)
+    else
+      Director._flights[g] = nil
+      DMS.Log.info(P, "Flight '%s' removed (last player left during %s)", g, f.state)
+    end
+  end
 end
 
-function Director.removePlayer(unitName)
-  local g = Director._unitFlight[unitName]
-  Director._unitFlight[unitName] = nil
-  if g then
-    for _, gg in pairs(Director._unitFlight) do
-      if gg == g then
-        return
-      end
-    end
-    Director._flights[g] = nil
+function Director.addPlayer(unitName, groupName)
+  if not unitName then
+    return
   end
+  groupName = groupName or unitName
+  local old = Director._unitFlight[unitName]
+  if old == groupName and Director._flights[groupName] then
+    return -- duplicate BIRTH
+  end
+  if old then
+    Director.removePlayer(unitName)
+  end
+  local isNew = Director._flights[groupName] == nil
+  local f = flight(groupName)
+  Director._unitFlight[unitName] = groupName
+  f.units = (f.units or 0) + 1
+  f.leaving = nil
+  Director._recentLeft[unitName] = nil
+  DMS.Log.info(
+    P,
+    "Player unit '%s' joined flight '%s' (%s, %d unit(s))",
+    unitName,
+    groupName,
+    isNew and "new" or f.state,
+    f.units
+  )
 end
 
 local function setState(f, st)
   if f.state == st then
     return
   end
+  local from = f.state
   f.state = st
   f.since = DMS.Clock.now()
   if st == Director.RELAX then
     f.relaxFor = DMS.Rng.range(Director._cfg.relaxSec)
   end
-  DMS.Log.debug(P, "Flight '%s' state -> %s (intensity %.0f)", f.name, st, f.intensity)
+  DMS.Log.info(P, "Flight '%s' %s -> %s (intensity %.0f)", f.name, from, st, f.intensity)
   DMS.Bus.emit("director.state", { flight = f.name, state = st, intensity = f.intensity })
 end
 
@@ -131,8 +184,8 @@ function Director.addIntensity(flightName, amount, why)
     return
   end
   local c = Director._cfg
-  f.intensity = math.max(0, math.min(c.maxIntensity, f.intensity + amount))
-  DMS.Log.debug(P, "Flight '%s' +%.0f intensity (%s) = %.0f", f.name, amount, tostring(why), f.intensity)
+  f.intensity = math.max(0, math.min(c.maxIntensity, f.intensity + (tonumber(amount) or 0)))
+  DMS.Log.debug(P, "Flight '%s' +%.0f intensity (%s) = %.0f", f.name, tonumber(amount) or 0, tostring(why), f.intensity)
   if f.state == Director.BUILD_UP and f.intensity >= c.peak then
     setState(f, Director.PEAK)
   end
@@ -166,30 +219,40 @@ end
 
 -- ---------------------------------------------------------------- adapt
 
+-- Clamp from config adapt {min, max} (default -1/+1 tier). min is never above 0, max never below 0.
 local function clampLevel(x)
-  local a = Director._cfg.adapt or { min = -1, max = 1 }
-  return math.max(a.min or -1, math.min(a.max or 1, x))
+  local a = Director._cfg.adapt or {}
+  local lo, hi = tonumber(a.min) or -1, tonumber(a.max) or 1
+  if lo > 0 then
+    lo = 0
+  end
+  if hi < 0 then
+    hi = 0
+  end
+  return math.max(lo, math.min(hi, x))
+end
+
+local function tierOf(l)
+  if l >= 0 then
+    return math.floor(l + 0.5)
+  end
+  return -math.floor(-l + 0.5)
 end
 
 function Director.adapt(delta, why)
   local before = Director._level
-  Director._level = clampLevel(Director._level + (delta or 0))
+  Director._level = clampLevel(Director._level + (tonumber(delta) or 0))
   if Director._level ~= before then
     DMS.Log.debug(P, "Difficulty %.2f -> %.2f (%s)", before, Director._level, tostring(why))
+    if tierOf(before) ~= tierOf(Director._level) then
+      DMS.Log.info(P, "Difficulty tier %d -> %d (%s)", tierOf(before), tierOf(Director._level), tostring(why))
+    end
   end
   return Director._level
 end
 
 function Director.level()
   return Director._level
-end
-
-local function tier()
-  local l = Director._level
-  if l >= 0 then
-    return math.floor(l + 0.5)
-  end
-  return -math.floor(-l + 0.5)
 end
 
 -- Skill of NEW spawns, shifted by the rounded difficulty level.
@@ -206,7 +269,7 @@ function Director.skillFor(skill)
   if not idx then
     return skill
   end
-  idx = math.max(1, math.min(#SKILLS, idx + tier()))
+  idx = math.max(1, math.min(#SKILLS, idx + tierOf(Director._level)))
   return SKILLS[idx]
 end
 
@@ -221,6 +284,9 @@ end
 
 -- Reaction delay scaling (e.g. SAM go-hot delay): harder => faster.
 function Director.scaleDelay(sec)
+  if not sec then
+    return sec
+  end
   return math.max(0, sec * (1 - 0.25 * Director._level))
 end
 
@@ -231,10 +297,16 @@ function Director.state(flightName)
     local f = Director._flights[flightName]
     return f and f.state or Director.BUILD_UP
   end
-  -- aggregate: state of the most intense flight
+  -- aggregate: state of the most intense flight; ties go to the more restrictive state
+  -- (PEAK > RELAX > BUILD_UP), then name order, so the answer never depends on pairs() order.
   local best
-  for _, f in pairs(Director._flights) do
-    if not best or f.intensity > best.intensity then
+  for _, name in ipairs(sortedNames()) do
+    local f = Director._flights[name]
+    if
+      not best
+      or f.intensity > best.intensity
+      or (f.intensity == best.intensity and SEVERITY[f.state] > SEVERITY[best.state])
+    then
       best = f
     end
   end
@@ -254,12 +326,7 @@ function Director.intensity(flightName)
 end
 
 function Director.flights()
-  local out = {}
-  for name in pairs(Director._flights) do
-    out[#out + 1] = name
-  end
-  table.sort(out)
-  return out
+  return sortedNames()
 end
 
 local function spawnsInLastMinute()
@@ -280,10 +347,13 @@ function Director.spawnBudget()
 end
 
 -- canSpawn(cost, flight?) -> bool, reason
+-- The budget is a rolling 60 s window of noted spawn costs. With an empty window one spawn is always
+-- allowed, so an encounter whose cost exceeds the whole budget is throttled, never starved.
 function Director.canSpawn(cost, flightName)
-  cost = cost or 1
+  cost = tonumber(cost) or 1
   local c = Director._cfg
-  if spawnsInLastMinute() + cost > Director.spawnBudget() then
+  local used = spawnsInLastMinute()
+  if used > 0 and used + cost > Director.spawnBudget() then
     return false, "budget"
   end
   if c.enabled == false then
@@ -297,7 +367,7 @@ function Director.canSpawn(cost, flightName)
 end
 
 function Director.noteSpawn(cost)
-  Director._spawns[#Director._spawns + 1] = { t = DMS.Clock.now(), cost = cost or 1 }
+  Director._spawns[#Director._spawns + 1] = { t = DMS.Clock.now(), cost = tonumber(cost) or 1 }
 end
 
 -- ---------------------------------------------------------------- loop
@@ -306,7 +376,24 @@ function Director.tick(dt)
   dt = dt or 1
   local c = Director._cfg
   local now = DMS.Clock.now()
-  for _, f in pairs(Director._flights) do
+  local expired = {}
+  for unitName, r in pairs(Director._recentLeft) do
+    if now - r.t >= Director.LEFT_GRACE_SEC then
+      expired[#expired + 1] = unitName
+    end
+  end
+  table.sort(expired)
+  for _, unitName in ipairs(expired) do
+    local r = Director._recentLeft[unitName]
+    Director._recentLeft[unitName] = nil
+    local f = Director._flights[r.flight]
+    if f and (f.units or 0) == 0 and not f.died then
+      Director._flights[r.flight] = nil
+      DMS.Log.info(P, "Flight '%s' removed (last player left during %s, no death)", r.flight, f.state)
+    end
+  end
+  for _, name in ipairs(sortedNames()) do
+    local f = Director._flights[name]
     f.intensity = math.max(0, f.intensity - c.decayPerSec * dt)
     if f.state == Director.BUILD_UP then
       if f.intensity >= c.peak then
@@ -321,14 +408,21 @@ function Director.tick(dt)
         setState(f, Director.BUILD_UP)
       end
     end
+    if (f.units or 0) == 0 and f.state == Director.BUILD_UP and not f.leaving then
+      Director._flights[name] = nil
+      DMS.Log.info(P, "Flight '%s' pruned (no live players, back in BUILD_UP)", name)
+    end
   end
-  -- calm bonus: long stretch without player damage nudges difficulty up
-  if next(Director._flights) then
+  -- calm bonus: a long stretch with players aboard and no player damage nudges difficulty up.
+  -- The calm clock only runs while a player unit is live (nothing is banked while nobody flies).
+  if next(Director._unitFlight) then
     local last = Director._lastDamage or Director._startT or now
     if now - last >= (c.calmSec or 300) then
       Director._lastDamage = now
       Director.adapt(Director.defaults.adaptStep.calmBonus, "calm")
     end
+  else
+    Director._lastDamage = now
   end
 end
 
@@ -351,14 +445,64 @@ function Director.start()
   local pc = playersCoalition()
   local step = Director.defaults.adaptStep
 
+  on("spawner.spawned", function(ev)
+    Director.noteSpawn(ev.cost)
+  end)
+  if c.enabled == false then
+    -- passthrough: only the spawn budget applies; no flights, no pacing, no difficulty adaptation
+    DMS.Log.info(P, "Started disabled (spawn budget only, spawnsPerMin=%s)", tostring(c.spawnsPerMin))
+    return
+  end
+
   on("player.spawned", function(ev)
     Director.addPlayer(ev.unit, ev.group)
   end)
   on("player.left", function(ev)
-    Director.removePlayer(ev.unit)
+    local g = ev.unit and Director._unitFlight[ev.unit]
+    if not g then
+      return -- already unmapped (unit.dead ran first) or unknown
+    end
+    Director.removePlayer(ev.unit, true)
+    local f = Director._flights[g]
+    if f and (f.units or 0) == 0 then
+      f.leaving = true
+      f.died = nil
+    end
+    Director._recentLeft[ev.unit] = { flight = g, t = DMS.Clock.now() }
+    DMS.Log.debug(P, "Player unit '%s' left flight '%s'; watching %ss for its death", ev.unit, g, Director.LEFT_GRACE_SEC)
   end)
-  on("spawner.spawned", function(ev)
-    Director.noteSpawn(ev.cost)
+
+  -- a player death: the unit is still mapped, or it left (player.left) within LEFT_GRACE_SEC.
+  local function playerDeath(unitName, why)
+    local g = unitName and Director._unitFlight[unitName]
+    local r = unitName and Director._recentLeft[unitName]
+    if not g and r and DMS.Clock.now() - r.t < Director.LEFT_GRACE_SEC then
+      g = r.flight
+    end
+    if not g then
+      return false
+    end
+    Director._recentLeft[unitName] = nil
+    Director.addIntensity(g, c.gain.playerDead, "player dead")
+    Director.adapt(step.playerDead, "player dead")
+    Director._lastDamage = DMS.Clock.now()
+    -- keep the flight: a death earns a breather, and a respawn into the same group resumes it.
+    -- The bus emits player.left right after unit.dead; the unit is already unmapped, so that is a no-op.
+    Director.removePlayer(unitName, true)
+    local f = Director._flights[g]
+    if f then
+      f.leaving = nil
+      f.died = true
+    end
+    DMS.Log.info(P, "Player death in flight '%s' (%s, unit %s)", g, why, unitName)
+    return true
+  end
+
+  on("unit.ejected", function(ev)
+    playerDeath(ev.unit, "ejected")
+  end)
+  on("unit.pilot_dead", function(ev)
+    playerDeath(ev.unit, "pilot dead")
   end)
 
   on("unit.hit", function(ev)
@@ -395,12 +539,7 @@ function Director.start()
     if ambient(ev.group) then
       return -- friendly base traffic (DMS.Ambient) never moves pacing
     end
-    local g = Director._unitFlight[ev.unit]
-    if g then
-      Director.addIntensity(g, c.gain.playerDead, "player dead")
-      Director.adapt(step.playerDead, "player dead")
-      Director._lastDamage = DMS.Clock.now()
-      Director.removePlayer(ev.unit)
+    if playerDeath(ev.unit, "unit dead") then
       return
     end
     for fg in pairs(flightsNear(ev.pos, c.nearM)) do
@@ -416,9 +555,10 @@ function Director.start()
   end)
   DMS.Log.info(
     P,
-    "Started (enabled=%s peak=%s spawnsPerMin=%s)",
-    tostring(c.enabled ~= false),
+    "Started (peak=%s spawnsPerMin=%s adapt=[%s, %s])",
     tostring(c.peak),
-    tostring(c.spawnsPerMin)
+    tostring(c.spawnsPerMin),
+    tostring(c.adapt and c.adapt.min),
+    tostring(c.adapt and c.adapt.max)
   )
 end

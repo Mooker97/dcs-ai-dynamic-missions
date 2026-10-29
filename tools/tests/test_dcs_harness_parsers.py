@@ -3,12 +3,33 @@
 from __future__ import annotations
 
 import importlib.util
+import re
 import sys
 from pathlib import Path
 from types import ModuleType
 from typing import Any
 
 SCRIPT = Path(__file__).resolve().parents[1] / "dcs_harness" / "run_mission.py"
+LUA_SRC = Path(__file__).resolve().parents[2] / "lua" / "src" / "dms"
+
+
+def _lua_fmt(module: str, start: str) -> str:
+    """The string.format pattern in lua/src/dms/<module>.lua that starts with ``start``.
+
+    Fixtures are rendered from the real runtime format strings (Lua %d/%s/%.Nf behave like
+    Python's %), so a format change in the runtime breaks these tests instead of passing them.
+    """
+    src = (LUA_SRC / f"{module}.lua").read_text(encoding="utf-8")
+    found = re.findall(r'"(' + re.escape(start) + r'[^"]*)"', src)
+    assert found, f"{module}.lua: no format string starting with {start!r}"
+    return found[0]
+
+
+PLAY_FMT = _lua_fmt("comms", "PLAY n=")
+MARK_ADD_FMT = _lua_fmt("intel", "MARK add id=")
+MARK_REMOVE_FMT = _lua_fmt("intel", "MARK remove id=")
+MARK_FAILED_FMT = _lua_fmt("intel", "MARK add failed id=")
+LUA_MARKS_FMT = _lua_fmt("test", "added=%d removed=")
 
 
 def _load() -> ModuleType:
@@ -165,3 +186,144 @@ def test_scan_for_crash_log_reset_and_missing(tmp_path: Path) -> None:
     assert line is not None
     line, pos = rm.scan_for_crash(tmp_path / "missing.log", 123)
     assert line is None and pos == 123
+
+
+# ---------------------------------------------------------------- harness log checks
+
+
+def _dms(msg: str) -> str:
+    return f"{TS} INFO    SCRIPTING (Main): {msg}\n"
+
+
+def _mark_add(mid: int, kind: str = "text") -> str:
+    msg = MARK_ADD_FMT % (
+        mid,
+        kind,
+        "2",
+        1000.0,
+        -2000.0,
+        "-",
+        12.5,
+        "contact:SAM1",
+        "Enemy: Osa x2",
+    )
+    return _dms("[DMS][Intel] " + msg)
+
+
+def _mark_remove(mid: int) -> str:
+    return _dms("[DMS][Intel] " + MARK_REMOVE_FMT % (mid, "text", 40.0, "destroyed"))
+
+
+def _mark_failed(mid: int) -> str:
+    msg = "[DMS][Intel] " + MARK_FAILED_FMT % (mid, "text", "boom")
+    return f"{TS} ERROR   SCRIPTING (Main): {msg}\n"
+
+
+def _lua_marks(added: int, removed: int, live: int, failed: int = 0) -> str:
+    detail = LUA_MARKS_FMT % (added, removed, live, failed)
+    return _dms(f"[DMS.TEST] PASS f10_marks {detail} getMarkPanels text 1/1")
+
+
+_play_n = 0
+
+
+def _tx(t: float, dur: float, line: str = "ops_v1") -> str:
+    global _play_n
+    _play_n += 1
+    msg = PLAY_FMT % (_play_n, line, "ops", "radio", "x.ogg", t, t + dur, 1)
+    return _dms("[DMS][Comms] " + msg)
+
+
+def _checks(tmp_path: Path, body: str) -> dict[str, dict[str, str]]:
+    rep = _report()
+    rm.parse_log(_write(tmp_path, CLEAN_LOG + body), rep)
+    return {c["name"]: c for c in rep.log_checks}
+
+
+def test_fixture_formats_match_harness_regexes() -> None:
+    assert rm.PLAY_RE.search(_tx(1, 2))
+    assert rm.MARK_RE.search(_mark_add(1)) and rm.MARK_RE.search(_mark_remove(1))
+    assert rm.MARK_FAILED_RE.search(_mark_failed(1))
+    assert rm.LUA_MARKS_RE.search(_lua_marks(1, 0, 1))
+    kv = rm._kv(rm.PLAY_RE.search(_tx(3, 4.5, "l1"))[1])
+    assert (kv["start"], kv["end"], kv["line"]) == ("3.00", "7.50", "l1")
+
+
+def test_log_marks_consistent(tmp_path: Path) -> None:
+    body = _mark_add(50000, "circle") + _mark_add(50001) + _mark_remove(50000) + _mark_add(50002)
+    c = _checks(tmp_path, body)["log_marks"]
+    assert c["status"] == "PASS"
+    assert c["detail"] == (
+        "adds=3 removes=1 live_at_end=2 peak=2 (informational: no Lua marks check line)"
+    )
+
+
+def test_log_marks_fails_on_readded_live_id_and_failed_call(tmp_path: Path) -> None:
+    body = _mark_add(50000) + _mark_add(50000) + _mark_failed(50001)
+    rep = _report()
+    rm.parse_log(_write(tmp_path, CLEAN_LOG + body), rep)
+    c = {x["name"]: x for x in rep.log_checks}["log_marks"]
+    assert c["status"] == "FAIL"
+    assert "id 50000 added while live" in c["detail"]
+    assert "1 mark call(s) failed" in c["detail"]
+    assert rm.verdict(rep) == 1
+
+
+def test_log_marks_fails_on_remove_of_unknown_id(tmp_path: Path) -> None:
+    c = _checks(tmp_path, _mark_add(50000) + _mark_remove(50007))["log_marks"]
+    assert c["status"] == "FAIL", c
+    assert "1 remove(s) of never-added id(s): 50007" in c["detail"]
+
+
+def test_log_marks_matches_lua_marks_check(tmp_path: Path) -> None:
+    body = _mark_add(50000) + _mark_add(50001) + _mark_remove(50000) + _lua_marks(2, 1, 1)
+    body += _mark_remove(50001)  # Intel.stop after DONE: not part of the comparison
+    c = _checks(tmp_path, body)["log_marks"]
+    assert c["status"] == "PASS", c
+    assert c["detail"].endswith("matches Lua marks check")
+    bad = _checks(tmp_path, _mark_add(50000) + _lua_marks(3, 0, 3))["log_marks"]
+    assert bad["status"] == "FAIL", bad
+    assert "disagrees with Lua marks check (added=3 removed=0 live=3 failed=0)" in bad["detail"]
+
+
+def test_log_marks_skip_when_debug_off(tmp_path: Path) -> None:
+    c = _checks(tmp_path, _lua_marks(4, 1, 3))["log_marks"]
+    assert c["status"] == "SKIP", c
+
+
+def test_log_marks_info_without_lines(tmp_path: Path) -> None:
+    c = _checks(tmp_path, "")["log_marks"]
+    assert c["status"] == "INFO"
+
+
+def test_log_comms_overlap(tmp_path: Path) -> None:
+    # gap 0.75 - tol 0.05: next start must be >= prev end + 0.70
+    ok = _checks(tmp_path, _tx(10, 5) + _tx(15.75, 3) + _tx(30, 2))["log_comms_overlap"]
+    assert ok["status"] == "PASS", ok
+    assert ok["detail"] == "3 timed PLAY line(s), no overlap"
+    bad = _checks(tmp_path, _tx(10, 5, "a") + _tx(12, 3, "b"))["log_comms_overlap"]
+    assert bad["status"] == "FAIL"
+    assert "a@10.0+5.0 overlaps b@12.0" in bad["detail"]
+    # back-to-back without the radio gap is a FAIL too
+    tight = _checks(tmp_path, _tx(10, 5, "a") + _tx(15.2, 3, "b"))["log_comms_overlap"]
+    assert tight["status"] == "FAIL", tight
+    # the debug TX text line alone is not timing
+    info = _checks(tmp_path, _dms("[DMS][Comms] TX 'Dusty, Ops'"))["log_comms_overlap"]
+    assert info["status"] == "INFO"
+
+
+def test_log_comms_overlap_skips_untimed_play(tmp_path: Path) -> None:
+    # format drift guard: a PLAY line that lost start=/end= SKIPs instead of passing
+    body = _dms("[DMS][Comms] PLAY n=1 line=ops_v1 speaker=ops via=text file=-")
+    c = _checks(tmp_path, body)["log_comms_overlap"]
+    assert c["status"] == "SKIP"
+    rep = _report()
+    rm.parse_log(_write(tmp_path, CLEAN_LOG + body), rep)
+    assert rm.verdict(rep) == 0
+
+
+def test_log_checks_can_be_disabled(tmp_path: Path) -> None:
+    rep = _report()
+    rm.parse_log(_write(tmp_path, CLEAN_LOG + _mark_add(1) + _mark_add(1)), rep, log_checks=False)
+    assert rep.log_checks == []
+    assert rm.verdict(rep) == 0

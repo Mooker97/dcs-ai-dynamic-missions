@@ -165,6 +165,35 @@ describe("Encounters", function()
     assert.truthy(t1 > 0)
   end)
 
+  it("telegraphed waves warn before each wave spawns", function()
+    boot({
+      {
+        id = "push",
+        kind = "waves",
+        pool = "btr",
+        waves = 2,
+        gapSec = { 120, 120 },
+        telegraph = "beat:massing",
+        telegraphSec = { 30, 30 },
+        trigger = { type = "beat", beat = "go" },
+      },
+    })
+    local waves = capture("encounter.wave")
+    local requests = capture("beat.request")
+    player("Viper1", -50000, 0)
+    DMS.Bus.emit("beat.fired", { id = "go" })
+    assert.are.equal(1, #requests)
+    assert.are.equal("massing", requests[1].id)
+    assert.are.equal(0, #waves)
+    MOCK.advance(31)
+    assert.are.equal(1, #waves)
+    MOCK.advance(121)
+    assert.are.equal(2, #requests)
+    assert.are.equal(1, #waves)
+    MOCK.advance(31)
+    assert.are.equal(2, #waves)
+  end)
+
   it("director-deferred waves eventually spawn after maxDeferSec", function()
     boot({
       {
@@ -275,6 +304,151 @@ describe("Encounters", function()
     MOCK.advance(31)
     cmds = Group.getByName("Convoy1"):getController().commands
     assert.is_false(cmds[#cmds].params.value)
+  end)
+
+  it("pool launches never overspend the director budget (150 seeds)", function()
+    -- every launch is checked for cost * groups; a launch with earlier spawns still in the 60 s window
+    -- must fit the budget (an empty window may admit one oversized launch: throttled, never starved)
+    local encs = {
+      { id = "p1", kind = "pool", pool = "big", once = false, maxDeferSec = 1e9 },
+      { id = "p2", kind = "pool", pool = "btr", once = false, cost = 2, maxDeferSec = 1e9 },
+      { id = "w1", kind = "waves", pool = "big", waves = { 2, 4 }, gapSec = { 5, 40 }, once = false, maxDeferSec = 1e9 },
+      { id = "t1", kind = "pool", template = "sa8", zone = "ridge", once = false, cost = 2, maxDeferSec = 1e9 },
+    }
+    local ids = { "p1", "p2", "w1", "t1" }
+    local launches, oversized, bad = 0, 0, {}
+    for seed = 1, 150 do
+      DMS.Bus.uninstall()
+      MOCK.reset()
+      DMS.Bus.install()
+      boot(encs, function(c)
+        c.seed = seed
+        c.budgets.spawnsPerMin = 2 + seed % 4
+        c.budgets.maxActiveGround = 100000
+        c.pools.big = { members = { { tpl = "sa8" }, { tpl = "btr" } }, pick = { 1, 1 + seed % 4 }, zones = { "ridge" } }
+      end)
+      local costs = {} -- group -> cost noted by the director
+      local hist = {} -- {t, cost} per launch, in order
+      -- bus handlers outlive MOCK.reset: drop this seed's listeners at the end of the seed
+      local t1 = DMS.Bus.on("spawner.spawned", function(ev)
+        costs[ev.group] = ev.cost
+      end)
+      local t2 = DMS.Bus.on("encounter.spawned", function(ev)
+        local c = 0
+        for _, g in ipairs(ev.groups) do
+          c = c + (costs[g] or 1)
+        end
+        local now, prior = DMS.Clock.now(), 0
+        for _, h in ipairs(hist) do
+          if now - h.t < 60 then
+            prior = prior + h.cost
+          end
+        end
+        local budget = DMS.Director.spawnBudget()
+        if prior > 0 then
+          -- recorded, asserted after the run (bus handlers swallow errors)
+          if prior + c > budget + 1e-9 then
+            bad[#bad + 1] = string.format("seed %d %s: %s + %s > budget %s", seed, ev.id, prior, c, budget)
+          end
+        elseif c > budget then
+          oversized = oversized + 1
+        end
+        hist[#hist + 1] = { t = now, cost = c }
+        launches = launches + 1
+      end)
+      local r = seed * 7919
+      for _ = 1, 40 do
+        r = (r * 1103515245 + 12345) % 2147483648
+        DMS.Encounters.trigger(ids[1 + r % #ids], true)
+        MOCK.advance(5 + r % 20)
+      end
+      MOCK.advance(600)
+      DMS.Bus.off(t1)
+      DMS.Bus.off(t2)
+      assert.are.equal(0, #MOCK.rawErrors, "raw errors at seed " .. seed)
+    end
+    assert.are.equal(0, #bad, bad[1])
+    assert.truthy(launches > 3000, "too few launches: " .. launches)
+    print(string.format("launches %d, oversized-on-empty-window %d", launches, oversized))
+  end)
+
+  it("director gate uses the flight nearest the encounter, not the busiest one", function()
+    local function run(peakFlight)
+      DMS.Bus.uninstall()
+      MOCK.reset()
+      DMS.Bus.install()
+      boot({ { id = "near", kind = "pool", pool = "aaa", trigger = { type = "time", afterSec = 1 } } })
+      local flights = {}
+      local real = DMS.Director.canSpawn
+      DMS.Director.canSpawn = function(cost, flight)
+        flights[#flights + 1] = flight or "nil"
+        return real(cost, flight)
+      end
+      local spawned = capture("encounter.spawned")
+      player("Viper1", 30000, 0) -- ~10 km from the ridge pool zone
+      player("Viper2", -60000, 0) -- far away
+      for _ = 1, 3 do
+        hitPlayer(peakFlight)
+      end
+      assert.are.equal("PEAK", DMS.Director.state(peakFlight))
+      assert.are.equal("PEAK", DMS.Director.state()) -- aggregate is PEAK either way
+      MOCK.advance(3)
+      DMS.Director.canSpawn = real
+      return #spawned, flights[1]
+    end
+    local n, f = run("Viper2") -- the distant flight is busy: the near one is calm, spawn now
+    assert.are.equal(1, n)
+    assert.are.equal("Viper1", f)
+    n, f = run("Viper1") -- the near flight is busy: deferred
+    assert.are.equal(0, n)
+    assert.are.equal("Viper1", f)
+  end)
+
+  it("proximity encounters gate on the triggering flight; nil when no flight is tracked", function()
+    DMS.Bus.uninstall()
+    MOCK.reset()
+    DMS.Bus.install()
+    -- spawn zone near Viper2, but Viper1 trips the proximity trigger
+    boot({
+      {
+        id = "prox",
+        kind = "pool",
+        pool = "btr",
+        spawnZone = "valley",
+        trigger = { type = "proximity", point = { x = 0, y = 60000 }, radiusM = 5000, checkSec = 2 },
+      },
+    })
+    local flights = {}
+    local real = DMS.Director.canSpawn
+    DMS.Director.canSpawn = function(cost, flight)
+      flights[#flights + 1] = flight or "nil"
+      return real(cost, flight)
+    end
+    local spawned = capture("encounter.spawned")
+    local mv1 = player("Viper1", 0, 0)
+    player("Viper2", 22000, 32000) -- ~10 km from the valley spawn zone
+    for _ = 1, 3 do
+      hitPlayer("Viper1")
+    end
+    mv1(0, 60000)
+    MOCK.advance(5)
+    assert.are.equal("Viper1", flights[1])
+    assert.are.equal(0, #spawned) -- Viper1 is in PEAK, Viper2 (nearest the spawn zone) is not
+    DMS.Director.canSpawn = real
+
+    -- no players tracked: the director gets nil and gates on the aggregate
+    DMS.Bus.uninstall()
+    MOCK.reset()
+    DMS.Bus.install()
+    boot({ { id = "lone", kind = "pool", pool = "aaa", trigger = { type = "time", afterSec = 1 } } })
+    flights = {}
+    DMS.Director.canSpawn = function(cost, flight)
+      flights[#flights + 1] = flight or "nil"
+      return real(cost, flight)
+    end
+    MOCK.advance(3)
+    DMS.Director.canSpawn = real
+    assert.are.equal("nil", flights[1])
   end)
 
   it("runs 200 random seeds of a full scenario without errors", function()

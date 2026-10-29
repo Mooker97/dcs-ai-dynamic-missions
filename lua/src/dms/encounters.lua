@@ -183,6 +183,9 @@ local function spawnFor(st, opts)
   local def = st.def
   opts = opts or {}
   opts.encounter = def.id
+  if opts.cost == nil then
+    opts.cost = def.cost -- per group (spawner.spawned{cost}); nil -> spawner default 1
+  end
   local groups
   if def.pool then
     groups = DMS.Spawner.spawnPool(def.pool, opts)
@@ -236,15 +239,101 @@ local function startHunts(st, groups)
   end
 end
 
+-- ---------------------------------------------------------------- director gate
+
+-- name if the director currently tracks it as a player flight, else nil
+local function trackedFlight(name)
+  if not name or not (DMS.Director and DMS.Director.flights) then
+    return nil
+  end
+  for _, f in ipairs(DMS.Director.flights()) do
+    if f == name then
+      return name
+    end
+  end
+  return nil
+end
+
+local function zonePoint(id)
+  local z = id and DMS.Spawner.getZone(id)
+  return z and DMS.Spawner.zoneCenter(z) or nil
+end
+
+-- Where the encounter happens, for picking the flight it concerns:
+-- spawnZone, trigger point, trigger zone, zone, point, first pool zone.
+function Enc.anchorPoint(def)
+  local t = def.trigger or {}
+  local p = zonePoint(def.spawnZone)
+  if p then
+    return p
+  end
+  if type(t.point) == "table" then
+    return v2(t.point)
+  end
+  p = zonePoint(t.zone) or zonePoint(def.zone)
+  if p then
+    return p
+  end
+  if type(def.point) == "table" then
+    return v2(def.point)
+  end
+  local pool = def.pool and (cfg().pools or {})[def.pool]
+  if pool and pool.zones and pool.zones[1] then
+    return zonePoint(pool.zones[1])
+  end
+  return nil
+end
+
+-- Tracked player flight nearest the encounter anchor, or nil.
+function Enc.nearestFlight(def)
+  local anchor = Enc.anchorPoint(def)
+  if not anchor then
+    return nil
+  end
+  local pc = playersCoalition()
+  local best, bestD
+  for _, pl in ipairs(DMS.Spawner.playerUnits()) do
+    if pl.coalition == pc and pl.pos then
+      local gname
+      pcall(function()
+        gname = pl.unit:getGroup():getName()
+      end)
+      if trackedFlight(gname) then
+        local d = d2(anchor, v2(pl.pos))
+        if not bestD or d < bestD then
+          best, bestD = gname, d
+        end
+      end
+    end
+  end
+  return best
+end
+
+-- Flight passed to Director.canSpawn: the triggering flight if still tracked, else the nearest
+-- tracked flight to the encounter, else nil (the director then gates on the busiest flight).
+function Enc.gateFlight(st)
+  return trackedFlight(st.triggerFlight) or Enc.nearestFlight(st.def)
+end
+
 -- Spawn now if the director allows, otherwise retry until allowed or maxDeferSec elapsed.
 -- gate (optional): {strict = bool, maxDeferSec = n, onDrop = fn(why)}. Non-strict spawns anyway once
 -- maxDeferSec has passed; strict drops the spawn instead (the director budget is never exceeded).
+-- Pool launches roll their group count once up front (kept across retries) and ask the director for
+-- cost * count, since every spawned group notes its cost.
 local function gatedSpawn(st, opts, after, gate)
   local def = st.def
   gate = gate or {}
   local gated = def.gated ~= false and DMS.Director and DMS.Director.canSpawn
   local started = DMS.Clock.now()
   local maxDefer = gate.maxDeferSec or def.maxDeferSec or Enc.defaults.maxDeferSec
+  local count = 1
+  if def.pool then
+    if opts.count == nil and gated then
+      opts.count = DMS.Spawner.poolCount(def.pool)
+    end
+    count = opts.count or 1
+  end
+  local cost = (opts.cost or def.cost or 1) * count
   st.pending = st.pending + 1
   local function attempt()
     if st.stopped then
@@ -252,10 +341,18 @@ local function gatedSpawn(st, opts, after, gate)
       return
     end
     if gated then
-      local ok, why = DMS.Director.canSpawn(def.cost or 1)
+      local flight = Enc.gateFlight(st)
+      local ok, why = DMS.Director.canSpawn(cost, flight)
       if not ok then
         if DMS.Clock.now() - started < maxDefer then
-          DMS.Log.debug(P, "Encounter '%s' deferred by director (%s)", def.id, tostring(why))
+          DMS.Log.debug(
+            P,
+            "Encounter '%s' deferred by director (%s, cost %s, flight %s)",
+            def.id,
+            tostring(why),
+            tostring(cost),
+            tostring(flight or "-")
+          )
           addTimer(st, DMS.Clock.after(def.gateRetrySec or Enc.defaults.gateRetrySec, attempt))
           return
         end
@@ -287,6 +384,7 @@ end
 -- ---------------------------------------------------------------- kinds
 
 local KIND = {}
+local telegraph -- forward declaration (defined below the waves kind)
 
 KIND.pool = function(st)
   gatedSpawn(st, { zone = zoneOpt(st.def) }, function(groups)
@@ -314,21 +412,37 @@ KIND.waves = function(st)
     wave = wave + 1
     st.pending = st.pending - 1
     DMS.Log.info(P, "Encounter '%s' wave %d/%d", def.id, wave, n)
-    gatedSpawn(st, { zone = zoneOpt(def) }, function(groups)
-      if def.hunt then
-        startHunts(st, groups)
+    local function launch()
+      if st.stopped then
+        return
       end
-      DMS.Bus.emit("encounter.wave", { id = def.id, encounter = def.id, wave = wave, of = n, groups = groups })
-      if wave < n then
-        addTimer(st, DMS.Clock.after(DMS.Rng.range(def.gapSec or { 120, 240 }), nextWave))
+      gatedSpawn(st, { zone = zoneOpt(def) }, function(groups)
+        if def.hunt then
+          startHunts(st, groups)
+        end
+        DMS.Bus.emit("encounter.wave", { id = def.id, encounter = def.id, wave = wave, of = n, groups = groups })
+        if wave < n then
+          addTimer(st, DMS.Clock.after(DMS.Rng.range(def.gapSec or { 120, 240 }), nextWave))
+        end
+      end)
+    end
+    -- telegraph each wave before it spawns, so the player gets the warning before contact
+    if def.telegraph then
+      telegraph(st, {})
+      local delay = DMS.Rng.range(def.telegraphSec or Enc.defaults.telegraphSec)
+      if DMS.Director and DMS.Director.scaleDelay then
+        delay = DMS.Director.scaleDelay(delay)
       end
-    end)
+      addTimer(st, DMS.Clock.after(delay, launch))
+    else
+      launch()
+    end
   end
   nextWave()
 end
 
 -- telegraph spec: "beat:<id>" -> emits beat.request {id}; "event:<name>" or "<name>" -> emits <name>
-local function telegraph(st, groups)
+telegraph = function(st, groups)
   local def = st.def
   local t = def.telegraph
   if not t then
@@ -875,6 +989,8 @@ capLaunch = function(st, isReplacement)
     if #groups == 0 then
       DMS.Log.info(P, "CAP '%s': launch produced no group (spawner refused)", def.id)
     else
+      -- telegraph at launch: fighters need minutes to reach the station, so this is the warning
+      telegraph(st, groups)
       DMS.Log.info(
         P,
         "CAP '%s': launched %d group(s)%s (%d/%s used)",
@@ -937,11 +1053,13 @@ Enc.KIND = KIND
 
 -- ---------------------------------------------------------------- firing
 
-local function fire(st, why, manual)
+-- flight (optional): player group that triggered it (proximity); used for director gating.
+local function fire(st, why, manual, flight)
   local def = st.def
   if st.done and not manual then
     return false
   end
+  st.triggerFlight = flight
   if def.once ~= false then
     st.done = true
   end
@@ -1062,7 +1180,7 @@ local function arm(st)
             "encounter.proximity",
             { id = def.id, encounter = def.id, zone = t.zone, group = who.group, unit = who.name }
           )
-          fire(st, "proximity " .. tostring(who.name))
+          fire(st, "proximity " .. tostring(who.name), false, coal == playersCoalition() and who.group or nil)
           if st.done then
             return false
           end

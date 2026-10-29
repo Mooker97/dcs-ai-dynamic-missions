@@ -8,6 +8,10 @@ local Intel = DMS.Intel
 local P = "Intel"
 
 Intel.FIRST_MARK_ID = 50000
+-- Our id band is [FIRST_MARK_ID, FIRST_MARK_ID + MARK_ID_BAND). Player-made marks get ids around
+-- 251,000,000+ (ED forum), so bumpPastExisting never follows a panel at or above PLAYER_MARK_FLOOR.
+Intel.MARK_ID_BAND = 10000000
+Intel.PLAYER_MARK_FLOOR = 250000000
 Intel.COLOR_LIVE = { 1, 0.1, 0.1, 1 }
 Intel.FILL_LIVE = { 1, 0.1, 0.1, 0.15 }
 Intel.COLOR_STALE = { 0.6, 0.6, 0.6, 0.8 }
@@ -54,11 +58,18 @@ local function enemyCoalition()
   return playerCoalition() == 1 and 2 or 1
 end
 
+-- Mark ids are monotonic for the whole mission (they survive Intel.stop/start) and are never
+-- reused, not even after removeMark: DCS mark ids share one namespace with player marks and
+-- shapes, and a reused id fires MARK_ADDED but never renders (ED bug, see dcs-scripting-gotchas).
+Intel._nextId = Intel._nextId or (Intel.FIRST_MARK_ID - 1)
+-- Every mark we put on the F10 map: id -> {kind, text, pos, coalition, radius, owner, t}.
+Intel._marks = Intel._marks or { live = {}, added = 0, removed = 0, failed = 0 }
+
 local function freshState()
   return {
-    nextId = Intel.FIRST_MARK_ID - 1,
     contacts = {}, -- groupName -> contact
-    statics = {}, -- handle -> {ids}
+    statics = {}, -- handle -> {ids} | {group, created, prevLabel, prevRadius}
+    groupHandles = {}, -- groupName -> handle (one stable handle per marked group)
     kills = {}, -- typeName -> n (enemy losses)
     killsByGroup = {}, -- groupName -> {typeName -> n}
     killTotal = 0,
@@ -75,14 +86,93 @@ Intel._s = Intel._s or freshState()
 -- ---------------------------------------------------------------------------
 
 local function newId()
-  local s = Intel._s
-  s.nextId = s.nextId + 1
-  return s.nextId
+  Intel._nextId = Intel._nextId + 1
+  return Intel._nextId
 end
 
-local function removeMark(id)
-  if id and trigger and trigger.action and trigger.action.removeMark then
+-- One line per F10 map change, parsed by DMS.Test / tools/dcs_harness (CONTRACTS "Test mode"):
+--   [DMS][Intel] MARK add id=<n> kind=<circle|text> coal=<-1|0|1|2> x=<x> z=<z> r=<m|-> t=<s> owner=<o> text=<text>
+--   [DMS][Intel] MARK remove id=<n> kind=<kind> t=<s> why=<reason>
+local function oneLine(v)
+  return (string.gsub(tostring(v or ""), "[\r\n]+", " | "))
+end
+
+local function shapeCoal(coal)
+  if coal == nil or coal == "all" then
+    return -1
+  end
+  return coal
+end
+
+-- Draw a mark. kind: "circle" (circleToAll) | "text" (markToCoalition, or markToAll for coal -1).
+-- Returns true when DCS accepted it (the id is then tracked in Intel._marks.live).
+local function addMark(kind, id, coal, pos, text, radius, owner, color, fill, lineType)
+  local A = trigger and trigger.action
+  if not A then
+    return false
+  end
+  local ok, err
+  if kind == "circle" then
+    if not A.circleToAll then
+      return false
+    end
+    ok, err = pcall(A.circleToAll, shapeCoal(coal), id, pos, radius, color, fill, lineType or 1, true, "")
+  elseif shapeCoal(coal) == -1 then
+    if not A.markToAll then
+      return false
+    end
+    ok, err = pcall(A.markToAll, id, tostring(text or ""), pos, true)
+  else
+    if not A.markToCoalition then
+      return false
+    end
+    ok, err = pcall(A.markToCoalition, id, tostring(text or ""), pos, coal, true)
+  end
+  local M = Intel._marks
+  if not ok then
+    M.failed = M.failed + 1
+    log("error", "MARK add failed id=%d kind=%s: %s", id, kind, tostring(err))
+    return false
+  end
+  M.live[id] = {
+    kind = kind,
+    text = text,
+    pos = { x = pos.x, y = pos.y, z = pos.z },
+    coalition = shapeCoal(coal),
+    radius = radius,
+    owner = owner,
+    t = now(),
+  }
+  M.added = M.added + 1
+  log(
+    "debug",
+    "MARK add id=%d kind=%s coal=%s x=%.0f z=%.0f r=%s t=%.1f owner=%s text=%s",
+    id,
+    kind,
+    tostring(shapeCoal(coal)),
+    pos.x,
+    pos.z,
+    radius and string.format("%.0f", radius) or "-",
+    now(),
+    (string.gsub(oneLine(owner), "%s", "_")),
+    oneLine(text)
+  )
+  return true
+end
+
+local function removeMark(id, why)
+  if not id then
+    return
+  end
+  local M = Intel._marks
+  local rec = M.live[id]
+  if trigger and trigger.action and trigger.action.removeMark then
     pcall(trigger.action.removeMark, id)
+  end
+  if rec then
+    M.live[id] = nil
+    M.removed = M.removed + 1
+    log("debug", "MARK remove id=%d kind=%s t=%.1f why=%s", id, rec.kind, now(), oneLine(why))
   end
 end
 
@@ -251,45 +341,40 @@ local function contactLabel(c)
   return base
 end
 
-local function clearMarks(c)
-  removeMark(c.circleId)
-  removeMark(c.textId)
+local function clearMarks(c, why)
+  removeMark(c.circleId, why)
+  removeMark(c.textId, why)
   c.circleId, c.textId = nil, nil
 end
 
-local function drawContact(c)
-  clearMarks(c)
+local function drawContact(c, why)
+  clearMarks(c, why or "redraw")
   if not c.pos then
     return
   end
   local cfgI = icfg()
   local coal = playerCoalition()
-  c.circleId = newId()
-  c.textId = newId()
-  if trigger and trigger.action then
-    if trigger.action.circleToAll then
-      local ok, err = pcall(
-        trigger.action.circleToAll,
-        coal,
-        c.circleId,
-        c.pos,
-        c.radius or cfgI.markRadiusM,
-        c.stale and Intel.COLOR_STALE or Intel.COLOR_LIVE,
-        c.stale and Intel.FILL_STALE or Intel.FILL_LIVE,
-        c.stale and 2 or 1,
-        true,
-        ""
-      )
-      if not ok then
-        log("error", "circleToAll: %s", tostring(err))
-      end
-    end
-    if trigger.action.markToCoalition then
-      local ok, err = pcall(trigger.action.markToCoalition, c.textId, contactLabel(c), c.pos, coal, true)
-      if not ok then
-        log("error", "markToCoalition: %s", tostring(err))
-      end
-    end
+  local owner = "contact:" .. tostring(c.group)
+  local id = newId()
+  if
+    addMark(
+      "circle",
+      id,
+      coal,
+      c.pos,
+      contactLabel(c),
+      c.radius or cfgI.markRadiusM,
+      owner,
+      c.stale and Intel.COLOR_STALE or Intel.COLOR_LIVE,
+      c.stale and Intel.FILL_STALE or Intel.FILL_LIVE,
+      c.stale and 2 or 1
+    )
+  then
+    c.circleId = id
+  end
+  id = newId()
+  if addMark("text", id, coal, c.pos, contactLabel(c), nil, owner) then
+    c.textId = id
   end
   c.drawnAt = now()
   c.drawnPos = { x = c.pos.x, y = c.pos.y, z = c.pos.z }
@@ -352,7 +437,7 @@ function Intel.forget(groupName, why)
   if not c then
     return false
   end
-  clearMarks(c)
+  clearMarks(c, why)
   Intel._s.contacts[groupName] = nil
   log("debug", "contact '%s' removed (%s)", groupName, tostring(why))
   return true
@@ -683,6 +768,8 @@ function Intel.mark(spec)
         log("warn", "mark: group '%s' not found/alive", gname)
         return nil
       end
+      local existing = s.contacts[resolved]
+      local prevLabel, prevRadius = existing and existing.label, existing and existing.radius
       Intel.reveal(resolved, "intel", { label = text })
       local c = s.contacts[resolved]
       if c then
@@ -694,10 +781,22 @@ function Intel.mark(spec)
           c.label, changed = text, true
         end
         if changed then
-          drawContact(c)
+          drawContact(c, "relabel")
         end
-        log("debug", "mark: group '%s' -> contact '%s'", gname, resolved)
-        return c.textId
+        -- stable handle (the contact's own mark ids change on every redraw), one per group
+        local h = s.groupHandles[resolved]
+        if h and s.statics[h] then
+          if not existing then
+            s.statics[h].created = true -- contact had been lost; this mark re-created it
+          end
+          log("debug", "mark %d: group '%s' -> contact '%s' (handle reused)", h, gname, resolved)
+          return h
+        end
+        h = newId()
+        s.statics[h] = { group = resolved, created = not existing, prevLabel = prevLabel, prevRadius = prevRadius }
+        s.groupHandles[resolved] = h
+        log("debug", "mark %d: group '%s' -> contact '%s'", h, gname, resolved)
+        return h
       end
       log("warn", "mark: group '%s' could not be revealed", gname)
       return nil
@@ -726,33 +825,118 @@ function Intel.mark(spec)
     return nil
   end
   local coal = playerCoalition()
+  if type(spec) == "table" and (spec.coalition == 1 or spec.coalition == 2 or spec.coalition == -1) then
+    coal = spec.coalition
+  end
   local ids = {}
+  local label = tostring(text or "Objective")
+  local owner = "mark:" .. label
   local withCircle = kind ~= "point" and kind ~= "text"
-  if withCircle and trigger and trigger.action and trigger.action.circleToAll then
+  if withCircle then
     local id = newId()
-    ids[#ids + 1] = id
-    pcall(trigger.action.circleToAll, coal, id, at, radius or 1000, { 1, 0.8, 0, 1 }, { 1, 0.8, 0, 0.1 }, 1, true, "")
+    if addMark("circle", id, coal, at, label, radius or 1000, owner, { 1, 0.8, 0, 1 }, { 1, 0.8, 0, 0.1 }, 1) then
+      ids[#ids + 1] = id
+    end
   end
   local handle = newId()
-  ids[#ids + 1] = handle
-  if trigger and trigger.action and trigger.action.markToCoalition then
-    pcall(trigger.action.markToCoalition, handle, tostring(text or "Objective"), at, coal, true)
+  if addMark("text", handle, coal, at, label, nil, owner) then
+    ids[#ids + 1] = handle
   end
-  s.statics[handle] = ids
-  log("debug", "mark %d drawn '%s' (%s)", handle, tostring(text), tostring(kind))
+  if #ids == 0 then
+    log("warn", "mark '%s' (%s) not drawn", label, tostring(kind))
+    return nil
+  end
+  s.statics[handle] = { ids = ids }
+  log("debug", "mark %d drawn '%s' (%s)", handle, label, tostring(kind))
   return handle
 end
 
 function Intel.removeMarkHandle(handle)
-  local ids = Intel._s.statics[handle]
-  if not ids then
+  local rec = Intel._s.statics[handle]
+  if not rec then
     return false
   end
-  for _, id in ipairs(ids) do
-    removeMark(id)
+  local s = Intel._s
+  s.statics[handle] = nil
+  if rec.group then
+    if s.groupHandles[rec.group] == handle then
+      s.groupHandles[rec.group] = nil
+    end
+    local c = s.contacts[rec.group]
+    if rec.created then
+      -- the mark revealed this contact: removing the mark forgets it
+      Intel.forget(rec.group, "mark handle removed")
+    elseif c and (c.label ~= rec.prevLabel or c.radius ~= rec.prevRadius) then
+      -- the contact was detected independently: keep it, undo the mark's label/radius
+      c.label, c.radius = rec.prevLabel, rec.prevRadius
+      drawContact(c, "relabel")
+    end
+    log("debug", "mark handle %d removed (group '%s', forgot=%s)", handle, rec.group, tostring(rec.created == true))
+    return true
   end
-  Intel._s.statics[handle] = nil
+  for _, id in ipairs(rec.ids or {}) do
+    removeMark(id, "mark handle removed")
+  end
   return true
+end
+
+--- Marks DMS put on the F10 map and has not removed: id -> {kind, text, pos, coalition, radius, owner, t}.
+function Intel.liveMarks()
+  return Intel._marks.live
+end
+
+--- -> {added=, removed=, failed=, live=<count>} since the mission started.
+function Intel.markStats()
+  local M = Intel._marks
+  local n = 0
+  for _ in pairs(M.live) do
+    n = n + 1
+  end
+  return { added = M.added, removed = M.removed, failed = M.failed, live = n }
+end
+
+-- Remove every mark this module drew (stop / restart).
+local function removeAllMarks(why)
+  local ids = {}
+  for id in pairs(Intel._marks.live) do
+    ids[#ids + 1] = id
+  end
+  table.sort(ids)
+  for _, id in ipairs(ids) do
+    removeMark(id, why)
+  end
+end
+
+-- Start our ids above any mark already on the map that could collide with ours: a panel inside our
+-- own band (an earlier run of ours, mission-editor drawings), or a script-made panel (initiator nil)
+-- below the player range. Never follow a player mark (ids ~251,000,000+): our next id would land on
+-- the player's next mark. Only ever raises _nextId, so ids stay monotonic.
+local function bumpPastExisting()
+  if not (world and world.getMarkPanels) then
+    return
+  end
+  local ok, panels = pcall(world.getMarkPanels)
+  if not ok or type(panels) ~= "table" then
+    return
+  end
+  local first = Intel.FIRST_MARK_ID
+  local bandEnd = first + Intel.MARK_ID_BAND
+  local skipped = 0
+  for _, p in ipairs(panels) do
+    local idx = type(p) == "table" and tonumber(p.idx) or nil
+    if idx and idx > Intel._nextId and not Intel._marks.live[idx] then
+      local inBand = idx >= first and idx < bandEnd
+      local scriptMade = p.initiator == nil and idx < Intel.PLAYER_MARK_FLOOR
+      if inBand or scriptMade then
+        Intel._nextId = idx
+      else
+        skipped = skipped + 1
+      end
+    end
+  end
+  if skipped > 0 then
+    log("debug", "mark ids: ignored %d panel(s) outside our band (player marks); next id %d", skipped, Intel._nextId + 1)
+  end
 end
 
 -- ---------------------------------------------------------------------------
@@ -760,8 +944,24 @@ end
 -- ---------------------------------------------------------------------------
 
 function Intel.start()
-  Intel.stop()
+  -- Only a restart wipes our marks: marks a beat drew before the first start (no contacts yet)
+  -- must survive, together with their handles.
+  local prev = Intel._s
+  local carried
+  if prev and prev.started then
+    Intel.stop()
+  elseif prev then
+    carried = prev.statics
+  end
   Intel._s = freshState()
+  if carried then
+    for h, rec in pairs(carried) do
+      if not rec.group then
+        Intel._s.statics[h] = rec
+      end
+    end
+  end
+  bumpPastExisting()
   local s = Intel._s
   s.started = true
   local c = icfg()
@@ -822,5 +1022,10 @@ function Intel.stop()
       DMS.Clock.cancel(id)
     end
   end
+  removeAllMarks("intel stopped")
+  for _, c in pairs(s.contacts or {}) do
+    c.circleId, c.textId = nil, nil
+  end
+  s.contacts, s.statics, s.groupHandles = {}, {}, {}
   s.tokens, s.clocks, s.started = {}, {}, false
 end

@@ -391,3 +391,350 @@ describe("DMS.Test proxy loiter", function()
     assert.is_truthy(info("skip gate (rtb_call fired before the loiter zone)"))
   end)
 end)
+
+-- ---------------------------------------------------------------- F10 marks, fog, comms checks
+
+local function finalChecks(extra)
+  local checks = {
+    { kind = "booted", name = "runtime_booted" },
+    { kind = "beat", name = "home", id = "home" },
+  }
+  for _, c in ipairs(extra) do
+    checks[#checks + 1] = c
+  end
+  local c = config(checks)
+  c.debug = true
+  c.intel = { fogOfWar = true, revealRadiusM = 5000, markRefreshSec = 15, staleSec = 120, scanSec = 5 }
+  c.beats[1].guaranteed = true
+  c.beats[2].guaranteed = true
+  c.beats[3].guaranteed = true
+  return c
+end
+
+-- A pre-placed enemy group Intel can reveal (runtime spawns never appear near the proxy).
+local function enemy()
+  MOCK.addGroup({
+    name = "Red Armour",
+    coalition = 1,
+    country = "RUSSIA",
+    category = "ground",
+    units = { { name = "Red Armour-1", type = "T-72B", x = 20000, y = 0 }, { name = "Red Armour-2", x = 20050, y = 30 } },
+  })
+end
+
+-- Fly the proxy past the enemy armour (revealed by Intel) and land: every beat fires and speaks.
+local function flyAndLand(midway)
+  enemy()
+  DMS.boot()
+  MOCK.advance(15)
+  MOCK.moveUnit("Proxy Dusty 1-1", 10000, 0)
+  MOCK.advance(10)
+  MOCK.moveUnit("Proxy Dusty 1-1", 17000, 0)
+  MOCK.advance(20)
+  if midway then
+    midway()
+  end
+  MOCK.moveUnit("Proxy Dusty 1-1", 27000, 0)
+  MOCK.advance(20)
+  MOCK.fireEvent({ id = world.event.S_EVENT_LAND, initiator = Unit.getByName("Proxy Dusty 1-1") })
+  MOCK.advance(60)
+end
+
+describe("DMS.Test F10 mark checks", function()
+  it("marks passes when Intel drew contacts and getMarkPanels lists every live id", function()
+    proxy(0, 0)
+    DMS_CONFIG = finalChecks({ { kind = "marks", name = "f10_marks", min = 2 } })
+    flyAndLand()
+    local t = byName("f10_marks")
+    assert.is_truthy(t, "f10_marks resolved")
+    assert.are.equal("PASS", t.status, t.detail)
+    assert.is_truthy(string.find(t.detail, "getMarkPanels text", 1, true), t.detail)
+    -- DCS (and the mock) list drawn shapes too, so circles are verified, not "unverified"
+    local cf, cn = string.match(t.detail, "circles (%d+)/(%d+)")
+    assert.is_truthy(cf, t.detail)
+    assert.are.equal(cf, cn, t.detail)
+    assert.is_true(tonumber(cf) > 0, t.detail)
+    assert.is_nil(string.find(t.detail, "unverified", 1, true), t.detail)
+    assert.is_true(DMS.Intel.markStats().added >= 2)
+    assert.is_true((MOCK.logContains("%[DMS%]%[Intel%] MARK add id=%d+ kind=text coal=2")))
+  end)
+
+  it("marks fails when a live mark is missing from the map", function()
+    proxy(0, 0)
+    DMS_CONFIG = finalChecks({ { kind = "marks", name = "f10_marks" } })
+    enemy()
+    DMS.boot()
+    MOCK.advance(15)
+    MOCK.moveUnit("Proxy Dusty 1-1", 17000, 0)
+    MOCK.advance(10)
+    -- simulate DCS losing a text mark Intel believes is live
+    local lost
+    for id, m in pairs(DMS.Intel.liveMarks()) do
+      if m.kind == "text" then
+        lost = id
+      end
+    end
+    assert.is_truthy(lost, "a contact text mark exists")
+    MOCK.marks[lost] = nil
+    MOCK.advance(15)
+    MOCK.fireEvent({ id = world.event.S_EVENT_LAND, initiator = Unit.getByName("Proxy Dusty 1-1") })
+    MOCK.advance(60)
+    local t = byName("f10_marks")
+    assert.are.equal("FAIL", t.status)
+    assert.is_truthy(string.find(t.detail, "text ids not on map", 1, true), t.detail)
+  end)
+
+  it("marks fails when a live circle is missing while other circles are listed", function()
+    proxy(0, 0)
+    DMS_CONFIG = finalChecks({ { kind = "marks", name = "f10_marks" } })
+    DMS.boot()
+    MOCK.advance(1)
+    DMS.Intel.mark({ type = "circle", at = { x = 100, y = 100 }, radius = 500, text = "A" })
+    DMS.Intel.mark({ type = "circle", at = { x = 900, y = 900 }, radius = 500, text = "B" })
+    local lost
+    for id, m in pairs(DMS.Intel.liveMarks()) do
+      if m.kind == "circle" then
+        lost = id
+      end
+    end
+    assert.is_truthy(lost, "a circle exists")
+    MOCK.marks[lost] = nil
+    MOCK.advance(15)
+    MOCK.fireEvent({ id = world.event.S_EVENT_LAND, initiator = Unit.getByName("Proxy Dusty 1-1") })
+    MOCK.advance(60)
+    local t = byName("f10_marks")
+    assert.are.equal("FAIL", t.status, t.detail)
+    assert.is_truthy(string.find(t.detail, "circle ids not on map", 1, true), t.detail)
+  end)
+
+  it("marks ignores player-made marks and all-coalition shapes outside our ids", function()
+    proxy(0, 0)
+    DMS_CONFIG = finalChecks({ { kind = "marks", name = "f10_marks" } })
+    MOCK.addPlayerMark({ idx = 251000001, text = "my target" })
+    trigger.action.circleToAll(-1, 7, { x = 0, y = 0, z = 0 }, 1000, { 1, 0, 0, 1 }, { 1, 0, 0, 0.2 }, 1, true, "ME")
+    local p
+    for _, e in ipairs(world.getMarkPanels()) do
+      if e.idx == 7 then
+        p = e
+      end
+    end
+    assert.are.equal(255, p.coalition, "all-coalition shape reports coalition 255")
+    flyAndLand()
+    local t = byName("f10_marks")
+    assert.are.equal("PASS", t.status, t.detail)
+    assert.is_true(DMS.Intel._nextId < 251000000, "ids never follow the player mark")
+  end)
+
+  it("marks fails on ghosts (removed ids still on the map) and on too few marks", function()
+    proxy(0, 0)
+    DMS_CONFIG = finalChecks({ { kind = "marks", name = "f10_marks", min = 50 } })
+    DMS.boot()
+    MOCK.advance(5)
+    DMS.Intel._nextId = DMS.Intel._nextId + 1
+    MOCK.marks[DMS.Intel._nextId] = { kind = "markToCoalition", id = DMS.Intel._nextId, args = { "ghost" } }
+    MOCK.advance(15)
+    MOCK.fireEvent({ id = world.event.S_EVENT_LAND, initiator = Unit.getByName("Proxy Dusty 1-1") })
+    MOCK.advance(60)
+    local t = byName("f10_marks")
+    assert.are.equal("FAIL", t.status)
+    assert.is_truthy(string.find(t.detail, "removed ids still on map", 1, true), t.detail)
+    assert.is_truthy(string.find(t.detail, "want >= 50", 1, true), t.detail)
+  end)
+
+  it("marks passes unverified when world.getMarkPanels is missing", function()
+    proxy(0, 0)
+    DMS_CONFIG = finalChecks({ { kind = "marks", name = "f10_marks" } })
+    world.getMarkPanels = nil
+    flyAndLand()
+    local t = byName("f10_marks")
+    assert.are.equal("PASS", t.status)
+    assert.is_truthy(string.find(t.detail, "unverified", 1, true), t.detail)
+  end)
+end)
+
+describe("DMS.Test fog_hidden", function()
+  it("passes when runtime enemy spawns are hidden and fails on a placed enemy group that is not", function()
+    proxy(0, 0)
+    DMS_CONFIG = finalChecks({ { kind = "fog_hidden", name = "fog_hidden" } })
+    DMS_CONFIG.intel.knownGroups = { "Known AAA" }
+    env.mission.coalition = {
+      red = {
+        country = {
+          {
+            id = 0,
+            vehicle = {
+              group = {
+                { name = "Hidden SAM", hidden = true },
+                { name = "Known AAA", hidden = false },
+                { name = "Leaky Armour", hidden = false },
+              },
+            },
+            static = { group = { { name = "Bunker", hidden = false } } },
+          },
+        },
+      },
+    }
+    flyAndLand(function()
+      coalition.addGroup(country.id.RUSSIA, Group.Category.GROUND, {
+        name = "Hidden Runtime Tank",
+        hidden = true,
+        units = { { name = "Hidden Runtime Tank-1", type = "T-72B", x = 60000, y = 0 } },
+      })
+    end)
+    local t = byName("fog_hidden")
+    assert.are.equal("FAIL", t.status)
+    assert.is_truthy(string.find(t.detail, "placed not hidden: Leaky Armour", 1, true), t.detail)
+    assert.is_nil(string.find(t.detail, "Known AAA", 1, true))
+    assert.is_nil(string.find(t.detail, "Bunker", 1, true))
+    assert.is_truthy(string.find(t.detail, "2 placed + 1 spawned", 1, true), t.detail)
+  end)
+
+  it("fails on a runtime enemy spawn without hidden", function()
+    proxy(0, 0)
+    DMS_CONFIG = finalChecks({ { kind = "fog_hidden", name = "fog_hidden" } })
+    DMS.boot()
+    MOCK.advance(5)
+    coalition.addGroup(country.id.RUSSIA, Group.Category.GROUND, {
+      name = "Visible Tank",
+      units = { { name = "Visible Tank-1", type = "T-72B", x = 40000, y = 0 } },
+    })
+    MOCK.advance(10)
+    MOCK.fireEvent({ id = world.event.S_EVENT_LAND, initiator = Unit.getByName("Proxy Dusty 1-1") })
+    MOCK.advance(60)
+    local t = byName("fog_hidden")
+    assert.are.equal("FAIL", t.status)
+    assert.is_truthy(string.find(t.detail, "spawned not hidden: Visible Tank", 1, true), t.detail)
+  end)
+
+  it("is vacuous with fogOfWar off", function()
+    proxy(0, 0)
+    DMS_CONFIG = finalChecks({ { kind = "fog_hidden", name = "fog_hidden" } })
+    DMS_CONFIG.intel.fogOfWar = false
+    flyAndLand()
+    assert.are.equal("PASS", byName("fog_hidden").status)
+  end)
+end)
+
+describe("DMS.Test comms checks", function()
+  it("comms_no_overlap and comms_beats pass for a normal run", function()
+    proxy(0, 0)
+    DMS_CONFIG = finalChecks({
+      { kind = "comms_no_overlap", name = "radio_no_overlap" },
+      { kind = "comms_beats", name = "spine_lines_played" },
+    })
+    flyAndLand()
+    local o = byName("radio_no_overlap")
+    assert.are.equal("PASS", o.status, o.detail)
+    local b = byName("spine_lines_played")
+    assert.are.equal("PASS", b.status, b.detail)
+    assert.are.equal("3 fired beat(s) with speech checked", b.detail)
+  end)
+
+  it("comms_no_overlap fails when two lines overlap", function()
+    proxy(0, 0)
+    DMS_CONFIG = finalChecks({ { kind = "comms_no_overlap", name = "radio_no_overlap" } })
+    DMS.boot()
+    MOCK.advance(5)
+    local h = DMS.Comms.history()
+    h[#h + 1] = { t = 100, dur = 6, line = "a_v1", text = "A" }
+    h[#h + 1] = { t = 103, dur = 4, line = "b_v1", text = "B" }
+    MOCK.advance(5)
+    MOCK.fireEvent({ id = world.event.S_EVENT_LAND, initiator = Unit.getByName("Proxy Dusty 1-1") })
+    MOCK.advance(60)
+    local t = byName("radio_no_overlap")
+    assert.are.equal("FAIL", t.status)
+    assert.is_truthy(string.find(t.detail, "a_v1@100.0+6.0 overlaps b_v1@103.0", 1, true), t.detail)
+  end)
+
+  it("comms_no_overlap skips when history has no timing", function()
+    proxy(0, 0)
+    DMS_CONFIG = finalChecks({ { kind = "comms_no_overlap", name = "radio_no_overlap" } })
+    DMS.boot()
+    MOCK.advance(5)
+    local h = DMS.Comms.history()
+    for i = #h, 1, -1 do
+      h[i] = nil
+    end
+    h[1] = { line = "x" }
+    DMS.Comms.say = function()
+      return false
+    end
+    MOCK.fireEvent({ id = world.event.S_EVENT_LAND, initiator = Unit.getByName("Proxy Dusty 1-1") })
+    MOCK.advance(60)
+    assert.is_truthy((MOCK.logContains("%[DMS%.TEST%] SKIP radio_no_overlap")))
+    assert.is_nil(byName("radio_no_overlap") and byName("radio_no_overlap").status == "FAIL" or nil)
+  end)
+
+  it("comms_beats fails when a guaranteed beat fired but its line never played", function()
+    proxy(0, 0)
+    DMS_CONFIG = finalChecks({ { kind = "comms_beats", name = "spine_lines_played" } })
+    DMS.boot()
+    local say = DMS.Comms.say
+    DMS.Comms.say = function(speaker, lines, text, opts)
+      if text == "gate" then
+        return false -- swallowed
+      end
+      return say(speaker, lines, text, opts)
+    end
+    MOCK.advance(15)
+    MOCK.moveUnit("Proxy Dusty 1-1", 10000, 0)
+    MOCK.advance(10)
+    MOCK.fireEvent({ id = world.event.S_EVENT_LAND, initiator = Unit.getByName("Proxy Dusty 1-1") })
+    MOCK.advance(60)
+    local t = byName("spine_lines_played")
+    assert.are.equal("FAIL", t.status)
+    assert.is_truthy(string.find(t.detail, "fired but never played: at_gate", 1, true), t.detail)
+  end)
+end)
+
+-- Many seeds: random proxy paths and timings; the four end-of-run checks never FAIL on a healthy
+-- runtime and the Intel MARK log always matches the map.
+describe("DMS.Test end-of-run checks across seeds", function()
+  for seed = 1, 12 do
+    it("seed " .. seed .. ": marks, fog_hidden, comms_no_overlap, comms_beats hold", function()
+      math.randomseed(seed * 104729)
+      proxy(0, 0)
+      DMS_CONFIG = finalChecks({
+        { kind = "marks", name = "f10_marks" },
+        { kind = "fog_hidden", name = "fog_hidden" },
+        { kind = "comms_no_overlap", name = "radio_no_overlap" },
+        { kind = "comms_beats", name = "spine_lines_played" },
+      })
+      DMS_CONFIG.seed = seed
+      DMS_CONFIG.intel.staleSec = math.random(20, 120)
+      DMS_CONFIG.intel.markRefreshSec = math.random(5, 20)
+      DMS.boot()
+      for _ = 1, math.random(5, 15) do
+        MOCK.moveUnit("Proxy Dusty 1-1", math.random(-5000, 35000), math.random(-5000, 5000))
+        MOCK.advance(math.random(2, 40))
+        if math.random() < 0.2 then
+          DMS.Comms.say("ops", nil, "chatter " .. math.random(1, 99), { coalition = 2 })
+        end
+      end
+      MOCK.moveUnit("Proxy Dusty 1-1", 10000, 0)
+      MOCK.advance(10)
+      MOCK.fireEvent({ id = world.event.S_EVENT_LAND, initiator = Unit.getByName("Proxy Dusty 1-1") })
+      MOCK.advance(120)
+      for _, n in ipairs({ "f10_marks", "fog_hidden", "radio_no_overlap", "spine_lines_played" }) do
+        local t = byName(n)
+        assert.is_truthy(t, "missing " .. n)
+        assert.are.equal("PASS", t.status, n .. ": " .. tostring(t.detail))
+      end
+      -- MARK log replay == Intel.liveMarks()
+      local live = {}
+      for _, l in ipairs(MOCK.log) do
+        local op, id = string.match(l.msg, "^%[DMS%]%[Intel%] MARK (%a+) id=(%d+)")
+        if op == "add" then
+          live[tonumber(id)] = true
+        elseif op == "remove" then
+          live[tonumber(id)] = nil
+        end
+      end
+      for id in pairs(DMS.Intel.liveMarks()) do
+        assert.is_truthy(live[id], "live id " .. id .. " missing from log")
+        live[id] = nil
+      end
+      assert.is_nil(next(live), "log shows marks Intel no longer has")
+    end)
+  end
+end)

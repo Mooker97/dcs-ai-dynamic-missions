@@ -13,8 +13,11 @@
 --   loiter = { zone, x, y, radiusM, altM, altType, speedMps, startBeat, untilBeat, returnSec }, -- optional
 -- }
 -- Check kinds: booted | spawns {min} | beats_in_order {beats} | beat {id} | comms {min} |
---   encounter {id, optional, group} | convoy_halt | outcome {requireResult} | ambient_cycle {site}.
+--   encounter {id, optional, group} | convoy_halt | outcome {requireResult} | ambient_cycle {site} |
+--   marks {min} | fog_hidden | comms_no_overlap | comms_beats {beats}.
 --   Optional per check: name, deadlineSec.
+-- marks / fog_hidden / comms_no_overlap / comms_beats are end-of-run checks (like convoy_halt):
+--   they never hold the run open and resolve when DONE is logged.
 -- encounter optional=true never FAILs and never holds the run open: PASS if spawned, else INFO
 --   "optional encounter X not spawned" (naming spawned siblings of the same exclusive `group`).
 -- outcome passes on any end outcome (detail reports the result) unless requireResult (or legacy
@@ -318,6 +321,9 @@ local function freshObs()
     water = {},
     beats = {},
     beatIndex = {},
+    beatTimes = {}, -- beat id -> model time it first fired
+    addGroups = {}, -- runtime coalition.addGroup calls: {name, coalition, hidden, t}
+    markIssues = {}, -- F10 mark mismatches seen by the periodic marks sampler
     encounters = {},
     convoyHits = {},
     convoyHalted = {},
@@ -394,6 +400,7 @@ function T._observe()
     if ev and ev.id and not O.beatIndex[ev.id] then
       O.beats[#O.beats + 1] = ev.id
       O.beatIndex[ev.id] = #O.beats
+      O.beatTimes[ev.id] = now()
       T.info("beat", string.format("%s t=%.0f", ev.id, now()))
     end
   end)
@@ -458,6 +465,7 @@ function T._observe()
       T.info("zone", string.format("%s t=%.0f", tostring(ev.zone), now()))
     end
   end)
+  T._wrapAddGroup()
   -- outcome lines: wrap DMS.Log.outcome so the check sees exactly what reached dcs.log
   if DMS.Log and DMS.Log.outcome and not T._origOutcome then
     T._origOutcome = DMS.Log.outcome
@@ -469,6 +477,192 @@ function T._observe()
       return line
     end
   end
+end
+
+-- Test mode only: watch coalition.addGroup so fog_hidden can see each runtime spawn's `hidden`
+-- flag (DCS has no API to read it back once the group exists).
+function T._wrapAddGroup()
+  if not (coalition and coalition.addGroup) or coalition.addGroup == T._addGroupWrapper then
+    return
+  end
+  local orig = coalition.addGroup
+  T._origAddGroup = orig
+  T._addGroupWrapper = function(cid, cat, data)
+    local g = orig(cid, cat, data)
+    pcall(function()
+      local side
+      if g and g.getCoalition then
+        local okS, sd = pcall(g.getCoalition, g)
+        side = okS and sd or nil
+      end
+      if side == nil and coalition.getCountryCoalition then
+        local okC, sd = pcall(coalition.getCountryCoalition, cid)
+        side = okC and sd or nil
+      end
+      local O = T._obs
+      O.addGroups[#O.addGroups + 1] = {
+        name = type(data) == "table" and data.name or nil,
+        coalition = side,
+        hidden = type(data) == "table" and data.hidden == true,
+        t = now(),
+      }
+    end)
+    return g
+  end
+  coalition.addGroup = T._addGroupWrapper
+end
+
+-- ---------------------------------------------------------------- F10 marks / comms helpers
+
+local function markPanels()
+  if not (world and world.getMarkPanels) then
+    return nil, "world.getMarkPanels unavailable"
+  end
+  local ok, panels = pcall(world.getMarkPanels)
+  if not ok or type(panels) ~= "table" then
+    return nil, "world.getMarkPanels failed: " .. tostring(panels)
+  end
+  return panels
+end
+
+-- Compare DMS.Intel's live marks with world.getMarkPanels().
+-- -> {text=, textFound=, circle=, circleFound=, missingText={ids}, missingCircle={ids}, ghosts={ids}}
+--    or nil, reason when the panels cannot be read.
+function T.verifyMarks()
+  if not (DMS.Intel and DMS.Intel.liveMarks) then
+    return nil, "DMS.Intel.liveMarks unavailable"
+  end
+  local panels, why = markPanels()
+  if not panels then
+    return nil, why
+  end
+  local live = DMS.Intel.liveMarks()
+  local seen = {}
+  for _, p in ipairs(panels) do
+    local idx = type(p) == "table" and tonumber(p.idx) or nil
+    if idx then
+      seen[idx] = p
+    end
+  end
+  local r = { text = 0, textFound = 0, circle = 0, circleFound = 0, missingText = {}, missingCircle = {}, ghosts = {} }
+  local ids = {}
+  for id in pairs(live) do
+    ids[#ids + 1] = id
+  end
+  table.sort(ids)
+  for _, id in ipairs(ids) do
+    local m = live[id]
+    if m.kind == "circle" then
+      r.circle = r.circle + 1
+      if seen[id] then
+        r.circleFound = r.circleFound + 1
+      else
+        r.missingCircle[#r.missingCircle + 1] = id
+      end
+    else
+      r.text = r.text + 1
+      if seen[id] then
+        r.textFound = r.textFound + 1
+      else
+        r.missingText[#r.missingText + 1] = id
+      end
+    end
+  end
+  -- ghosts: script-made panels in our id range that DMS.Intel already removed
+  local first = DMS.Intel.FIRST_MARK_ID or 50000
+  local last = DMS.Intel._nextId or first
+  for idx, p in pairs(seen) do
+    if idx >= first and idx <= last and not live[idx] and p.initiator == nil then
+      r.ghosts[#r.ghosts + 1] = idx
+    end
+  end
+  table.sort(r.ghosts)
+  return r
+end
+
+local function idList(ids, max)
+  local out = {}
+  for i = 1, math.min(#ids, max or 8) do
+    out[i] = tostring(ids[i])
+  end
+  if #ids > (max or 8) then
+    out[#out + 1] = "..."
+  end
+  return table.concat(out, ",")
+end
+
+-- Played radio lines with numeric t/dur, sorted by start time. -> list, skipped count
+local function playedLines()
+  local h = (DMS.Comms and DMS.Comms.history and DMS.Comms.history()) or {}
+  local out, bad = {}, 0
+  for i, e in ipairs(h) do
+    local t, d = type(e) == "table" and tonumber(e.t) or nil, type(e) == "table" and tonumber(e.dur) or nil
+    if t and d then
+      out[#out + 1] = { t = t, dur = d, line = e.line, text = e.text, i = i }
+    else
+      bad = bad + 1
+    end
+  end
+  table.sort(out, function(a, b)
+    if a.t ~= b.t then
+      return a.t < b.t
+    end
+    return a.i < b.i
+  end)
+  return out, bad
+end
+T.playedLines = playedLines
+
+-- Overlapping radio lines (a line starting before the previous one ended). -> list of strings
+function T.commsOverlaps(tol)
+  tol = tol or 0.05
+  local lines = playedLines()
+  local out = {}
+  for i = 2, #lines do
+    local a, b = lines[i - 1], lines[i]
+    if b.t < a.t + a.dur - tol then
+      out[#out + 1] = string.format(
+        "%s@%.1f+%.1f overlaps %s@%.1f",
+        tostring(a.line or "text"),
+        a.t,
+        a.dur,
+        tostring(b.line or "text"),
+        b.t
+      )
+    end
+  end
+  return out, #lines
+end
+
+local function beatSpeech(beat)
+  local sp = type(beat.effects) == "table" and beat.effects.speak or nil
+  sp = type(sp) == "table" and sp or {}
+  local lines = sp.lines or beat.lines
+  if type(lines) == "string" then
+    lines = { lines }
+  end
+  local text = sp.text or beat.text
+  if type(text) ~= "string" or text == "" then
+    text = nil
+  end
+  if type(lines) ~= "table" or #lines == 0 then
+    lines = nil
+  end
+  return lines, text
+end
+
+local function speechMatches(entry, lines, text)
+  if lines and entry.line then
+    for _, l in ipairs(lines) do
+      if l == entry.line then
+        return true
+      end
+    end
+  end
+  if text and type(entry.text) == "string" and string.find(entry.text, text, 1, true) then
+    return true
+  end
+  return false
 end
 
 -- ---------------------------------------------------------------- built-in checks
@@ -604,6 +798,220 @@ CHECKS.convoy_halt = function(c, deadline)
   end
 end
 
+-- F10 marks: Intel drew at least `min` marks, none failed, and every live text mark id is listed by
+-- world.getMarkPanels() (sampled every 10 s and at the end). Circles: DCS lists drawn shapes in
+-- getMarkPanels too (Hoggit; all-coalition shapes report coalition 255), so a missing circle fails
+-- once getMarkPanels lists any of our circles; if it lists none (older build, or the API changed)
+-- the circles are reported as unverified instead of failing.
+CHECKS.marks = function(c)
+  local min = c.min or 0
+  local O = T._obs
+  local function sample(final)
+    local r = T.verifyMarks()
+    if not r then
+      return
+    end
+    if #r.missingText > 0 then
+      O.markIssues[#O.markIssues + 1] =
+        string.format("t=%.0f text ids not on map: %s", now(), idList(r.missingText))
+    end
+    if #r.ghosts > 0 then
+      O.markIssues[#O.markIssues + 1] = string.format("t=%.0f removed ids still on map: %s", now(), idList(r.ghosts))
+    end
+    if r.circleFound > 0 and #r.missingCircle > 0 then
+      O.markIssues[#O.markIssues + 1] =
+        string.format("t=%.0f circle ids not on map: %s", now(), idList(r.missingCircle))
+    end
+    if final then
+      O.markFinal = r
+    end
+  end
+  if DMS.Clock and DMS.Clock.every then
+    DMS.Clock.every(10, function()
+      if T._done then
+        return false
+      end
+      pcall(sample, false)
+      return true
+    end, { firstDelay = 10 })
+  end
+  T._finals[#T._finals + 1] = function()
+    if not (DMS.Intel and DMS.Intel.markStats) then
+      T.fail(c.name, "DMS.Intel.markStats unavailable")
+      return
+    end
+    pcall(sample, true)
+    local st = DMS.Intel.markStats()
+    local r, why = T.verifyMarks()
+    local parts = { string.format("added=%d removed=%d live=%d failed=%d", st.added, st.removed, st.live, st.failed) }
+    if r then
+      parts[#parts + 1] = string.format("getMarkPanels text %d/%d", r.textFound, r.text)
+      if r.circleFound == 0 and r.circle > 0 then
+        parts[#parts + 1] = string.format("circles 0/%d listed (shapes missing from getMarkPanels: unverified)", r.circle)
+      else
+        parts[#parts + 1] = string.format("circles %d/%d", r.circleFound, r.circle)
+      end
+    else
+      parts[#parts + 1] = "unverified: " .. tostring(why)
+    end
+    local problems = {}
+    if st.added < min then
+      problems[#problems + 1] = string.format("only %d mark(s) drawn, want >= %d", st.added, min)
+    end
+    if st.failed > 0 then
+      problems[#problems + 1] = string.format("%d mark call(s) failed", st.failed)
+    end
+    local nIssues = #O.markIssues
+    for i = 1, math.min(nIssues, 3) do
+      problems[#problems + 1] = O.markIssues[i]
+    end
+    if nIssues > 3 then
+      problems[#problems + 1] = string.format("(+%d more)", nIssues - 3)
+    end
+    local detail = table.concat(parts, " ")
+    if #problems > 0 then
+      T.fail(c.name, table.concat(problems, "; ") .. " [" .. detail .. "]")
+    else
+      T.pass(c.name, detail)
+    end
+  end
+end
+
+-- Fog of war: with DMS_CONFIG.intel.fogOfWar on, every enemy (non-static) group placed in the .miz
+-- (env.mission, except intel.knownGroups) and every enemy group added at runtime is `hidden`.
+CHECKS.fog_hidden = function(c)
+  T._finals[#T._finals + 1] = function()
+    local ic = (DMS_CONFIG and DMS_CONFIG.intel) or {}
+    if ic.fogOfWar == false then
+      T.pass(c.name, "fogOfWar off (vacuous)")
+      return
+    end
+    local pc = (DMS_CONFIG and DMS_CONFIG.players and DMS_CONFIG.players.coalition) or 2
+    local enemy = pc == 1 and 2 or 1
+    local known = {}
+    for _, n in ipairs(ic.knownGroups or {}) do
+      known[n] = true
+    end
+    local placed, placedBad = 0, {}
+    local side = env and env.mission and env.mission.coalition
+    side = side and side[enemy == 1 and "red" or "blue"]
+    for _, ctry in ipairs((side and side.country) or {}) do
+      for _, cat in ipairs({ "vehicle", "ship", "plane", "helicopter" }) do
+        local cg = ctry[cat]
+        for _, g in ipairs((type(cg) == "table" and cg.group) or {}) do
+          if not known[g.name] then
+            placed = placed + 1
+            if g.hidden ~= true then
+              placedBad[#placedBad + 1] = tostring(g.name)
+            end
+          end
+        end
+      end
+    end
+    local spawned, spawnedBad = 0, {}
+    for _, a in ipairs(T._obs.addGroups) do
+      if a.coalition == enemy and not known[a.name or ""] then
+        spawned = spawned + 1
+        if not a.hidden then
+          spawnedBad[#spawnedBad + 1] = tostring(a.name)
+        end
+      end
+    end
+    local detail = string.format("%d placed + %d spawned enemy group(s)", placed, spawned)
+    if #placedBad + #spawnedBad > 0 then
+      local bad = {}
+      if #placedBad > 0 then
+        bad[#bad + 1] = "placed not hidden: " .. idList(placedBad)
+      end
+      if #spawnedBad > 0 then
+        bad[#bad + 1] = "spawned not hidden: " .. idList(spawnedBad)
+      end
+      T.fail(c.name, table.concat(bad, "; ") .. " (" .. detail .. ")")
+    else
+      T.pass(c.name, detail .. ", all hidden")
+    end
+  end
+end
+
+-- No two radio lines overlap (DMS.Comms.history(): start t + dur). Lines without t/dur are skipped.
+CHECKS.comms_no_overlap = function(c)
+  T._finals[#T._finals + 1] = function()
+    local overlaps, n = T.commsOverlaps(c.toleranceSec)
+    local _, bad = playedLines()
+    if n == 0 and bad > 0 then
+      T.skip(c.name, string.format("%d history entr(ies) without t/dur", bad))
+      return
+    end
+    if #overlaps > 0 then
+      T.fail(c.name, string.format("%d overlap(s) in %d line(s): %s", #overlaps, n, idList(overlaps, 4)))
+    else
+      T.pass(c.name, string.format("%d line(s), no overlap", n))
+    end
+  end
+end
+
+-- Every guaranteed beat that fired (or `beats` when given) had its radio line played after it fired.
+-- A line still queued at the end is reported (INFO), not failed.
+CHECKS.comms_beats = function(c)
+  T._finals[#T._finals + 1] = function()
+    local want = nil
+    if type(c.beats) == "table" and #c.beats > 0 then
+      want = {}
+      for _, id in ipairs(c.beats) do
+        want[id] = true
+      end
+    end
+    local lines = playedLines()
+    local queue = (DMS.Comms and DMS.Comms._s and DMS.Comms._s.queue) or {}
+    local checked, missing, queued, notFired = 0, {}, {}, {}
+    for _, beat in ipairs((DMS_CONFIG and DMS_CONFIG.beats) or {}) do
+      local sel = (want and want[beat.id]) or (not want and beat.guaranteed)
+      local bl, bt = beatSpeech(beat)
+      if sel and (bl or bt) then
+        local firedAt = T._obs.beatTimes[beat.id]
+        if not firedAt then
+          notFired[#notFired + 1] = beat.id
+        else
+          checked = checked + 1
+          local found = false
+          for _, e in ipairs(lines) do
+            if e.t >= firedAt - 0.5 and speechMatches(e, bl, bt) then
+              found = true
+              break
+            end
+          end
+          if not found then
+            local inQueue = false
+            for _, q in ipairs(queue) do
+              if speechMatches({ line = q.line, text = q.text }, bl, bt) then
+                inQueue = true
+              end
+            end
+            if inQueue then
+              queued[#queued + 1] = beat.id
+            else
+              missing[#missing + 1] = beat.id
+            end
+          end
+        end
+      end
+    end
+    local detail = string.format("%d fired beat(s) with speech checked", checked)
+    if #notFired > 0 then
+      detail = detail .. "; not fired: " .. idList(notFired)
+    end
+    if #queued > 0 then
+      T.info(c.name, "still queued at end: " .. idList(queued))
+      detail = detail .. "; queued at end: " .. idList(queued)
+    end
+    if #missing > 0 then
+      T.fail(c.name, "fired but never played: " .. idList(missing) .. " (" .. detail .. ")")
+    else
+      T.pass(c.name, detail)
+    end
+  end
+end
+
 -- Any `kind=end` outcome passes and reports its result; requireResult (or legacy result) demands one.
 CHECKS.outcome = function(c, deadline)
   local want = c.requireResult or c.result
@@ -680,12 +1088,13 @@ local function summary()
   T.info(
     "summary",
     string.format(
-      "t=%.0f beats=[%s] spawns=%d encounters=[%s] comms=%d proxy(takeoff=%s landed=%s)",
+      "t=%.0f beats=[%s] spawns=%d encounters=[%s] comms=%d marks=%d proxy(takeoff=%s landed=%s)",
       now(),
       table.concat(O.beats, ","),
       O.spawnCount,
       table.concat(enc, ","),
       (DMS.Comms and DMS.Comms.history and #DMS.Comms.history()) or 0,
+      (DMS.Intel and DMS.Intel.markStats and DMS.Intel.markStats().live) or 0,
       tostring(O.proxyTakeoff),
       tostring(O.proxyLanded)
     )

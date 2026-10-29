@@ -450,6 +450,7 @@ describe("comms contract", function()
       },
     }
     DMS.Comms.start()
+    MOCK.addPlayer("Viper1", 2, 1000, 2000) -- radio needs a real transmitter position (the player)
     DMS.Comms.say("ops", { "x_v1" }, nil, { coalition = 2 })
     local tx = MOCK.callsTo("trigger.action.radioTransmission")
     eq(#tx, 1, "radio transmission on the speaker frequency")

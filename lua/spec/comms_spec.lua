@@ -452,6 +452,7 @@ describe("DMS.Comms", function()
       assert(DMS.Comms.say("ops", "a", nil, { cooldownSec = 30, key = "k" }), "first")
       eq(DMS.Comms.say("ops", "b", nil, { cooldownSec = 30, key = "k" }), false, "cooldown")
       w.clock.advance(31)
+      w.addGroup("Viper1", 2, { { name = "Viper1-1", x = 1000, z = 2000, player = "Mav" } })
       assert(DMS.Comms.say("ops", "c", nil, { cooldownSec = 30, key = "k", frequency = 251.0, modulation = 0 }))
       DMS.Comms.say("ops", "a", nil, { groupId = 42 })
       w.clock.advance(30)
@@ -459,6 +460,10 @@ describe("DMS.Comms", function()
       eq(#rt, 1)
       eq(rt[1][2], "l10n/DEFAULT/c.ogg")
       eq(rt[1][6], 251000000, "MHz converted to Hz")
+      eq(rt[1][3].x, 1000, "transmitter at the player's group, not the map origin")
+      eq(rt[1][3].z, 2000)
+      eq(rt[1][3].y, DMS.Comms.TX_ABOVE_M, "just above the player")
+      eq(rt[1][7], 10000, "default power 10000 W (ME max)")
       local g = w.callsOf("outSoundForGroup")
       eq(#g, 1)
       eq(g[1][2], 42)
@@ -521,6 +526,176 @@ describe("DMS.Comms", function()
       DMS.Comms.text("Plain", { coalition = 2, durSec = 5 })
       eq(w.callsOf("outTextForCoalition")[1][3], "Plain")
     end)
+  end)
+
+  it("transmits a coalition line once per player group, from near each group", function()
+    withWorld(voiceCfg({ speakers = { ops = { callsign = "Magic", frequency = 251, modulation = 0 } } }), function(w)
+      DMS.Comms.start()
+      w.addGroup("Viper1", 2, {
+        { name = "Viper1-1", x = 0, z = 0, player = "Mav" },
+        { name = "Viper1-2", x = 100, z = 0, player = "Ice" },
+      })
+      local g2 = w.addGroup("Viper2", 2, { { name = "Viper2-1", x = 40000, z = 20000, player = "Goose" } })
+      w.addGroup("Viper3", 2, { { name = "Viper3-1", x = 41000, z = 20000, player = "Slider" } }) -- 1 km from Viper2
+      DMS.Comms.say("ops", "a", nil, {})
+      w.clock.advance(10)
+      local rt = w.callsOf("radioTransmission")
+      eq(#rt, 2, "one per group, de-duplicated by group; Viper3 shares Viper2's nearby transmitter")
+      eq(rt[1][3].x, 0, "first group")
+      eq(rt[1][3].y, DMS.Comms.TX_ABOVE_M)
+      eq(rt[2][3].x, 40000, "second group")
+      eq(rt[2][3].z, 20000)
+      assert(rt[1][8] ~= rt[2][8], "unique transmission names")
+      eq(rt[1][6], rt[2][6], "same frequency")
+      local plays = 0
+      for _, line in ipairs(w.infos) do
+        if string.find(line, "[DMS][Comms] PLAY n=", 1, true) then
+          plays = plays + 1
+          assert(string.find(line, "via=radio", 1, true) and string.find(line, "tx=2", 1, true), line)
+        end
+      end
+      eq(plays, 1, "one PLAY line per radio line, whatever the transmitter count")
+      eq(#w.callsOf("outTextForCoalition"), 1, "one subtitle")
+      w.clear()
+      DMS.Comms.say("ops", "b", nil, { groupId = g2.id })
+      w.clock.advance(10)
+      rt = w.callsOf("radioTransmission")
+      eq(#rt, 1, "group line: only that group")
+      eq(rt[1][3].x, 40000)
+      eq(rt[1][3].y, DMS.Comms.TX_ABOVE_M)
+      w.clear()
+      DMS.Comms.say("ops", "c", nil, { groupId = 999 })
+      w.clock.advance(10)
+      eq(#w.callsOf("radioTransmission"), 0, "group without a player: no transmitter")
+      eq(#w.callsOf("outSoundForGroup"), 1, "falls back to outSoundForGroup")
+    end)
+  end)
+
+  it("keeps the whole history in test mode and caps it otherwise", function()
+    withWorld(voiceCfg(), function(w)
+      DMS.Comms.start()
+      for i = 1, 230 do
+        DMS.Comms.say("ops", nil, "line " .. i, { durSec = 1, keep = true })
+        w.clock.advance(3)
+      end
+      eq(#DMS.Comms.history(), 200, "normal cap")
+    end)
+    local cfg = voiceCfg()
+    cfg.test = { enabled = true }
+    withWorld(cfg, function(w)
+      DMS.Comms.start()
+      for i = 1, 230 do
+        DMS.Comms.say("ops", nil, "line " .. i, { durSec = 1, keep = true })
+        w.clock.advance(3)
+      end
+      eq(#DMS.Comms.history(), 230, "test mode keeps every line")
+      eq(DMS.Comms.history()[1].text, "Mustang: line 1")
+    end)
+  end)
+
+  it("broadcasts instead of transmitting from nowhere when no player position is known", function()
+    withWorld(voiceCfg({ speakers = { ops = { callsign = "Magic", frequency = 251, modulation = 0 } } }), function(w)
+      DMS.Comms.start()
+      DMS.Comms.say("ops", "a", nil, {})
+      w.clock.advance(10)
+      eq(#w.callsOf("radioTransmission"), 0, "no transmitter position")
+      eq(#w.callsOf("outSoundForCoalition"), 1, "fallback broadcast")
+      w.addGroup("Viper1", 2, { { name = "Viper1-1", x = 5, z = 6, player = "Mav" } })
+      DMS.Comms.say("ops", "b", nil, {})
+      w.clock.advance(10)
+      local rt = w.callsOf("radioTransmission")
+      eq(#rt, 1, "speaker frequency used once a player exists")
+      eq(rt[1][4], 0, "AM")
+      eq(rt[1][6], 251000000)
+    end)
+  end)
+
+  it("logs one PLAY line per transmission with non-overlapping start/end times", function()
+    withWorld(voiceCfg(), function(w)
+      DMS.Comms.start()
+      local started = false
+      for _, line in ipairs(w.infos) do
+        if string.find(line, "[DMS][Comms] started", 1, true) and string.find(line, "4 with audio", 1, true) then
+          started = true
+        end
+      end
+      assert(started, "start line reports audio count")
+      for _, id in ipairs({ "d", "a", "b" }) do
+        DMS.Comms.say("ops", id, nil, {})
+      end
+      DMS.Comms.say("ops", nil, "subtitle only", { durSec = 2 })
+      w.clock.advance(60)
+      local plays = {}
+      local pat = "%[DMS%]%[Comms%] PLAY n=(%d+) line=(%S+) speaker=%S+ via=(%S+) file=(%S+) "
+        .. "start=([%d%.]+) end=([%d%.]+)"
+      for _, line in ipairs(w.infos) do
+        local n, lid, via, file, st, en = string.match(line, pat)
+        if n then
+          plays[#plays + 1] =
+            { n = tonumber(n), line = lid, via = via, file = file, st = tonumber(st), en = tonumber(en) }
+        end
+      end
+      eq(#plays, 4, "one PLAY per transmission")
+      eq(plays[1].line, "d")
+      eq(plays[1].via, "coalition")
+      eq(plays[1].file, "d.ogg")
+      eq(plays[1].en - plays[1].st, 6, "end = start + durSec")
+      eq(plays[4].via, "text")
+      eq(plays[4].file, "-")
+      for i = 2, #plays do
+        eq(plays[i].n, i)
+        assert(
+          plays[i].st >= plays[i - 1].en + DMS.Comms.GAP_SEC - 1e-6,
+          string.format("overlap: PLAY %d starts %.2f before %.2f", i, plays[i].st, plays[i - 1].en)
+        )
+      end
+    end)
+  end)
+
+  it("shuffle-bag variants: no immediate repeat, full cycles, independent per beat, 200 seeds", function()
+    local voice = {}
+    for i = 1, 5 do
+      voice["x" .. i] = { file = "x" .. i .. ".ogg", text = "X" .. i, durSec = 1, speaker = "ops" }
+      voice["y" .. i] = { file = "y" .. i .. ".ogg", text = "Y" .. i, durSec = 1, speaker = "ops" }
+    end
+    local firsts = {}
+    for seed = 1, 200 do
+      withWorld(voiceCfg({ seed = seed, voice = voice }), function(w)
+        DMS.Comms.start()
+        local n = 2 + (seed % 4) -- bag sizes 2..5
+        local xs, ys = {}, {}
+        for i = 1, n do
+          xs[i] = "x" .. i
+          ys[i] = "y" .. i
+        end
+        local px, py = {}, {}
+        for _ = 1, n * 6 do
+          px[#px + 1] = DMS.Comms.say("ops", xs, nil, {})
+          py[#py + 1] = DMS.Comms.say("ops", ys, nil, {}) -- a second beat's bag interleaved
+          w.clock.advance(5)
+        end
+        for _, picks in ipairs({ px, py }) do
+          for i = 2, #picks do
+            assert(picks[i] ~= picks[i - 1], "seed " .. seed .. ": immediate repeat at " .. i)
+          end
+          for start = 1, #picks, n do
+            local seen = {}
+            for i = start, start + n - 1 do
+              assert(not seen[picks[i]], "seed " .. seed .. ": repeat inside a cycle at " .. i)
+              seen[picks[i]] = true
+            end
+          end
+        end
+        if n == 4 then
+          firsts[px[1]] = (firsts[px[1]] or 0) + 1
+        end
+      end)
+    end
+    local distinct = 0
+    for _ in pairs(firsts) do
+      distinct = distinct + 1
+    end
+    eq(distinct, 4, "every variant opens some run (seed actually varies the pick)")
   end)
 
   it("survives 200 random seeds", function()

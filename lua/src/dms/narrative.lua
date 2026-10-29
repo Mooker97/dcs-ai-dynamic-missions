@@ -92,6 +92,40 @@ local function userFlag(name)
   return 0
 end
 
+-- Campaign flags (DMS_CONFIG.flags, state/qualities.yaml at plan time): name -> bool.
+local function campaignFlag(name)
+  local f = cfg().flags
+  if type(f) ~= "table" or name == nil then
+    return nil
+  end
+  local v = f[name]
+  if v == nil then
+    return nil
+  end
+  if type(v) == "number" then
+    return v ~= 0
+  end
+  return v == true or v == "true"
+end
+
+function N.getCampaignFlag(name)
+  return campaignFlag(name) == true
+end
+
+function N.campaignFlags()
+  local out = {}
+  local f = cfg().flags
+  if type(f) == "table" then
+    for k, _ in pairs(f) do
+      if type(k) == "string" then
+        out[k] = campaignFlag(k) == true
+      end
+    end
+  end
+  return out
+end
+
+-- Mission flags (setFlag / ME user flags) first, then campaign flags, else 0.
 function N.getFlag(name)
   local v = N._s.flags[name]
   if v ~= nil then
@@ -103,7 +137,15 @@ function N.getFlag(name)
     end
     return tonumber(v) or 0
   end
-  return userFlag(name)
+  local u = userFlag(name)
+  if u ~= 0 then
+    return u
+  end
+  local c = campaignFlag(name)
+  if c ~= nil then
+    return c and 1 or 0
+  end
+  return 0
 end
 
 function N.isFlagSet(name)
@@ -658,12 +700,67 @@ local function subjectUnit(name, payload)
   return payload.unit or payload.target or payload.initiator
 end
 
+local LANDING_EVENTS = { ["unit.landed"] = true, ["unit.takeoff"] = true }
+
+-- Config zone (DMS_CONFIG.zones) or ME trigger zone (circle) by id.
+local function zoneById(zid)
+  local z = (cfg().zones or {})[zid]
+  if type(z) == "table" then
+    return z
+  end
+  if trigger and trigger.misc and trigger.misc.getZone then
+    local ok, mz = pcall(trigger.misc.getZone, zid)
+    if ok and type(mz) == "table" and mz.point and mz.radius then
+      return { kind = "circle", x = mz.point.x, y = mz.point.z, radius = mz.radius }
+    end
+  end
+  return nil
+end
+
+-- unit.landed / unit.takeoff zone filter: the unit's current position is inside zone `zid`.
+local function landingInZone(name, payload, zid)
+  local uname = payload.unit
+  local z = zoneById(zid)
+  if not z then
+    log("warn", "%s filter: unknown zone %s", name, tostring(zid))
+    return false
+  end
+  local p = payload.pos
+  if type(p) ~= "table" and Unit and type(uname) == "string" then
+    local ok, u = pcall(Unit.getByName, uname)
+    if ok and u then
+      local okP, pt = pcall(u.getPoint, u)
+      if okP then
+        p = pt
+      end
+    end
+  end
+  if type(p) ~= "table" then
+    log("debug", "%s %s: no position, zone %s not matched", name, tostring(uname), tostring(zid))
+    return false
+  end
+  local inside = N._inZone(z, p)
+  if not inside then
+    log("debug", "%s %s at %s not in zone %s", name, tostring(uname), tostring(payload.place), tostring(zid))
+  end
+  return inside
+end
+
+local function placeMatch(place, want)
+  if type(place) ~= "string" or type(want) ~= "string" then
+    return false
+  end
+  return string.lower(place) == string.lower(want)
+end
+
 local function matchesFilters(w, payload, name)
   local group = payload.group or payload.targetGroup or payload.initiatorGroup
   for k, v in pairs(w) do
     if not IGNORED[k] then
       local ok
-      if k == "groupPrefix" or k == "group_prefix" then
+      if LANDING_EVENTS[name] and (k == "zone" or k == "place" or k == "airbase") then
+        ok = true -- checked after the cheap filters (below)
+      elseif k == "groupPrefix" or k == "group_prefix" then
         ok = prefixMatch(group, v)
       elseif k == "group" then
         ok = group == v
@@ -691,6 +788,16 @@ local function matchesFilters(w, payload, name)
       if not ok then
         return false
       end
+    end
+  end
+  if LANDING_EVENTS[name] then
+    local want = w.place or w.airbase
+    if want ~= nil and not placeMatch(payload.place, want) then
+      log("debug", "%s %s at %s, not place %s", name, tostring(payload.unit), tostring(payload.place), tostring(want))
+      return false
+    end
+    if w.zone ~= nil and not landingInZone(name, payload, w.zone) then
+      return false
     end
   end
   return true
@@ -848,7 +955,8 @@ local function zonesOfInterest()
   local zones, set = cfg().zones or {}, {}
   for _, beat in ipairs(N._s.beats) do
     local w = beat.when
-    if type(w) == "table" and w.zone and zones[w.zone] then
+    -- only zone.entered beats need polling (a unit.landed zone is checked at the event)
+    if type(w) == "table" and w.zone and zones[w.zone] and (not w.event or w.event == "zone.entered") then
       set[w.zone] = zones[w.zone]
     end
   end
@@ -930,6 +1038,13 @@ function N.start()
   s.startedAt = now()
   for k, v in pairs(cfg().qualities or {}) do
     s.qualities[k] = tonumber(v) or 0
+  end
+  local nCampaign = 0
+  for _ in pairs(N.campaignFlags()) do
+    nCampaign = nCampaign + 1
+  end
+  if nCampaign > 0 then
+    log("info", "%d campaign flag(s) loaded", nCampaign)
   end
   for i, b in ipairs(cfg().beats or {}) do
     if type(b) == "table" then

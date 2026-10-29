@@ -9,6 +9,18 @@ local P = "Comms"
 
 Comms.SOUND_PREFIX = "l10n/DEFAULT/"
 Comms.GAP_SEC = 0.75 -- silence between queued transmissions
+Comms.HISTORY_CAP = 200 -- Comms.history() length in normal runs
+Comms.HISTORY_CAP_TEST = 100000 -- test mode: keep every line so comms_beats/comms_no_overlap see them all
+
+--- Max Comms.history() entries: HISTORY_CAP_TEST in test builds (DMS_CONFIG.test enabled, the same
+--- rule as DMS.Test.isEnabled) so end-of-run checks see every line, else HISTORY_CAP.
+function Comms.historyCap()
+  local t = DMS_CONFIG and DMS_CONFIG.test
+  if type(t) == "table" and t.enabled ~= false then
+    return Comms.HISTORY_CAP_TEST
+  end
+  return Comms.HISTORY_CAP
+end
 Comms.MAX_QUEUE = 12 -- oldest low-priority items dropped beyond this
 Comms.ROOT_MENU = "DMS"
 
@@ -131,22 +143,121 @@ local function outText(target, msg, dur)
   end
 end
 
+-- Where radioTransmissions come from. DCS models range, line of sight and fade per listener, and
+-- field reports (ED forum 2025, research 2026-10-29) say a source within ~1 nm of the player at
+-- 10000 W (the ME maximum) stays clear, while a distant or high source fades. So we transmit next
+-- to each listener instead of from one place:
+--   opts.pos -> one transmitter there;
+--   a group line (groupId) -> one, TX_ABOVE_M above that group's first player unit (none when the
+--     group has no player);
+--   coalition-wide -> one per player group (de-duplicated by group), TX_ABOVE_M above the group's
+--     first player unit; a group within TX_MERGE_M of an earlier transmitter shares it (no doubled
+--     audio for groups flying together);
+--   no player position -> none (outSoundForGroup/ForCoalition instead, never a map-origin source).
+-- [? exact range/fade model: cockpit A/B pending, see dcs-scripting-gotchas.md]
+Comms.TX_POWER_W = 10000
+Comms.TX_ABOVE_M = 150 -- near the player but not on it (well inside 1 nm)
+Comms.TX_MERGE_M = 3704 -- 2 nm
+
+local function unitPoint(u)
+  if not (u and u.getPoint) then
+    return nil
+  end
+  local okp, p = pcall(u.getPoint, u)
+  if okp and type(p) == "table" and p.x and p.z then
+    return p
+  end
+  return nil
+end
+
+local function unitGroupId(u)
+  local ok, id = pcall(function()
+    return u:getGroup():getID()
+  end)
+  return ok and id or nil
+end
+
+local function txAt(p)
+  return { x = p.x, y = (p.y or 0) + Comms.TX_ABOVE_M, z = p.z }
+end
+
+-- -> list of transmitter positions (possibly empty)
+local function transmitterPositions(target)
+  if target.pos then
+    return { target.pos }
+  end
+  if not (coalition and coalition.getPlayers) then
+    return {}
+  end
+  local ok, list = pcall(coalition.getPlayers, target.coalition or playerCoalition())
+  if not ok or type(list) ~= "table" then
+    return {}
+  end
+  if target.groupId then
+    for _, u in ipairs(list) do
+      if unitGroupId(u) == target.groupId then
+        local p = unitPoint(u)
+        if p then
+          return { txAt(p) }
+        end
+      end
+    end
+    return {} -- no player in that group: outSoundForGroup, not the whole coalition
+  end
+  local out, seenGroup = {}, {}
+  local merge2 = Comms.TX_MERGE_M * Comms.TX_MERGE_M
+  for i, u in ipairs(list) do
+    local gid = unitGroupId(u) or ("unit#" .. i)
+    if not seenGroup[gid] then
+      local p = unitPoint(u)
+      if p then
+        seenGroup[gid] = true
+        local near = false
+        for _, q in ipairs(out) do
+          local dx, dz = q.x - p.x, q.z - p.z
+          if dx * dx + dz * dz <= merge2 then
+            near = true
+            break
+          end
+        end
+        if not near then
+          out[#out + 1] = txAt(p)
+        end
+      end
+    end
+  end
+  return out
+end
+
+-- Plays `path`; returns how ("radio" | "group" | "coalition" | nil when there is no trigger API)
+-- and how many radio transmitters were used (0 unless "radio").
 local function outSound(target, path)
   if not (trigger and trigger.action) then
-    return
+    return nil, 0
   end
   if target.frequency and trigger.action.radioTransmission then
-    local f = target.frequency
-    local hz = (f < 1000) and math.floor(f * 1000000 + 0.5) or f -- MHz or Hz accepted
-    local mod = target.modulation or 0 -- 0 = AM, 1 = FM
-    local pos = target.pos or { x = 0, y = 0, z = 0 }
-    Comms._s.txSeq = (Comms._s.txSeq or 0) + 1
-    trigger.action.radioTransmission(path, pos, mod, false, hz, target.power or 1000, "DMS_TX_" .. Comms._s.txSeq)
-  elseif target.groupId and trigger.action.outSoundForGroup then
+    local positions = transmitterPositions(target)
+    if #positions > 0 then
+      local f = target.frequency
+      local hz = (f < 1000) and math.floor(f * 1000000 + 0.5) or f -- MHz or Hz accepted
+      local mod = target.modulation or 0 -- 0 = AM, 1 = FM
+      local power = target.power or Comms.TX_POWER_W
+      for _, pos in ipairs(positions) do
+        Comms._s.txSeq = (Comms._s.txSeq or 0) + 1 -- unique name per transmission
+        trigger.action.radioTransmission(path, pos, mod, false, hz, power, "DMS_TX_" .. Comms._s.txSeq)
+      end
+      return "radio", #positions
+    end
+    log("debug", "no transmitter position for %s (no player yet); broadcasting instead", path)
+  end
+  if target.groupId and trigger.action.outSoundForGroup then
     trigger.action.outSoundForGroup(target.groupId, path)
+    return "group", 0
   elseif trigger.action.outSoundForCoalition then
     trigger.action.outSoundForCoalition(target.coalition or playerCoalition(), path)
+    return "coalition", 0
   end
+  return nil, 0
 end
 
 local function remember(target, msg, dur)
@@ -167,8 +278,10 @@ local pump
 local function play(item)
   local s = Comms._s
   local t = now()
+  local via, tx = "text", 0
   if item.file then
-    outSound(item, Comms.SOUND_PREFIX .. item.file)
+    local how, n = outSound(item, Comms.SOUND_PREFIX .. item.file)
+    via, tx = how or "none", n or 0
   end
   local msg
   if item.turnsText then
@@ -186,11 +299,27 @@ local function play(item)
   end
   s.played[#s.played + 1] =
     { t = t, dur = item.dur, line = item.line, speaker = item.speaker, file = item.file, text = msg }
-  if #s.played > 200 then
+  if #s.played > Comms.historyCap() then
     table.remove(s.played, 1)
   end
   s.busyUntil = t + item.dur
-  log("debug", "TX %s line=%s dur=%.1f '%s'", tostring(item.speaker), tostring(item.line), item.dur, msg)
+  -- One info line per transmission so a headless run can assert ordering and no overlap:
+  -- PLAY n=<seq> line=<id> speaker=<id> via=radio|group|coalition|text file=<f|-> start=<s> end=<s> tx=<n>
+  -- (tx = radioTransmission calls for this line: one per listener group, 0 unless via=radio)
+  s.playCount = (s.playCount or 0) + 1
+  log(
+    "info",
+    "PLAY n=%d line=%s speaker=%s via=%s file=%s start=%.2f end=%.2f tx=%d",
+    s.playCount,
+    tostring(item.line or "-"),
+    tostring(item.speaker),
+    via,
+    tostring(item.file or "-"),
+    t,
+    t + item.dur,
+    tx
+  )
+  log("debug", "TX '%s'", msg)
 end
 
 pump = function()
@@ -558,18 +687,14 @@ function Comms.start()
   if DMS.Bus then
     s.tokens[#s.tokens + 1] = DMS.Bus.on("player.spawned", onPlayerSpawned)
   end
-  log(
-    "info",
-    "started (%d menu commands, %d voice lines)",
-    #Comms._commands,
-    (function()
-      local n = 0
-      for _ in pairs(cfg().voice or {}) do
-        n = n + 1
-      end
-      return n
-    end)()
-  )
+  local nVoice, nAudio = 0, 0
+  for _, v in pairs(cfg().voice or {}) do
+    nVoice = nVoice + 1
+    if type(v) == "table" and type(v.file) == "string" and v.file ~= "" then
+      nAudio = nAudio + 1
+    end
+  end
+  log("info", "started (%d menu commands, %d voice lines, %d with audio)", #Comms._commands, nVoice, nAudio)
 end
 
 function Comms.stop()

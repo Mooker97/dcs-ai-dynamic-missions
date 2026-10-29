@@ -522,6 +522,39 @@ describe("DMS.Narrative", function()
     end)
   end)
 
+  it("filters unit.landed by zone (unit position) and place (airbase name)", function()
+    local c = cfgWith({
+      { id = "at_pad", when = { event = "unit.landed", zone = "fob_pad", playersOnly = true }, once = true },
+      { id = "at_base", when = { event = "unit.landed", place = "Kutaisi" }, once = true },
+      { id = "both", when = { event = "unit.landed", place = "FARP London", zone = "fob_pad" }, once = true },
+      { id = "any", when = { event = "unit.landed" }, once = true },
+    }, {
+      zones = { fob_pad = { kind = "circle", x = 5000, y = 0, radius = 300 } },
+    })
+    c.narrative = { minGapSec = 0, pendingTtlSec = 30, zonePollSec = 3 }
+    withWorld(c, function(w)
+      w.addGroup("Dusty", 2, { { name = "Dusty-1", x = 0, z = 0, player = "Mav" } })
+      DMS.Narrative.start()
+      DMS.Bus.emit("player.spawned", { unit = "Dusty-1", group = "Dusty", playerName = "Mav", coalition = 2 })
+      DMS.Bus.emit("unit.landed", { unit = "Dusty-1", group = "Dusty", coalition = 2, place = "kutaisi" })
+      w.clock.advance(3)
+      eq(DMS.Narrative.firedCount("any"), 1)
+      eq(DMS.Narrative.firedCount("at_base"), 1, "place matches case-insensitively")
+      eq(DMS.Narrative.firedCount("at_pad"), 0, "landed outside the zone")
+      eq(DMS.Narrative.firedCount("both"), 0)
+      w.units["Dusty-1"].pos = { x = 5100, y = 0, z = 100 }
+      DMS.Bus.emit("unit.landed", { unit = "Dusty-1", group = "Dusty", coalition = 2 })
+      w.clock.advance(3)
+      eq(DMS.Narrative.firedCount("at_pad"), 1, "landed inside the zone")
+      eq(DMS.Narrative.firedCount("both"), 0, "zone ok but no place")
+      DMS.Bus.emit("unit.landed", { unit = "Dusty-1", group = "Dusty", coalition = 2, place = "FARP London" })
+      w.clock.advance(3)
+      eq(DMS.Narrative.firedCount("both"), 1, "zone and place")
+      assert(DMS.Narrative._matchesFilters({ zone = "nope" }, { unit = "Dusty-1" }, "unit.takeoff") == false)
+      assert(DMS.Narrative._matchesFilters({ zone = "fob_pad" }, { unit = "Dusty-1" }, "unit.takeoff"))
+    end)
+  end)
+
   it("delegates effects to Comms, Intel, Encounters and writes [DMS.OUTCOME] json", function()
     local c = cfgWith({
       {
@@ -639,6 +672,42 @@ describe("DMS.Narrative", function()
         end
       end)
     end
+  end)
+
+  it("tests campaign flags (DMS_CONFIG.flags) in requires.flags; mission flags win", function()
+    local c = cfgWith({
+      { id = "sa6_gone", when = { event = "x.go" }, once = true, requires = { flags = { m01_sa6_dead = true } } },
+      { id = "sa6_alive", when = { event = "x.go" }, once = true, requires = { flags = { m01_sa6_dead = false } } },
+      { id = "not_lost", when = { event = "x.go" }, once = true, requires = { flagsNot = { "m01_player_lost" } } },
+      { id = "lost", when = { event = "x.go" }, once = true, requires = { flags = { "m01_player_lost" } } },
+      { id = "unknown", when = { event = "x.go" }, once = true, requires = { flags = { m00_never = true } } },
+      { id = "cleared", when = { event = "x.again" }, once = true, requires = { flags = { m01_sa6_dead = true } } },
+    }, { flags = { m01_sa6_dead = true, m01_player_lost = false } })
+    c.narrative = { minGapSec = 0, pendingTtlSec = 30 }
+    withWorld(c, function(w)
+      DMS.Narrative.start()
+      eq(DMS.Narrative.getCampaignFlag("m01_sa6_dead"), true)
+      eq(DMS.Narrative.getCampaignFlag("m01_player_lost"), false)
+      eq(DMS.Narrative.getCampaignFlag("nope"), false)
+      eq(DMS.Narrative.campaignFlags().m01_sa6_dead, true)
+      eq(DMS.Narrative.isFlagSet("m01_sa6_dead"), true, "campaign flag visible through isFlagSet")
+      DMS.Bus.emit("x.go", {})
+      w.clock.advance(1)
+      eq(DMS.Narrative.firedCount("sa6_gone"), 1, "campaign flag true")
+      eq(DMS.Narrative.firedCount("sa6_alive"), 0, "campaign flag true blocks {f=false}")
+      eq(DMS.Narrative.firedCount("not_lost"), 1, "campaign flag false satisfies flagsNot")
+      eq(DMS.Narrative.firedCount("lost"), 0, "campaign flag false is not set")
+      eq(DMS.Narrative.firedCount("unknown"), 0, "unknown flag is not set")
+      DMS.Narrative.setFlag("m01_sa6_dead", 0)
+      DMS.Bus.emit("x.again", {})
+      w.clock.advance(1)
+      eq(DMS.Narrative.firedCount("cleared"), 0, "mission-cleared flag overrides campaign value")
+      eq(DMS.Narrative.getCampaignFlag("m01_sa6_dead"), true, "campaign value unchanged")
+      DMS.Narrative.finish("success")
+      local o = outcomes(w)
+      assert(#o > 0, "outcome written")
+      assert(not string.find(o[#o], "m01_player_lost", 1, true), "campaign flags not echoed in outcome")
+    end)
   end)
 end)
 

@@ -30,6 +30,7 @@ from dcs import condition as dcs_condition
 from dcs import triggers as dcs_triggers
 from dcs.forcedoptions import ForcedOptions
 
+from ..plugins import runtime_lua_source
 from .mission import MissionBuilder
 from .specs import AirWaypoint, Coalition, GroundWaypoint, StartKind, UnitSpec
 
@@ -143,7 +144,7 @@ def build_from_plan(
                 b._add_resource(src)
         if plan.runtime is not None and not any(p.name == "dms_config.lua" for p in scripts):
             cfg = Path(tmp) / "dms_config.lua"
-            cfg.write_text(plan.runtime.to_lua_source(), encoding="utf-8")
+            cfg.write_text(runtime_lua_source(plan), encoding="utf-8")
             # Contract order: plugins -> dms_config.lua (-> dms_test.lua) -> dms.lua.
             runtime_at = [i for i, p in enumerate(scripts) if p.name in _RUNTIME_SCRIPTS]
             scripts.insert(runtime_at[0] if runtime_at else len(scripts), cfg)

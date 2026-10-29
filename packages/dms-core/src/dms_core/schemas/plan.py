@@ -270,6 +270,18 @@ class PlanOptions(DMSModel):
     external_views: bool = Field(default=True, description="Allow F2 external views.")
 
 
+class PlanSkynet(DMSModel):
+    """Options for the Skynet-IADS adapter, emitted as ``DMS_SKYNET`` in dms_config.lua."""
+
+    prefixes: list[str] = Field(
+        min_length=1,
+        description=(
+            "Group name prefixes the adapter registers: 'DMS_' (runtime spawns) plus the planned"
+            " SAM threat group names."
+        ),
+    )
+
+
 class BuildPlan(DMSModel):
     """Exact build plan (plan.json). Seeded and reproducible."""
 
@@ -297,6 +309,10 @@ class BuildPlan(DMSModel):
     options: PlanOptions = Field(default_factory=PlanOptions, description="Mission options.")
     runtime: RuntimeConfig | None = Field(
         default=None, description="DMS_CONFIG to emit as dms_config.lua."
+    )
+    skynet: PlanSkynet | None = Field(
+        default=None,
+        description="DMS_SKYNET to append to dms_config.lua (set when the spec lists 'skynet').",
     )
 
     @model_validator(mode="after")

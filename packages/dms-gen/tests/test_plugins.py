@@ -249,3 +249,111 @@ def test_dms_lua_insert_index_keeps_plugins_first_adapters_last() -> None:
     assert dms_lua_insert_index([f"l10n/DEFAULT/{Path(ADAPTER.file).name}"]) == 0
     assert dms_lua_insert_index([]) == 0
     assert dms_lua_insert_index(["l10n/DEFAULT/dms_config.lua", "x/briefing.lua"]) == 1
+
+
+# ---------------------------------------------------------------- generated DMS_SKYNET
+
+P01 = REPO / "campaigns" / "plugin-smoke" / "missions" / "p01-skynet"
+
+
+def _load_mission(mdir: Path) -> tuple[Any, Any, Any]:
+    from dms_core.schemas import BeatSheet, MissionSpec, StoryBible
+
+    if not (mdir / "mission-spec.yaml").is_file():
+        pytest.skip(f"{mdir.name} not present")
+
+    def load(p: Path) -> Any:
+        return yaml.safe_load(p.read_text(encoding="utf-8"))
+
+    spec = MissionSpec.model_validate(load(mdir / "mission-spec.yaml"))
+    bible = StoryBible.model_validate(load(mdir.parents[1] / "bible.yaml"))
+    beats = BeatSheet.model_validate(load(mdir / "beats.yaml"))
+    return spec, beats, bible
+
+
+def _embedded_config(miz_path: Path) -> dict[str, Any]:
+    from dms_core.luaio import loads
+    from dms_core.miz import MizFile
+
+    src = MizFile.open(miz_path).read_bytes("l10n/DEFAULT/dms_config.lua").decode("utf-8")
+    out: dict[str, Any] = loads(src, arrays=True)
+    return out
+
+
+def test_skynet_options_cover_planned_sam_groups_only() -> None:
+    from dms_core.luaio import loads
+    from dms_core.schemas.mission import Threat
+
+    threats = [
+        Threat.model_construct(id="sa6_site", role="sam_medium"),
+        Threat.model_construct(id="sa10", role="sam_long"),
+        Threat.model_construct(id="aaa", role="aaa"),
+    ]
+
+    def grp(name: str, source: str | None, category: str = "vehicle") -> PlanGroup:
+        return PlanGroup(
+            name=name,
+            category=category,  # type: ignore[arg-type]
+            coalition="red",
+            country="Insurgents",
+            units=[PlanUnit(name=name + "-1", type="Kub 1S91 str", x=0, y=0)],
+            source=source,
+        )
+
+    groups = [
+        grp("sa6_site_1", "sa6_site"),
+        grp("aaa_1", "aaa"),
+        grp("sa10_1", "sa10"),
+        grp("sa10_pd", "sa10"),
+        grp("Python 1", None, "plane"),
+    ]
+    assert plugins.skynet_options([], threats, groups) is None
+    assert plugins.skynet_options(["moose"], threats, groups) is None
+    opts = plugins.skynet_options(["skynet"], threats, groups)
+    assert opts is not None
+    assert opts.prefixes == ["DMS_", "sa6_site_1", "sa10_1", "sa10_pd"]
+    assert loads(plugins.skynet_lua(opts), arrays=True)["DMS_SKYNET"] == {"prefixes": opts.prefixes}
+
+
+def test_plan_without_skynet_emits_no_dms_skynet(tmp_path: Path) -> None:
+    from dms_gen.planner import write_runtime_config
+
+    spec, beats, bible = _m01()
+    plan = plan_mission(spec, beats, seed=1, bible=bible)
+    assert plan.skynet is None
+    text = write_runtime_config(plan, tmp_path).read_text(encoding="utf-8")
+    assert "DMS_CONFIG" in text and "DMS_SKYNET" not in text
+
+
+def test_built_config_has_dms_skynet_for_planned_sams(tmp_path: Path) -> None:
+    """p01-skynet: DMS_SKYNET.prefixes = DMS_ + the planned SA-6 group; ambush SAMs left to DMS_."""
+    from dms_gen.planner import write_runtime_config
+
+    spec, beats, bible = _load_mission(P01)
+    assert spec.plugins == ["skynet"]
+    plan = plan_mission(spec, beats, seed=7, bible=bible)
+    sam_ids = {t.id for t in spec.threats if t.role in plugins.SAM_ROLES}
+    planned_sams = [g.name for g in plan.groups if g.source in sam_ids]
+    assert planned_sams == ["sa6_site_1"]
+    assert plan.skynet is not None
+    assert plan.skynet.prefixes == ["DMS_", *planned_sams]
+    # ambush_sam pools are never listed by name: the adapter skips their DMS_<pool>_<n> spawns
+    ambush_pools = {e.pool for e in spec.dynamic.encounters if e.kind == "ambush_sam"}
+    assert ambush_pools == {"sa6_ambush", "sa8_popup"}
+    assert not any(p.startswith(tuple(ambush_pools)) for p in plan.skynet.prefixes)
+
+    cfg = write_runtime_config(plan, tmp_path)
+    dms = tmp_path / "dms.lua"
+    dms.write_text("DMS = DMS or {}\n", encoding="utf-8")
+    for r in plan.resources:
+        name = Path(r.path).name
+        if name == "dms_config.lua":
+            r.source = str(cfg)
+        elif name == "dms.lua":
+            r.source = str(dms)
+    out = build_from_plan(plan, tmp_path / "p01.miz", base_dir=REPO)
+    assert _script_order(out)[-3:] == ["dms_config.lua", "dms.lua", "skynet_adapter.lua"]
+    g = _embedded_config(out)
+    assert g["DMS_SKYNET"] == {"prefixes": ["DMS_", "sa6_site_1"]}
+    assert g["DMS_CONFIG"]["missionId"] == "p01-skynet"
+    assert "lua_syntax" not in _codes(check_miz(out))

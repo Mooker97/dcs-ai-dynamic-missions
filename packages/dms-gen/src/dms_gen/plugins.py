@@ -18,6 +18,11 @@ import hashlib
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
+
+from dms_core.luaio import dumps
+from dms_core.schemas.mission import Threat
+from dms_core.schemas.plan import BuildPlan, PlanGroup, PlanSkynet
 
 
 @dataclass(frozen=True)
@@ -136,6 +141,47 @@ def dms_lua_insert_index(resource_paths: Iterable[str]) -> int:
     return idx
 
 
+SAM_ROLES: frozenset[str] = frozenset({"sam_short", "sam_medium", "sam_long"})
+"""Threat roles whose planned groups join the Skynet IADS."""
+
+SKYNET_RUNTIME_PREFIX = "DMS_"
+"""Prefix of every DMS runtime spawn (``DMS_<poolOrTemplate>_<n>``, DMS.Registry.allocName)."""
+
+
+def skynet_options(
+    names: Iterable[str], threats: Iterable[Threat], groups: Iterable[PlanGroup]
+) -> PlanSkynet | None:
+    """``DMS_SKYNET`` options for a mission, or ``None`` unless ``names`` includes ``skynet``.
+
+    Prefixes are ``"DMS_"`` (runtime spawns; the adapter itself skips ``ambush_sam`` groups)
+    followed by the planned names of every ground group of a SAM-role threat, in plan order.
+    """
+    if "skynet" not in set(names):
+        return None
+    sam_ids = {t.id for t in threats if t.role in SAM_ROLES}
+    prefixes = [SKYNET_RUNTIME_PREFIX]
+    for g in groups:
+        if g.source in sam_ids and g.category == "vehicle" and g.name not in prefixes:
+            prefixes.append(g.name)
+    return PlanSkynet(prefixes=prefixes)
+
+
+def runtime_lua_source(plan: BuildPlan) -> str:
+    """The ``dms_config.lua`` text: ``DMS_CONFIG = {...}`` plus ``DMS_SKYNET`` when planned."""
+    if plan.runtime is None:
+        raise ValueError("plan has no runtime config")
+    text = plan.runtime.to_lua_source()
+    if plan.skynet is not None:
+        text = text.rstrip("\n") + "\n" + skynet_lua(plan.skynet)
+    return text.rstrip("\n")
+
+
+def skynet_lua(opts: PlanSkynet) -> str:
+    """``DMS_SKYNET = {...}`` as a Lua 5.1 statement (read by skynet_adapter.lua at load)."""
+    table: dict[str, Any] = {"prefixes": list(opts.prefixes)}
+    return dumps(table, "DMS_SKYNET")
+
+
 def file_sha256(data: bytes) -> str:
     """sha256 of a plugin file with line endings normalised to LF (git stores them as LF)."""
     return hashlib.sha256(data.replace(b"\r\n", b"\n")).hexdigest()
@@ -144,10 +190,15 @@ def file_sha256(data: bytes) -> str:
 __all__ = [
     "BY_BASENAME",
     "PLUGINS",
+    "SAM_ROLES",
+    "SKYNET_RUNTIME_PREFIX",
     "Plugin",
     "dms_lua_insert_index",
     "file_sha256",
     "resolve",
+    "runtime_lua_source",
+    "skynet_lua",
+    "skynet_options",
     "split_files",
     "user_names",
 ]

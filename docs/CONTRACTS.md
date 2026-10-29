@@ -513,6 +513,15 @@ DMS.SkynetAdapter.active          -- true after iads:activate() ran (DMS.Clock.a
 -- the encounter owns their emission control.
 ```
 
+**Generated `DMS_SKYNET`.** When the spec lists `skynet`, the planner sets
+`BuildPlan.skynet = {prefixes = [...]}` and `write_runtime_config` appends
+`DMS_SKYNET = { prefixes = { ... } }` to `dms_config.lua`, after `DMS_CONFIG` (so it is set before
+the adapter loads). `prefixes` is `"DMS_"` (runtime spawns, `DMS_<pool>_<n>`) followed by the
+planned names of every ground group of a `sam_short`/`sam_medium`/`sam_long` threat, in plan order
+(e.g. `sa6_site_1`, `sa6_site_pd`). Pool/encounter SAMs are only covered by `"DMS_"`; those of an
+`ambush_sam` encounter are still skipped by the adapter. Without `skynet` the field is `null` and
+no `DMS_SKYNET` line is written (the adapter defaults stay as above).
+
 ### `dms check` (dms_gen.check.check_miz)
 
 Structural checks on a built `.miz` (lupa round-trip, never pydcs). Errors fail the check:

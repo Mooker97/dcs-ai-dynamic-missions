@@ -15,6 +15,8 @@ Both files may hold plan-time conditional blocks (``<!-- if intel >= 2 -->`` ...
 
 Every ``TBD (plan)`` in either file becomes the frequency of the agency named on that line
 (:func:`fill_plan_frequencies`), and a generated ``COMMS`` kneeboard page lists ``plan.comms``.
+When ``plan.options.kneeboard_map`` is on (the default), a generated map page drawn from the plan
+(:mod:`.kneeboard_map`) follows as ``<id>-kneeboard-map-01.png``.
 
 The plan file on disk is never changed; the PNGs live in a temp dir for the build only.
 """
@@ -33,6 +35,7 @@ from dms_core.schemas.plan import PlanBriefing, PlanComm, PlanResource
 from .briefing import BRIEFING_FILE, load_briefing
 from .conditional import plan_facts, render_conditionals
 from .kneeboard import KNEEBOARD_FILE, write_kneeboard_pages
+from .kneeboard_map import write_map_page
 from .plan_adapter import build_from_plan as _build_plan
 
 TBD_PLAN = re.compile(r"TBD\s*\(plan\)", re.IGNORECASE)
@@ -119,6 +122,8 @@ def apply_mission_docs(
             *plan.resources,
             PlanResource(path=picture.name, source=str(picture.resolve()), kind="briefing_image"),
         ]
+    if plan.options.kneeboard_map:
+        pages += write_map_page(plan, Path(work_dir))
     if pages:
         taken = {r.path for r in plan.resources}
         extra = [

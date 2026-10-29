@@ -1237,6 +1237,20 @@
       "title": "FogOfWarIntent",
       "type": "object"
     },
+    "KneeboardOptions": {
+      "additionalProperties": false,
+      "description": "Generated kneeboard pages (CONTRACTS \"Briefing and kneeboard in the miz\").",
+      "properties": {
+        "map": {
+          "default": true,
+          "description": "Add the generated map page (route, steerpoints, bullseye, friendly airbases, known threat rings, no-strike areas; hidden threats are never drawn).",
+          "title": "Map",
+          "type": "boolean"
+        }
+      },
+      "title": "KneeboardOptions",
+      "type": "object"
+    },
     "LatLon": {
       "additionalProperties": false,
       "description": "A geographic point in WGS84 decimal degrees.",
@@ -2417,6 +2431,10 @@
       ],
       "default": null,
       "description": "Headless test-build hints (dms build --test)."
+    },
+    "kneeboard": {
+      "$ref": "#/$defs/KneeboardOptions",
+      "description": "Generated kneeboard pages."
     },
     "notes": {
       "anyOf": [

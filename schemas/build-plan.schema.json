@@ -3074,6 +3074,12 @@
           "description": "Allow F2 external views.",
           "title": "External Views",
           "type": "boolean"
+        },
+        "kneeboard_map": {
+          "default": true,
+          "description": "Add the generated kneeboard map page (MissionSpec.kneeboard.map).",
+          "title": "Kneeboard Map",
+          "type": "boolean"
         }
       },
       "title": "PlanOptions",

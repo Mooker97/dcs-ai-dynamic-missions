@@ -1326,7 +1326,9 @@ def plan_mission(
             description=f"{spec.title} ({spec.mission_type}).",
             blue_task="\n".join(task_lines),
         ),
-        options=PlanOptions(fog_of_war_map=spec.dynamic.fog_of_war.enabled),
+        options=PlanOptions(
+            fog_of_war_map=spec.dynamic.fog_of_war.enabled, kneeboard_map=spec.kneeboard.map
+        ),
         runtime=runtime,
         skynet=skynet_options(spec.plugins, spec.threats, p.groups),
     )

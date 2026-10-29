@@ -1156,6 +1156,30 @@ writes JSON Schema files to `schemas/` at the repo root for skills and editors.
     (all aircraft). It supports headings, paragraph lines (line breaks kept), bullets, pipe tables and `**bold**`,
     and paginates when needed. It uses Pillow's default font and no bundled font files. The bytes are
     deterministic for a given Pillow build. Glyphs that font lacks become ASCII (`—`→`-`, `→`→`->`).
+  - **Map page** (`dms_gen.builder.kneeboard_map`, U3): one 768x1024 PNG at
+    `KNEEBOARD/IMAGES/<mission_id>-kneeboard-map-01.png` (all aircraft; it sorts after the `kneeboard.md`
+    and COMMS pages), drawn from `plan.json` alone on a plain background. There are no map tiles
+    (licensing and determinism). It is on by default: `MissionSpec.kneeboard.map: bool = true`, which the
+    planner copies to `PlanOptions.kneeboard_map`. It is added whenever `base_dir` is given (like COMMS)
+    and the plan has a client group. Contents:
+    - a lat/lon graticule (labels in degrees and minutes, from pydcs's projection for `plan.theater`), a
+      north arrow (map grid north = DCS +x), a scale bar in NM;
+    - the player-side bullseye (pydcs terrain default, which is what the builder writes). When it is far
+      off the map it becomes an edge pointer with `BULLS <brg>/<NM>` from the map centre;
+    - every client group's route (identical routes drawn once), steerpoints numbered with their
+      waypoint names; `IP` as a triangle and `TGT*` as a crosshair;
+    - friendly airbases: the airbases named on the player side's waypoints (catalog positions);
+    - known threats as rings: enemy `vehicle`/`ship`/`static` groups that are `hidden: false` and not
+      `late_activation`. When `runtime.intel.fog_of_war` is on, a group must also be listed in
+      `intel.known_groups`. **Hidden threats are never drawn** (fog of war). The ring radius is the
+      largest catalog template `max_range_nm` of any of its unit types, else a role default
+      (`sam_long` 25, `sam_medium` 15, `sam_radar` 10, `sam_short` 5, `manpads` 2.5, `aaa` 1.5 NM).
+      Groups with neither get a marker and no ring;
+    - no-strike areas: plan zones whose name contains `no_strike`, `nostrike`, `no-strike`, `nsa`,
+      `no_fire`, `nfa` or `restricted` (case-insensitive), drawn hatched. Other zones are not drawn,
+      because area names could give away hidden threats;
+    - a footer with the steerpoint list (number, name, lat/lon in DDM) and the bullseye position.
+    The bytes are deterministic for a given Pillow build (Pillow's default font, no antialiasing).
 
 ## MCP server (`packages/dms-mcp`, v0.8)
 

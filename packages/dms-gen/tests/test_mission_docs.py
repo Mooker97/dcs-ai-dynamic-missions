@@ -165,7 +165,10 @@ def test_build_embeds_briefing_and_kneeboard(mission_dir: Path, tmp_path: Path) 
     assert br["blue"].startswith("2. MISSION")
     assert br["red"] == "plan red"  # no red section in briefing.md -> planner fallback
     kb = _kneeboards(out)
-    assert list(kb) == ["KNEEBOARD/IMAGES/m01-first-light-kneeboard-01.png"]
+    assert list(kb) == [
+        "KNEEBOARD/IMAGES/m01-first-light-kneeboard-01.png",
+        "KNEEBOARD/IMAGES/m01-first-light-kneeboard-map-01.png",  # generated map page (U3)
+    ]
     for png in kb.values():
         img = Image.open(io.BytesIO(png))
         img.verify()
@@ -182,7 +185,7 @@ def test_build_without_docs_uses_plan_briefing(tmp_path: Path) -> None:
     out = build_from_plan(_plan(), tmp_path / "c.miz", base_dir=empty)
     br = _briefing(out)
     assert (br["sortie"], br["description"], br["blue"]) == ("Plan title", "plan desc", "plan blue")
-    assert _kneeboards(out) == {}
+    assert list(_kneeboards(out)) == ["KNEEBOARD/IMAGES/m01-first-light-kneeboard-map-01.png"]
 
 
 def test_apply_mission_docs_leaves_input_plan_alone(mission_dir: Path, tmp_path: Path) -> None:
@@ -192,7 +195,8 @@ def test_apply_mission_docs_leaves_input_plan_alone(mission_dir: Path, tmp_path:
     assert plan.resources == []
     assert new.briefing is not None and new.briefing.title == "FIRST LIGHT"
     assert [(r.kind, r.path) for r in new.resources] == [
-        ("kneeboard", "KNEEBOARD/IMAGES/m01-first-light-kneeboard-01.png")
+        ("kneeboard", "KNEEBOARD/IMAGES/m01-first-light-kneeboard-01.png"),
+        ("kneeboard", "KNEEBOARD/IMAGES/m01-first-light-kneeboard-map-01.png"),
     ]
     BuildPlan.model_validate(new.model_dump())
 

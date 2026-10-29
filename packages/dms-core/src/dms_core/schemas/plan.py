@@ -268,6 +268,10 @@ class PlanOptions(DMSModel):
         default="off", description="Civ traffic."
     )
     external_views: bool = Field(default=True, description="Allow F2 external views.")
+    kneeboard_map: bool = Field(
+        default=True,
+        description="Add the generated kneeboard map page (MissionSpec.kneeboard.map).",
+    )
 
 
 class PlanSkynet(DMSModel):

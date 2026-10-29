@@ -267,6 +267,13 @@ function T.setupProxy()
   end
   local okCat, cat = pcall(g.getCategory, g)
   local air = okCat and (cat == Group.Category.AIRPLANE or cat == Group.Category.HELICOPTER)
+  if air then
+    -- a long loiter otherwise sends the proxy to a fuel divert (viper m04 landed at Gaziantep)
+    local okFuel, e2 = pcall(c.setCommand, c, { id = "SetUnlimitedFuel", params = { value = true } })
+    if not okFuel then
+      DMS.Log.warn(P, "proxy SetUnlimitedFuel failed: %s", tostring(e2))
+    end
+  end
   local okO, e2 = pcall(function()
     if air then
       c:setOption(AI.Option.Air.id.ROE, AI.Option.Air.val.ROE.WEAPON_HOLD)

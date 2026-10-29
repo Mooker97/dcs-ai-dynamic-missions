@@ -90,7 +90,7 @@ flights:
     frequency_mhz: 251.0
     modulation: AM
     orders:
-      - {do: engage, at: lz_ridge, radius_nm: 2.5, targets: [ground], alt_ft: 200, speed_kts: 120,
+      - {do: engage, at: canal_north, radius_nm: 4, targets: [ground], alt_ft: 200, speed_kts: 120,
          until: {event: flight.lifted, flight: dustoff}, max_min: 12}
       - {do: escort, flight: dustoff, radius_nm: 1.5, targets: [ground, aaa], max_min: 5}
       - {do: rtb}

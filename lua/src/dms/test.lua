@@ -1116,6 +1116,11 @@ CHECKS.flight_orders = function(c, deadline)
       parts[#parts + 1] = tostring(id) .. "=" .. status
     end
     if #open > 0 then
+      -- after the mission ended (watch missions end while the AI flies home) unfinished orders are fine
+      local N = DMS.Narrative
+      if N and N._s and N._s.finished then
+        return true, "mission ended; still flying: " .. table.concat(open, ",")
+      end
       return false, "unfinished: " .. table.concat(open, ",")
     end
     return true, table.concat(parts, ",")

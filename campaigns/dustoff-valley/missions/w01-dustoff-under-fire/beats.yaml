@@ -77,7 +77,7 @@ beats:
     requires: {beats_not_fired: [lz_cleared_timeout], flags_not: [lz_cleared]}
     priority: 88
     once: true
-    guaranteed: true
+    guaranteed: false              # either this or lz_cleared_timeout clears the LZ
     speaker: dusty_brennan
     lines: [dusty_lz_cold_v1]
     text: "Dustoff, Dusty. LZ is cold. Come in from the west."

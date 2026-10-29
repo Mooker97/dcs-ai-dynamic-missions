@@ -181,6 +181,25 @@ local function txAt(p)
   return { x = p.x, y = (p.y or 0) + Comms.TX_ABOVE_M, z = p.z }
 end
 
+-- Headless test runs (DMS.Test proxy, no human player): the proxy group's units stand in for the
+-- players, so the radioTransmission path also runs in real DCS. {} outside a proxy run.
+local function proxyUnits()
+  local T = DMS.Test
+  if not (T and T.isProxyRun and T.playerGroups and T.isProxyRun()) then
+    return {}
+  end
+  local groups = T.playerGroups(nil)
+  local g = type(groups) == "table" and groups[1] or nil
+  if not g then
+    return {}
+  end
+  local ok, units = pcall(g.getUnits, g)
+  if ok and type(units) == "table" then
+    return units
+  end
+  return {}
+end
+
 -- -> list of transmitter positions (possibly empty)
 local function transmitterPositions(target)
   if target.pos then
@@ -192,6 +211,9 @@ local function transmitterPositions(target)
   local ok, list = pcall(coalition.getPlayers, target.coalition or playerCoalition())
   if not ok or type(list) ~= "table" then
     return {}
+  end
+  if #list == 0 then
+    list = proxyUnits()
   end
   if target.groupId then
     for _, u in ipairs(list) do

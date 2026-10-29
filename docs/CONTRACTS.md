@@ -138,7 +138,8 @@ DMS.Comms.say(speaker, lineIds, text, opts) -> lineId|true|false
 --   unit, and a group within Comms.TX_MERGE_M (2 nm) of an earlier transmitter shares it. Every
 --   radioTransmission gets its own name (DMS_TX_<seq>). The line still plays once: one subtitle,
 --   one queue slot, one PLAY line. With no player position, outSoundForGroup/ForCoalition (never
---   a map-origin transmitter).
+--   a map-origin transmitter). In a DMS.Test proxy run with no human player, the proxy group's
+--   units stand in for the players (so headless runs exercise radioTransmission).
 --   Each play logs info `PLAY n=<seq> line=<id|-> speaker=<id> via=radio|group|coalition|text
 --   file=<f|-> start=<t> end=<t+durSec> tx=<n>` (n = radioTransmission calls, 0 unless via=radio);
 --   start logs `started (.. N voice lines, M with audio)`.

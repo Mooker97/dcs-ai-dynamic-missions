@@ -1,0 +1,13 @@
+# Missions for tools/nightly.py (format: tools/NIGHTLY.md). Paths are relative to the repo root.
+# Each entry is rebuilt with `dms build <mission> --test` and run headless, one at a time.
+#   variant:      player-flight start variant for the proxy (build --variant)
+#   minutes:      model minutes (build --test-minutes; default: derived by the build)
+#   accel:        harness --accel (default 16)
+#   harness_args: extra run_mission.py arguments, e.g. ["--no-log-checks"]
+min_free_gb: 12
+ram_wait_sec: 900
+missions:
+  - mission: campaigns/viper-detachment/missions/m01-broken-umbrella
+  - mission: campaigns/viper-detachment/missions/m02-the-quarry
+  - mission: campaigns/viper-detachment/missions/m03-troops-in-contact
+  - mission: campaigns/viper-detachment/missions/m04-last-launcher

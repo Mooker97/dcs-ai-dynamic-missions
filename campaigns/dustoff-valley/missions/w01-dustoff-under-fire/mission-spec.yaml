@@ -53,7 +53,7 @@ areas:
   - id: militia_compound
     description: "Walled militia compound on the canal road, 4 NM south of the ridge. The technicals come from here."
     where: {kind: near_named_place, place: Reyhanli, radius_nm: 0.4, bearing_deg: 50, distance_nm: 5}
-    terrain: open
+    terrain: road                    # the column spawns on the road (open ground left it stuck)
   - id: lz_east
     description: "Treeline 1.2 NM east of the LZ; a militia team may move in here (hot LZ variant)."
     where: {kind: near_named_place, place: Reyhanli, radius_nm: 0.3, bearing_deg: 28, distance_nm: 8.2}
@@ -82,16 +82,20 @@ flights:
     skill: High
     start_area: start_dusty
     start_type: air
-    start_alt_ft: 200
-    start_speed_kts: 120
+    start_alt_ft: 1000
+    start_speed_kts: 135
     heading_toward: lz_ridge
     loadout: hellfire_rockets
     speaker: dusty_brennan
     frequency_mhz: 251.0
     modulation: AM
     orders:
-      - {do: engage, at: canal_north, radius_nm: 4, targets: [ground], alt_ft: 200, speed_kts: 120,
-         until: {event: flight.lifted, flight: dustoff}, max_min: 12}
+      - {do: hold, at: canal_north, alt_ft: 1000, speed_kts: 90, until: {beat: technicals_spotted}, max_min: 4}
+      # Kestrel talks Dusty onto the column: a directed attack, not a passive orbit
+      - {do: strike, at: canal_north, group: technicals, weapon: missile, alt_ft: 1000, speed_kts: 120,
+         max_min: 5}
+      - {do: engage, at: lz_ridge, radius_nm: 2.5, targets: [ground], alt_ft: 1000, speed_kts: 100,
+         until: {event: flight.lifted, flight: dustoff}, max_min: 10}
       - {do: escort, flight: dustoff, radius_nm: 1.5, targets: [ground, aaa], max_min: 5}
       - {do: rtb}
 
@@ -104,17 +108,17 @@ flights:
     skill: High
     start_area: start_west
     start_type: air
-    start_alt_ft: 300
-    start_speed_kts: 110
+    start_alt_ft: 1000
+    start_speed_kts: 135
     heading_toward: gate_hold
     speaker: dustoff_whitfield
     frequency_mhz: 251.0
     modulation: AM
     orders:
-      - {do: fly, to: gate_hold, alt_ft: 200, speed_kts: 110}
-      - {do: hold, at: gate_hold, alt_ft: 200, speed_kts: 70, until: {flag: lz_cleared}, max_min: 6}
+      - {do: fly, to: gate_hold, alt_ft: 1000, speed_kts: 135}
+      - {do: hold, at: gate_hold, alt_ft: 1000, speed_kts: 90, until: {flag: lz_cleared}, max_min: 6}
       - {do: land, at: lz_ridge, ground_min: [1.25, 1.75], pickup: kestrel_casualty}
-      - {do: fly, to: egress_west, alt_ft: 150, speed_kts: 130}
+      - {do: fly, to: egress_west, alt_ft: 300, speed_kts: 140}   # low-level dash out under the gun
       - {do: rtb}
 
   - id: venom

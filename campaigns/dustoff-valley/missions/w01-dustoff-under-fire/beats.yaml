@@ -20,7 +20,7 @@ beats:
     speaker: ops_walsh
     lines: [ops_start_v1]
     text: "Dusty, Dustoff Three-One, Hatay Ops. Kestrel has one urgent surgical. Cleared in."
-    cue: "F2 to Dusty 1-1 and Dustoff 3-1 - inbound low from the west"
+    cue: "F2 to Dusty 1-1 and Dustoff 3-1 - inbound from the west"
     mark: {type: text, at: "zone:lz_ridge", text: "LZ"}
     effects: {set_flag: started}
 
@@ -341,7 +341,7 @@ beats:
     speaker: dustoff_whitfield
     lines: [dustoff_lifting_v1]
     text: "Dustoff Three-One lifting. One urgent surgical aboard. Egress west."
-    cue: "F2 to Dustoff 3-1 - lifting, egress west"
+    cue: "F2 to Dustoff 3-1 - lifting, dropping to 300 ft for the low-level dash west"
     effects: {set_flag: [casualty_aboard, dustoff_lifted]}
 
   # ---- Egress gun (40%, telegraphed 35 s ahead) -----------------------------------------------

@@ -408,7 +408,19 @@ function Ground.watch(name, opts)
         end
         o.via = { via }
         o.stopShortM = nil
-        DMS.Log.info(P, "'%s' stuck for %ds - re-routing (%d/%d)", name, stuckSec, retries, maxRetries)
+        -- an "On Road" route DCS can't path just sits; from the second retry drive cross-country
+        if retries >= 2 then
+          o.action = "Off Road"
+        end
+        DMS.Log.info(
+          P,
+          "'%s' stuck for %ds - re-routing (%d/%d, %s)",
+          name,
+          stuckSec,
+          retries,
+          maxRetries,
+          o.action or "Off Road"
+        )
         Ground.routeTo(name, dest.point, o)
       else
         DMS.Log.warn(P, "'%s' stuck - giving up after %d retries", name, maxRetries)

@@ -197,10 +197,10 @@ dynamic:
     - id: technicals
       roles: [technicals]
       areas: [militia_compound, canal_north]   # convoy: spawn at the compound, drive north to the ridge foot
-      pick: [1, 2]
+      pick: [2, 3]
       faction: valley_militia
-      templates: [technical_pair, technical_mg, technical_aa_mg]
-      notes: "1-2 groups = 2 to 4 technicals. Variety: DShK pickups, sometimes a ZU-23 pickup."
+      templates: [technical_pair, technical_aa_mg]
+      notes: "2-3 groups = 4 to 6 technicals. Variety: DShK pickups, sometimes a ZU-23 pickup."
     - id: lz_militia
       roles: [infantry]
       areas: [lz_east]

@@ -530,16 +530,8 @@ describe("DMS.Comms", function()
 
   it("uses the DMS.Test proxy group as the listener when no human player exists", function()
     withWorld(voiceCfg({ speakers = { ops = { callsign = "Magic", frequency = 251, modulation = 0 } } }), function(w)
-      local savedTest = DMS.Test
-      local proxy = w.addGroup("Proxy Viper 1", 2, { { name = "Proxy Viper 1-1", x = 5000, z = 7000 } })
-      DMS.Test = {
-        isProxyRun = function()
-          return true
-        end,
-        playerGroups = function()
-          return { proxy }
-        end,
-      }
+      w.addGroup("Proxy Viper 1", 2, { { name = "Proxy Viper 1-1", x = 5000, z = 7000 } })
+      DMS_CONFIG.test = { enabled = true, playerProxy = "Proxy Viper 1" } -- DMS.standInGroups()
       local ok, err = pcall(function()
         DMS.Comms.start()
         DMS.Comms.say("ops", "a", nil, {})
@@ -549,13 +541,12 @@ describe("DMS.Comms", function()
         eq(rt[1][3].x, 5000)
         eq(rt[1][3].z, 7000)
         eq(rt[1][3].y, DMS.Comms.TX_ABOVE_M)
-        DMS.Test = nil
+        DMS_CONFIG.test = nil
         w.clear()
         DMS.Comms.say("ops", "b", nil, {})
         w.clock.advance(10)
         eq(#w.callsOf("radioTransmission"), 0, "no proxy run, no player: broadcast instead")
       end)
-      DMS.Test = savedTest
       assert(ok, err)
     end)
   end)

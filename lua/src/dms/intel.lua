@@ -243,6 +243,14 @@ local function vec3From(p)
   return { x = p.x, y = y, z = p.y } -- vec2 {x, y} -> vec3 {x, h, z=y}
 end
 
+-- Coalition our marks are drawn for: everyone (-1) on a watch mission (spectators), else the players'.
+local function markCoalition()
+  if DMS.isWatch and DMS.isWatch() then
+    return -1
+  end
+  return playerCoalition()
+end
+
 local function playerUnits()
   local out, seen = {}, {}
   local pc = playerCoalition()
@@ -269,6 +277,16 @@ local function playerUnits()
             out[#out + 1] = u
           end
         end
+      end
+    end
+  end
+  -- stand-in players (DMS.Test proxy / watch focus flight) see like players
+  if DMS.standInUnits then
+    for _, u in ipairs(DMS.standInUnits()) do
+      local okN, n = pcall(u.getName, u)
+      if okN and n and not seen[n] then
+        seen[n] = true
+        out[#out + 1] = u
       end
     end
   end
@@ -353,7 +371,7 @@ local function drawContact(c, why)
     return
   end
   local cfgI = icfg()
-  local coal = playerCoalition()
+  local coal = markCoalition()
   local owner = "contact:" .. tostring(c.group)
   local id = newId()
   if
@@ -824,7 +842,7 @@ function Intel.mark(spec)
     log("warn", "mark: bad spec")
     return nil
   end
-  local coal = playerCoalition()
+  local coal = markCoalition()
   if type(spec) == "table" and (spec.coalition == 1 or spec.coalition == 2 or spec.coalition == -1) then
     coal = spec.coalition
   end
@@ -935,7 +953,12 @@ local function bumpPastExisting()
     end
   end
   if skipped > 0 then
-    log("debug", "mark ids: ignored %d panel(s) outside our band (player marks); next id %d", skipped, Intel._nextId + 1)
+    log(
+      "debug",
+      "mark ids: ignored %d panel(s) outside our band (player marks); next id %d",
+      skipped,
+      Intel._nextId + 1
+    )
   end
 end
 

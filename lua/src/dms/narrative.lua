@@ -545,6 +545,27 @@ local function isSilent(beat)
 end
 N._isSilent = isSilent
 
+-- Beat `cue` (watch missions): "CAMERA: <cue>" to everyone for 10 s when DMS_CONFIG.watch is
+-- enabled and watch.cues ~= false; ignored otherwise. A script cannot move the camera.
+N.CUE_SEC = 10
+local function showCue(beat)
+  if type(beat.cue) ~= "string" or beat.cue == "" or not (DMS.isWatch and DMS.isWatch()) then
+    return false
+  end
+  if (cfg().watch or {}).cues == false then
+    return false
+  end
+  local msg = "CAMERA: " .. beat.cue
+  if DMS.Comms and DMS.Comms.text then
+    DMS.Comms.text(msg, { all = true, durSec = N.CUE_SEC })
+  elseif trigger and trigger.action and trigger.action.outText then
+    trigger.action.outText(msg, N.CUE_SEC, false)
+  end
+  log("info", "beat '%s' cue: %s", beat.id, beat.cue)
+  return true
+end
+N._showCue = showCue
+
 local function fire(beat, t)
   local s = N._s
   local f = s.fired[beat.id] or { count = 0 }
@@ -555,6 +576,7 @@ local function fire(beat, t)
     s.lastFireAt = t
   end
   log("info", "beat '%s' fired (priority %s, #%d)", beat.id, tostring(beat.priority or 0), f.count)
+  call(showCue, beat)
   local ok, err = call(applyEffects, beat)
   if not ok then
     log("error", "effects of '%s' failed: %s", beat.id, tostring(err))
@@ -686,7 +708,12 @@ local function isPlayerUnit(u)
     return true
   end
   local bp = DMS.Bus and DMS.Bus._players
-  return type(bp) == "table" and bp[u] ~= nil
+  if type(bp) == "table" and bp[u] ~= nil then
+    return true
+  end
+  -- a stand-in (test proxy / watch focus) unit before its player.spawned registration
+  local info = DMS.Bus and DMS.Bus.unitInfo and DMS.Bus.unitInfo(u)
+  return info ~= nil and DMS.isStandInGroup ~= nil and DMS.isStandInGroup(info.group)
 end
 
 -- The unit an event is "about" (for unit / playersOnly filters).
@@ -945,6 +972,16 @@ local function playerUnits()
           seen[name] = true
           out[#out + 1] = u
         end
+      end
+    end
+  end
+  -- stand-in players (DMS.Test proxy / watch focus flight) enter zones like players
+  if DMS.standInUnits then
+    for _, u in ipairs(DMS.standInUnits()) do
+      local okN, n = pcall(u.getName, u)
+      if okN and n and not seen[n] then
+        seen[n] = true
+        out[#out + 1] = u
       end
     end
   end

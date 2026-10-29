@@ -15,5 +15,6 @@ narrative
 comms
 intel
 ambient
+flights
 test
 init

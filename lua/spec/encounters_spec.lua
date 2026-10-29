@@ -312,7 +312,15 @@ describe("Encounters", function()
     local encs = {
       { id = "p1", kind = "pool", pool = "big", once = false, maxDeferSec = 1e9 },
       { id = "p2", kind = "pool", pool = "btr", once = false, cost = 2, maxDeferSec = 1e9 },
-      { id = "w1", kind = "waves", pool = "big", waves = { 2, 4 }, gapSec = { 5, 40 }, once = false, maxDeferSec = 1e9 },
+      {
+        id = "w1",
+        kind = "waves",
+        pool = "big",
+        waves = { 2, 4 },
+        gapSec = { 5, 40 },
+        once = false,
+        maxDeferSec = 1e9,
+      },
       { id = "t1", kind = "pool", template = "sa8", zone = "ridge", once = false, cost = 2, maxDeferSec = 1e9 },
     }
     local ids = { "p1", "p2", "w1", "t1" }
@@ -325,7 +333,8 @@ describe("Encounters", function()
         c.seed = seed
         c.budgets.spawnsPerMin = 2 + seed % 4
         c.budgets.maxActiveGround = 100000
-        c.pools.big = { members = { { tpl = "sa8" }, { tpl = "btr" } }, pick = { 1, 1 + seed % 4 }, zones = { "ridge" } }
+        c.pools.big =
+          { members = { { tpl = "sa8" }, { tpl = "btr" } }, pick = { 1, 1 + seed % 4 }, zones = { "ridge" } }
       end)
       local costs = {} -- group -> cost noted by the director
       local hist = {} -- {t, cost} per launch, in order

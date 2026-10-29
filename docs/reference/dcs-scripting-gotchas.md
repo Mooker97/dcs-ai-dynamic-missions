@@ -213,3 +213,17 @@ These are the options, in order of preference:
 2. `env.info("[DMS.OUTCOME] {json}")`, which the debriefer parses from `dcs.log`.
 3. A manual questionnaire.
 4. Opt-in de-sanitized `io`. Never require it.
+
+## AI flights (DMS.Flights, v0.9) **[? all unverified: implemented, not flown]**
+
+- Tasks used: `Mission` (2 points, current position first, `alt_type` per point), `Orbit` (Circle)
+  on the second waypoint's ComboTask, `EngageTargetsInZone` on the first waypoint (CAP pattern),
+  `Land {point, durationFlag, duration}` as a main task for helicopters, a `Land`/`Landing`
+  waypoint with `airdromeId` for planes and RTB, `Escort {groupId, pos, engagementDistMax,
+  targetTypes}`, `AttackGroup` and `Bombing` with `expend = "All"`.
+- Open questions for a headless run: whether helicopters accept `Escort` (may need `Follow`);
+  whether `Land` with `durationFlag = false` keeps a helicopter on the ground indefinitely;
+  whether a plane landed mid-orders takes off again on a new `Mission`; the numeric
+  `weaponType` for `Auto` (Hoggit 1073741822 vs MOOSE 3221225470); whether `ROE = OPEN_FIRE` is
+  enough for `AttackGroup`/`EngageTargetsInZone`; whether `S_EVENT_SHOT` fires for every bomb
+  release of an AI flight.

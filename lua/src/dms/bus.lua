@@ -422,7 +422,13 @@ H[EV.S_EVENT_PLAYER_LEAVE_UNIT] = function(e)
   local id = objIdOf(e.initiator)
   if id ~= nil and p.objId ~= nil and id ~= p.objId then
     Bus._objNames[id] = nil
-    log().debug("Bus", "stale PLAYER_LEAVE_UNIT for %s (object %s, current %s): ignored", name, tostring(id), tostring(p.objId))
+    log().debug(
+      "Bus",
+      "stale PLAYER_LEAVE_UNIT for %s (object %s, current %s): ignored",
+      name,
+      tostring(id),
+      tostring(p.objId)
+    )
     return
   end
   dropPlayer(name, "leave")

@@ -469,7 +469,13 @@ function Director.start()
       f.died = nil
     end
     Director._recentLeft[ev.unit] = { flight = g, t = DMS.Clock.now() }
-    DMS.Log.debug(P, "Player unit '%s' left flight '%s'; watching %ss for its death", ev.unit, g, Director.LEFT_GRACE_SEC)
+    DMS.Log.debug(
+      P,
+      "Player unit '%s' left flight '%s'; watching %ss for its death",
+      ev.unit,
+      g,
+      Director.LEFT_GRACE_SEC
+    )
   end)
 
   -- a player death: the unit is still mapped, or it left (player.left) within LEFT_GRACE_SEC.

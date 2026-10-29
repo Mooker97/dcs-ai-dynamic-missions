@@ -206,8 +206,9 @@ function Spawner.groundHeight(p)
 end
 
 -- All player units currently alive, as list of {unit=, pos=vec3, coalition=}.
--- coalition.getPlayers plus units registered in DMS.Bus._players (BIRTH players and the
--- DMS.Test player proxy, which is an AI group and so never appears in getPlayers).
+-- coalition.getPlayers plus units registered in DMS.Bus._players (BIRTH players, the DMS.Test
+-- player proxy and the watch focus flight, AI groups that never appear in getPlayers), plus any
+-- DMS.standInUnits() not registered yet.
 function Spawner.playerUnits()
   local out, seen = {}, {}
   for _, side in ipairs({ 1, 2 }) do
@@ -248,6 +249,19 @@ function Spawner.playerUnits()
       end)
       if ok2 and u and pos then
         out[#out + 1] = { unit = u, pos = pos, coalition = side or bp[name].coalition }
+        seen[name] = true
+      end
+    end
+  end
+  -- stand-in players (DMS.Test proxy / watch focus flight) not registered on the bus yet
+  if DMS.standInUnits then
+    for _, u in ipairs(DMS.standInUnits()) do
+      local ok2, pos, name, side = pcall(function()
+        return u:getPoint(), u:getName(), u:getCoalition()
+      end)
+      if ok2 and pos and name and not seen[name] then
+        seen[name] = true
+        out[#out + 1] = { unit = u, pos = pos, coalition = side }
       end
     end
   end

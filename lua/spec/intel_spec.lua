@@ -608,10 +608,8 @@ local function replayMarkLog(w)
     local op, id, rest = string.match(line, "^%[DMS%]%[Intel%] MARK (%a+) id=(%d+) (.*)$")
     if op == "add" then
       id = tonumber(id)
-      local kind, coal, x, z, r, t, owner, text = string.match(
-        rest,
-        "^kind=(%a+) coal=(%-?%d) x=(%-?%d+) z=(%-?%d+) r=(%S+) t=([%d%.]+) owner=(%S+) text=(.*)$"
-      )
+      local kind, coal, x, z, r, t, owner, text =
+        string.match(rest, "^kind=(%a+) coal=(%-?%d) x=(%-?%d+) z=(%-?%d+) r=(%S+) t=([%d%.]+) owner=(%S+) text=(.*)$")
       assert(kind and r and t, "unparseable MARK add: " .. line)
       assert(live[id] == nil, "MARK add of a live id " .. id)
       live[id] = { kind = kind, coal = tonumber(coal), text = text, x = tonumber(x), z = tonumber(z), owner = owner }

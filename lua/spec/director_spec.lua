@@ -376,9 +376,12 @@ describe("Director scenarios (fake clock, many seeds)", function()
         assert.is_false(ok2, ctx)
         assert.are.equal("RELAX", why2, ctx)
         local tR, iR = DMS.Clock.now(), DMS.Director.intensity("Viper1")
-        assert.truthy(advanceUntil(function()
-          return DMS.Director.state("Viper1") == "BUILD_UP"
-        end, 400), ctx .. ": never left RELAX")
+        assert.truthy(
+          advanceUntil(function()
+            return DMS.Director.state("Viper1") == "BUILD_UP"
+          end, 400),
+          ctx .. ": never left RELAX"
+        )
         local relaxed = DMS.Clock.now() - tR
         local drain = math.max(0, (iR - peak * 0.5) / decay)
         assert.truthy(relaxed >= f.relaxFor - 1e-6, ctx .. ": RELAX only " .. relaxed)
@@ -392,7 +395,10 @@ describe("Director scenarios (fake clock, many seeds)", function()
         assert.are.equal(w, ev[i].state, ctx .. " event " .. i)
         assert.are.equal("Viper1", ev[i].flight, ctx)
       end
-      assert.truthy(MOCK.logContains("%[Director%] Flight 'Viper1' BUILD_UP %-> PEAK"), ctx .. ": state change not logged")
+      assert.truthy(
+        MOCK.logContains("%[Director%] Flight 'Viper1' BUILD_UP %-> PEAK"),
+        ctx .. ": state change not logged"
+      )
       assert.are.equal(0, #MOCK.rawErrors, ctx)
     end
   end)

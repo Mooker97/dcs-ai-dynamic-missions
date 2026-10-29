@@ -760,8 +760,12 @@ Order semantics:
 - `hold`: Orbit (Circle) over the zone. Done on `until` or `maxSec`.
 - `land`: a `Land` task at the zone centre for helicopters; planes land at the airbase. Done
   after `groundSec` on the ground (S_EVENT_LAND for the lead, or AGL < 3 m and speed < 2 m/s);
-  then the group lifts off.
-- `escort`: a Follow/Escort task on the other flight's group, plus EngageTargetsInZone around it.
+  then the group lifts off. `flight.lifted` is emitted when the ground time ends and the next order
+  is issued (not on the actual liftoff). The last order keeps the group on the ground
+  (`durationFlag = false`).
+- `escort`: an Escort task on the other flight's group; its `engagementDistMax` (radiusM) and
+  `targetTypes` do the engaging (a fixed EngageTargetsInZone cannot follow a moving group). Done on
+  `until`, `maxSec`, or when the escorted group is gone.
 - `engage`: Orbit plus EngageTargetsInZone.
 - `strike`: AttackGroup (or Bombing) with weaponType and expend "All". Done when the target
   group is dead, when the flight's weapon was released and 60 s passed, or at `maxSec`. It emits
@@ -811,6 +815,10 @@ Watch mode in the other modules:
 - Intel marks use coalition -1.
 - Narrative `zone.entered`, the Director and Ambient treat `standInGroups()` units as players,
   exactly as they treat the test proxy.
+- Outside a test run, `DMS.Flights` registers the focus group's units in `DMS.Bus._players` and
+  emits `player.spawned {..., playerName = "WATCH", standIn = true}` (as `DMS.Test` does for its
+  proxy), so every player-dependent module sees it. A beat `cue` is shown via
+  `DMS.Comms.text(msg, {all = true, durSec = 10})`.
 
 `dms build --test` on a watch mission keeps the AI flights and uses the focus flight as
 `test.playerProxy`, with no proxy replacement and no loiter. The usual checks run, plus

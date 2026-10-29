@@ -14,7 +14,7 @@
 -- }
 -- Check kinds: booted | spawns {min} | beats_in_order {beats} | beat {id} | comms {min} |
 --   encounter {id, optional, group} | convoy_halt | outcome {requireResult} | ambient_cycle {site} |
---   marks {min} | fog_hidden | comms_no_overlap | comms_beats {beats}.
+--   marks {min} | fog_hidden | comms_no_overlap | comms_beats {beats} | flight_orders.
 --   Optional per check: name, deadlineSec.
 -- marks / fog_hidden / comms_no_overlap / comms_beats are end-of-run checks (like convoy_halt):
 --   they never hold the run open and resolve when DONE is logged.
@@ -246,10 +246,16 @@ function T.playerGroups(realList)
 end
 
 -- Configure the proxy AI: immortal, weapons hold, no threat reaction (each step pcall'd).
+-- On a watch mission the proxy is the focus flight (DMS.Flights): it keeps its own options and
+-- orders, so nothing is changed.
 function T.setupProxy()
   local g = proxyGroup()
   if not g then
     return false
+  end
+  if DMS.isWatch and DMS.isWatch() then
+    DMS.Log.info(P, "watch run: proxy %s is the focus flight; options and tasks left alone", T.proxyName())
+    return true
   end
   local okC, c = pcall(g.getController, g)
   if not okC or not c then
@@ -460,6 +466,22 @@ function T._observe()
       )
     end
   end)
+  for _, name in ipairs({ "flight.order", "flight.landed", "flight.lifted", "flight.done", "flight.lost" }) do
+    on(name, function(ev)
+      if ev then
+        T.info(
+          "flight",
+          string.format(
+            "%s %s %s t=%.0f",
+            name,
+            tostring(ev.flight),
+            tostring(ev.kind or ev.zone or ev.reason or ""),
+            now()
+          )
+        )
+      end
+    end)
+  end
   on("zone.entered", function(ev)
     if ev and ev.group == T.proxyName() then
       T.info("zone", string.format("%s t=%.0f", tostring(ev.zone), now()))
@@ -812,8 +834,7 @@ CHECKS.marks = function(c)
       return
     end
     if #r.missingText > 0 then
-      O.markIssues[#O.markIssues + 1] =
-        string.format("t=%.0f text ids not on map: %s", now(), idList(r.missingText))
+      O.markIssues[#O.markIssues + 1] = string.format("t=%.0f text ids not on map: %s", now(), idList(r.missingText))
     end
     if #r.ghosts > 0 then
       O.markIssues[#O.markIssues + 1] = string.format("t=%.0f removed ids still on map: %s", now(), idList(r.ghosts))
@@ -847,7 +868,8 @@ CHECKS.marks = function(c)
     if r then
       parts[#parts + 1] = string.format("getMarkPanels text %d/%d", r.textFound, r.text)
       if r.circleFound == 0 and r.circle > 0 then
-        parts[#parts + 1] = string.format("circles 0/%d listed (shapes missing from getMarkPanels: unverified)", r.circle)
+        parts[#parts + 1] =
+          string.format("circles 0/%d listed (shapes missing from getMarkPanels: unverified)", r.circle)
       else
         parts[#parts + 1] = string.format("circles %d/%d", r.circleFound, r.circle)
       end
@@ -1055,6 +1077,41 @@ CHECKS.ambient_cycle = function(c, deadline)
     end
     local detail = #parts > 0 and table.concat(parts, " ") or "no ambient site activated"
     return ok, detail
+  end, deadline)
+end
+
+-- Every DMS_CONFIG.flights entry reached flight.done or flight.lost (lost is reported as INFO, not
+-- a failure). Holds the run open until then; FAILs at the deadline naming the unfinished flights.
+CHECKS.flight_orders = function(c, deadline)
+  local reported = {}
+  T.expect(c.name, function()
+    local F = DMS.Flights
+    local list = DMS_CONFIG and DMS_CONFIG.flights
+    if type(list) ~= "table" or #list == 0 then
+      return true, "no flights (vacuous)"
+    end
+    if not (F and F.state) then
+      return false, "DMS.Flights missing", true
+    end
+    local parts, open = {}, {}
+    for i, def in ipairs(list) do
+      local id = type(def) == "table" and def.id or ("flight_" .. i)
+      local st = F.state(id)
+      local status = st and st.status or "unknown"
+      if status == "lost" and not reported[id] then
+        reported[id] = true
+        T.info(c.name, string.format("flight %s lost at t=%.0f", tostring(id), st.since or now()))
+      end
+      if status ~= "done" and status ~= "lost" then
+        open[#open + 1] =
+          string.format("%s(order %s %s)", tostring(id), tostring(st and st.index), tostring(st and st.kind))
+      end
+      parts[#parts + 1] = tostring(id) .. "=" .. status
+    end
+    if #open > 0 then
+      return false, "unfinished: " .. table.concat(open, ",")
+    end
+    return true, table.concat(parts, ",")
   end, deadline)
 end
 
@@ -1277,7 +1334,7 @@ function T.start()
     DMS.Clock.after(1, arm)
   end
 
-  if type(c.loiter) == "table" and c.playerProxy then
+  if type(c.loiter) == "table" and c.playerProxy and not (DMS.isWatch and DMS.isWatch()) then
     T.startLoiter(c.loiter, endAt)
   end
 

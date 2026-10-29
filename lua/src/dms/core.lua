@@ -222,3 +222,70 @@ function Log.outcome(tbl)
   end
   return line
 end
+
+-- ---------------------------------------------------------------------------
+-- Watch missions / stand-in player (CONTRACTS "AI flights and watch missions")
+-- ---------------------------------------------------------------------------
+
+-- DMS_CONFIG.watch.enabled: a spectator mission (no client slots; every actor is AI).
+function DMS.isWatch()
+  local cfg = DMS_CONFIG
+  local w = type(cfg) == "table" and cfg.watch or nil
+  return type(w) == "table" and w.enabled == true
+end
+
+-- Group names that stand in for "the player": the DMS.Test proxy in a test run, else the watch
+-- focus flight, else {}. Player-dependent modules treat these groups' units like player units.
+function DMS.standInGroups()
+  local cfg = DMS_CONFIG
+  if type(cfg) ~= "table" then
+    return {}
+  end
+  local t = cfg.test
+  if type(t) == "table" and t.enabled ~= false and type(t.playerProxy) == "string" then
+    return { t.playerProxy }
+  end
+  local w = cfg.watch
+  if type(w) == "table" and w.enabled == true and type(w.focus) == "string" then
+    return { w.focus }
+  end
+  return {}
+end
+
+function DMS.isStandInGroup(groupName)
+  if groupName == nil then
+    return false
+  end
+  for _, g in ipairs(DMS.standInGroups()) do
+    if g == groupName then
+      return true
+    end
+  end
+  return false
+end
+
+-- Live units of the stand-in groups (Unit objects; never errors, {} when none exist).
+function DMS.standInUnits()
+  local out = {}
+  if not (Group and Group.getByName) then
+    return out
+  end
+  for _, name in ipairs(DMS.standInGroups()) do
+    local ok, units = pcall(function()
+      local g = Group.getByName(name)
+      if g and g:isExist() then
+        return g:getUnits()
+      end
+      return nil
+    end)
+    if ok and type(units) == "table" then
+      for _, u in ipairs(units) do
+        local okE, ex = pcall(u.isExist, u)
+        if okE and ex then
+          out[#out + 1] = u
+        end
+      end
+    end
+  end
+  return out
+end

@@ -418,7 +418,10 @@ local function enemy()
     coalition = 1,
     country = "RUSSIA",
     category = "ground",
-    units = { { name = "Red Armour-1", type = "T-72B", x = 20000, y = 0 }, { name = "Red Armour-2", x = 20050, y = 30 } },
+    units = {
+      { name = "Red Armour-1", type = "T-72B", x = 20000, y = 0 },
+      { name = "Red Armour-2", x = 20050, y = 30 },
+    },
   })
 end
 

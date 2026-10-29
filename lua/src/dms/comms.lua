@@ -132,11 +132,18 @@ Comms._statusProviders = Comms._statusProviders or {}
 -- output primitives
 -- ---------------------------------------------------------------------------
 
+-- Watch missions (DMS.isWatch) have no client slots: text and sound go to everyone.
+local function toAll(target)
+  return target.all == true or (DMS.isWatch ~= nil and DMS.isWatch())
+end
+
 local function outText(target, msg, dur)
   if not (trigger and trigger.action) then
     return
   end
-  if target.groupId and trigger.action.outTextForGroup then
+  if toAll(target) and trigger.action.outText then
+    trigger.action.outText(msg, dur, false)
+  elseif target.groupId and trigger.action.outTextForGroup then
     trigger.action.outTextForGroup(target.groupId, msg, dur, false)
   elseif trigger.action.outTextForCoalition then
     trigger.action.outTextForCoalition(target.coalition or playerCoalition(), msg, dur, false)
@@ -181,21 +188,12 @@ local function txAt(p)
   return { x = p.x, y = (p.y or 0) + Comms.TX_ABOVE_M, z = p.z }
 end
 
--- Headless test runs (DMS.Test proxy, no human player): the proxy group's units stand in for the
--- players, so the radioTransmission path also runs in real DCS. {} outside a proxy run.
-local function proxyUnits()
-  local T = DMS.Test
-  if not (T and T.isProxyRun and T.playerGroups and T.isProxyRun()) then
-    return {}
-  end
-  local groups = T.playerGroups(nil)
-  local g = type(groups) == "table" and groups[1] or nil
-  if not g then
-    return {}
-  end
-  local ok, units = pcall(g.getUnits, g)
-  if ok and type(units) == "table" then
-    return units
+-- Stand-in players (DMS.standInGroups: the DMS.Test proxy in a headless run, else the watch focus
+-- flight): their units stand in for the players, so the radioTransmission path also runs with no
+-- human player. {} when there is no stand-in.
+local function standInUnits()
+  if DMS.standInUnits then
+    return DMS.standInUnits()
   end
   return {}
 end
@@ -205,17 +203,23 @@ local function transmitterPositions(target)
   if target.pos then
     return { target.pos }
   end
-  if not (coalition and coalition.getPlayers) then
-    return {}
+  local list
+  if DMS.isWatch and DMS.isWatch() then
+    list = standInUnits() -- watch: one transmitter at the focus flight, whatever the target
+  else
+    if not (coalition and coalition.getPlayers) then
+      return {}
+    end
+    local ok, players = pcall(coalition.getPlayers, target.coalition or playerCoalition())
+    if not ok or type(players) ~= "table" then
+      return {}
+    end
+    list = players
+    if #list == 0 then
+      list = standInUnits()
+    end
   end
-  local ok, list = pcall(coalition.getPlayers, target.coalition or playerCoalition())
-  if not ok or type(list) ~= "table" then
-    return {}
-  end
-  if #list == 0 then
-    list = proxyUnits()
-  end
-  if target.groupId then
+  if target.groupId and not toAll(target) then
     for _, u in ipairs(list) do
       if unitGroupId(u) == target.groupId then
         local p = unitPoint(u)
@@ -251,7 +255,7 @@ local function transmitterPositions(target)
   return out
 end
 
--- Plays `path`; returns how ("radio" | "group" | "coalition" | nil when there is no trigger API)
+-- Plays `path`; returns how ("radio" | "all" | "group" | "coalition" | nil when there is no trigger API)
 -- and how many radio transmitters were used (0 unless "radio").
 local function outSound(target, path)
   if not (trigger and trigger.action) then
@@ -272,7 +276,10 @@ local function outSound(target, path)
     end
     log("debug", "no transmitter position for %s (no player yet); broadcasting instead", path)
   end
-  if target.groupId and trigger.action.outSoundForGroup then
+  if toAll(target) and trigger.action.outSound then
+    trigger.action.outSound(path)
+    return "all", 0
+  elseif target.groupId and trigger.action.outSoundForGroup then
     trigger.action.outSoundForGroup(target.groupId, path)
     return "group", 0
   elseif trigger.action.outSoundForCoalition then
@@ -326,7 +333,7 @@ local function play(item)
   end
   s.busyUntil = t + item.dur
   -- One info line per transmission so a headless run can assert ordering and no overlap:
-  -- PLAY n=<seq> line=<id> speaker=<id> via=radio|group|coalition|text file=<f|-> start=<s> end=<s> tx=<n>
+  -- PLAY n=<seq> line=<id> speaker=<id> via=radio|all|group|coalition|text file=<f|-> start=<s> end=<s> tx=<n>
   -- (tx = radioTransmission calls for this line: one per listener group, 0 unless via=radio)
   s.playCount = (s.playCount or 0) + 1
   log(
@@ -481,16 +488,19 @@ function Comms.say(speaker, lineIds, text, opts)
   return line or true
 end
 
---- Immediate text message (not queued). opts: {coalition, groupId, durSec, callsign}
+--- Immediate text message (not queued). opts: {coalition, groupId, durSec, callsign, all}
+--- all = true: to everyone (trigger.action.outText), not remembered for "Repeat last message".
 function Comms.text(msg, opts)
   opts = opts or {}
   if opts.callsign then
     msg = opts.callsign .. ": " .. msg
   end
   local dur = opts.durSec or 10
-  local target = { coalition = opts.coalition, groupId = opts.groupId }
+  local target = { coalition = opts.coalition, groupId = opts.groupId, all = opts.all == true or nil }
   outText(target, msg, dur)
-  remember(target, msg, dur)
+  if not opts.all then
+    remember(target, msg, dur)
+  end
   return true
 end
 

@@ -66,12 +66,13 @@ A feature is done when all of the following are true:
 - [ ] Mission-quality lint in `dms validate` (26 rules, `dms_core.lint`) *(implemented + tested; all campaigns 0 errors)*
 
 ## Next (proposal)
-See [docs/rebuild/NEXT.md](docs/rebuild/NEXT.md) for v0.9/v1.0, and the groundwork packages
+What is left is planned in [docs/rebuild/PLAN.md](docs/rebuild/PLAN.md). See
+[docs/rebuild/NEXT.md](docs/rebuild/NEXT.md) for v0.9/v1.0, and the groundwork packages
 `dms-tacview`, `dms-beamng`, `dms-arma` (fixture/fake-tested only).
 
 ## Arma 3 track ([plan](docs/arma/PLAN.md), [ADR 0012](docs/adr/0012-multiple-game-backends.md))
 - [x] Research, knowledge base (`docs/arma/kb/`), MVP mission "The Hill" written
-- [ ] Headless harness (`tools/arma_harness/`) + class/site verification in real Arma *(works in engine; waiting on CI)*
+- [ ] Headless harness (`tools/arma_harness/`) + class/site verification in real Arma *(works in engine; CI green on `rebuild`)*
 - [ ] The Hill passes unattended test mode across 3+ seeds *(full win seen on seed 3, vanilla and modded; forced endings pass; seeds 1–2 lose real AI fights)*
 - [ ] User playtest of The Hill (feel, comm menu, hold action, balance)
 - [ ] Generalise into a DMS backend (spec → `fn_config.sqf`), only after The Hill plays well

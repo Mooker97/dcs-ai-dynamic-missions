@@ -97,9 +97,11 @@ quirks are documented in [`reference/dcs-scripting-gotchas.md`](reference/dcs-sc
 | 11 | comms | Voice and subtitle queue (no overlap), per-group sound, radioTransmission, F10 per-group menus |
 | 12 | intel | Fog of war (spawn-time `hidden` plus F10 marks on detection), BDA ([ADR 0008](adr/0008-fog-of-war-hidden-plus-marks.md)) |
 | 13 | ambient | Friendly base traffic (parked departures, arrivals, apron vehicles, pattern helo, statics) around the player's airbases; spawned when a player is near, destroyed when they leave (hysteresis). Own budget: not in the registry, invisible to the director and intel |
+| 14 | flights | AI flights that follow a list of orders (`DMS_CONFIG.flights`: transit, strike, escort, ...), plus the watch-mode stand-in for the focus flight. Inert without `DMS_CONFIG.flights` |
+| 15 | test | In-mission assertions and an AI player proxy for headless DCS runs (`[DMS.TEST] PASS/FAIL ... DONE`, parsed by `tools/dcs_harness`). Inert unless `DMS_CONFIG.test.enabled` |
+| 16 | init | Loaded last: calls each module's `DMS.<Module>.start()` when `DMS_CONFIG` is present |
 
-Modules 6–13 build only on the core API (1–5) and the raw DCS API. `init.lua` calls each module's
-`DMS.<Module>.start()` when `DMS_CONFIG` is present.
+Modules 6–15 build only on the core API (1–5) and the raw DCS API.
 
 **Optional plugins** (`lua/plugins/`, pinned versions, see `lua/plugins/PINS.md`) are loaded before
 `dms.lua` when a spec asks for them (`plugins: [skynet]`); DMS adapters for them
@@ -120,8 +122,12 @@ commit 7744bb4. They are kept as reference only.
 | campaign-planner | bible → `arc.yaml`: 5–8 missions, dramatic questions, qualities and branches |
 | mission-designer | arc entry + state → `mission-spec.yaml`, `beats.yaml`, `briefing.md` (5-paragraph order) and `lines.yaml` |
 | voice-director | lines → render plan + cost estimate → `dms voice` |
-| debriefer | dcs.log or a questionnaire → outcomes, qualities and `continuity.md` |
+| debriefer | `dms debrief` (dcs.log) plus a short interview → outcomes, qualities, next mission and `continuity.md` |
 | dms-build | Runs validate → plan → voice → build → check end to end |
+| dms-quickstart | One-line premise → story-writer → campaign-planner → mission-designer → `dms run --install` → how-to-fly card |
+
+`.claude/commands/dms.md` adds a `/dms` mode for building or editing missions with the CLI and
+these skills.
 
 Files are the memory. The bible, the arc and the append-only continuity ledger are canonical, and
 skills read them instead of remembering. Historical claims carry `{claim, source_url, confidence}`,
@@ -163,14 +169,20 @@ and real people never get invented quotes.
 | `packages/dms-voice` | ElevenLabs, ffmpeg FX, cache |
 | `packages/dms-cli` | The `dms` command |
 | `packages/dms-mcp` | `dms-mcp` FastMCP stdio server (6 tools, thin wrapper over core/gen) |
+| `packages/dms-arma` | Arma 3 backend: mission spec → `fn_config.sqf` ([ADR 0012](adr/0012-multiple-game-backends.md)) |
+| `packages/dms-tacview` | Tacview ACMI parser, flight summary and debrief facts |
+| `packages/dms-beamng` | BeamNG.drive backend: driving-mission spec → seeded scenario plan |
 | `lua/src/dms/`, `lua/manifest.txt` | Runtime modules and their load order |
 | `lua/spec/`, `lua/mocks/` | Lua specs (run via pytest + lupa) and the DCS mock with a fake clock |
 | `lua/plugins/` | Pinned optional MOOSE, MIST and Skynet |
 | `tools/bundle_lua.py` | Lua bundler → `dist/dms.lua` |
+| `tools/dcs_harness/` | Runs a `.miz` unattended in real DCS and parses `dcs.log` into a JSON report |
+| `tools/arma_harness/` | The same for Arma 3 |
+| `arma/` | Arma 3 missions, modules and tools |
 | `data/catalog/` | Unit types, group templates and mission types (YAML) |
 | `campaigns/<slug>/` | Story-first workspaces |
 | `examples/`, `tests/fixtures/` | Sample missions, `.miz` fixtures (LFS), prompts, golden specs |
-| `.claude/skills/` | Story and build skills |
+| `.claude/skills/`, `.claude/commands/` | Story and build skills, `/dms` mode |
 | `legacy/` | Pre-rebuild code and docs, read-only |
 
 ## Quality gates ([ADR 0009](adr/0009-definition-of-done-requires-flight.md))
@@ -179,11 +191,13 @@ and real people never get invented quotes.
   - ruff (lint + format), mypy strict, pytest (including the Lua specs via lupa)
   - `luac -p` (5.1) over the sources and the bundle
   - StyLua, plus luacheck (advisory for now)
-- **Lua scenarios:** run with the fake clock across 1000 seeds.
+- **Lua scenarios:** run with the fake clock across many seeds (typically 50–200 per spec).
 - **Golden prompt suite:** ~30 premises and specs, with structural assertions on the built `.miz`.
 - **Definition of Done:** a runtime feature is done only after **all** of the following:
   - CI is green.
-  - A DCS smoke test passes (a headless dedicated-server log scrape where possible).
+  - A DCS smoke test passes: `dms run --test` plus `tools/dcs_harness/run_mission.py`, which runs
+    the mission unattended in single-player DCS and checks `dcs.log` (dedicated-server mode needs
+    an ED login and is not automated yet).
   - A manual check in the cockpit confirms the behaviour.
 
 Nothing is marked done on the strength of code alone.

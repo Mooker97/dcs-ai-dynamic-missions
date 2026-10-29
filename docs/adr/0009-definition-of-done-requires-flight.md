@@ -24,3 +24,12 @@ Until then, the feature is described as "implemented, not flown".
 
 - Progress reports stay honest. DCS is needed for sign-off, but not for development.
 - The roadmap tracks "flown" separately from "implemented".
+
+## Update (2026-10-29)
+
+The smoke test in step 2 is in practice the single-player harness, not a dedicated-server log
+scrape: `dms run --test` builds a test variant (AI player proxy plus in-mission `[DMS.TEST]`
+checks), and `tools/dcs_harness/run_mission.py` runs it unattended in single-player DCS and parses
+`dcs.log` into a report. Dedicated-server mode needs a saved ED login and is not automated yet.
+Passing the harness makes a feature "headless-verified"; it is still not done until the cockpit
+check (step 3) passes.

@@ -3,7 +3,8 @@
 DMS turns a story premise into a campaign of replayable, voiced DCS World missions (`.miz`).
 It has three parts: a Python generator (uv workspace), a Lua 5.1 runtime, and Claude Code skills for the story.
 
-Status: v0.3 skeleton on the `rebuild` branch. Nothing from the rebuild has been flown in DCS yet.
+Status: on the `rebuild` branch, headless-verified through v0.8; cockpit checks pending. Nothing from
+the rebuild has been flown in the cockpit yet, so report it as "implemented, not flown".
 
 ## Working style
 
@@ -21,8 +22,9 @@ uv run pytest lua                   # Lua specs only (Lua 5.1 via lupa + lua/moc
 uv run ruff check . && uv run ruff format .
 uv run mypy packages                # strict
 uv run python tools/bundle_lua.py   # lua/src -> dist/dms.lua (manifest order)
-uv run dms --help                   # validate | plan | voice | build | run | check | schema | bundle-lua
-                                    # | catalog | outcome | new-campaign  (see CONTRACTS "File formats")
+uv run dms --help                   # validate | plan | voice | build | check | run | schema | bundle-lua
+                                    # | install | doctor | outcome | debrief | new-campaign | catalog
+                                    # (see CONTRACTS "File formats")
 uv run dms-mcp                      # MCP server (stdio)
 ```
 
@@ -63,11 +65,17 @@ uv run dms-mcp                      # MCP server (stdio)
 | `packages/dms-voice` | ElevenLabs, ffmpeg radio FX, `~/.dms/tts-cache` |
 | `packages/dms-cli` | `dms` command (typer) |
 | `packages/dms-mcp` | `dms-mcp` FastMCP stdio server, 6 tools wrapping core/gen (validate, plan, build, check, schema, campaign_status) |
+| `packages/dms-arma` | Arma 3 backend: mission spec -> `fn_config.sqf` (`dms-arma` command) |
+| `packages/dms-tacview` | Tacview ACMI parser, flight summary and debrief facts (`dms-tacview` command) |
+| `packages/dms-beamng` | BeamNG.drive backend: driving-mission spec -> seeded scenario plan |
 | `lua/src/dms/` + `lua/manifest.txt` | runtime modules and their load order |
 | `lua/spec/`, `lua/mocks/` | specs and the DCS mock (fake clock) |
 | `lua/plugins/` | optional pinned MOOSE/MIST/Skynet (the core never depends on them) |
-| `.claude/skills/` | story-writer, campaign-planner, mission-designer, voice-director, debriefer, dms-build |
+| `tools/` | `bundle_lua.py`, `dcs_harness/` (unattended real-DCS runs -> JSON report), `arma_harness/` |
+| `.claude/skills/` | dms-quickstart, story-writer, campaign-planner, mission-designer, voice-director, debriefer, dms-build |
+| `.claude/commands/dms.md` | `/dms` mode: build or edit DCS missions with the CLI and skills |
 | `campaigns/<slug>/` | bible, arc, missions, state (see CONTRACTS "File formats") |
+| `arma/` | Arma 3 missions (`arma/missions/`), modules and tools |
 | `legacy/` | pre-rebuild code and docs (read-only) |
 
 ## DCS logs

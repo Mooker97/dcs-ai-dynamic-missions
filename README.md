@@ -10,8 +10,9 @@ one, so the campaign follows your outcomes.
 
 ## Status
 
-> **v0.3 (skeleton) is in progress on the `rebuild` branch. Nothing from the rebuild has been
-> flown in DCS yet.**
+> **The rebuild (on the `rebuild` branch) is headless-verified through v0.8; cockpit checks are
+> pending.** Missions run unattended in real DCS via `tools/dcs_harness`, but nothing from the
+> rebuild has been flown in the cockpit yet.
 
 The pre-rebuild code (a Lua script library, regex `.miz` editing and ElevenLabs experiments) is in
 `legacy/` for reference. Reviewing it in October 2026 showed that "complete" had not meant "works in
@@ -40,7 +41,8 @@ git lfs install && git lfs pull
 uv sync --all-packages              # install every workspace package plus dev tools
 uv run pytest                       # Python tests and Lua specs (Lua 5.1 via lupa)
 uv run python tools/bundle_lua.py   # build dist/dms.lua from lua/src in manifest order
-uv run dms --help                   # validate | plan | voice | build | check | schema | bundle-lua
+uv run dms --help                   # validate | plan | voice | build | check | run | schema | bundle-lua
+                                    # | install | doctor | outcome | debrief | new-campaign | catalog
 ```
 
 A typical mission build:
@@ -53,8 +55,11 @@ uv run dms build    plan.json -o campaigns/<slug>/missions/m01-<slug>/out/m01.mi
 uv run dms check    campaigns/<slug>/missions/m01-<slug>/out/m01.miz
 ```
 
-For voice, copy `.env.example` to `.env` and set `ELEVENLABS_API_KEY`. Some commands are still
-being built. See the roadmap.
+Or do all of that in one step with `uv run dms run <mission-dir>` (add `--install` to copy the
+`.miz` into Saved Games). `uv run dms doctor` checks the toolchain, and after a flight
+`uv run dms debrief` turns `dcs.log` into campaign state.
+
+For voice, copy `.env.example` to `.env` and set `ELEVENLABS_API_KEY`.
 
 ## Repo map
 
@@ -64,14 +69,20 @@ being built. See the roadmap.
 | `packages/dms-gen` | `plan` and `build` (pydcs), Lua injection, kneeboard |
 | `packages/dms-voice` | ElevenLabs, ffmpeg radio FX, cache |
 | `packages/dms-cli` | The `dms` command |
+| `packages/dms-mcp` | `dms-mcp` FastMCP stdio server (6 tools over core/gen) |
+| `packages/dms-arma` | Arma 3 backend: mission spec → `fn_config.sqf` |
+| `packages/dms-tacview` | Tacview ACMI parser, flight summary and debrief facts |
+| `packages/dms-beamng` | BeamNG.drive backend: driving-mission spec → scenario plan |
 | `lua/src/dms/` | Runtime modules (core, clock, rng, bus, registry, spawner, ...) |
 | `lua/spec/`, `lua/mocks/` | Lua specs and the DCS mock with a fake clock |
 | `lua/plugins/` | Optional pinned MOOSE, MIST and Skynet |
-| `tools/` | `bundle_lua.py` and other dev tools |
+| `tools/` | `bundle_lua.py`, `dcs_harness/` (unattended real-DCS runs), `arma_harness/` |
 | `data/catalog/` | Unit types, templates and mission types |
 | `campaigns/` | Story-first campaign workspaces |
 | `examples/`, `tests/fixtures/` | Sample missions and fixtures (`.miz` in LFS) |
-| `.claude/skills/` | story-writer, campaign-planner, mission-designer, voice-director, debriefer, dms-build |
+| `.claude/skills/` | dms-quickstart, story-writer, campaign-planner, mission-designer, voice-director, debriefer, dms-build |
+| `.claude/commands/dms.md` | `/dms` mode for building or editing missions |
+| `arma/` | Arma 3 missions, modules and tools |
 | `docs/` | Architecture, contracts, ADRs and references |
 | `legacy/` | Pre-rebuild code and docs (read-only) |
 

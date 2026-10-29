@@ -16,8 +16,10 @@ otherwise the uv workspace found from the working directory.
 ## Claude Code
 
 The repo root's `.mcp.json` registers the server for Claude Code as `dms` (project scope,
-`uv run dms-mcp`, started in the repo root). Approve it when Claude Code asks, then the tools show
-up as `mcp__dms__validate` and so on. `tests/test_stdio.py` exercises exactly that command line over
+`uv run dms-mcp`, started in the repo root). The server must be enabled in `/mcp`: if it was
+rejected once, it sits in `disabledMcpjsonServers` in `.claude/settings.local.json` and Claude Code
+won't ask again, so enable it from `/mcp` (or remove it from that list). Then the tools show up as
+`mcp__dms__validate` and so on. `tests/test_stdio.py` exercises exactly that command line over
 real stdio.
 
 To use the server from another directory or another client, point it at the repo explicitly:

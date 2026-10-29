@@ -21,3 +21,10 @@ procedures.
 - Every capability can be scripted and tested from a shell.
 - Clients other than Claude Code have to wait for v0.8.
 - MCP tools must not contain logic that the CLI lacks.
+
+## Update (2026-10-29)
+
+The MCP server shipped in v0.8 with six tools (`validate`, `plan`, `build`, `check`, `schema`,
+`campaign_status`). They return plain `dict[str, Any]` JSON payloads, not pydantic models as
+the decision above anticipated. The CLI has since grown `run`, `install`, `doctor`, `outcome`,
+`debrief`, `new-campaign` and `catalog`.

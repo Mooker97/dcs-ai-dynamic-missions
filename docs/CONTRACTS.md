@@ -637,6 +637,168 @@ Deterministic dcs.log -> campaign state. No schema changes: debrief metadata liv
   so it lands last: a failure before it leaves the flight un-guarded and a rerun redoes it (the
   continuity entry is replaced, not duplicated).
 
+## AI flights and watch missions (v0.9)
+
+A **watch mission** has no client slots. The viewer is a spectator (F2/F7/F10/F11) and every
+actor is AI. **AI flights** are aircraft that follow a list of orders. They work in any mission; a
+watch mission just has nothing else in the air. A beat can carry a **camera cue** that tells the
+viewer where to look, because a mission script cannot move the camera.
+
+Mission spec (`mission-spec.yaml`):
+
+```yaml
+watch:                        # optional; when set, this is a spectator mission and player_flights may be empty
+  focus: dusty                # id of the flight that stands in for "the player" (narrative
+                              # zone.entered, director, ambient sites, comms listener position)
+  cues: true                  # show beat `cue` text (default true)
+flights:                      # optional, any mission
+  - id: dustoff               # Ident. The planner picks the DCS group name; read it from
+                              #   plan.json or DMS_CONFIG.flights[].group
+    callsign: "Dustoff 3-1"
+    aircraft: UH-60A          # DCS type (checked against the catalog)
+    count: 1                  # 1-4
+    coalition: blue           # blue | red
+    country: USA
+    skill: High               # Average|Good|High|Excellent
+    start_area: hatay         # area id; an airbase area with parking_hot/runway starts there, else airborne
+    start_type: air           # air | parking_hot | runway
+    start_alt_ft: 500         # air start altitude (AGL for helicopters, MSL for planes)
+    start_speed_kts: 100
+    heading_toward: lz_ridge  # air start: initial heading toward this area (optional)
+    loadout: medevac          # loadout keyword (same as player flights); omit for the default
+    speaker: dustoff_pilot    # bible character id for comms; frequency/modulation as for Support
+    frequency_mhz: 40.5
+    modulation: FM
+    immortal: false
+    invisible: false
+    orders:                   # run in order; each starts when the previous one is done
+      - {do: fly, to: gate_west, alt_ft: 300, speed_kts: 110}
+      - {do: hold, at: gate_west, until: {beat: lz_cold}, max_min: 6}
+      - {do: land, at: lz_ridge, ground_min: 1.5, pickup: kestrel}
+      - {do: fly, to: hatay}
+      - {do: land, at: hatay}
+```
+
+Order fields (all optional except `do`):
+
+- `do`, one of:
+  - `fly`: route to area `to`.
+  - `hold`: orbit area `at`.
+  - `land`: land in area `at` (an airbase area means that airfield).
+  - `escort`: follow flight `flight` and engage threats to it within `radius_nm`.
+  - `engage`: orbit `at` and attack `targets` within `radius_nm`.
+  - `strike`: one attack run on a target in area `at`, then the next order. The target is the
+    first live group whose name starts with `group`, a threat/pool id (`DMS_` prefix allowed),
+    using DCS AttackGroup with `weapon`. With no `group`, or no live match, it is a Bombing task
+    on the area centre.
+  - `rtb`: fly to the start airbase and land.
+- `alt_ft`: AGL for helicopters, MSL for planes.
+- `speed_kts`.
+- `radius_nm`: default 1.5.
+- `targets`: a list of `ground` | `armor` | `aaa` | `infantry` | `air`; default `[ground]`.
+- `weapon` (strike): `guided_bomb` | `bomb` | `missile` | `rockets` | `gun` | `any`; default
+  `guided_bomb`.
+- `ground_min` (land): time on the ground before the next order; default 1.
+- `pickup` (land): support/flight id of a friendly ground group that boards. Its units are
+  removed when the ground time ends, if they are within 300 m.
+- `until`: a beat `when` form, such as `{beat: x}`, `{flag: x}` or
+  `{event: flight.lifted, flight: dustoff}`; for hold/escort/engage.
+- `max_min`: the order ends after this many minutes even if `until` never happens. Default 15
+  for hold/escort/engage and 6 for strike.
+- `when`: start condition, in the same `when` form. Default: immediately after the previous
+  order.
+
+`ground_min` and `max_min` take a number or `[min, max]`.
+
+Beats gain an optional `cue: "<text>"`. When the mission has `watch` with `cues: true`, it is
+shown to everyone as `CAMERA: <text>` for 10 s; otherwise it is ignored. Voice lines gain
+`voiced: false`, meaning subtitle only: `dms voice` never sends the line to ElevenLabs, and
+`--dry-run` counts only voiced characters.
+
+`DMS_CONFIG` (meters, seconds, m/s; the Lua side is `lua/src/dms/flights.lua`):
+
+```lua
+DMS_CONFIG.watch = { enabled = true, focus = "Dusty_dusty" --[[DCS group name]], cues = true }
+DMS_CONFIG.flights = {
+  { id = "dustoff", group = "Dustoff_dustoff", category = "helicopter", coalition = 2,
+    speaker = "dustoff_pilot", startAirbase = "Hatay" --[[nil if airborne start]],
+    orders = {
+      { kind = "fly", to = "gate_west", altM = 90, altType = "RADIO", speedMps = 56.6 },
+      { kind = "hold", at = "gate_west", until = { event = "beat.fired", beat = "lz_cold" }, maxSec = 360 },
+      { kind = "land", at = "lz_ridge", groundSec = 90, pickup = "Kestrel_kestrel" --[[DCS group name]] },
+      { kind = "escort", flight = "dustoff", radiusM = 2778, targets = { "Ground Units" } },
+      { kind = "engage", at = "lz_ridge", radiusM = 2778, targets = { "Ground Units" }, altM = 90,
+        altType = "RADIO", until = { event = "flight.lifted", flight = "dustoff" }, maxSec = 900 },
+      { kind = "strike", at = "canal_east", group = "technicals", weapon = "guided_bomb",
+        altM = 4572, altType = "BARO", maxSec = 360 },
+      { kind = "rtb" },
+    } } }
+```
+
+`targets` are DCS attribute names: `ground` -> "Ground Units", `armor` -> "Armored vehicles",
+`aaa` -> "Air Defence", `infantry` -> "Infantry", `air` -> "Air". `weapon` maps to the DCS
+`weaponType` flags: `guided_bomb` = GuidedBomb, `bomb` = AnyBomb, `missile` = AnyASM, `rockets` =
+Rockets, `gun` = Cannons, `any` = Auto. `to` and `at` are zone ids in `DMS_CONFIG.zones`, or an
+airbase name for `land`/`rtb`. Range values (`{min,max}`) roll once per order via
+`DMS.Rng.range`.
+
+```lua
+-- flights.lua: DMS.Flights (START_ORDER after Ambient; inert without DMS_CONFIG.flights)
+DMS.Flights.start() stop()
+DMS.Flights.state(id) -> { index, kind, status = "running"|"done"|"lost", since } | nil
+DMS.Flights.advance(id, why) -> bool       -- end the current order now
+DMS.Flights.groupName(id) -> string|nil   ids() -> sorted ids
+-- Watch / stand-in player (core.lua)
+DMS.standInGroups() -> { groupName... }   -- DMS.Test proxy group (test runs), else watch.focus, else {}
+DMS.isWatch() -> bool                     -- DMS_CONFIG.watch.enabled
+```
+
+Order semantics:
+
+- `fly`: a Mission task to the zone centre at altM and speed. Done within max(300 m, zone
+  radius).
+- `hold`: Orbit (Circle) over the zone. Done on `until` or `maxSec`.
+- `land`: a `Land` task at the zone centre for helicopters; planes land at the airbase. Done
+  after `groundSec` on the ground (S_EVENT_LAND for the lead, or AGL < 3 m and speed < 2 m/s);
+  then the group lifts off.
+- `escort`: a Follow/Escort task on the other flight's group, plus EngageTargetsInZone around it.
+- `engage`: Orbit plus EngageTargetsInZone.
+- `strike`: AttackGroup (or Bombing) with weaponType and expend "All". Done when the target
+  group is dead, when the flight's weapon was released and 60 s passed, or at `maxSec`. It emits
+  `flight.weapon` per release.
+- `rtb`: route to startAirbase with a Land waypoint (airborne starts use the nearest friendly
+  airbase).
+
+A dead group ends its orders (`flight.lost`). Every order start, end and skip logs
+`[DMS][Flights] ...` (info).
+
+Events (add these to the table above):
+
+| Event | Payload | When |
+|---|---|---|
+| `flight.order` | `{flight, group, index, kind}` | an order started |
+| `flight.arrived` | `{flight, group, zone}` | a `fly` order is done |
+| `flight.landed` / `flight.lifted` | `{flight, group, zone}` | |
+| `flight.pickup` | `{flight, group, pickup, units}` | |
+| `flight.weapon` | `{flight, group, weapon, target}` | a unit of a striking flight released a weapon (unit.shot) |
+| `flight.done` | `{flight, group}` | the last order is done |
+| `flight.lost` | `{flight, group, reason}` | |
+
+The beat filters `flight` and `zone` match these payload keys (generic rule).
+
+Watch mode in the other modules:
+
+- Comms text and sound go to **all** players (`outText` / `outSound`). With a frequency, the
+  radioTransmission is positioned at the stand-in group.
+- Intel marks use coalition -1.
+- Narrative `zone.entered`, the Director and Ambient treat `standInGroups()` units as players,
+  exactly as they treat the test proxy.
+
+`dms build --test` on a watch mission keeps the AI flights and uses the focus flight as
+`test.playerProxy`, with no proxy replacement and no loiter. The usual checks run, plus
+`flight_orders`: every flight reached `flight.done` or `flight.lost` by the end (INFO for
+`lost`).
+
 ## Python schemas (packages/dms-core/src/dms_core/schemas/)
 
 | Module | Models | Written by |

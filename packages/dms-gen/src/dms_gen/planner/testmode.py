@@ -20,6 +20,7 @@ import itertools
 import math
 import os
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
@@ -35,6 +36,7 @@ from dms_core.schemas.runtime import (
     from_lua,
 )
 
+from ..plugins import resolve as resolve_plugins
 from .variants import pick_test_proxy, variant_plan
 
 TEST_SCRIPT = "dms_test.lua"
@@ -345,17 +347,20 @@ def make_test_plan(
     proxy_speed_kmh: float | None = None,
     proxy_alt_m: float | None = None,
     variant: str | None = None,
+    subtitle_only: Iterable[str] | None = None,
 ) -> TestBuild:
     """Return a test variant of ``plan`` (deep copy) with an AI player proxy + dms_test.lua.
 
     The proxy replaces one client group: from ``variant`` when given, preferring a ramp/runway
     start (so on-deck and landing beats are reachable). All other client groups are dropped.
+    ``subtitle_only``: the ``voiced: false`` line ids (lines.yaml), passed to ``voice_files``.
     """
     tp = variant_plan(plan, variant) if variant else plan.model_copy(deep=True)
     if tp.runtime is None:
         raise ValueError("plan has no runtime config")
+    sub = sorted(set(subtitle_only)) if subtitle_only is not None else None
     if spec.watch is not None:
-        return _watch_test_plan(tp, spec, beats, minutes)
+        return _watch_test_plan(tp, spec, beats, minutes, sub)
     orig = pick_test_proxy(tp, variant)
     # Helicopters fly the route low and slow; fixed-wing jets need a jet profile (an F-16 at the
     # helicopter's 120 m / 220 km/h fell out of the sky in the first Viper run).
@@ -546,6 +551,11 @@ def make_test_plan(
         require_result=hints.require_result if hints is not None else None,
         loiter=loiter,
         flights=bool(rt.flights),
+        strike=_has_strike(tp),
+        cues=bool(rt.watch is not None and rt.watch.enabled and rt.watch.cues),
+        watch=bool(rt.watch is not None and rt.watch.enabled),
+        plugins=runtime_plugins(spec.plugins),
+        subtitle_only=sub,
     )
     return TestBuild(plan=tp, lua=lua, proxy=proxy_name, minutes=mins, route_km=route_km)
 
@@ -555,6 +565,7 @@ def _watch_test_plan(
     spec: MissionSpec,
     beats: list[Beat] | BeatSheet | None,
     minutes: float | None,
+    subtitle_only: list[str] | None = None,
 ) -> TestBuild:
     """Watch mission: keep every AI flight; the focus flight is the proxy (no loiter)."""
     assert tp.runtime is not None and spec.watch is not None
@@ -587,8 +598,32 @@ def _watch_test_plan(
         optional={e.id: None for e in rt.encounters},
         require_result=hints.require_result if hints is not None else None,
         flights=bool(rt.flights),
+        strike=_has_strike(tp),
+        cues=spec.watch.cues if rt.watch is None else rt.watch.cues,
+        watch=True,
+        plugins=runtime_plugins(spec.plugins),
+        subtitle_only=subtitle_only,
     )
     return TestBuild(plan=tp, lua=lua, proxy=focus, minutes=mins, route_km=0.0)
+
+
+_RUNTIME_PLUGINS = ("mist", "moose", "skynet")
+
+
+def runtime_plugins(names: Iterable[str]) -> list[str]:
+    """Spec plugin names expanded with dependencies, keeping those the ``plugins`` check probes.
+
+    ``[skynet]`` -> ``["mist", "skynet"]`` (adapters are implicit and not probed).
+    """
+    names = list(names)
+    if not names:
+        return []
+    return [p.name for p in resolve_plugins(names) if p.name in _RUNTIME_PLUGINS]
+
+
+def _has_strike(plan: BuildPlan) -> bool:
+    rt = plan.runtime
+    return rt is not None and any(o.kind == "strike" for f in rt.flights or [] for o in f.orders)
 
 
 def default_checks(
@@ -600,6 +635,11 @@ def default_checks(
     optional: dict[str, str | None] | None = None,
     require_result: str | None = None,
     flights: bool = False,
+    strike: bool = False,
+    cues: bool = False,
+    watch: bool = False,
+    plugins: list[str] | None = None,
+    subtitle_only: list[str] | None = None,
 ) -> list[dict[str, Any]]:
     """The default in-mission check list (see lua/src/dms/test.lua for the kinds).
 
@@ -608,7 +648,11 @@ def default_checks(
     ``optional``: encounter id -> mutually exclusive group (or None) for optional encounter checks
     (see :func:`encounter_requirements`). ``require_result``: outcome_end demands this result
     (default: any mission end passes). ``flights``: add ``flight_orders`` (every AI flight
-    reached flight.done or flight.lost by the end).
+    reached flight.done or flight.lost by the end). ``voice_files`` is always added
+    (``subtitle_only``: the voiced:false line ids, when known). ``strike``: an AI flight has a
+    ``strike`` order -> ``flight_strike``. ``cues``: watch.cues is on -> ``camera_cues``.
+    ``watch``: a watch mission -> ``watch_mode``. ``plugins``: plugin names to verify at runtime
+    (see :func:`runtime_plugins`) -> ``plugins``.
     """
     optional = optional or {}
     d = int(minutes * 60 - 30)
@@ -648,8 +692,22 @@ def default_checks(
     checks.append({"kind": "comms_no_overlap", "name": "radio_no_overlap"})
     checks.append({"kind": "comms_beats", "name": "spine_lines_played"})
     checks.append({"kind": "convoy_halt", "name": "convoy_halt_on_hit"})
+    voice: dict[str, Any] = {"kind": "voice_files", "name": "voice_files"}
+    if subtitle_only:
+        voice["subtitleOnly"] = sorted(set(subtitle_only))
+    checks.append(voice)
     if flights:
         checks.append({"kind": "flight_orders", "name": "flight_orders"})
+    if strike:
+        checks.append({"kind": "flight_strike", "name": "flight_strike"})
+    if cues:
+        checks.append({"kind": "camera_cues", "name": "camera_cues"})
+    if watch:
+        checks.append({"kind": "watch_mode", "name": "watch_mode"})
+    if plugins:
+        checks.append(
+            {"kind": "plugins", "name": "plugins", "plugins": list(plugins), "deadlineSec": d}
+        )
     outcome: dict[str, Any] = {"kind": "outcome", "name": "outcome_end"}
     if require_result:
         outcome["requireResult"] = require_result
@@ -669,6 +727,11 @@ def build_test_lua(
     require_result: str | None = None,
     loiter: dict[str, Any] | None = None,
     flights: bool = False,
+    strike: bool = False,
+    cues: bool = False,
+    watch: bool = False,
+    plugins: list[str] | None = None,
+    subtitle_only: list[str] | None = None,
 ) -> str:
     cfg: dict[str, Any] = {
         "enabled": True,
@@ -682,6 +745,11 @@ def build_test_lua(
             optional=optional,
             require_result=require_result,
             flights=flights,
+            strike=strike,
+            cues=cues,
+            watch=watch,
+            plugins=plugins,
+            subtitle_only=subtitle_only,
         ),
     }
     if loiter is not None:

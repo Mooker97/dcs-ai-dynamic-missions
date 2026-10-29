@@ -189,10 +189,46 @@ DMS.Test.config() isEnabled() proxyName() isProxyRun() runChecks(checks, deadlin
 --   check kinds: booted | spawns{min} | beats_in_order{beats} | beat{id} | comms{min} |
 --                encounter{id, optional?, group?} | convoy_halt | outcome{requireResult?} |
 --                ambient_cycle{site?} | marks{min?} | fog_hidden | comms_no_overlap{toleranceSec?} |
---                comms_beats{beats?}; optional name, deadlineSec
---   marks / fog_hidden / comms_no_overlap / comms_beats are end-of-run checks (resolved with DONE,
---     never hold the run open). testmode adds all four (f10_marks, fog_hidden, radio_no_overlap,
---     spine_lines_played; f10_marks min = 1 when a spine beat has a mark, else 0).
+--                comms_beats{beats?} | flight_orders | flight_strike | camera_cues |
+--                voice_files{subtitleOnly?} | watch_mode | plugins{plugins, min?};
+--                optional name, deadlineSec
+--   marks / fog_hidden / comms_no_overlap / comms_beats / flight_strike / camera_cues /
+--     voice_files / watch_mode are end-of-run checks (resolved with DONE, never hold the run
+--     open). testmode adds marks..comms_beats always (f10_marks, fog_hidden, radio_no_overlap,
+--     spine_lines_played; f10_marks min = 1 when a spine beat has a mark, else 0), voice_files
+--     always (voice_files), flight_strike when any AI flight has a `strike` order
+--     (flight_strike), camera_cues when DMS_CONFIG.watch has cues on (camera_cues), watch_mode
+--     on a watch mission (watch_mode) and plugins when the spec lists plugins (plugins, with the
+--     dependency-expanded user names, e.g. [skynet] -> {"mist", "skynet"}).
+--   flight_strike: every strike order that started (flight.order kind=strike; a strike already
+--     running when DMS.Test starts counts too) has at least one flight.weapon release before the
+--     order ended (next flight.order / flight.done / flight.lost of that flight) or the run ended.
+--     No release: INFO when the target group (DMS.Flights' resolved target) had no live unit when
+--     the order ended or at the end (target died first), INFO when the flight was lost; else
+--     FAIL, naming "ended on maxSec" when it ran >= its rolled maxSec - 1 s, "ended before
+--     maxSec" otherwise (passes exhausted / no ammo / skip), or "still running" at the end.
+--     No strike started -> PASS "(vacuous)" (flight_orders reports flights that never got there).
+--   camera_cues: every beat with a `cue` that fired (counting repeat fires) produced exactly one
+--     "CAMERA: <cue>" text with all=true (DMS.Comms.text opts.all, or a direct
+--     trigger.action.outText). FAIL on a missing or duplicate cue, a CAMERA text not sent to all,
+--     or a CAMERA text that matches no fired beat. Test mode wraps DMS.Comms.text to see this.
+--   voice_files: every played DMS.Comms.history() entry with a line id plays its own file: the
+--     DMS_CONFIG.voice[line].file when the entry has one; else (subtitle only: voiced:false or an
+--     unrendered line) file = nil and non-empty text. `subtitleOnly` (voiced:false line ids, set
+--     by testmode when the planner is given the line set) also FAILs a listed line whose voice
+--     entry has a file; voiced lines with no rendered file are INFO (counted), not FAIL. History
+--     entries without a line id (text-only say) are ignored. The history is bounded
+--     (Comms.historyCap()).
+--   watch_mode: (a) every unit of DMS_CONFIG.watch.focus (sampled every 5 s until seen, and at
+--     the end) was registered in DMS.Bus._players, (b) 0 trigger.action.radioTransmission calls
+--     during the run, (c) every Intel mark drawn (markToCoalition / circleToAll / markToAll with an
+--     id >= Intel.FIRST_MARK_ID, plus Intel.liveMarks() at the end) used coalition -1. FAIL when
+--     the mission is not a watch mission. Test mode wraps those trigger.action functions (the
+--     wrappers call through, so behaviour is unchanged).
+--   plugins: polled (holds the run open until it passes or the deadline). For each name in
+--     `plugins`: mist -> mist.majorVersion == 4; moose -> globals BASE and _DATABASE exist;
+--     skynet -> DMS.SkynetAdapter.active == true and #sites >= `min` (default 1). Any other name
+--     FAILs. Globals are read with rawget(_G, ...) (strict-globals safe).
 --   marks: PASS when Intel drew >= min marks, none failed, and (sampled every 10 s and at the end)
 --     every live text mark id is in world.getMarkPanels() and no removed id in our range is still
 --     listed. DCS lists drawn shapes there too ({idx, time, initiator, coalition, groupID, text,
@@ -848,7 +884,8 @@ Watch mode in the other modules:
 `dms build --test` on a watch mission keeps the AI flights and uses the focus flight as
 `test.playerProxy`, with no proxy replacement and no loiter. The usual checks run, plus
 `flight_orders`: every flight reached `flight.done` or `flight.lost` by the end (INFO for
-`lost`).
+`lost`), `watch_mode`, `camera_cues` (when `watch.cues`), `flight_strike` (when a flight has a
+`strike` order) and `voice_files` (see "Test mode" check kinds above).
 
 ## Python schemas (packages/dms-core/src/dms_core/schemas/)
 

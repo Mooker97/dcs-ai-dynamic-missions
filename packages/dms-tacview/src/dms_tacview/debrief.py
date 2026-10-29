@@ -107,9 +107,9 @@ def merge_acmi(
         return _with_warning(outcome, TacviewFacts(source=src, error=msg), msg)
     chosen = player
     if chosen is None:
-        for name in outcome.players:
-            if select_player(rec, name)[0] is not None:
-                chosen = name
+        for po in outcome.players:
+            if select_player(rec, po.name)[0] is not None:
+                chosen = po.name
                 break
     summary = summarize(
         rec, player=chosen, points=list(points or []), heuristics=heuristics, source=src

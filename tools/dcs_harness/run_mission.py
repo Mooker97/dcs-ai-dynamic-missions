@@ -267,7 +267,9 @@ def lua_value(v: object, indent: str = "") -> str:
     raise TypeError(type(v))
 
 
-def patch_options(src: Path | None, dst: Path, width: int, height: int) -> None:
+def patch_options(
+    src: Path | None, dst: Path, width: int, height: int, *, mute: bool = True
+) -> None:
     if src and src.is_file():
         text = src.read_text(encoding="utf-8", errors="replace")
         text = re.sub(r'(\["fullScreen"\]\s*=\s*)true', r"\1false", text)
@@ -281,7 +283,8 @@ def patch_options(src: Path | None, dst: Path, width: int, height: int) -> None:
             count=1,
             flags=re.S,
         )
-        text = re.sub(r'(\["volume"\]\s*=\s*)\d+', r"\g<1>0", text)
+        if mute:
+            text = re.sub(r'(\["volume"\]\s*=\s*)\d+', r"\g<1>0", text)
         text = re.sub(r'(\["music"\]\s*=\s*)\d+', r"\g<1>0", text)
         dst.write_text(text, encoding="utf-8")
 
@@ -305,6 +308,7 @@ def prepare_write_dir(
     wall_timeout: int,
     inject: str,
     probe: bool = False,
+    watch_size: tuple[int, int] | None = None,
 ) -> dict[str, object]:
     (write_dir / "Config").mkdir(parents=True, exist_ok=True)
     (write_dir / "Scripts" / "Hooks").mkdir(parents=True, exist_ok=True)
@@ -322,7 +326,9 @@ def prepare_write_dir(
 
     # Seed options.lua once from the user's main profile (read-only copy), then force small window.
     opts = write_dir / "Config" / "options.lua"
-    if not opts.exists():
+    if watch_size:  # --watch: re-seed every run, larger window, sound on
+        patch_options(SAVED_GAMES / "DCS" / "Config" / "options.lua", opts, *watch_size, mute=False)
+    elif not opts.exists():
         patch_options(SAVED_GAMES / "DCS" / "Config" / "options.lua", opts, 1280, 720)
     force_unattended_options(opts)
     # nicknames: give the server a name so no first-run prompt appears
@@ -747,6 +753,12 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="render a 1280x720 window instead of --norender (more GPU load; for watching a run)",
     )
+    ap.add_argument(
+        "--watch",
+        action="store_true",
+        help="for a person to watch: rendered 1920x1080 window with sound, real time (implies "
+        "--render --accel 1 --priority normal; options.lua re-seeded from the main profile)",
+    )
     ap.add_argument("--probe", action="store_true", help="log the hook-visible DCS API inventory")
     ap.add_argument(
         "--wall-timeout",
@@ -791,6 +803,8 @@ def main(argv: list[str] | None = None) -> int:
         "into the test write dir",
     )
     a = ap.parse_args(argv)
+    if a.watch:
+        a.render, a.accel, a.priority = True, 1, "normal"
 
     miz = a.miz.resolve()
     if not miz.is_file():
@@ -830,7 +844,17 @@ def _run(a: argparse.Namespace, miz: Path) -> int:
 
     write_dir = SAVED_GAMES / a.write_dir_name
     rep = Report(miz=str(miz), mode=mode, exe=str(inst.exe))
-    cfg = prepare_write_dir(write_dir, miz, mode, a.minutes, a.accel, wall, a.inject, a.probe)
+    cfg = prepare_write_dir(
+        write_dir,
+        miz,
+        mode,
+        a.minutes,
+        a.accel,
+        wall,
+        a.inject,
+        a.probe,
+        watch_size=(1920, 1080) if a.watch else None,
+    )
     vault = write_dir / "Config" / "network.vault"
     if a.copy_login:
         src = SAVED_GAMES / "DCS" / "Config" / "network.vault"

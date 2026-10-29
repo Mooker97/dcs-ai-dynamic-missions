@@ -327,3 +327,32 @@ def test_log_checks_can_be_disabled(tmp_path: Path) -> None:
     rm.parse_log(_write(tmp_path, CLEAN_LOG + _mark_add(1) + _mark_add(1)), rep, log_checks=False)
     assert rep.log_checks == []
     assert rm.verdict(rep) == 0
+
+
+def test_wrong_mission_loaded_is_infra(tmp_path: Path) -> None:
+    other = f"{TS} INFO    Dispatcher (Main): loadMission C:/x/dms_harness/other-test.miz\n"
+    done = f"{TS} INFO    Dispatcher (Main): loadMission Done: Control passed to the player\n"
+    rep = _report()
+    rm.parse_log(_write(tmp_path, other + done + CLEAN_LOG), rep)
+    assert rep.loaded_miz.endswith("other-test.miz")
+    assert rm.verdict(rep) == 2
+    assert rep.verdict == "wrong_mission"
+
+
+def test_right_mission_loaded_passes(tmp_path: Path) -> None:
+    ok = f"{TS} INFO    Dispatcher (Main): loadMission C:/x/Missions/dms_harness/m.miz\n"
+    rep = _report()
+    rm.parse_log(_write(tmp_path, ok + CLEAN_LOG), rep)
+    assert rm.verdict(rep) == 0
+
+
+def test_lock_is_exclusive_and_stale_lock_is_taken(tmp_path: Path) -> None:
+    lock = rm.acquire_lock(tmp_path, wait_sec=0)
+    assert lock is not None
+    assert rm.acquire_lock(tmp_path, wait_sec=0, poll_sec=0) is None  # held by us, alive
+    rm.release_lock(lock)
+    assert not lock.exists()
+    lock.write_text("999999999\n", encoding="utf-8")  # dead pid
+    again = rm.acquire_lock(tmp_path, wait_sec=0)
+    assert again is not None
+    rm.release_lock(again)

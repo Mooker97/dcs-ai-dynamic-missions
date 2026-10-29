@@ -403,6 +403,7 @@ MARK_FAILED_RE = re.compile(r"\[DMS\]\[Intel\] MARK add failed id=(\d+)")
 LUA_MARKS_RE = re.compile(r"\badded=(\d+) removed=(\d+) live=(\d+) failed=(\d+)")
 PLAY_RE = re.compile(r"\[DMS\]\[Comms\] PLAY\b(.*)$")
 KV_RE = re.compile(r"(?:^|\s)(n|line|start|end)=(\S+)")
+LOAD_MISSION_RE = re.compile(r"loadMission (?!Done)(.+?\.miz)\s*$")
 COMMS_GAP_SEC = 0.75  # DMS.Comms.GAP_SEC: the queue waits end + GAP before the next PLAY
 
 
@@ -425,6 +426,7 @@ class Report:
     dms_errors: list[str] = field(default_factory=list)
     other_errors: list[str] = field(default_factory=list)
     log_path: str = ""
+    loaded_miz: str = ""
     notes: list[str] = field(default_factory=list)
     verdict: str = "infra_error"
 
@@ -556,6 +558,10 @@ def parse_log(log_path: Path, rep: Report, *, log_checks: bool = True) -> None:
         rep.notes.append("dcs.log not found in write dir")
         return
     lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
+    for raw in lines:
+        lm = LOAD_MISSION_RE.search(raw)
+        if lm:
+            rep.loaded_miz = lm[1]
     cur: dict[str, str] | None = None
     entries: list[dict[str, str]] = []
     for raw in lines:
@@ -637,6 +643,11 @@ def scan_for_crash(log_path: Path, pos: int) -> tuple[str | None, int]:
 
 
 def verdict(rep: Report) -> int:
+    if rep.loaded_miz and Path(rep.loaded_miz).name.lower() != Path(rep.miz).name.lower():
+        # another harness run shared the write dir and swapped the hook (2026-10-29)
+        rep.notes.append(f"DCS loaded {rep.loaded_miz}, not {Path(rep.miz).name}")
+        rep.verdict = "wrong_mission"
+        return 2
     if not rep.reached_simulation:
         rep.verdict = "infra_error"
         return 2
@@ -646,6 +657,68 @@ def verdict(rep: Report) -> int:
         return 1
     rep.verdict = "pass" if (rep.done or rep.tests) else "ran_no_assertions"
     return 0
+
+
+# ----------------------------------------------------------------------------------------------
+# write-dir lock: one harness run per write dir (two runs overwrite each other's hook and
+# kill_ours() would kill the other run's DCS)
+# ----------------------------------------------------------------------------------------------
+
+LOCK_NAME = "dms_harness.lock"
+
+
+def pid_alive(pid: int) -> bool:
+    if pid <= 0:
+        return False
+    if sys.platform != "win32":
+        try:
+            os.kill(pid, 0)
+        except OSError:
+            return False
+        return True
+    k32 = ctypes.windll.kernel32
+    h = k32.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+    if not h:
+        return False
+    try:
+        code = ctypes.c_ulong()
+        ok = k32.GetExitCodeProcess(h, ctypes.byref(code))
+        return bool(ok) and code.value == 259  # STILL_ACTIVE
+    finally:
+        k32.CloseHandle(h)
+
+
+def acquire_lock(write_dir: Path, wait_sec: int, poll_sec: float = 30.0) -> Path | None:
+    """Create <write_dir>/dms_harness.lock holding our pid; wait while a live run holds it."""
+    write_dir.mkdir(parents=True, exist_ok=True)
+    lock = write_dir / LOCK_NAME
+    deadline = time.monotonic() + wait_sec
+    while True:
+        try:
+            fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError:
+            try:
+                holder = int(lock.read_text(encoding="utf-8").split()[0])
+            except (OSError, ValueError, IndexError):
+                holder = -1
+            if not pid_alive(holder):
+                with contextlib.suppress(OSError):
+                    lock.unlink()
+                continue
+            if time.monotonic() >= deadline:
+                return None
+            print(f"[harness] {lock} held by live pid {holder}; waiting", flush=True)
+            time.sleep(poll_sec)
+            continue
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(f"{os.getpid()}\n")
+        return lock
+
+
+def release_lock(lock: Path) -> None:
+    with contextlib.suppress(OSError):
+        if lock.read_text(encoding="utf-8").split()[0] == str(os.getpid()):
+            lock.unlink()
 
 
 # ----------------------------------------------------------------------------------------------
@@ -724,6 +797,17 @@ def main(argv: list[str] | None = None) -> int:
         print(f"miz not found: {miz}", file=sys.stderr)
         return 2
 
+    lock = acquire_lock(SAVED_GAMES / a.write_dir_name, a.ram_wait_sec)
+    if lock is None:
+        print(f"write dir {a.write_dir_name} is in use by another harness run", file=sys.stderr)
+        return 2
+    try:
+        return _run(a, miz)
+    finally:
+        release_lock(lock)
+
+
+def _run(a: argparse.Namespace, miz: Path) -> int:
     if a.exe:
         inst = DcsInstall(
             a.exe.parent.parent,

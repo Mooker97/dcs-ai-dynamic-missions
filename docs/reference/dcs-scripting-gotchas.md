@@ -25,6 +25,10 @@ Related: [miz-format.md](miz-format.md) · [ADR 0003](../adr/0003-own-lua-core-o
 - If a callback passed to `timer.scheduleFunction` raises an error, that loop stops permanently and
   never fires again. Always `pcall` the callback body and return the next fire time anyway.
   `DMS.Clock` is the only module that calls the scheduler, and it handles this.
+- Never schedule for exactly `timer.getTime()` during mission start. In the m03 headless run
+  (2026-10-28), two encounters with `afterSec = 0` never ran while a 30 s one did. `DMS.Clock`
+  now schedules every first run at least 0.05 s ahead. Suspected cause, not yet proven in
+  isolation.
 - Wrap `onEvent` handlers in `pcall` as well. `DMS.Bus` is the only module that calls
   `world.addEventHandler`.
 

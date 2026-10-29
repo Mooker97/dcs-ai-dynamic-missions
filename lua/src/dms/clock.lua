@@ -9,6 +9,9 @@ Clock._tasks = Clock._tasks or {}
 Clock._nextId = Clock._nextId or 1
 
 local MIN_INTERVAL = 0.05
+-- DCS drops a function scheduled for the current time while the mission is starting (m03 time
+-- encounters with afterSec 0 never ran), so every first run is at least this far ahead.
+local MIN_DELAY = 0.05
 
 function Clock.now()
   return timer.getTime()
@@ -43,8 +46,8 @@ function Clock.after(delaySec, fn, ...)
   local n = select("#", ...)
   local args = { ... }
   local delay = tonumber(delaySec) or 0
-  if delay < 0 then
-    delay = 0
+  if delay < MIN_DELAY then
+    delay = MIN_DELAY
   end
   task.timerId = timer.scheduleFunction(function()
     local ok, err = pcall(function()
@@ -76,8 +79,8 @@ function Clock.every(intervalSec, fn, opts)
   if first == nil then
     first = interval + jitterValue(opts.jitter)
   end
-  if first < 0 then
-    first = 0
+  if first < MIN_DELAY then
+    first = MIN_DELAY
   end
   task.timerId = timer.scheduleFunction(function(_, t)
     local nextT

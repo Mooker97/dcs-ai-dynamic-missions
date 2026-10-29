@@ -85,7 +85,7 @@ beats:
 
   - id: lz_cleared_timeout         # fallback: the column never loses a vehicle; Dusty calls Dustoff in anyway
     when: {event: timer, after_sec: 420}
-    requires: {beats_not_fired: [lz_cleared], flags_not: [lz_cleared]}
+    requires: {beats_not_fired: [lz_cleared, column_hit], flags_not: [lz_cleared]}
     priority: 88
     once: true
     speaker: dusty_brennan

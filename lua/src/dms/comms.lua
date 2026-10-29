@@ -261,7 +261,8 @@ local function outSound(target, path)
   if not (trigger and trigger.action) then
     return nil, 0
   end
-  if target.frequency and trigger.action.radioTransmission then
+  -- A spectator has no radio, so a watch mission plays every line to all instead of transmitting.
+  if target.frequency and trigger.action.radioTransmission and not toAll(target) then
     local positions = transmitterPositions(target)
     if #positions > 0 then
       local f = target.frequency

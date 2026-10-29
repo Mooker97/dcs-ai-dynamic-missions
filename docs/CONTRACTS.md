@@ -810,8 +810,8 @@ The beat filters `flight` and `zone` match these payload keys (generic rule).
 
 Watch mode in the other modules:
 
-- Comms text and sound go to **all** players (`outText` / `outSound`). With a frequency, the
-  radioTransmission is positioned at the stand-in group.
+- Comms text and sound go to **all** players (`outText` / `outSound`), even for a speaker with a
+  frequency: a spectator has no radio, so watch missions never use radioTransmission.
 - Intel marks use coalition -1.
 - Narrative `zone.entered`, the Director and Ambient treat `standInGroups()` units as players,
   exactly as they treat the test proxy.

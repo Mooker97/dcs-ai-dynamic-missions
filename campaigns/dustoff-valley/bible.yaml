@@ -50,7 +50,7 @@ factions:
     dcs:
       country: USA
       coalition: blue
-      units: [A-10C_2, M1126 Stryker ICV, M-2 Bradley, Hummer, M 818, M978 HEMTT Tanker, Soldier M4]
+      units: [A-10C_2, F-16C_50, UH-60A, M1126 Stryker ICV, M-2 Bradley, Hummer, M 818, M978 HEMTT Tanker, Soldier M4]
 
   - id: ctf_uk
     name: "CTF Orontes — reconnaissance teams"
@@ -244,6 +244,79 @@ characters:
       brevity: normal
       radio_fx: none
       notes: "Briefing voice; rarely on the tactical net."
+
+  - id: dusty_brennan
+    name: "Capt. Josh Brennan"
+    callsign: "Dusty One-One"
+    role: AH-64D aircraft commander (heard only in watch missions, when Dusty flies without the player)
+    faction: ctf_aus
+    real_person: false
+    description: >-
+      The detachment's senior Apache pilot. Flies the aircraft the player usually flies; on the
+      net only when the detachment is shown from outside (watch missions). Economical, patient,
+      never fires before the picture is clear.
+    arc: static
+    voice:
+      design_prompt: >-
+        Male Australian Army helicopter pilot, mid 30s, general Australian accent, low and even,
+        clipped working voice. Helmet microphone with rotor and turbine noise underneath. Calm
+        under fire; slightly breathless only after manoeuvring.
+      accent: Australian
+      age: 35
+      gender: male
+      cadence: measured
+      brevity: terse
+      radio_fx: uhf_clean
+      eleven_voice_id: null
+      notes: "Flat by default. Never says more than the other station needs."
+
+  - id: dustoff_whitfield
+    name: "CW3 Dana Whitfield"
+    callsign: "Dustoff Three-One"
+    role: UH-60A medevac pilot in command
+    faction: ctf_us
+    real_person: false
+    description: >-
+      US Army air ambulance pilot attached to CTF Orontes at Hatay. Has flown into worse LZs
+      than the ridge. Talks about the patient, not herself.
+    arc: "Introduced in w01. Becomes the detachment's medevac voice whenever someone is hurt east of the ridge."
+    voice:
+      design_prompt: >-
+        Female US Army helicopter pilot, late 30s, General American accent, mid-low pitch,
+        businesslike and warm underneath. Helmet microphone, heavy rotor noise behind. Stays
+        even when the aircraft is working hard; voice strains slightly at max power.
+      accent: General American
+      age: 38
+      gender: female
+      cadence: brisk
+      brevity: terse
+      radio_fx: uhf_clean
+      eleven_voice_id: null
+      notes: "Short transmissions. Patient first, aircraft second."
+
+  - id: venom_lindqvist
+    name: "Maj. Erik Lindqvist"
+    callsign: "Venom One-One"
+    role: F-16C flight lead (two-ship, on-call strike)
+    faction: ctf_us
+    real_person: false
+    description: >-
+      Leads an F-16C two-ship from Hatay holding for on-call strike. Precise, a little remote,
+      used to dropping on targets other people describe to him.
+    arc: "Introduced in w01. The fast-air alternative to Hawg One-One when the target is a building."
+    voice:
+      design_prompt: >-
+        Male USAF fighter pilot, early 40s, neutral Midwestern American accent, clipped and
+        flat, slight breath noise through an oxygen-mask microphone. Every word is a brevity
+        word; no inflection on weapons calls.
+      accent: General American (Midwest)
+      age: 41
+      gender: male
+      cadence: brisk
+      brevity: terse
+      radio_fx: uhf_clean
+      eleven_voice_id: null
+      notes: "Mask mic. Two to five words per call when he can."
 
   - id: hammer
     name: "HAMMER (coalition intelligence designator)"

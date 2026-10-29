@@ -22,3 +22,11 @@
 
 ### 2026-10-27 — mission-designer — m01 First Light designed
 - Status m01: designed. Not yet flown.
+
+### 2026-10-29 — mission-designer — w01 Dustoff Under Fire designed (watch mission)
+- Side story (spectator, all AI), not in arc.yaml; changes no qualities. Set D+3, 12 APR 0640L.
+- New canon characters: Capt. Josh Brennan (Dusty One-One aircraft commander, heard in watch missions),
+  CW3 Dana Whitfield (Dustoff Three-One, UH-60A medevac), Maj. Erik Lindqvist (Venom One-One, F-16C two-ship).
+- New places: the militia compound on the canal road 4 NM south of Kestrel's ridge; the ridge LZ on its south slope.
+- One of Kestrel Two-Two's team wounded (urgent surgical) and evacuated; Kestrel stays on the ridge.
+- Status: implemented, not flown.

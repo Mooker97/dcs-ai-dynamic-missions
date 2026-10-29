@@ -1,0 +1,388 @@
+# w01 Dustoff Under Fire — beats (WATCH mission). Schema: schemas/beats.schema.json (BeatSheet).
+# Flight ids (dusty, dustoff, venom) are spec `flights[].id`; flight.* events carry them as `flight`.
+# group_prefix values are spec ids (threat / pool); planned/spawned group names start with them.
+# `cue` = camera hint shown as "CAMERA: <text>" (watch.cues). Times are from mission start.
+#
+# Guaranteed spine:
+#   mission_start (T+0:08) -> kestrel_casualty (0:12) -> technicals_spotted (~2:00) -> dusty_tally (~2:05)
+#   -> strike_cleared (~4:00) -> lz_cleared (first kill +45 s, else lz_cleared_timeout at 7:00)
+#   -> dustoff_inbound (+20 s) -> [land, ~90 s ground, lift] -> dustoff_clear (~13:00) -> mission_end (+20 s)
+#   Fallbacks: timeout_end_ok / timeout_end_fail at 14:30; dustoff_lost -> dustoff_lost_end (failure).
+mission_id: w01-dustoff-under-fire
+beats:
+  # ---- Guaranteed spine ---------------------------------------------------------------------
+  - id: mission_start
+    when: {event: mission.start}
+    delay_sec: 8
+    priority: 90
+    once: true
+    guaranteed: true
+    speaker: ops_walsh
+    lines: [ops_start_v1]
+    text: "Dusty, Dustoff Three-One, Hatay Ops. Kestrel has one urgent surgical. Cleared in."
+    cue: "F2 to Dusty 1-1 and Dustoff 3-1 - inbound low from the west"
+    mark: {type: text, at: "zone:lz_ridge", text: "LZ"}
+    effects: {set_flag: started}
+
+  - id: kestrel_casualty
+    when: {event: beat.fired, beat: mission_start}
+    delay_sec: 4
+    priority: 89
+    once: true
+    guaranteed: true
+    speaker: kestrel_ferris
+    lines: [kestrel_casualty_v1]
+    text: "Dustoff, Kestrel Two-Two. One urgent surgical. LZ is the field below us."
+
+  - id: technicals_spotted
+    when: {event: encounter.spawned, encounter: technicals_push}
+    delay_sec: 75
+    priority: 85
+    once: true
+    guaranteed: true
+    speaker: kestrel_ferris
+    lines: [kestrel_technicals_v1]
+    text: "Dusty, Kestrel. Technicals on the canal road, northbound toward the LZ."
+    cue: "F10 - technicals on the canal road, south of the ridge"
+    mark: {type: circle, at: "zone:canal_north", text: "TECHNICALS NORTHBOUND"}
+    effects: {set_flag: column_spotted}
+
+  - id: dusty_tally
+    when: {event: beat.fired, beat: technicals_spotted}
+    delay_sec: 4
+    priority: 84
+    once: true
+    guaranteed: true
+    speaker: dusty_brennan
+    lines: [dusty_tally_v1]
+    text: "Kestrel, Dusty. Tally the road. Pushing ahead to engage."
+    cue: "F2 to Dusty 1-1 - pushing ahead to the canal road"
+
+  - id: strike_cleared
+    when: {event: beat.fired, beat: technicals_spotted}
+    delay_sec: 120
+    priority: 85
+    once: true
+    guaranteed: true
+    speaker: ops_walsh
+    lines: [ops_strike_v1]
+    text: "Venom One-One, Hatay Ops. Compound south of the ridge. Cleared hot."
+    cue: "F2 to Venom 1-1 - the F-16s leave their orbit for the compound"
+    mark: {type: circle, at: "zone:militia_compound", text: "COMPOUND"}
+    effects: {set_flag: strike_cleared}
+
+  - id: lz_cleared
+    when: {event: beat.fired, beat: column_hit}
+    delay_sec: 45
+    requires: {beats_not_fired: [lz_cleared_timeout], flags_not: [lz_cleared]}
+    priority: 88
+    once: true
+    guaranteed: true
+    speaker: dusty_brennan
+    lines: [dusty_lz_cold_v1]
+    text: "Dustoff, Dusty. LZ is cold. Come in from the west."
+    effects: {set_flag: lz_cleared, outcome: {lz_called_cold: true}}
+
+  - id: lz_cleared_timeout         # fallback: the column never loses a vehicle; Dusty calls Dustoff in anyway
+    when: {event: timer, after_sec: 420}
+    requires: {beats_not_fired: [lz_cleared], flags_not: [lz_cleared]}
+    priority: 88
+    once: true
+    speaker: dusty_brennan
+    lines: [dusty_lz_timeout_v1, dusty_lz_timeout_v2, dusty_lz_timeout_v3]
+    text: "Dustoff, Dusty. Column's stopped short. Come in now, from the west."
+    effects: {set_flag: lz_cleared, outcome: {lz_called_cold: false}}
+
+  - id: dustoff_inbound
+    when: {event: flag, flag: lz_cleared}
+    delay_sec: 20
+    priority: 86
+    once: true
+    guaranteed: true
+    speaker: dustoff_whitfield
+    lines: [dustoff_inbound_v1]
+    text: "Dusty, Dustoff. Inbound from the west. Short final in one minute."
+    cue: "F2 to Dustoff 3-1 - short final at the ridge"
+
+  - id: dustoff_clear
+    when: {event: flight.arrived, flight: dustoff, zone: egress_west}
+    priority: 90
+    once: true
+    guaranteed: true
+    speaker: ops_walsh
+    lines: [ops_clear_v1]
+    text: "Dustoff, Hatay Ops. Copy clear of the valley. Surgical team is waiting."
+    cue: "F2 to Dustoff 3-1 - clear of the valley, westbound"
+    effects: {set_flag: dustoff_clear, outcome: {dustoff_clear: true}}
+
+  - id: mission_end                # silent: lets Ops' line play out, then ends
+    when: {event: beat.fired, beat: dustoff_clear}
+    delay_sec: 20
+    priority: 95
+    once: true
+    guaranteed: true
+    effects:
+      end_mission: success
+      outcome: {casualty_evacuated: true}
+
+  # ---- Timeouts and failure -----------------------------------------------------------------
+  - id: timeout_end_ok             # 14:30 hard stop: casualty aboard but Dustoff not yet at the egress point
+    when: {event: timer, after_sec: 870}
+    requires: {flags: [casualty_aboard], beats_not_fired: [dustoff_clear, dustoff_lost]}
+    priority: 95
+    once: true
+    speaker: ops_walsh
+    lines: [ops_timeout_ok_v1, ops_timeout_ok_v2, ops_timeout_ok_v3]
+    text: "Dustoff, Hatay Ops. Copy casualty aboard. Surgical team standing by."
+    effects: {end_mission: success, outcome: {casualty_evacuated: true, dustoff_clear: false}}
+
+  - id: timeout_end_fail           # 14:30 hard stop: the casualty never got aboard
+    when: {event: timer, after_sec: 870}
+    requires: {flags_not: [casualty_aboard], beats_not_fired: [dustoff_clear, dustoff_lost]}
+    priority: 95
+    once: true
+    speaker: ops_walsh
+    lines: [ops_timeout_fail_v1, ops_timeout_fail_v2, ops_timeout_fail_v3]
+    text: "Dustoff, Ops. Out of time. Bring it home. Ground evac tonight."
+    effects: {end_mission: failure, outcome: {casualty_evacuated: false}}
+
+  - id: dustoff_lost
+    when: {event: flight.lost, flight: dustoff}
+    priority: 92
+    once: true
+    speaker: dusty_brennan
+    lines: [dusty_dustoff_down_v1, dusty_dustoff_down_v2, dusty_dustoff_down_v3]
+    text: "Ops, Dusty. Dustoff is down. Marking the site."
+    cue: "F2 to Dusty 1-1 - Dustoff 3-1 is down"
+    effects: {set_flag: dustoff_lost, outcome: {dustoff_lost: true}}
+
+  - id: dustoff_lost_end
+    when: {event: beat.fired, beat: dustoff_lost}
+    delay_sec: 30
+    priority: 95
+    once: true
+    speaker: ops_walsh
+    lines: [ops_dustoff_down_v1, ops_dustoff_down_v2, ops_dustoff_down_v3]
+    text: "Dusty, Hatay Ops. Copy. CSAR is launching. Hold overhead."
+    effects: {end_mission: failure, outcome: {casualty_evacuated: false}}
+
+  - id: dusty_lost
+    when: {event: flight.lost, flight: dusty}
+    priority: 90
+    once: true
+    speaker: kestrel_ferris
+    lines: [kestrel_dusty_down_v1, kestrel_dusty_down_v2, kestrel_dusty_down_v3]
+    text: "Ops, Kestrel. Dusty is down, west of the LZ."
+    effects: {set_flag: dusty_lost, outcome: {dusty_lost: true}}
+
+  - id: ops_say_status             # nudge at 5:00 if the LZ is still open
+    when: {event: timer, after_sec: 300}
+    requires: {flags_not: [lz_cleared]}
+    priority: 60
+    once: true
+    speaker: ops_walsh
+    lines: [ops_status_v1, ops_status_v2, ops_status_v3]
+    text: "Dusty, Hatay Ops. Say status of the LZ."
+
+  - id: dusty_status_reply
+    when: {event: beat.fired, beat: ops_say_status}
+    delay_sec: 3
+    priority: 60
+    once: true
+    speaker: dusty_brennan
+    lines: [dusty_status_v1, dusty_status_v2, dusty_status_v3]
+    text: "Ops, Dusty. Engaging the column. LZ in two minutes."
+
+  # ---- Transit and hold ---------------------------------------------------------------------
+  - id: dustoff_holding
+    when: {event: flight.arrived, flight: dustoff, zone: gate_hold}
+    priority: 70
+    once: true
+    speaker: dustoff_whitfield
+    lines: [dustoff_holding_v1, dustoff_holding_v2, dustoff_holding_v3]
+    text: "Dusty, Dustoff Three-One. Holding at the gate. Call the LZ."
+    cue: "F2 to Dustoff 3-1 - holding at the gate"
+
+  - id: kestrel_patient_update     # story in the gap: RELAX only
+    when: {event: beat.fired, beat: dustoff_holding}
+    delay_sec: 25
+    requires: {flags_not: [lz_cleared]}
+    priority: 40
+    once: true
+    speaker: kestrel_ferris
+    lines: [kestrel_patient_v1, kestrel_patient_v2, kestrel_patient_v3]
+    text: "Dustoff, Kestrel. Casualty's conscious. Tourniquet on at oh-six-twenty."
+
+  # ---- The column ---------------------------------------------------------------------------
+  - id: column_hit
+    when: {event: unit.dead, group_prefix: technicals}
+    priority: 75
+    once: true
+    speaker: kestrel_ferris
+    lines: [kestrel_column_hit_v1, kestrel_column_hit_v2, kestrel_column_hit_v3]
+    text: "Dusty, Kestrel. Good effect. Lead truck's burning."
+    cue: "F2 to Dusty 1-1 - first technical down on the canal road"
+    effects: {set_flag: column_hit, outcome: {technicals_engaged: true}}
+
+  - id: column_kill_followup
+    when: {event: unit.dead, group_prefix: technicals}
+    requires: {flags: [column_hit], chance: 60}
+    priority: 45
+    once: false
+    cooldown_sec: 45
+    speaker: kestrel_ferris
+    lines: [kestrel_column_more_v1, kestrel_column_more_v2, kestrel_column_more_v3]
+    text: "Dusty, Kestrel. Another one stopped."
+
+  - id: dusty_hit                  # generic reaction: Dusty takes rounds
+    when: {event: unit.hit, group_prefix: Dusty}
+    priority: 55
+    once: false
+    cooldown_sec: 60
+    speaker: dusty_brennan
+    lines: [dusty_hit_v1, dusty_hit_v2, dusty_hit_v3]
+    text: "Dusty, taking fire. Still in the fight."
+
+  # ---- Venom strike -------------------------------------------------------------------------
+  - id: kestrel_compound           # sets up the strike call 15 s later
+    when: {event: beat.fired, beat: technicals_spotted}
+    delay_sec: 105
+    priority: 70
+    once: true
+    speaker: kestrel_ferris
+    lines: [kestrel_compound_v1, kestrel_compound_v2, kestrel_compound_v3]
+    text: "Ops, Kestrel. More trucks loading at the compound. Second push coming."
+
+  - id: venom_copy
+    when: {event: beat.fired, beat: strike_cleared}
+    delay_sec: 4
+    priority: 80
+    once: true
+    speaker: venom_lindqvist
+    lines: [venom_copy_v1, venom_copy_v2, venom_copy_v3]
+    text: "Venom One-One, cleared hot. Two minutes."
+
+  - id: bombs_away
+    when: {event: flight.weapon, flight: venom}
+    priority: 87
+    once: true
+    speaker: venom_lindqvist
+    lines: [venom_bombs_v1]
+    text: "Venom One-One, bombs away. Thirty seconds."
+    cue: "F2 to Venom 1-1 - bombs away (F6 follows the bomb)"
+    effects: {set_flag: bombs_away}
+
+  - id: strike_bda
+    when: {event: beat.fired, beat: bombs_away}
+    delay_sec: 35
+    priority: 70
+    once: true
+    speaker: kestrel_ferris
+    lines: [kestrel_bda_v1, kestrel_bda_v2, kestrel_bda_v3]
+    text: "Ops, Kestrel. Good hits on the compound. Nothing moving."
+    cue: "F10 - the compound south of the ridge"
+
+  - id: compound_hit               # silent: outcome only
+    when: {event: unit.dead, group_prefix: compound}
+    priority: 50
+    once: true
+    effects: {set_flag: compound_hit, outcome: {compound_hit: true}}
+
+  # ---- Hot LZ (50%, telegraphed 40 s ahead) -------------------------------------------------
+  - id: lz_hot_warning
+    when: {event: flag, flag: lz_cleared}
+    delay_sec: 30
+    requires: {chance: 50}
+    priority: 80
+    once: true
+    speaker: kestrel_ferris
+    lines: [kestrel_lz_hot_v1]
+    text: "Dusty, Kestrel. Movement in the treeline east of the LZ."
+    mark: {type: circle, at: "zone:lz_east", text: "MOVEMENT"}
+    effects: {set_flag: lz_hot, outcome: {lz_hot: true}}
+
+  - id: lz_hot_spawn               # silent: starts encounter lz_hot
+    when: {event: beat.fired, beat: lz_hot_warning}
+    delay_sec: 40
+    priority: 50
+    once: true
+
+  - id: lz_hot_engage
+    when: {event: encounter.spawned, encounter: lz_hot}
+    delay_sec: 15
+    priority: 80
+    once: true
+    speaker: dusty_brennan
+    lines: [dusty_lz_hot_v1, dusty_lz_hot_v2, dusty_lz_hot_v3]
+    text: "Dustoff, Dusty. Shooters east of the LZ. Engaging. Keep coming."
+    cue: "F2 to Dusty 1-1 - engaging east of the LZ"
+
+  # ---- On the ground and lift -----------------------------------------------------------------
+  - id: dustoff_down
+    when: {event: flight.landed, flight: dustoff, zone: lz_ridge}
+    priority: 82
+    once: true
+    speaker: dustoff_whitfield
+    lines: [dustoff_down_v1, dustoff_down_v2, dustoff_down_v3]
+    text: "Dustoff on the ground. Loading."
+    cue: "F2 to Dustoff 3-1 - on the ground at the ridge (F11 for a free camera)"
+    effects: {set_flag: dustoff_landed}
+
+  - id: casualty_boarded           # silent: the pickup group boarded
+    when: {event: flight.pickup, flight: dustoff}
+    priority: 50
+    once: true
+    effects: {set_flag: casualty_aboard, outcome: {casualty_aboard: true}}
+
+  - id: dustoff_lifting
+    when: {event: flight.lifted, flight: dustoff, zone: lz_ridge}
+    priority: 86
+    once: true
+    speaker: dustoff_whitfield
+    lines: [dustoff_lifting_v1]
+    text: "Dustoff Three-One lifting. One urgent surgical aboard. Egress west."
+    cue: "F2 to Dustoff 3-1 - lifting, egress west"
+    effects: {set_flag: [casualty_aboard, dustoff_lifted]}
+
+  # ---- Egress gun (40%, telegraphed 35 s ahead) -----------------------------------------------
+  - id: egress_gun_warning
+    when: {event: beat.fired, beat: dustoff_lifting}
+    delay_sec: 6
+    requires: {chance: 40}
+    priority: 84
+    once: true
+    speaker: kestrel_ferris
+    lines: [kestrel_egress_gun_v1]
+    text: "Dusty, Kestrel. Gun truck moving south of Dustoff's egress."
+    mark: {type: circle, at: "zone:egress_gun", text: "GUN TRUCK"}
+    effects: {set_flag: egress_gun, outcome: {egress_gun: true}}
+
+  - id: egress_gun_spawn           # silent: starts encounter egress_gun
+    when: {event: beat.fired, beat: egress_gun_warning}
+    delay_sec: 35
+    priority: 50
+    once: true
+
+  - id: egress_gun_engage
+    when: {event: encounter.spawned, encounter: egress_gun}
+    delay_sec: 8
+    priority: 82
+    once: true
+    speaker: dusty_brennan
+    lines: [dusty_egress_gun_v1, dusty_egress_gun_v2, dusty_egress_gun_v3]
+    text: "Dustoff, Dusty. Gun truck south. Stay north, I have it."
+    cue: "F2 to Dusty 1-1 - gun truck south of the egress"
+
+  - id: egress_gun_firing
+    when: {event: unit.shot, group_prefix: egress_aa}
+    priority: 83
+    once: true
+    speaker: dustoff_whitfield
+    lines: [dustoff_taking_fire_v1, dustoff_taking_fire_v2, dustoff_taking_fire_v3]
+    text: "Dustoff, taking fire from the south. Breaking north."
+
+  - id: egress_gun_dead            # silent: outcome only
+    when: {event: unit.dead, group_prefix: egress_aa}
+    priority: 50
+    once: true
+    effects: {outcome: {egress_gun_destroyed: true}}

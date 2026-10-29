@@ -1,0 +1,258 @@
+# w01 Dustoff Under Fire — WATCH mission (spectator, all AI, no player slot).
+# Schema: schemas/mission-spec.schema.json (MissionSpec, CONTRACTS "AI flights and watch missions (v0.9)").
+# Validate: uv run dms validate campaigns/dustoff-valley/missions/w01-dustoff-under-fire
+# Side story: not in arc.yaml and changes no campaign qualities. Fits between m01 and m02.
+schema_version: 1
+id: w01-dustoff-under-fire
+title: "Dustoff Under Fire"
+campaign: dustoff-valley
+content_mode: fictional
+theater: Syria
+era: 2012
+date: 2012-04-12
+start_time: "06:40"
+weather_preset: clear
+mission_type: CSAR
+duration_min: 15
+blue_countries: [Australia, USA, UK]
+red_countries: [Combined Joint Task Forces Red, Insurgents]
+cast: [ops_walsh, kestrel_ferris, dustoff_whitfield, dusty_brennan, venom_lindqvist]
+
+watch:
+  focus: dusty                      # Dusty 1-1 stands in for "the player" (comms position, fog-of-war reveal)
+  cues: true
+
+areas:
+  - id: hatay
+    description: "Hatay airfield, home of all three flights (only used for RTB after the mission ends)."
+    where: {kind: near_airbase, airbase: Hatay, radius_nm: 1}
+  - id: start_west
+    description: "Dustoff 3-1's air start: low over the farmland about 8 NM west of the ridge."
+    where: {kind: near_named_place, place: Reyhanli, radius_nm: 0.5, bearing_deg: 325, distance_nm: 9.5}
+    terrain: open
+  - id: start_dusty
+    description: "Dusty 1-1's air start, 2 NM ahead (east) of Dustoff."
+    where: {kind: near_named_place, place: Reyhanli, radius_nm: 0.5, bearing_deg: 335, distance_nm: 8.6}
+    terrain: open
+  - id: gate_hold
+    description: "Dustoff's holding gate, 3 NM west of the LZ, out of sight of the canal road."
+    where: {kind: near_named_place, place: Reyhanli, radius_nm: 1, bearing_deg: 0, distance_nm: 7.6}
+    terrain: open
+  - id: kestrel_ridge
+    description: "Kestrel Two-Two's hide on the high ground north of the canal (canon, same as m01)."
+    where: {kind: near_named_place, place: Reyhanli, radius_nm: 0.5, bearing_deg: 20, distance_nm: 8}
+    terrain: high_ground
+  - id: lz_ridge
+    description: "The LZ: a flat field on the ridge's south slope, a few hundred metres below the hide."
+    where: {kind: near_named_place, place: Reyhanli, radius_nm: 0.3, bearing_deg: 17, distance_nm: 7.5}
+    terrain: open
+  - id: canal_north
+    description: "North end of the canal road where it meets the foot of the ridge, 1.5 NM south of the LZ."
+    where: {kind: near_named_place, place: Reyhanli, radius_nm: 0.6, bearing_deg: 22, distance_nm: 6.6}
+    terrain: road
+  - id: militia_compound
+    description: "Walled militia compound on the canal road, 4 NM south of the ridge. The technicals come from here."
+    where: {kind: near_named_place, place: Reyhanli, radius_nm: 0.4, bearing_deg: 50, distance_nm: 5}
+    terrain: open
+  - id: lz_east
+    description: "Treeline 1.2 NM east of the LZ; a militia team may move in here (hot LZ variant)."
+    where: {kind: near_named_place, place: Reyhanli, radius_nm: 0.3, bearing_deg: 28, distance_nm: 8.2}
+    terrain: open
+  - id: egress_gun
+    description: "Farm track 1.3 NM south of the egress line; a ZU-23 gun truck may move in here."
+    where: {kind: near_named_place, place: Reyhanli, radius_nm: 0.3, bearing_deg: 345, distance_nm: 6.5}
+    terrain: road
+  - id: egress_west
+    description: "Egress point 6 NM west of the LZ. Dustoff reaching it ends the mission."
+    where: {kind: near_named_place, place: Reyhanli, radius_nm: 1.2, bearing_deg: 335, distance_nm: 8.5}
+    terrain: open
+  - id: viper_hold
+    description: "Venom flight's holding orbit, 12 NM south of Hatay at 18,000 ft, about 16 NM from the compound."
+    where: {kind: near_airbase, airbase: Hatay, radius_nm: 3, bearing_deg: 160, distance_nm: 12}
+
+player_flights: []                  # watch mission: no client slots
+
+flights:
+  - id: dusty
+    callsign: "Dusty 1-1"
+    aircraft: AH-64D_BLK_II
+    count: 1
+    coalition: blue
+    country: Australia
+    skill: High
+    start_area: start_dusty
+    start_type: air
+    start_alt_ft: 200
+    start_speed_kts: 120
+    heading_toward: lz_ridge
+    loadout: hellfire_rockets
+    speaker: dusty_brennan
+    frequency_mhz: 251.0
+    modulation: AM
+    orders:
+      - {do: engage, at: lz_ridge, radius_nm: 2.5, targets: [ground], alt_ft: 200, speed_kts: 120,
+         until: {event: flight.lifted, flight: dustoff}, max_min: 12}
+      - {do: escort, flight: dustoff, radius_nm: 1.5, targets: [ground, aaa], max_min: 5}
+      - {do: rtb}
+
+  - id: dustoff
+    callsign: "Dustoff 3-1"
+    aircraft: UH-60A
+    count: 1
+    coalition: blue
+    country: USA
+    skill: High
+    start_area: start_west
+    start_type: air
+    start_alt_ft: 300
+    start_speed_kts: 110
+    heading_toward: gate_hold
+    speaker: dustoff_whitfield
+    frequency_mhz: 251.0
+    modulation: AM
+    orders:
+      - {do: fly, to: gate_hold, alt_ft: 200, speed_kts: 110}
+      - {do: hold, at: gate_hold, alt_ft: 200, speed_kts: 70, until: {flag: lz_cleared}, max_min: 6}
+      - {do: land, at: lz_ridge, ground_min: [1.25, 1.75], pickup: kestrel_casualty}
+      - {do: fly, to: egress_west, alt_ft: 150, speed_kts: 130}
+      - {do: rtb}
+
+  - id: venom
+    callsign: "Venom 1-1"
+    aircraft: F-16C_50
+    count: 2
+    coalition: blue
+    country: USA
+    skill: Excellent
+    start_area: viper_hold
+    start_type: air
+    start_alt_ft: 18000
+    start_speed_kts: 350
+    loadout: lgb_strike
+    speaker: venom_lindqvist
+    frequency_mhz: 251.0
+    modulation: AM
+    orders:
+      - {do: hold, at: viper_hold, alt_ft: 18000, speed_kts: 350, until: {flag: strike_cleared}, max_min: 8}
+      - {do: strike, at: militia_compound, group: compound, weapon: guided_bomb, alt_ft: 18000, max_min: 6}
+      - {do: rtb}
+
+objectives:
+  - id: evacuate
+    kind: rescue
+    description: "Dustoff 3-1 lands at the ridge LZ and lifts Kestrel's urgent surgical casualty."
+    primary: true
+    area: lz_ridge
+    target: kestrel_casualty
+    success_flag: casualty_aboard
+  - id: clear_valley
+    kind: reach
+    description: "Dustoff clears the valley westbound with the casualty aboard."
+    primary: true
+    area: egress_west
+    success_flag: dustoff_clear
+    failure_flag: dustoff_lost
+  - id: strike_compound
+    kind: destroy
+    description: "Venom flight hits the trucks massing at the militia compound."
+    primary: false
+    area: militia_compound
+    target: compound
+    success_flag: compound_hit
+
+threats:
+  - id: compound
+    role: hvt
+    area: militia_compound
+    strength: light
+    faction: valley_militia
+    skill: Average
+    hidden_on_map: false             # Kestrel has watched the compound for a week: known, on F10 from the start
+    templates: [supply_convoy]
+    notes: "Trucks being loaded inside the compound walls. Venom flight's strike target."
+
+support:
+  - id: kestrel
+    role: friendly_ground
+    callsign: "Kestrel Two-Two"
+    area: kestrel_ridge
+    composition: "3x Soldier M4"
+    faction: ctf_uk
+    speaker: kestrel_ferris
+    frequency_mhz: 41.5
+    modulation: FM
+  - id: kestrel_casualty
+    role: friendly_ground
+    callsign: "Kestrel casualty party"
+    area: lz_ridge
+    composition: "2x Soldier M4"
+    faction: ctf_uk                  # the casualty and one bearer; boards Dustoff (land order `pickup`)
+
+dynamic:
+  pools:
+    - id: technicals
+      roles: [technicals]
+      areas: [militia_compound, canal_north]   # convoy: spawn at the compound, drive north to the ridge foot
+      pick: [1, 2]
+      faction: valley_militia
+      templates: [technical_pair, technical_mg, technical_aa_mg]
+      notes: "1-2 groups = 2 to 4 technicals. Variety: DShK pickups, sometimes a ZU-23 pickup."
+    - id: lz_militia
+      roles: [infantry]
+      areas: [lz_east]
+      pick: [1, 1]
+      faction: valley_militia
+      templates: [rpg_team, mg_nest]
+      notes: "Hot-LZ variant: a small team in the treeline east of the LZ."
+    - id: egress_aa
+      roles: [aaa]
+      areas: [egress_gun]
+      pick: [1, 1]
+      faction: valley_militia
+      templates: [zu23_technical]
+      notes: "Egress variant: one ZU-23 pickup south of Dustoff's way out."
+  encounters:
+    - id: technicals_push
+      kind: convoy
+      pool: technicals
+      trigger: {type: time, after_min: 0.5}
+      chance: 100                    # set piece: always happens
+      notes: "The column drives up the canal road toward the ridge; Dusty meets it on the way."
+    - id: lz_hot
+      kind: pool
+      pool: lz_militia
+      trigger: {type: beat, beat: lz_hot_spawn}
+      chance: 100                    # the 50% roll is on the telegraph beat lz_hot_warning
+      notes: "Telegraphed by the beat chain lz_hot_warning (Kestrel) -> lz_hot_spawn. Spawns 40 s after Kestrel's warning, 1.2 NM east of the LZ. Dusty's engage zone covers it."
+    - id: egress_gun
+      kind: pool
+      pool: egress_aa
+      trigger: {type: beat, beat: egress_gun_spawn}
+      chance: 100                    # the 40% roll is on the telegraph beat egress_gun_warning
+      notes: "Telegraphed by the beat chain egress_gun_warning (Kestrel) -> egress_gun_spawn. Spawns 35 s after Kestrel's warning as Dustoff lifts. Dusty escorts and engages it."
+  director:
+    enabled: false                   # no filler: three scripted encounters only (few moving parts)
+    intensity: calm
+    adaptive: false
+  fog_of_war:
+    enabled: true
+    reveal_radius_km: 5
+    mark_refresh_sec: 15
+
+seed: null
+
+notes: >-
+  Watch mission, 12-14 min from start to end, all AI. T+ is from mission start (= mission_start, the
+  first guaranteed beat). T+0:00 Dusty 1-1 and Dustoff 3-1 airborne 7-8 NM west of the ridge; Ops
+  clears them in, Kestrel passes the casualty (hook). T+0:30 technicals leave the compound up the
+  canal road. T+2 Kestrel calls the column (F10 cue); Dusty pushes ahead and engages. T+3 Dustoff
+  holds at the gate. T+4 more trucks at the compound: Ops clears Venom 1-1 (F-16C two-ship) hot.
+  T+5-6 Dusty's first kill; LZ called cold ~45 s later (fallback T+7). T+6-8 Venom bombs away and
+  impacts on the compound (peak 1). T+7-8 Dustoff short final (peak 2; 50% hot LZ, telegraphed).
+  T+8.5-10 on the ground 75-105 s, casualty boards. T+10 lift; 40% a ZU-23 gun truck south of the
+  egress, telegraphed 35 s ahead (climax). T+12.5-13.5 Dustoff reaches egress_west: Ops copies,
+  mission ends success 20 s later. Fallbacks: hold max 6 min; strike max 6 min; mission ends at
+  T+14:30 whatever happens; Dustoff lost ends it as a failure. Variety per play: 2-4 technicals and
+  their mix, hot or cold LZ, egress gun or not, ground time, which trucks the bombs hit.
+  Guaranteed beats: mission_start, kestrel_casualty, technicals_spotted, dusty_tally, strike_cleared,
+  lz_cleared, dustoff_inbound, dustoff_clear, mission_end (plus timeouts).

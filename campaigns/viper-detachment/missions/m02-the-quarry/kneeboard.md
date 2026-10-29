@@ -4,13 +4,7 @@
 
 **Files:** m02-the-quarry-ramp.miz = Incirlik cold · m02-the-quarry-air.miz = 20,000 ft / 420 kts, 20 NM before IP SHALE
 
-| # | Phase | Action |
-|---|---|---|
-| 1 | Depart | Ramp only: Incirlik RWY 05, ESE. Shell on AR track |
-| 2 | Check-in | Magic inside 10 NM of IP SHALE (12 NM NW of tgt) |
-| 3 | Attack | Rook Ops clearance inside 10 NM. TGP PID, self-lase |
-| 4 | Egress | North to GATE (11 NM N). BDA to Rook Ops |
-| 5 | Recover | Incirlik. Div Gaziantep / Adana / Hatay |
+**Flow:** (ramp) RWY 05 ESE, Shell on AR · Magic inside 10 NM of SHALE · Rook Ops clears inside 10 NM, TGP PID, self-lase · N to GATE, BDA · Incirlik (div Gaziantep / Adana / Hatay)
 
 | STPT | Name | Point |
 |---|---|---|
@@ -33,6 +27,6 @@
 |---|---|---|
 | Ops / flight | Rook Ops | 305.0 AM |
 | AWACS | Magic 1-1 | 251.0 AM |
-| JTAC | Jackal 2-3 | 41.5 FM |
+| JTAC | Jackal 2-3 | 138.5 AM |
 | Tanker | Shell 1-1 | 276.1 AM · TCN 51Y |
 | Twr | Incirlik | 360.0 / 122.0 AM |

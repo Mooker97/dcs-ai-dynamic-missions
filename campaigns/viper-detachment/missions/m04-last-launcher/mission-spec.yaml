@@ -162,12 +162,19 @@ objectives:
     kind: destroy
     description: "Destroy the SA-6 radar vehicle (1S91 Straight Flush) moving east with its launchers before it reaches the Euphrates crossings."
     primary: true
+    # target, not area: a destroy objective with an area makes the planner plant its own hvt group
+    # there. The carrier is whichever of sam_carrier_n/c/s the route roll picks; _n stands for all
+    # three (two-area pools add no TGT steerpoint, so the route keeps TGT = search box centre).
+    target: sam_carrier_n
     success_flag: sam_carrier_destroyed
     failure_flag: convoy_escaped
   - id: suppress_overwatch
     kind: destroy
     description: "Suppress, and if possible destroy, the SA-8 overwatch on the high ground above the convoy's road (HARM it when it emits)."
     primary: false
+    # The SA-8 covers the carrier's road; the overwatch_* pools have one area each and would add a
+    # TGT steerpoint on the northern high ground (leaking the route), so this names the convoy it covers.
+    target: sam_carrier_n
     success_flag: overwatch_sam_destroyed
   - id: no_civilians
     kind: protect
@@ -223,8 +230,8 @@ support:
     composition: "1x Hummer"
     faction: usaf_rook               # TSgt Ortiz is USAF, embedded with the Brigade
     speaker: jtac_ortiz
-    frequency_mhz: 41.5                # VHF FM tactical
-    modulation: FM
+    frequency_mhz: 138.5               # VHF AM: the F-16 has no FM radio
+    modulation: AM
   - id: nbb_company
     role: friendly_ground
     callsign: "Jackal company"
@@ -327,62 +334,77 @@ dynamic:
       notes: "Igla team at one of the crossings, waiting for the convoy."
 
   encounters:
-    # Exactly one route is chosen per play by the silent route_* beats (beats.yaml). Each route
-    # beat triggers that route's carrier, escort, decoy and SA-8 overwatch. intel >= 2 variants use
-    # start_encounter instead (route_*_known beats).
+    # Exactly one route is chosen per play by the silent route_* beats (beats.yaml). The twelve
+    # per-route encounters are chance 0 = beat-started only: the route beat (route_n/c/s, or
+    # route_*_known when intel >= 2) starts its four via start_encounter, which ignores chance.
+    # So exactly 4 route encounters + morning_traffic + crossing_manpads = at most 6 live per play.
+    # (The beat trigger stays for the test harness's exclusive-sibling grouping; effects run before
+    # beat.fired, so the manual start always wins and the zero-chance trigger is a no-op.)
     - id: convoy_n
       kind: convoy
       pool: sam_carrier_n
       trigger: {type: beat, beat: route_n}
+      chance: 0
       notes: "Carrier group drives route_n_start -> route_n_end (On Road)."
     - id: convoy_c
       kind: convoy
       pool: sam_carrier_c
       trigger: {type: beat, beat: route_c}
+      chance: 0
     - id: convoy_s
       kind: convoy
       pool: sam_carrier_s
       trigger: {type: beat, beat: route_s}
+      chance: 0
     - id: escort_run_n
       kind: convoy
       pool: escort_n
       trigger: {type: beat, beat: route_n}
+      chance: 0
     - id: escort_run_c
       kind: convoy
       pool: escort_c
       trigger: {type: beat, beat: route_c}
+      chance: 0
     - id: escort_run_s
       kind: convoy
       pool: escort_s
       trigger: {type: beat, beat: route_s}
+      chance: 0
     - id: decoy_n
       kind: convoy
       pool: civ_decoy_n
       trigger: {type: beat, beat: route_n}
+      chance: 0
       notes: "Civilian lorries westbound toward the SAM convoy: they meet mid-route."
     - id: decoy_c
       kind: convoy
       pool: civ_decoy_c
       trigger: {type: beat, beat: route_c}
+      chance: 0
     - id: decoy_s
       kind: convoy
       pool: civ_decoy_s
       trigger: {type: beat, beat: route_s}
+      chance: 0
     - id: overwatch_amb_n
       kind: ambush_sam
       pool: overwatch_n
       trigger: {type: beat, beat: route_n}
+      chance: 0
       telegraph_beat: overwatch_warning
       notes: "SA-8 dark above the northern road until PYTHON is close; Rook Ops warns 30-60 s before it goes hot."
     - id: overwatch_amb_c
       kind: ambush_sam
       pool: overwatch_c
       trigger: {type: beat, beat: route_c}
+      chance: 0
       telegraph_beat: overwatch_warning
     - id: overwatch_amb_s
       kind: ambush_sam
       pool: overwatch_s
       trigger: {type: beat, beat: route_s}
+      chance: 0
       telegraph_beat: overwatch_warning
     - id: morning_traffic
       kind: convoy
@@ -423,3 +445,5 @@ notes: >-
   40 minutes after a 5-minute warning), so the RTB call is guaranteed. Long relax on the way home;
   Lindqvist's closing line depends on outcome and campaign collateral. Varies per play: route,
   decoy meeting point, morning traffic (80%), crossing MANPADS (60%) and its crossing, line variants.
+  Live encounters per play: 4 for the rolled road (carrier, escort, decoy, SA-8) + traffic + MANPADS = 6.
+  Spine timeout: recovery_timeout 25 min after the RTB call sets `landed` if the player never lands.

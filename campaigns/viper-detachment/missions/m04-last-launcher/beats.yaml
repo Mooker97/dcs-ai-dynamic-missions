@@ -9,8 +9,9 @@
 # Guaranteed spine (guaranteed: true; reachable from BOTH start options, never from takeoff):
 #   mission_start -> checkin_magic (zone push_hammer) -> retask (flag checked_in) -> on_station (zone
 #   search_box) -> rtb_call (flag convoy_resolved: SA-6 radar destroyed OR the 40-minute escape call)
-#   -> on_deck (any landing after the RTB call).
-# Mission end on death: player_lost (silent). Result: result_success / result_failure after on_deck,
+#   -> on_deck (any landing after the RTB call; recovery_timeout 25 min after the RTB call sets the
+#   same `landed` flag if the player never lands).
+# Mission end on death: player_lost (silent). Result: result_success / result_failure on flag landed,
 # or landed_early.
 # Route roll: exactly one of route_n / route_c / route_s fires (1/3 each) when intel < 2; with
 # intel >= 2 the southern road is ruled out and route_n_known / route_c_known pick 50/50.
@@ -93,6 +94,20 @@ beats:
     text: "Python, Rook Ops. Copy on deck."
     effects: {set_flag: landed}
 
+  # Spine timeout for on_deck: a player who never lands (or lands outside the trigger) still gets an
+  # ending. Requires are rechecked at delivery, so a landing inside the 25 min cancels it. Sets the
+  # same flag as on_deck; the closing line and the result chain off that flag.
+  - id: recovery_timeout
+    when: {event: beat.fired, beat: rtb_call}
+    delay_sec: 1500
+    requires: {beats_not_fired: [on_deck]}
+    priority: 80
+    once: true
+    speaker: ops_lindqvist
+    lines: [ops_recovery_timeout_v1, ops_recovery_timeout_v2, ops_recovery_timeout_v3]
+    text: "Python, Rook Ops. Closing the sortie log. Recover when able."
+    effects: {set_flag: landed, outcome: {landed: false}}
+
   # ==== Optional: ramp start only (never required) ==============================================
   - id: ground_taxi
     when: {event: zone.entered, zone: incirlik, players_only: true}
@@ -140,21 +155,27 @@ beats:
     requires: {flags_not: [route_set], qualities: [{quality: intel, op: "<", value: 2}], chance: 33}
     priority: 70
     once: true
-    effects: {set_flag: [route_set, route_n_set]}
+    effects:
+      set_flag: [route_set, route_n_set]
+      start_encounter: [convoy_n, escort_run_n, decoy_n, overwatch_amb_n]
 
   - id: route_c
     when: {event: beat.fired, beat: retask}
     requires: {flags_not: [route_set], qualities: [{quality: intel, op: "<", value: 2}], chance: 50}
     priority: 69
     once: true
-    effects: {set_flag: [route_set, route_c_set]}
+    effects:
+      set_flag: [route_set, route_c_set]
+      start_encounter: [convoy_c, escort_run_c, decoy_c, overwatch_amb_c]
 
   - id: route_s
     when: {event: beat.fired, beat: retask}
     requires: {flags_not: [route_set], qualities: [{quality: intel, op: "<", value: 2}]}
     priority: 68
     once: true
-    effects: {set_flag: [route_set, route_s_set]}
+    effects:
+      set_flag: [route_set, route_s_set]
+      start_encounter: [convoy_s, escort_run_s, decoy_s, overwatch_amb_s]
 
   - id: route_n_known
     when: {event: beat.fired, beat: retask}
@@ -306,7 +327,7 @@ beats:
     once: true
     speaker: wingman_pike
     lines: [pike_pid_v1, pike_pid_v2, pike_pid_v3, pike_pid_v4]
-    text: "Python, Two. Trucks westbound on the same road. No weapons. Those look civilian."
+    text: "Python, Two. Westbound trucks, same road. No weapons. Look civilian."
     effects: {set_flag: decoy_called}
 
   # ==== Optional: overwatch SA-8 (revealed -> shooting -> dead) ===================================
@@ -455,9 +476,9 @@ beats:
     text: "Python, Rook Ops. Copy on deck. Convoy's still moving. We'll hand it on."
     effects: {outcome: {convoy_escaped: true, sam_carrier_destroyed: false}, end_mission: failure}
 
-  # ==== Closing line (after on_deck; exactly one fires) ==========================================
+  # ==== Closing line (after the landed flag: on_deck or recovery_timeout; exactly one fires) ==========================================
   - id: closing_clean
-    when: {event: beat.fired, beat: on_deck}
+    when: {event: flag, flag: landed}
     requires:
       flags: [sam_carrier_destroyed, overwatch_sam_destroyed]
       flags_not: [civilians_hit]
@@ -470,7 +491,7 @@ beats:
     text: "Python, Rook Ops. That's the last radar we know of. Tomorrow is ISR escort. Boring is the goal."
 
   - id: closing_partial
-    when: {event: beat.fired, beat: on_deck}
+    when: {event: flag, flag: landed}
     requires:
       flags: [sam_carrier_destroyed]
       flags_not: [civilians_hit]
@@ -483,7 +504,7 @@ beats:
     text: "Python, Rook Ops. Radar's done. Copy. Nice work, Python."
 
   - id: closing_civ
-    when: {event: beat.fired, beat: on_deck}
+    when: {event: flag, flag: landed}
     requires: {flags: [civilians_hit]}
     delay_sec: 8
     priority: 59
@@ -493,7 +514,7 @@ beats:
     text: "Python, Rook Ops. Bring the tapes straight to the vault. Legal will want them."
 
   - id: closing_escaped
-    when: {event: beat.fired, beat: on_deck}
+    when: {event: flag, flag: landed}
     requires: {flags_not: [sam_carrier_destroyed, civilians_hit]}
     delay_sec: 8
     priority: 57
@@ -502,9 +523,9 @@ beats:
     lines: [ops_closing_escaped_v1, ops_closing_escaped_v2, ops_closing_escaped_v3]
     text: "Python, Rook Ops. It's across. We'll see that radar again."
 
-  # ==== Silent: mission result (after the closing line) ==========================================
+  # ==== Silent: mission result (after the closing line; landed flag) ==========================================
   - id: result_success
-    when: {event: beat.fired, beat: on_deck}
+    when: {event: flag, flag: landed}
     requires: {flags: [sam_carrier_destroyed]}
     delay_sec: 30
     priority: 50
@@ -512,7 +533,7 @@ beats:
     effects: {end_mission: success}
 
   - id: result_failure
-    when: {event: beat.fired, beat: on_deck}
+    when: {event: flag, flag: landed}
     requires: {flags_not: [sam_carrier_destroyed]}
     delay_sec: 30
     priority: 50

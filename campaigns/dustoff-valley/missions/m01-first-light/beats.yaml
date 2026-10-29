@@ -14,9 +14,18 @@ beats:
     guaranteed: true
     speaker: ops_walsh
     lines: [ops_cleared_v1, ops_cleared_v2, ops_cleared_v3, ops_cleared_v4]
-    text: "Dusty, Hatay Ops. Cleared for patrol. Known AAA at Reyhanli and Kirikhan. Weapons free on armed targets."
+    text: "Dusty, Hatay Ops. Cleared for patrol. Known AAA at Reyhanli and Kirikhan."
     mark: {type: text, at: "zone:patrol_box", text: "PATROL BOX"}
     effects: {set_flag: started}
+
+  - id: mission_start_roe          # chained ROE follow-on (same speaker, keeps each call terse)
+    when: {event: beat.fired, beat: mission_start}
+    delay_sec: 3
+    priority: 89
+    once: true
+    speaker: ops_walsh
+    lines: [ops_roe_v1, ops_roe_v2, ops_roe_v3]
+    text: "Weapons free on armed targets."
 
   - id: kestrel_checkin
     when: {event: zone.entered, zone: gate_west, players_only: true}
@@ -72,6 +81,17 @@ beats:
     lines: [ops_on_deck_v1, ops_on_deck_v2, ops_on_deck_v3]
     text: "Dusty, Ops. Copy on deck. Debrief at the TOC."
     effects: {set_flag: landed, outcome: {landed: true}, end_mission: success}
+
+  - id: recovery_timeout           # fallback for on_deck: ends the sortie if the landing never registers
+    when: {event: beat.fired, beat: patrol_complete}
+    delay_sec: 1200
+    requires: {beats_not_fired: [on_deck]}
+    priority: 84
+    once: true
+    speaker: ops_walsh
+    lines: [ops_recovery_timeout_v1, ops_recovery_timeout_v2, ops_recovery_timeout_v3]
+    text: "Dusty, Ops. Logging you recovered. Debrief at the TOC."
+    effects: {set_flag: landed, outcome: {landed: false}, end_mission: success}
 
   # ---- Optional: departure and early return -------------------------------------------------
   - id: tower_departure

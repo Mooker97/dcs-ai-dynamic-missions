@@ -87,19 +87,19 @@ lines:
     speaker: jtac_ortiz
     beat: jackal_report
     delivery: "First time on this net with Python. Crisp, unhurried, wind behind him."
-    text: "Python, Jackal Two-Three. NBB observers had trucks in and out of the Quarry overnight. Hamlet east of the wall is occupied."
+    text: "Python, Jackal Two-Three. Trucks in and out of the Quarry overnight. Hamlet east of the wall occupied."
   - id: jackal_report_v2
     speaker: jtac_ortiz
     beat: jackal_report
-    text: "Python, Jackal Two-Three. Ground report on the Quarry. Vehicle movement all night, guards in the pit. Families in the hamlet this morning."
+    text: "Python, Jackal Two-Three. Movement all night, guards in the pit. Families in the hamlet this morning."
   - id: jackal_report_v3
     speaker: jtac_ortiz
     beat: jackal_report
-    text: "Python, Jackal Two-Three. Brigade has eyes north of Al Bab. Trucks at the Quarry before dawn. The farm houses east of it are lived in."
+    text: "Python, Jackal Two-Three. Brigade saw trucks at the Quarry before dawn. Farm houses east are lived in."
   - id: jackal_report_v4
     speaker: jtac_ortiz
     beat: jackal_report
-    text: "Python, Jackal Two-Three. Quarry was busy last night. Guns on the rim. Kids seen at the hamlet east side, zero-seven-hundred."
+    text: "Python, Jackal Two-Three. Quarry busy last night, guns on the rim. Kids at the hamlet this morning."
 
   # --- Rook Ops: acknowledges Jackal ------------------------------------------------------------
   - id: ops_jackal_ack_v1
@@ -349,7 +349,7 @@ lines:
   - id: ops_check_fire_v3
     speaker: ops_lindqvist
     beat: civilian_hit
-    text: "Check fire, check fire. Python, that was not a target. Hold all releases."
+    text: "Check fire, check fire. Python, not a target. Hold all releases."
   - id: ops_check_fire_v4
     speaker: ops_lindqvist
     beat: civilian_hit
@@ -414,3 +414,15 @@ lines:
     speaker: awacs_magic
     beat: ambient_picture
     text: "Magic, picture clean, no air in the area."
+  - id: ops_recovery_timeout_v1
+    speaker: ops_lindqvist
+    beat: recovery_timeout
+    text: "Python, Rook Ops. Closing the sortie log. Recover when able."
+  - id: ops_recovery_timeout_v2
+    speaker: ops_lindqvist
+    beat: recovery_timeout
+    text: "Python, Rook Ops. Vul is long over. Logging the sortie, bring it home."
+  - id: ops_recovery_timeout_v3
+    speaker: ops_lindqvist
+    beat: recovery_timeout
+    text: "Python, Rook Ops. Board is closing on this one. Land at your discretion."

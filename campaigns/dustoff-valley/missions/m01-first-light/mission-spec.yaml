@@ -14,7 +14,7 @@ weather_preset: clear              # lines.yaml tower calls say "winds calm": ke
 mission_type: RECON
 duration_min: 45
 blue_countries: [Australia, USA, UK]
-red_countries: [CJTF Red, Insurgents]
+red_countries: [Combined Joint Task Forces Red, Insurgents]
 cast: [ops_walsh, tower_hatay, kestrel_ferris]
 
 areas:

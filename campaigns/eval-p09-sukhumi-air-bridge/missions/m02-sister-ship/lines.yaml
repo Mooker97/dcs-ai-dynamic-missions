@@ -1,0 +1,307 @@
+# m02 Sister Ship — voice lines. Schema: VoiceLineSet. One entry per variant; text has no audio tags.
+# dolidze_cabin_* override radio_fx to intercom: he is aboard Merani 2-1 by then.
+mission_id: m02-sister-ship
+model: eleven_v3
+lines:
+- id: kolkhi_launch_v1
+  speaker: ops_gelashvili
+  beat: mission_start
+  text: Merani Two-One, Kolkhi. Two-Two is down north-west of Ochamchire. Four aboard, all alive. Go.
+  delivery: Slower than usual; the pauses carry it.
+- id: kolkhi_launch_v2
+  speaker: ops_gelashvili
+  beat: mission_start
+  text: Merani Two-One, Kolkhi. Two-Two made a forced landing near the Kodori mouth. Gun from the hills.
+    Bring them home.
+- id: kolkhi_launch_v3
+  speaker: ops_gelashvili
+  beat: mission_start
+  text: Merani Two-One, Kolkhi. Two-Two is on the ground, crew alive, one hurt. Coast route. Stay away
+    from the hills.
+- id: kolkhi_launch_v4
+  speaker: ops_gelashvili
+  beat: mission_start
+  text: Merani, Kolkhi. Last position north-west of Ochamchire. They have one radio and one hour. Go now.
+- id: dolidze_contact_v1
+  speaker: wing_dolidze
+  beat: dolidze_contact
+  text: Merani Two-One, Two-Two. Hear your rotors. We are south of the wreck, by the trees. Smoke on request.
+  delivery: Quiet, quick, holding it together.
+- id: dolidze_contact_v2
+  speaker: wing_dolidze
+  beat: dolidze_contact
+  text: Two-One, Two-Two. Good to hear you. Four of us, near the aircraft. One with a bad leg.
+- id: dolidze_contact_v3
+  speaker: wing_dolidze
+  beat: dolidze_contact
+  text: Merani Two-One, Two-Two. Visual on you, low over the coast. We are south-east of you. Smoke ready.
+- id: dolidze_contact_v4
+  speaker: wing_dolidze
+  beat: dolidze_contact
+  text: Two-One, Two-Two. We hear you. Fields north-west of town, next to the wreck. Come to us.
+- id: dolidze_coming_v1
+  speaker: wing_dolidze
+  beat: pickup_landed
+  text: Two-One, Two-Two. See you. Coming to you now, four of us, one carried.
+  delivery: Out of breath, moving.
+- id: dolidze_coming_v2
+  speaker: wing_dolidze
+  beat: pickup_landed
+  text: Two-One, Two-Two. Running to you. Keep turning. Forty seconds.
+- id: dolidze_coming_v3
+  speaker: wing_dolidze
+  beat: pickup_landed
+  text: Two-One, Two-Two. You're on the field. We're coming from the trees, your left.
+- id: dolidze_coming_v4
+  speaker: wing_dolidze
+  beat: pickup_landed
+  text: Two-One, Two-Two. Coming. Don't wait for the radio, wait for us.
+- id: bort_crew_aboard_v1
+  speaker: crew_tsiklauri
+  beat: crew_aboard
+  text: Commander, four aboard. Doors closed. Go.
+  delivery: Counts heads like crates; a small warmth.
+- id: bort_crew_aboard_v2
+  speaker: crew_tsiklauri
+  beat: crew_aboard
+  text: Commander, all four. The leg is bad, the rest are fine. Lift.
+- id: bort_crew_aboard_v3
+  speaker: crew_tsiklauri
+  beat: crew_aboard
+  text: Commander, Two-Two crew aboard. Four. Go.
+- id: bort_crew_aboard_v4
+  speaker: crew_tsiklauri
+  beat: crew_aboard
+  text: Commander, doors shut. Four in the back. Captain Dolidze says thank you. Go.
+- id: bort_fuel_home_v1
+  speaker: crew_tsiklauri
+  beat: fuel_homeward
+  text: Commander, over the water. Fuel one thousand and fifty. Senaki with margin.
+  delivery: Ledger voice.
+- id: bort_fuel_home_v2
+  speaker: crew_tsiklauri
+  beat: fuel_homeward
+  text: Commander, fuel one thousand. Light cabin. We are fine.
+- id: bort_fuel_home_v3
+  speaker: crew_tsiklauri
+  beat: fuel_homeward
+  text: Commander, one thousand and fifty. Kutaisi possible if Senaki closes.
+- id: kolkhi_inbound_v1
+  speaker: ops_gelashvili
+  beat: kolkhi_inbound
+  text: Merani Two-One, Kolkhi. Copy four aboard. Doctor on the pad.
+  delivery: Relief audible only in the pace.
+- id: kolkhi_inbound_v2
+  speaker: ops_gelashvili
+  beat: kolkhi_inbound
+  text: Merani Two-One, Kolkhi. Copy. Pad one. The doctor is waiting.
+- id: kolkhi_inbound_v3
+  speaker: ops_gelashvili
+  beat: kolkhi_inbound
+  text: Merani, Kolkhi. Have you. Four of four. Land on the pad.
+- id: kolkhi_on_deck_v1
+  speaker: ops_gelashvili
+  beat: on_deck
+  text: Merani, Kolkhi. On deck. Four of four. Shut down.
+  delivery: Numbers first, even now.
+- id: kolkhi_on_deck_v2
+  speaker: ops_gelashvili
+  beat: on_deck
+  text: Merani, Kolkhi. Copy on deck. Four crew home, one aircraft lost. Shut down.
+- id: kolkhi_on_deck_v3
+  speaker: ops_gelashvili
+  beat: on_deck
+  text: Merani Two-One, Kolkhi. On deck. Tell Dolidze he still owes me fuel.
+- id: kolkhi_crew_lost_v1
+  speaker: ops_gelashvili
+  beat: crew_lost
+  text: Merani, Kolkhi. Two-Two's radio is silent. They will move inland. Return to Senaki.
+  delivery: Flat. The decision costs him.
+- id: kolkhi_crew_lost_v2
+  speaker: ops_gelashvili
+  beat: crew_lost
+  text: Merani Two-One, Kolkhi. No contact with Two-Two for ten minutes. RTB. We try again.
+- id: kolkhi_crew_lost_v3
+  speaker: ops_gelashvili
+  beat: crew_lost
+  text: Merani, Kolkhi. Two-Two has gone quiet. Do not search the hills alone. Come home.
+- id: kolkhi_inbound_alone_v1
+  speaker: ops_gelashvili
+  beat: kolkhi_inbound_alone
+  text: Merani Two-One, Kolkhi. Copy inbound. We try again when they call.
+  delivery: Quiet.
+- id: kolkhi_inbound_alone_v2
+  speaker: ops_gelashvili
+  beat: kolkhi_inbound_alone
+  text: Merani Two-One, Kolkhi. Copy. Land on the pad. Refuel first, questions after.
+- id: kolkhi_inbound_alone_v3
+  speaker: ops_gelashvili
+  beat: kolkhi_inbound_alone
+  text: Merani, Kolkhi. Have you. Straight in.
+- id: kolkhi_on_deck_alone_v1
+  speaker: ops_gelashvili
+  beat: on_deck_alone
+  text: Merani, Kolkhi. On deck. Refuel and stand by. They will call again.
+  delivery: Tired.
+- id: kolkhi_on_deck_alone_v2
+  speaker: ops_gelashvili
+  beat: on_deck_alone
+  text: Merani, Kolkhi. Copy on deck. Keep the crew near the aircraft.
+- id: kolkhi_on_deck_alone_v3
+  speaker: ops_gelashvili
+  beat: on_deck_alone
+  text: Merani Two-One, Kolkhi. On deck. Shut down. We listen on guard all night.
+- id: bort_spare_v1
+  speaker: crew_tsiklauri
+  beat: bort_spare_airframe
+  text: Commander, this one pulls left. She is the last one. Be gentle.
+  delivery: Gentle with the aircraft, as with an old horse.
+- id: bort_spare_v2
+  speaker: crew_tsiklauri
+  beat: bort_spare_airframe
+  text: Commander, spare aircraft. Number two engine runs hot. I watch it.
+- id: bort_spare_v3
+  speaker: crew_tsiklauri
+  beat: bort_spare_airframe
+  text: Commander, she is old but she flies. The last one we have.
+- id: bort_fuel_out_v1
+  speaker: crew_tsiklauri
+  beat: bort_fuel_out
+  text: Commander, coast in. Fuel one thousand seven hundred. Light today.
+  delivery: Slow.
+- id: bort_fuel_out_v2
+  speaker: crew_tsiklauri
+  beat: bort_fuel_out
+  text: Commander, coast. One thousand seven hundred. Empty cabin, good climb.
+- id: bort_fuel_out_v3
+  speaker: crew_tsiklauri
+  beat: bort_fuel_out
+  text: Commander, coast in. Fuel on the plan. Medic ready in the back.
+- id: bort_granite_fuel_v1
+  speaker: crew_tsiklauri
+  beat: bort_granite_fuel
+  text: Commander, we are flying on Granite's drums today. Two hundred kilos extra.
+  delivery: Pleased, barely.
+- id: bort_granite_fuel_v2
+  speaker: crew_tsiklauri
+  beat: bort_granite_fuel
+  text: Commander, Granite's fuel is in the tanks. We have time to search.
+- id: bort_granite_fuel_v3
+  speaker: crew_tsiklauri
+  beat: bort_granite_fuel
+  text: Commander, extra fuel from Babushara. Twenty minutes more if we need them.
+- id: dolidze_smoke_v1
+  speaker: wing_dolidze
+  beat: dolidze_smoke
+  text: Two-One, Two-Two. Smoke out. Land on the smoke, field is flat.
+  delivery: Practical.
+- id: dolidze_smoke_v2
+  speaker: wing_dolidze
+  beat: dolidze_smoke
+  text: Two-One, Two-Two. Green smoke. Wind from the sea. Land next to it.
+- id: dolidze_smoke_v3
+  speaker: wing_dolidze
+  beat: dolidze_smoke
+  text: Two-One, Two-Two. Smoke now. Wreck is west of the smoke, don't use it as a mark.
+- id: dolidze_patrol_v1
+  speaker: wing_dolidze
+  beat: dolidze_patrol_warning
+  text: Two-One, Two-Two. Vehicles on the road north, coming this way. Ten minutes, maybe less.
+  delivery: Faster, fewer words.
+- id: dolidze_patrol_v2
+  speaker: wing_dolidze
+  beat: dolidze_patrol_warning
+  text: Two-One, Two-Two. Men on foot in the hills east. Moving toward us.
+- id: dolidze_patrol_v3
+  speaker: wing_dolidze
+  beat: dolidze_patrol_warning
+  text: Two-One, Two-Two. Engine noise north. Armoured, I think. Be quick.
+- id: dolidze_patrol_v4
+  speaker: wing_dolidze
+  beat: dolidze_patrol_warning
+  text: Two-One, Two-Two. They saw us come down. Someone is coming. Hurry.
+- id: dolidze_patrol_fire_v1
+  speaker: wing_dolidze
+  beat: patrol_firing
+  text: Two-One, Two-Two. They are shooting from the treeline north. Come in from the south.
+  delivery: Under fire, clipped.
+- id: dolidze_patrol_fire_v2
+  speaker: wing_dolidze
+  beat: patrol_firing
+  text: Two-One, Two-Two. Taking fire, north side. Land south of us.
+- id: dolidze_patrol_fire_v3
+  speaker: wing_dolidze
+  beat: patrol_firing
+  text: Two-One, Two-Two. Shots from the north. Keep the trees between you and them.
+- id: dolidze_gun_v1
+  speaker: wing_dolidze
+  beat: gun_firing
+  text: Two-One, Two-Two. That is the gun that got us. Hills north-east. Stay low by the sea.
+  delivery: Bitter, controlled.
+- id: dolidze_gun_v2
+  speaker: wing_dolidze
+  beat: gun_firing
+  text: Two-One, Two-Two. Gun firing from the north-east hills. Same one.
+- id: dolidze_gun_v3
+  speaker: wing_dolidze
+  beat: gun_firing
+  text: Two-One, Two-Two. Tracers, north-east. Don't come from that side.
+- id: kolkhi_roadblock_v1
+  speaker: ops_gelashvili
+  beat: roadblock_warning
+  text: Merani, Kolkhi. Roadblock on the Zugdidi road again. Armed. Route south of it.
+  delivery: Flat.
+- id: kolkhi_roadblock_v2
+  speaker: ops_gelashvili
+  beat: roadblock_warning
+  text: Merani, Kolkhi. Gunmen on the Khobi road. Not ours. Stay clear.
+- id: kolkhi_roadblock_v3
+  speaker: ops_gelashvili
+  beat: roadblock_warning
+  text: Merani Two-One, Kolkhi. Report of a technical near Zugdidi. Go around.
+- id: bort_hit_v1
+  speaker: crew_tsiklauri
+  beat: player_hit
+  text: Commander, hit. Pressures normal. Fuel steady.
+  delivery: Gauges first.
+- id: bort_hit_v2
+  speaker: crew_tsiklauri
+  beat: player_hit
+  text: Commander, hits in the cabin. Nobody hurt. Systems good.
+- id: bort_hit_v3
+  speaker: crew_tsiklauri
+  beat: player_hit
+  text: Commander, we took rounds. Engines good. Keep going.
+- id: bort_hit_v4
+  speaker: crew_tsiklauri
+  beat: player_hit
+  text: Commander, hit, tail. Controls normal.
+- id: dolidze_cabin_v1
+  speaker: wing_dolidze
+  beat: dolidze_thanks
+  text: Two-One, Two-Two on your intercom. Fuel at Senaki is on me. I know where it is.
+  delivery: On the cabin headset; relaxed now.
+  radio_fx: intercom
+- id: dolidze_cabin_v2
+  speaker: wing_dolidze
+  beat: dolidze_thanks
+  text: Commander, Dolidze here, on the spare headset. I owe you. Fuel, I can find.
+  radio_fx: intercom
+- id: dolidze_cabin_v3
+  speaker: wing_dolidze
+  beat: dolidze_thanks
+  text: Dolidze on intercom. When we land I find you two hundred kilos. Don't ask from where.
+  radio_fx: intercom
+- id: kolkhi_civilian_v1
+  speaker: ops_gelashvili
+  beat: civilian_hit
+  text: Merani, Kolkhi. Report from Ochamchire of a civilian vehicle hit. Explain on deck.
+  delivery: Quiet.
+- id: kolkhi_civilian_v2
+  speaker: ops_gelashvili
+  beat: civilian_hit
+  text: Merani, Kolkhi. Civilian casualties reported on the coast road. We talk on deck.
+- id: kolkhi_civilian_v3
+  speaker: ops_gelashvili
+  beat: civilian_hit
+  text: Merani, Kolkhi. Ochamchire reports a car hit. Report on landing.

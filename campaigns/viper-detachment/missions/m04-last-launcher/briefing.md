@@ -25,8 +25,8 @@ first light, and from 15,000 ft a lorry looks like a launcher.
   emitter silent and unlocated until you are close. Rook Ops calls it as soon as it is seen. *Possible:* Igla teams at the crossings. *Most likely:* the convoy keeps moving and
   hides in traffic. *Most dangerous:* the overwatch or the SA-6 radar comes up while you are low and
   slow on a lasing run.
-- **Friendly.** Magic (E-3, 251.0) has the air picture. Rook Ops (Maj. Lindqvist) on the squadron
-  discrete. Shell (KC-135, 276.1, TACAN 51Y) on the AR track over southern Turkey, west of Gaziantep. Jackal Two-Three with the Brigade
+- **Friendly.** Magic (E-3, 251.000) has the air picture. Rook Ops (Maj. Lindqvist) on the squadron
+  discrete. Shell (KC-135, 276.100, TACAN 51Y) on the AR track over southern Turkey, west of Gaziantep. Jackal Two-Three with the Brigade
   north of Tell Rifaat; Brigade observers report only if they are out.
 - **Civilians.** Traffic on all three roads; Manbij, Maskanah and the dam villages are built up.
 
@@ -40,6 +40,9 @@ Euphrates crossings, suppressing its overwatch, to remove the NPF's last radar S
 - **Commander's intent.** The radar is the target: without it the launchers are scrap. Key tasks:
   check in at HAMMER, take the retask, find the convoy, suppress the overwatch, put a GBU-12 on the
   1S91. End state: radar destroyed, no civilian casualties, both jets home.
+- **Stakes:** if we fail, the Engineer's last radar SAM crosses the Euphrates intact and the
+  umbrella over the plain comes back wherever he sets it up next.
+- **Duration:** air start ~65 min / ramp start ~90 min (the 40-minute search window is inside both).
 - **Start options (choose one file).** Copy `m04-last-launcher-ramp.miz` for a cold start on the
   Incirlik ramp, or `m04-last-launcher-air.miz` for an air start at 20,000 ft, 420 kt, 20 NM
   short of HAMMER (the IP), heading east-south-east. Either way you fly PYTHON 1-1 with Pike as
@@ -77,7 +80,7 @@ Euphrates crossings, suppressing its overwatch, to remove the NPF's last radar S
 |---|---|---|
 | Flight / squadron discrete | Python 1-1 / Rook Ops | 305.000 AM |
 | AWACS | Magic (Magic 1-1) | 251.000 AM |
-| JTAC | Jackal Two-Three | 41.500 FM |
+| JTAC | Jackal Two-Three | 138.500 AM |
 | Tanker | Shell (Shell 1-1), TACAN 51Y | 276.100 AM |
 | Incirlik Ground / Tower | Incirlik | 360.100 AM |
 

@@ -223,7 +223,7 @@ support:
     area: village_lantern
     composition: "1x Hummer"
     speaker: jtac_ortiz
-    frequency_mhz: 41.5               # below 88 MHz -> FM automatically
+    frequency_mhz: 138.5               # VHF AM: the F-16 has no FM radio
   - id: magic
     role: awacs
     callsign: "Magic"
@@ -305,6 +305,7 @@ dynamic:
       waves: 3
       gap_min: [4, 6]
       hunt: true
+      telegraph_beat: assault_massing
       notes: "Technicals spawn 6+ km south and drive north toward the players' orbit, i.e. into the fight. Jackal reports each wave."
     - id: sa13_ambush
       kind: ambush_sam

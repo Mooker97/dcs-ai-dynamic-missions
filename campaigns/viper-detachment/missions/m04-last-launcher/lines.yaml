@@ -34,7 +34,7 @@ lines:
   - id: ground_taxi_v2
     speaker: tower_incirlik
     beat: ground_taxi
-    text: "Python, Ground. Runway zero-five, taxi via Alpha, hold short. Altimeter on the ATIS."
+    text: "Python, Ground. Runway zero-five via Alpha, hold short. Check ATIS."
   - id: ground_taxi_v3
     speaker: tower_incirlik
     beat: ground_taxi
@@ -83,7 +83,7 @@ lines:
   - id: magic_checkin_v4
     speaker: awacs_magic
     beat: checkin_magic
-    text: "Python, Magic. Radar contact. Clean. Shell on station if needed. Contact Rook Ops."
+    text: "Python, Magic. Radar contact, clean. Shell available. Contact Rook Ops."
   - id: magic_checkin_late_v1
     speaker: awacs_magic
     beat: checkin_late
@@ -267,15 +267,15 @@ lines:
     speaker: wingman_pike
     beat: pike_pid_decoy
     delivery: "Careful, unhurried. He has thought about this."
-    text: "Python, Two. Trucks westbound on the same road. No weapons. Those look civilian."
+    text: "Python, Two. Westbound trucks, same road. No weapons. Look civilian."
   - id: pike_pid_v2
     speaker: wingman_pike
     beat: pike_pid_decoy
-    text: "Python, Two. Second group. Box trucks and a car. I see no guns."
+    text: "Python, Two. Second group. Box trucks, a car. No guns."
   - id: pike_pid_v3
     speaker: wingman_pike
     beat: pike_pid_decoy
-    text: "Python, Two. Lorries coming the other way. Civilian, I think. Confirm before you lase."
+    text: "Python, Two. Lorries the other way. Civilian, I think. Confirm first."
   - id: pike_pid_v4
     speaker: wingman_pike
     beat: pike_pid_decoy
@@ -477,6 +477,19 @@ lines:
     speaker: ops_lindqvist
     beat: on_deck
     text: "Python, Rook Ops. On deck, copy. Tapes to the vault."
+  - id: ops_recovery_timeout_v1
+    speaker: ops_lindqvist
+    beat: recovery_timeout
+    delivery: "Flat, administrative. Closing the book on a long day."
+    text: "Python, Rook Ops. Closing the sortie log. Recover when able."
+  - id: ops_recovery_timeout_v2
+    speaker: ops_lindqvist
+    beat: recovery_timeout
+    text: "Python, Rook Ops. Log's closed on our end. Bring them home."
+  - id: ops_recovery_timeout_v3
+    speaker: ops_lindqvist
+    beat: recovery_timeout
+    text: "Python, Rook Ops. Sortie closed. Call Tower when you're ready to land."
   - id: ops_landed_early_v1
     speaker: ops_lindqvist
     beat: landed_early

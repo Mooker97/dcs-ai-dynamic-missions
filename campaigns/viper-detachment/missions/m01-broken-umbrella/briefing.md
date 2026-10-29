@@ -62,6 +62,11 @@ come home.
 - Altitude: 15,000 ft MSL minimum over the town (MANPADS, ZU-23).
 - Abort: SA-6 launch with no HARM available, or damage. Turn north to EGRESS (STPT 4).
 - Bingo: set your own for Incirlik. Tank on Shell if needed.
+- Duration: air start ~40 min (ARROW in ~3 min, 15 min on station, ~20 min home); ramp start
+  ~65 min (start-up and taxi ~15 min, 83 NM transit ~12 min).
+- Stakes: if the window fails, Cyclops never maps the Quarry, so tomorrow's strike goes in
+  without marked bunkers. Every radar we leave alive sizes the SAM threat for the rest of the
+  detachment.
 
 ## 4. Administration and logistics
 

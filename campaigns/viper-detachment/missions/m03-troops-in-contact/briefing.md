@@ -4,6 +4,10 @@
 
 **Pick your start.** Copy `m03-troops-in-contact-ramp.miz` for a cold start on the ramp at Incirlik, or `m03-troops-in-contact-air.miz` for an air start: 20,000 ft, 420 kt, 20 NM short of CP TUSK (the IP) on the Incirlik-TUSK axis, heading about 110. Either way you are **Python 1-1** in the cockpit and Pike flies **Python 1-2** as your AI wingman. The story starts at TUSK.
 
+**Duration:** air start ~45-55 min (5 min to TUSK, 15-25 min on station, ~25 min RTB and landing) · ramp start ~70-80 min (adds ~15 min cold start and taxi and ~12 min transit to TUSK).
+
+**Stakes:** if we fail, LANTERN falls back and the NPF takes the village. The Brigade loses faith in Rook, and that costs us their observers on the convoy next. A bomb on LANTERN costs more than losing the village.
+
 ## Intelligence narrative — Rook S2
 
 The NPF has answered our first week with a ground push. Since 1100L an NBB company, LANTERN, has been in contact in the village 6 km north of Tell Rifaat, with Jackal Two-Three. Fire comes from farm compounds south of the village. Technicals are moving north out of Tell Rifaat.
@@ -48,7 +52,7 @@ From 1500L, PYTHON provides close air support to Jackal Two-Three north of Tell 
 | Ops / squadron | Rook Ops | 305.000 AM (flight freq) |
 | Flight | Python 1-1 / 1-2 | 305.000 AM |
 | AWACS | Magic | 251.000 AM |
-| JTAC | Jackal Two-Three | 41.500 FM |
+| JTAC | Jackal Two-Three | 138.500 AM |
 | Tanker | Shell 1-1 (KC-135) | 276.100 AM · TACAN 51Y |
 | Ground / Tower | Incirlik | DCS airfield frequencies (F10 airbase info) |
 

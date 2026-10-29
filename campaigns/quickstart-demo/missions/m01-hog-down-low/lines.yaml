@@ -1,0 +1,232 @@
+# m01 Hog Down Low — voice lines. Schema: VoiceLineSet. Subtitles only in the dry run.
+mission_id: m01-hog-down-low
+model: eleven_v3
+lines:
+  - id: ops_scramble_v1
+    speaker: ops_reyes
+    beat: mission_start
+    text: "Hawg, Sabre Ops. Armour moving on the checkpoint east of Zugdidi. Push IP Mule, check in with Darkstar."
+  - id: ops_scramble_v2
+    speaker: ops_reyes
+    beat: mission_start
+    text: "Hawg, Sabre Ops. Bulldog One-Two has a column closing on his checkpoint. Proceed Mule, Darkstar has you."
+  - id: ops_scramble_v3
+    speaker: ops_reyes
+    beat: mission_start
+    text: "Hawg, Sabre Ops. Alert launch. Armour on the valley road east of Zugdidi. IP Mule, then Darkstar."
+  - id: darkstar_handoff_v1
+    speaker: awacs_darkstar
+    beat: darkstar_handoff
+    text: "Hawg, Darkstar. Radar contact, Mule. Picture clean. Contact Bulldog One-Two, his push."
+  - id: darkstar_handoff_v2
+    speaker: awacs_darkstar
+    beat: darkstar_handoff
+    text: "Hawg, Darkstar. Contact at Mule. No air threat. Switch Bulldog One-Two."
+  - id: darkstar_handoff_v3
+    speaker: awacs_darkstar
+    beat: darkstar_handoff
+    text: "Hawg, Darkstar. Radar contact, picture clean. Push Bulldog One-Two now."
+  - id: darkstar_late_v1
+    speaker: awacs_darkstar
+    beat: darkstar_handoff_late
+    text: "Hawg, Darkstar. You're past Mule. Contact Bulldog One-Two now."
+  - id: darkstar_late_v2
+    speaker: awacs_darkstar
+    beat: darkstar_handoff_late
+    text: "Hawg, Darkstar. Radar contact east of Mule. Push Bulldog One-Two."
+  - id: darkstar_late_v3
+    speaker: awacs_darkstar
+    beat: darkstar_handoff_late
+    text: "Hawg, Darkstar. You're in the box. Bulldog One-Two, his push, now."
+  - id: jtac_checkin_v1
+    speaker: jtac_cole
+    beat: jtac_checkin
+    text: "Hawg, Bulldog One-Two. Armour on the road east, closing. Friendlies checkpoint only."
+  - id: jtac_checkin_v2
+    speaker: jtac_cole
+    beat: jtac_checkin
+    text: "Hawg, Bulldog One-Two. Three or four tracks east, moving. Friendlies at checkpoint."
+  - id: jtac_checkin_v3
+    speaker: jtac_cole
+    beat: jtac_checkin
+    text: "Hawg, Bulldog One-Two. Column moving west at me. Ready for nine-line."
+  - id: nine_line_1_v1
+    speaker: jtac_cole
+    beat: nine_line_1
+    text: "Hawg, Bulldog. Type two, bomb on target. Lead armour, four klicks east."
+  - id: nine_line_1_v2
+    speaker: jtac_cole
+    beat: nine_line_1
+    text: "Hawg, Bulldog. Type two. Lead vehicles, valley road, four klicks east."
+  - id: nine_line_1_v3
+    speaker: jtac_cole
+    beat: nine_line_1
+    text: "Hawg, Bulldog. Nine-line follows. Armour stopped on the road, four kilometres east."
+  - id: nine_line_1b_v1
+    speaker: jtac_cole
+    beat: nine_line_1b
+    text: "Hawg, friendlies west four thousand. Egress south. Mark on your map."
+  - id: nine_line_1b_v2
+    speaker: jtac_cole
+    beat: nine_line_1b
+    text: "Hawg, friendlies at the checkpoint, west four thousand. Egress south, left turn."
+  - id: nine_line_1b_v3
+    speaker: jtac_cole
+    beat: nine_line_1b
+    text: "Bulldog. Friendlies west four thousand, nothing else on the road. Egress south."
+  - id: cleared_hot_1_v1
+    speaker: jtac_cole
+    beat: cleared_hot_1
+    text: "Hawg, Bulldog. Attack zero-six-zero to one-two-zero, east of the bridge. Cleared hot."
+  - id: cleared_hot_1_v2
+    speaker: jtac_cole
+    beat: cleared_hot_1
+    text: "Hawg, Bulldog. Attack heading zero-six-zero to one-two-zero. Cleared hot."
+  - id: cleared_hot_1_v3
+    speaker: jtac_cole
+    beat: cleared_hot_1
+    text: "Hawg, Bulldog. Run in from the south-west, zero-six-zero to one-two-zero. Cleared hot."
+  - id: column_dead_v1
+    speaker: jtac_cole
+    beat: column_dead
+    text: "Hawg, Bulldog. Good effects. Lead group is burning."
+  - id: column_dead_v2
+    speaker: jtac_cole
+    beat: column_dead
+    text: "Hawg, Bulldog. Good hits. Lead vehicles are down."
+  - id: column_dead_v3
+    speaker: jtac_cole
+    beat: column_dead
+    text: "Hawg, Bulldog. Shack. Column has stopped."
+  - id: jtac_retask_v1
+    speaker: jtac_cole
+    beat: jtac_retask
+    text: "Hawg, Bulldog. Column's in the trees. Stand by for next target."
+  - id: jtac_retask_v2
+    speaker: jtac_cole
+    beat: jtac_retask
+    text: "Hawg, Bulldog. Lost them in the treeline. New target, stand by."
+  - id: jtac_retask_v3
+    speaker: jtac_cole
+    beat: jtac_retask
+    text: "Hawg, Bulldog. Leave the column. Higher priority target, stand by."
+  - id: nine_line_2_v1
+    speaker: jtac_cole
+    beat: nine_line_2
+    text: "Hawg, Bulldog. Next target, Shilka on the hill north of the road."
+  - id: nine_line_2_v2
+    speaker: jtac_cole
+    beat: nine_line_2
+    text: "Hawg, Bulldog. New target. ZSU dug in on the hill, north side."
+  - id: nine_line_2_v3
+    speaker: jtac_cole
+    beat: nine_line_2
+    text: "Hawg, Bulldog. The gun on the north hill. Shilka. That's your target."
+  - id: nine_line_2b_v1
+    speaker: jtac_cole
+    beat: nine_line_2b
+    text: "Hawg, friendlies west five thousand. Cleared hot when tally."
+  - id: nine_line_2b_v2
+    speaker: jtac_cole
+    beat: nine_line_2b
+    text: "Friendlies unchanged, west five thousand. Call tally."
+  - id: nine_line_2b_v3
+    speaker: jtac_cole
+    beat: nine_line_2b
+    text: "Hawg, same friendlies, west five thousand. Cleared hot on tally, egress south."
+  - id: shilka_dead_v1
+    speaker: jtac_cole
+    beat: shilka_dead
+    text: "Hawg, Bulldog. Shilka is down. Good hits."
+  - id: shilka_dead_v2
+    speaker: jtac_cole
+    beat: shilka_dead
+    text: "Hawg, Bulldog. Good effects on the hill. ZSU destroyed."
+  - id: shilka_dead_v3
+    speaker: jtac_cole
+    beat: shilka_dead
+    text: "Hawg, Bulldog. Shack. Shilka is burning."
+  - id: reinf_warning_v1
+    speaker: jtac_cole
+    beat: reinf_warning
+    text: "Hawg, Bulldog. More vehicles down the road from the east, nine kilometres."
+  - id: reinf_warning_v2
+    speaker: jtac_cole
+    beat: reinf_warning
+    text: "Hawg, Bulldog. Second group on the road east, nine klicks, moving west."
+  - id: reinf_warning_v3
+    speaker: jtac_cole
+    beat: reinf_warning
+    text: "Hawg, Bulldog. Heads up. More tracks east, nine kilometres, coming our way."
+  - id: manpads_launch_v1
+    speaker: jtac_cole
+    beat: manpads_launch
+    text: "Hawg, Bulldog. Missile launch from the farms south of the road!"
+  - id: manpads_launch_v2
+    speaker: jtac_cole
+    beat: manpads_launch
+    text: "Hawg, Bulldog. Launch, launch, farms south of the road!"
+  - id: manpads_launch_v3
+    speaker: jtac_cole
+    beat: manpads_launch
+    text: "Hawg, Bulldog. Smoke trail off the farms, missile in the air!"
+  - id: jtac_checkout_v1
+    speaker: jtac_cole
+    beat: jtac_checkout
+    text: "Hawg, Bulldog One-Two. Copy BDA. Nothing further. Cleared off station, contact Darkstar."
+  - id: jtac_checkout_v2
+    speaker: jtac_cole
+    beat: jtac_checkout
+    text: "Hawg, Bulldog One-Two. That's all I have. Good work. Contact Darkstar."
+  - id: jtac_checkout_v3
+    speaker: jtac_cole
+    beat: jtac_checkout
+    text: "Hawg, Bulldog One-Two. Checkpoint is holding. Cleared off station, Darkstar's push."
+  - id: ops_rtb_v1
+    speaker: ops_reyes
+    beat: ops_rtb
+    text: "Hawg, Sabre Ops. Copy off station. RTB Senaki."
+  - id: ops_rtb_v2
+    speaker: ops_reyes
+    beat: ops_rtb
+    text: "Hawg, Sabre Ops. Copy. Bring them home to Senaki."
+  - id: ops_rtb_v3
+    speaker: ops_reyes
+    beat: ops_rtb
+    text: "Hawg, Sabre Ops. Copy off station. RTB, debrief at the ops desk."
+  - id: tower_departure_v1
+    speaker: tower_senaki
+    beat: tower_departure
+    text: "Hawg One, Senaki Tower. Airborne. Contact Darkstar. Good hunting."
+  - id: tower_departure_v2
+    speaker: tower_senaki
+    beat: tower_departure
+    text: "Hawg One, Senaki Tower. Airborne at the hour. Contact Darkstar."
+  - id: tower_departure_v3
+    speaker: tower_senaki
+    beat: tower_departure
+    text: "Hawg One, Senaki Tower. Radar contact. Switch Darkstar."
+  - id: tower_inbound_v1
+    speaker: tower_senaki
+    beat: tower_inbound
+    text: "Hawg One, Senaki Tower. Runway zero-niner, wind calm. Cleared to land."
+  - id: tower_inbound_v2
+    speaker: tower_senaki
+    beat: tower_inbound
+    text: "Hawg One, Senaki Tower. Report initial runway zero-niner. Wind calm."
+  - id: tower_inbound_v3
+    speaker: tower_senaki
+    beat: tower_inbound
+    text: "Hawg One, Senaki Tower. Radar contact. Straight-in runway zero-niner, report five miles."
+  - id: ops_on_deck_v1
+    speaker: ops_reyes
+    beat: on_deck
+    text: "Hawg, Sabre Ops. Copy on deck. Debrief at the ops desk."
+  - id: ops_on_deck_v2
+    speaker: ops_reyes
+    beat: on_deck
+    text: "Hawg, Sabre Ops. On deck. Nice work. Bring the tapes."
+  - id: ops_on_deck_v3
+    speaker: ops_reyes
+    beat: on_deck
+    text: "Hawg, Sabre Ops. Copy on deck. Ops desk when you're in."

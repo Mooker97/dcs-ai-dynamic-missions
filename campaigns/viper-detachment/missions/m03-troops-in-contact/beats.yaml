@@ -1,4 +1,4 @@
-# m03 Troops in Contact — beats. Schema: schemas/beats.schema.json (BeatSheet). Compiled into DMS_CONFIG.beats.
+# m03 Troops in Contact â€” beats. Schema: schemas/beats.schema.json (BeatSheet). Compiled into DMS_CONFIG.beats.
 # group_prefix values are spec ids (threat / pool / support); planned and spawned group names start
 # with them (pool spawns are DMS_<pool>_n; the runtime strips DMS_ when matching).
 #
@@ -22,7 +22,7 @@ beats:
     guaranteed: true
     speaker: ops_lindqvist
     lines: [ops_scramble_v1, ops_scramble_v2, ops_scramble_v3, ops_scramble_v4]
-    text: "Python, Rook Ops. Troops in contact north of Tell Rifaat. Jackal Two-Three requests CAS. Push CP Tusk, check in with Magic."
+    text: "Python, Rook Ops. Troops in contact north of Tell Rifaat. Jackal Two-Three needs CAS. Push Tusk, check in Magic."
     mark: {type: text, at: "zone:ip_tusk", text: "CP TUSK"}
     effects: {set_flag: started}
 
@@ -48,7 +48,7 @@ beats:
     guaranteed: true
     speaker: jtac_ortiz
     lines: [jtac_checkin_v1, jtac_checkin_v2, jtac_checkin_v3, jtac_checkin_v4]
-    text: "Python, Jackal Two-Three. Troops in contact. DShK and RPG fire from the compounds south of the village. Friendlies in the village only."
+    text: "Python, Jackal Two-Three. Troops in contact. DShK and RPGs from the compounds south. Friendlies in the village only."
     effects: {set_flag: on_station}
 
   # GUARANTEED
@@ -60,21 +60,41 @@ beats:
     guaranteed: true
     speaker: jtac_ortiz
     lines: [nine_line_1_v1, nine_line_1_v2, nine_line_1_v3, nine_line_1_v4]
-    text: "Python, Jackal. Type two, bomb on target. Target: two DShK technicals dug in inside the Mill compound, 2.2 km south of the village. Mark: talk-on. Friendlies north 2,200 m. Egress west."
+    text: "Python, Jackal. Type two, bomb on target. Two DShK technicals dug in at the Mill compound, two kilometres south."
     mark: {type: circle, at: "zone:mill_compound", radius_m: 200, text: "JACKAL TGT 1 - THE MILL"}
     effects: {set_flag: nine_line_1}
+
+  # Continuation of nine_line_1 (same speaker, queued right behind it): mark, friendlies, egress.
+  - id: nine_line_1_cont
+    when: {event: beat.fired, beat: nine_line_1}
+    delay_sec: 1
+    priority: 86
+    once: true
+    speaker: jtac_ortiz
+    lines: [nine_line_1_cont_v1, nine_line_1_cont_v2, nine_line_1_cont_v3]
+    text: "Mark is talk-on. Friendlies north, two thousand two hundred. Egress west."
 
   # GUARANTEED
   - id: talk_on_1
     when: {event: beat.fired, beat: nine_line_1}
-    delay_sec: 20
+    delay_sec: 25
     priority: 85
     once: true
     guaranteed: true
     speaker: jtac_ortiz
     lines: [talk_on_1_v1, talk_on_1_v2, talk_on_1_v3, talk_on_1_v4]
-    text: "From the village, follow the main road south two kilometres to a tall grain silo. Walled compound west of the silo. Two trucks in the north-east corner."
+    text: "From the village, follow the main road south two kilometres to a tall grain silo."
     effects: {set_flag: talk_on_1_done}   # also wakes encounter assault_push (trigger: beat talk_on_1)
+
+  # Continuation of talk_on_1: small picture (compound, vehicles).
+  - id: talk_on_1_cont
+    when: {event: beat.fired, beat: talk_on_1}
+    delay_sec: 1
+    priority: 85
+    once: true
+    speaker: jtac_ortiz
+    lines: [talk_on_1_cont_v1, talk_on_1_cont_v2, talk_on_1_cont_v3]
+    text: "Walled compound west of the silo. Two trucks in the north-east corner."
 
   # GUARANTEED
   - id: nine_line_2
@@ -85,9 +105,19 @@ beats:
     guaranteed: true
     speaker: jtac_ortiz
     lines: [nine_line_2_v1, nine_line_2_v2, nine_line_2_v3, nine_line_2_v4]
-    text: "Python, Jackal. Type two, bomb on target. Target: RPG and machine-gun team, the Orchard, 500 m south-south-east of the village. Friendlies north 500 m. Danger close. I need your initials."
+    text: "Python, Jackal. Type two, bomb on target. RPG and machine-gun team in the Orchard, south-south-east of the village."
     mark: {type: circle, at: "zone:orchard_compound", radius_m: 150, text: "JACKAL TGT 2 - ORCHARD - DANGER CLOSE"}
     effects: {set_flag: danger_close}
+
+  # Continuation of nine_line_2: friendlies, danger close, initials.
+  - id: nine_line_2_cont
+    when: {event: beat.fired, beat: nine_line_2}
+    delay_sec: 1
+    priority: 86
+    once: true
+    speaker: jtac_ortiz
+    lines: [nine_line_2_cont_v1, nine_line_2_cont_v2, nine_line_2_cont_v3]
+    text: "Friendlies north, five hundred. Danger close. I need your initials."
 
   # GUARANTEED
   - id: jtac_checkout
@@ -241,7 +271,7 @@ beats:
     once: true
     speaker: tower_incirlik
     lines: [ground_taxi_v1, ground_taxi_v2, ground_taxi_v3]
-    text: "Python One, Incirlik Ground. Scramble copied. Runway two-three, wind two-five-zero at one-five. Taxi when ready."
+    text: "Python One, Incirlik Ground. Scramble copied. Runway two-three. Taxi when ready."
 
   - id: tower_departure            # only a ramp start ever takes off before check-in
     when: {event: unit.takeoff, players_only: true}
@@ -327,13 +357,13 @@ beats:
   # ---- Optional: danger close ----------------------------------------------------------------
   - id: talk_on_2
     when: {event: beat.fired, beat: nine_line_2}
-    delay_sec: 20
+    delay_sec: 25
     requires: {flags_not: [orchard_destroyed]}
     priority: 80
     once: true
     speaker: jtac_ortiz
     lines: [talk_on_2_v1, talk_on_2_v2, talk_on_2_v3]
-    text: "From the Mill, back north up the road. Olive grove east of the road, just short of the village. Single building at the south edge of the grove."
+    text: "From the Mill, north up the road. Olive grove east of the road. One building at its south edge."
 
   - id: danger_close_cleared
     when: {event: beat.fired, beat: talk_on_2}
@@ -362,7 +392,7 @@ beats:
     once: true
     speaker: jtac_ortiz
     lines: [nine_line_3_v1, nine_line_3_v2, nine_line_3_v3]
-    text: "Python, Jackal. Type two, bomb on target. Next position, a farm compound south of the Mill. RPG team in the yard. Friendlies north 2,500 m."
+    text: "Python, Jackal. Type two. RPG team, farm yard south of the Mill. Friendlies north, two and a half k."
     mark: {type: circle, at: "group:fort_pos", radius_m: 250, text: "JACKAL TGT - FARM COMPOUND"}
 
   # ---- Optional: the armor ---------------------------------------------------------------------
@@ -374,7 +404,7 @@ beats:
     once: true
     speaker: jtac_ortiz
     lines: [armor_nine_line_v1, armor_nine_line_v2, armor_nine_line_v3, armor_nine_line_v4]
-    text: "Python, Jackal. Tracks firing on the village from the north edge of Tell Rifaat. Armour between the houses. Mavericks preferred. Watch the Shilka."
+    text: "Python, Jackal. Tracks firing on the village from the north edge of Tell Rifaat. Mavericks preferred. Watch the Shilka."
     mark: {type: circle, at: "group:armor", radius_m: 400, text: "JACKAL TGT - ARMOR"}
 
   - id: pike_tracks
@@ -397,8 +427,20 @@ beats:
     effects: {set_flag: armor_dead}
 
   # ---- Optional: the assault waves and the civilians -------------------------------------------
-  - id: assault_wave_report
+  # Telegraph for encounter assault_push (telegraph_beat in mission-spec). The waves kind spawns
+  # 6+ km south and drives north, so this call on the first spawn leads the first technicals into
+  # the fight by minutes. Ungated, delay 0 (lint telegraph_too_short).
+  - id: assault_massing
+    when: {event: encounter.spawned, encounter: assault_push}
+    priority: 66
+    once: true
+    speaker: jtac_ortiz
+    lines: [assault_massing_v1, assault_massing_v2, assault_massing_v3]
+    text: "Python, Jackal. Enemy massing south of the Mill. Two minutes."
+
+  - id: assault_wave_report        # a minute after each wave spawns, as it closes on the village
     when: {event: encounter.wave, encounter: assault_push}
+    delay_sec: 60
     requires: {flags_not: [assault_broken, nbb_withdrew]}
     priority: 65
     once: false
@@ -472,15 +514,16 @@ beats:
     text: "One, Two. You took a hit. Say status."
 
   # ---- Optional: consequences ------------------------------------------------------------------
-  - id: weapon_release             # silent: opens a 45 s window that attributes friendly deaths to PYTHON
+  - id: weapon_release             # silent: opens a 60 s window that attributes friendly deaths to PYTHON
     when: {event: unit.shot, players_only: true}
     priority: 30
     once: false
+    cooldown_sec: 30               # a ripple re-arms at most every 30 s; the 60 s window covers it
     effects: {set_flag: weapons_released}
 
   - id: weapon_release_clear       # silent: closes the window
     when: {event: beat.fired, beat: weapon_release}
-    delay_sec: 45
+    delay_sec: 60
     priority: 30
     once: false
     effects: {clear_flag: weapons_released}
@@ -512,7 +555,7 @@ beats:
     cooldown_sec: 60
     speaker: jtac_ortiz
     lines: [civ_check_fire_v1, civ_check_fire_v2, civ_check_fire_v3, civ_check_fire_v4]
-    text: "Check fire, check fire. That was a civilian car on the north road."
+    text: "Check fire, check fire. Civilian car on the north road."
     effects: {outcome: {civilians_hit: true}}
 
   - id: player_lost                # silent; GUARANTEED on death (mission end), not part of the test spine
@@ -589,7 +632,7 @@ beats:
     once: true
     speaker: tower_incirlik
     lines: [tower_recovery_v1, tower_recovery_v2, tower_recovery_v3]
-    text: "Python One, Incirlik Tower. Runway two-three, wind two-five-zero at one-five. Cleared to land."
+    text: "Python One, Incirlik Tower. Runway two-three, wind two-five-zero, one-five. Cleared to land."
 
   - id: on_deck
     when: {event: unit.landed, players_only: true}

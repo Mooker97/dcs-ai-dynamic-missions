@@ -15,18 +15,16 @@
 |---|---|---|
 | 1 | IP HAMMER | N36 37.2 E037 25.2 |
 | 2 | TGT (box centre) | N36 16.2 E037 55.2 |
-| 3 | EGRESS ANVIL | N36 46.8 E037 18.0 |
-| 4 | HOME | Incirlik |
+| 3 / 4 | EGRESS ANVIL / HOME | N36 46.8 E037 18.0 / Incirlik |
 
 **Known:** ZU-23 Kuweires, 10k AGL min · SA-8 (1-2) above the convoy's road · **Possible:** Igla at crossings, SA-6 radar may emit
-**ROE:** PID. Nothing in towns. Near traffic/buildings: state target to Rook Ops
-**Joker** 4,000 · **Bingo** 3,000 (box) · **Div:** Gaziantep, Adana, Hatay
-**Loadout (`sead`):** 2 AGM-88C, 2 GBU-12, 2 AIM-120C, 2 AIM-9X, ALQ-184, HTS, LITENING · no tanks
+**ROE:** PID. Nothing in towns. Near traffic/buildings: state target to Rook Ops · **Joker** 4,000 · **Bingo** 3,000 (box) · **Div:** Gaziantep, Adana, Hatay
+**Loadout (`sead`):** 2 AGM-88C, 2 GBU-12, 2 AIM-120C, 2 AIM-9X, ALQ-184, HTS, LITENING, no tanks
 
 | Agency | Callsign | Freq |
 |---|---|---|
 | Flight / Sqn | Python 1-1 / Rook Ops | 305.000 AM |
 | AWACS | Magic 1-1 | 251.000 AM |
-| JTAC | Jackal Two-Three | 41.500 FM |
+| JTAC | Jackal Two-Three | 138.500 AM |
 | Tanker | Shell 1-1, TACAN 51Y | 276.100 AM |
 | Twr/Gnd | Incirlik | 360.100 AM |

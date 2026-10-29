@@ -280,7 +280,7 @@ support:
     composition: "Hummer, Soldier M4, Soldier M4"
     faction: partner_nbb               # bible: NBB (CJTF Blue); Jackal lives with an NBB company
     speaker: jtac_ortiz
-    frequency_mhz: 41.5
+    frequency_mhz: 138.5               # VHF AM: the F-16 has no FM radio
 
 dynamic:
   pools:
@@ -365,7 +365,7 @@ dynamic:
       notes: "When jets are overhead, one truck runs for Al Bab on the civilian road. A temptation with collateral risk, not a requirement."
   director:
     enabled: true
-    intensity: moderate
+    intensity: calm  # act 1 breather after m01 (arc lint: each act needs a calm mission)
     adaptive: true
   fog_of_war:
     enabled: true

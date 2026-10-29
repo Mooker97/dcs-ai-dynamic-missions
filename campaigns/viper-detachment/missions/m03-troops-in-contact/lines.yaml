@@ -1,4 +1,4 @@
-# m03 Troops in Contact — voice lines. Schema: schemas/voice-lines.schema.json (VoiceLineSet).
+# m03 Troops in Contact â€” voice lines. Schema: schemas/voice-lines.schema.json (VoiceLineSet).
 # One entry per variant (<line>_vN); beats pick one at random without immediate repeats.
 # Subtitles only for now (no ElevenLabs render). Style: callsign first, brevity-correct, nobody
 # cheers. Every line addresses "Python" so it fits either start variant (-ramp.miz, -air.miz).
@@ -12,7 +12,7 @@ lines:
     speaker: ops_lindqvist
     beat: mission_start
     delivery: "Even, deliberate. A real TIC; she does not hurry it."
-    text: "Python, Rook Ops. Troops in contact north of Tell Rifaat. Jackal Two-Three requests CAS. Push CP Tusk, check in with Magic."
+    text: "Python, Rook Ops. Troops in contact north of Tell Rifaat. Jackal Two-Three needs CAS. Push Tusk, check in Magic."
   - id: ops_scramble_v2
     speaker: ops_lindqvist
     beat: mission_start
@@ -31,15 +31,15 @@ lines:
     speaker: tower_incirlik
     beat: ground_taxi
     delivery: "Standard phraseology, quick and flat."
-    text: "Python One, Incirlik Ground. Scramble copied. Runway two-three, wind two-five-zero at one-five. Taxi when ready."
+    text: "Python One, Incirlik Ground. Scramble copied. Runway two-three. Taxi when ready."
   - id: ground_taxi_v2
     speaker: tower_incirlik
     beat: ground_taxi
-    text: "Python One, Incirlik Ground. Priority scramble. Runway two-three, taxi via Alpha when ready."
+    text: "Python One, Incirlik Ground. Priority scramble. Taxi runway two-three via Alpha."
   - id: ground_taxi_v3
     speaker: tower_incirlik
     beat: ground_taxi
-    text: "Python One, Ground. Runway two-three, wind two-five-zero at one-five. No traffic. Taxi at your discretion."
+    text: "Python One, Ground. Wind two-five-zero at one-five. No traffic. Taxi at discretion."
 
   - id: tower_departure_v1
     speaker: tower_incirlik
@@ -59,7 +59,7 @@ lines:
     speaker: tower_incirlik
     beat: tower_recovery
     delivery: "Formula."
-    text: "Python One, Incirlik Tower. Runway two-three, wind two-five-zero at one-five. Cleared to land."
+    text: "Python One, Incirlik Tower. Runway two-three, wind two-five-zero, one-five. Cleared to land."
   - id: tower_recovery_v2
     speaker: tower_incirlik
     beat: tower_recovery
@@ -133,56 +133,87 @@ lines:
     speaker: jtac_ortiz
     beat: jtac_checkin
     delivery: "Handheld, outdoors, small-arms fire behind him. Fast but every word clear."
-    text: "Python, Jackal Two-Three. Troops in contact. DShK and RPG fire from the compounds south of the village. Friendlies in the village only."
+    text: "Python, Jackal Two-Three. Troops in contact. DShK and RPGs from the compounds south. Friendlies in the village only."
   - id: jtac_checkin_v2
     speaker: jtac_ortiz
     beat: jtac_checkin
-    text: "Python, Jackal Two-Three, loud and clear. We're taking fire from the south, three or four compounds. All friendlies inside the village."
+    text: "Python, Jackal Two-Three, loud and clear. Taking fire from three or four compounds south. All friendlies inside the village."
   - id: jtac_checkin_v3
     speaker: jtac_ortiz
     beat: jtac_checkin
-    text: "Python, Jackal Two-Three. Glad you're here. Machine guns and RPGs from the farms south of us. Nobody friendly south of the village edge."
+    text: "Python, Jackal Two-Three. Glad you're here. Machine guns and RPGs from the farms south. Nobody friendly south of us."
   - id: jtac_checkin_v4
     speaker: jtac_ortiz
     beat: jtac_checkin
-    text: "Python, Jackal Two-Three. In contact, about an hour now. Fire from the south, technicals on the road. Friendlies inside the village, nowhere else."
+    text: "Python, Jackal Two-Three. In contact an hour now. Technicals on the road south. Friendlies inside the village, nowhere else."
 
   # --- Jackal: first 9-line and talk-on -------------------------------------------------------------
+  # nine_line_1 (lines 1-3 + target) -> nine_line_1_cont (mark, friendlies, egress); any head
+  # variant reads with any continuation variant.
   - id: nine_line_1_v1
     speaker: jtac_ortiz
     beat: nine_line_1
     delivery: "Steady, every number spoken clearly; he has done this many times."
-    text: "Python, Jackal. Type two, bomb on target. Target: two DShK technicals dug in inside the Mill compound, two point two kilometres south of the village. Mark: talk-on. Friendlies north, two thousand two hundred. Egress west."
+    text: "Python, Jackal. Type two, bomb on target. Two DShK technicals dug in at the Mill compound, two kilometres south."
   - id: nine_line_1_v2
     speaker: jtac_ortiz
     beat: nine_line_1
-    text: "Python, Jackal. Type two, bomb on target. Walled compound we call the Mill, two kilometres south. Technicals with heavy machine guns inside. No mark, talk-on. Friendlies north two thousand. Egress west to Tusk."
+    text: "Python, Jackal. Type two, bomb on target. Walled compound we call the Mill. Technicals with heavy machine guns inside."
   - id: nine_line_1_v3
     speaker: jtac_ortiz
     beat: nine_line_1
-    text: "Python, Jackal. Ready to copy. Type two. Target, DShK trucks dug in at the Mill compound, south on the main road. Mark, talk-on. Friendlies two kilometres north. Egress west."
+    text: "Python, Jackal. Ready to copy. Type two. DShK trucks dug in at the Mill, south on the main road."
   - id: nine_line_1_v4
     speaker: jtac_ortiz
     beat: nine_line_1
-    text: "Python, Jackal. Type two, bomb on target. The Mill, two point two kilometres south of us, two gun trucks inside the walls. Talk-on to follow. Friendlies north. Egress west, climbing."
+    text: "Python, Jackal. Type two, bomb on target. The Mill, two point two kilometres south. Two gun trucks inside the walls."
 
+  - id: nine_line_1_cont_v1
+    speaker: jtac_ortiz
+    beat: nine_line_1_cont
+    delivery: "Same breath as the target line; numbers clear."
+    text: "Mark is talk-on. Friendlies north, two thousand two hundred. Egress west."
+  - id: nine_line_1_cont_v2
+    speaker: jtac_ortiz
+    beat: nine_line_1_cont
+    text: "No mark, talk-on to follow. Friendlies north two thousand. Egress west to Tusk."
+  - id: nine_line_1_cont_v3
+    speaker: jtac_ortiz
+    beat: nine_line_1_cont
+    text: "Mark, talk-on. Friendlies two kilometres north, nowhere else. Egress west, climbing."
+
+  # talk_on_1 (big picture: village, road, silo) -> talk_on_1_cont (small picture: compound, trucks).
   - id: talk_on_1_v1
     speaker: jtac_ortiz
     beat: talk_on_1
     delivery: "Patient, big to small."
-    text: "From the village, follow the main road south two kilometres to a tall grain silo. Walled compound west of the silo. Two trucks in the north-east corner."
+    text: "From the village, follow the main road south two kilometres to a tall grain silo."
   - id: talk_on_1_v2
     speaker: jtac_ortiz
     beat: talk_on_1
-    text: "Find the village. Main road runs south from it. Two clicks down, grain silo on the west side. Compound behind the silo. Gun trucks against the east wall."
+    text: "Find the village. Main road runs south from it. Two clicks down, a grain silo."
   - id: talk_on_1_v3
     speaker: jtac_ortiz
     beat: talk_on_1
-    text: "Road south out of the village. First big structure is a silo. West of it, square compound, two buildings. Vehicles along the east wall."
+    text: "Road south out of the village. First big structure on it is a silo."
   - id: talk_on_1_v4
     speaker: jtac_ortiz
     beat: talk_on_1
-    text: "Big picture, village, road going south. Small picture, the silo two kilometres down. The compound hugging the silo's west side. That's the Mill."
+    text: "Big picture, village, road going south. Small picture, the silo two kilometres down."
+
+  - id: talk_on_1_cont_v1
+    speaker: jtac_ortiz
+    beat: talk_on_1_cont
+    delivery: "Patient, smaller now."
+    text: "Walled compound west of the silo. Two trucks in the north-east corner."
+  - id: talk_on_1_cont_v2
+    speaker: jtac_ortiz
+    beat: talk_on_1_cont
+    text: "Compound behind the silo, two buildings. Gun trucks against the east wall."
+  - id: talk_on_1_cont_v3
+    speaker: jtac_ortiz
+    beat: talk_on_1_cont
+    text: "Square compound hugging the silo's west side. That's the Mill. Vehicles inside."
 
   - id: pike_tally_1_v1
     speaker: wingman_pike
@@ -245,7 +276,7 @@ lines:
   - id: mill_good_effects_v4
     speaker: jtac_ortiz
     beat: mill_good_effects
-    text: "Python, Jackal. Good effects. The east wall is gone, and so are the trucks."
+    text: "Python, Jackal. Good effects. East wall and both trucks are gone."
 
   - id: jtac_retask_v1
     speaker: jtac_ortiz
@@ -265,33 +296,48 @@ lines:
     speaker: jtac_ortiz
     beat: nine_line_2
     delivery: "Faster now, tighter, still clear. Rounds close by."
-    text: "Python, Jackal. Type two, bomb on target. Target: RPG and machine-gun team, the Orchard, five hundred metres south-south-east of the village. Friendlies north, five hundred. Danger close. I need your initials."
+    text: "Python, Jackal. Type two, bomb on target. RPG and machine-gun team in the Orchard, south-south-east of the village."
   - id: nine_line_2_v2
     speaker: jtac_ortiz
     beat: nine_line_2
-    text: "Python, Jackal. Type two. They're in the olive grove, five hundred metres from my position. RPG team. Friendlies north, five hundred. This is danger close. Initials."
+    text: "Python, Jackal. Type two. They're in the olive grove, five hundred metres from my position. RPG team."
   - id: nine_line_2_v3
     speaker: jtac_ortiz
     beat: nine_line_2
-    text: "Python, Jackal. New target, the Orchard compound, south edge of the village. Machine gun. Friendlies five hundred metres north. Danger close. Pass your initials."
+    text: "Python, Jackal. New target, the Orchard compound, south edge of the village. Machine gun."
   - id: nine_line_2_v4
     speaker: jtac_ortiz
     beat: nine_line_2
-    text: "Python, Jackal. Type two, bomb on target. Fighters in the Orchard, close. Friendlies north at five hundred. Danger close, my request. Need initials."
+    text: "Python, Jackal. Type two, bomb on target. Fighters in the Orchard, right on top of us."
+
+  # nine_line_2 -> nine_line_2_cont: friendlies, danger close, initials (any head + any continuation).
+  - id: nine_line_2_cont_v1
+    speaker: jtac_ortiz
+    beat: nine_line_2_cont
+    delivery: "Faster, tighter. The request is the point."
+    text: "Friendlies north, five hundred. Danger close. I need your initials."
+  - id: nine_line_2_cont_v2
+    speaker: jtac_ortiz
+    beat: nine_line_2_cont
+    text: "Friendlies five hundred metres north. This is danger close. Initials."
+  - id: nine_line_2_cont_v3
+    speaker: jtac_ortiz
+    beat: nine_line_2_cont
+    text: "Danger close, my request. Friendlies north at five hundred. Pass your initials."
 
   - id: talk_on_2_v1
     speaker: jtac_ortiz
     beat: talk_on_2
     delivery: "Patient again, but quick."
-    text: "From the Mill, back north up the road. Olive grove east of the road, just short of the village. Single building at the south edge of the grove."
+    text: "From the Mill, north up the road. Olive grove east of the road. One building at its south edge."
   - id: talk_on_2_v2
     speaker: jtac_ortiz
     beat: talk_on_2
-    text: "Village, then come south five hundred metres. Grove of olive trees east of the road. One building in the grove. That's them."
+    text: "Village, then south five hundred metres. Olive trees east of the road. One building in the grove."
   - id: talk_on_2_v3
     speaker: jtac_ortiz
     beat: talk_on_2
-    text: "South edge of the village, look east of the road. Rows of trees, small square building in the middle. Fire is coming from there."
+    text: "South edge of the village, east of the road. Rows of trees, small square building. Fire's from there."
 
   - id: danger_close_cleared_v1
     speaker: jtac_ortiz
@@ -323,33 +369,33 @@ lines:
   - id: nine_line_3_v1
     speaker: jtac_ortiz
     beat: nine_line_3
-    text: "Python, Jackal. Type two, bomb on target. Next position, a farm compound south of the Mill. RPG team in the yard. Friendlies north two thousand five hundred."
+    text: "Python, Jackal. Type two. RPG team, farm yard south of the Mill. Friendlies north, two and a half k."
   - id: nine_line_3_v2
     speaker: jtac_ortiz
     beat: nine_line_3
-    text: "Python, Jackal. Next target. Another farm south of us, RPG team in the yard. Mark on your map. Friendlies north. Egress west."
+    text: "Python, Jackal. Next target. Another farm south of us, RPG team in the yard. Egress west."
   - id: nine_line_3_v3
     speaker: jtac_ortiz
     beat: nine_line_3
-    text: "Python, Jackal. Type two. Fire from a farm compound further south. Same game plan. Friendlies north, two and a half kilometres."
+    text: "Python, Jackal. Type two. Fire from a farm compound further south. Same game plan. Mark on your map."
 
   # --- Jackal: armor ------------------------------------------------------------------------------
   - id: armor_nine_line_v1
     speaker: jtac_ortiz
     beat: armor_nine_line
-    text: "Python, Jackal. Tracks firing on the village from the north edge of Tell Rifaat. Armour between the houses. Mavericks preferred. Watch the Shilka."
+    text: "Python, Jackal. Tracks firing on the village from the north edge of Tell Rifaat. Mavericks preferred. Watch the Shilka."
   - id: armor_nine_line_v2
     speaker: jtac_ortiz
     beat: armor_nine_line
-    text: "Python, Jackal. Type two. Armour shelling us from the edge of town, four kilometres south. Three vehicles. Shilka reported with them."
+    text: "Python, Jackal. Type two. Armour shelling us from the edge of town, four kilometres south. Shilka with them."
   - id: armor_nine_line_v3
     speaker: jtac_ortiz
     beat: armor_nine_line
-    text: "Python, Jackal. Main gun rounds into the village. Source is the north edge of Tell Rifaat. Armour. Friendlies north four thousand. Cleared to engage on PID."
+    text: "Python, Jackal. Main gun rounds into the village from Tell Rifaat. Friendlies north four thousand. Engage on PID."
   - id: armor_nine_line_v4
     speaker: jtac_ortiz
     beat: armor_nine_line
-    text: "Python, Jackal. Priority target, tanks at the edge of Tell Rifaat. Mavericks if you have them. Stay high, they have a Shilka."
+    text: "Python, Jackal. Priority target, tanks at the edge of Tell Rifaat. Mavericks if you have them. Stay high."
 
   - id: pike_tracks_v1
     speaker: wingman_pike
@@ -378,6 +424,20 @@ lines:
     text: "Python, Jackal. Armour is burning. That changes things down here."
 
   # --- Jackal: the assault ----------------------------------------------------------------------
+  - id: assault_massing_v1
+    speaker: jtac_ortiz
+    beat: assault_massing
+    delivery: "Clipped warning, gunfire behind him."
+    text: "Python, Jackal. Enemy massing south of the Mill. Two minutes."
+  - id: assault_massing_v2
+    speaker: jtac_ortiz
+    beat: assault_massing
+    text: "Python, Jackal. Vehicles forming up in Tell Rifaat. They'll push north soon."
+  - id: assault_massing_v3
+    speaker: jtac_ortiz
+    beat: assault_massing
+    text: "Python, Jackal. Observers see trucks gathering south. Expect an assault shortly."
+
   - id: assault_wave_v1
     speaker: jtac_ortiz
     beat: assault_wave_report
@@ -385,11 +445,11 @@ lines:
   - id: assault_wave_v2
     speaker: jtac_ortiz
     beat: assault_wave_report
-    text: "Python, Jackal. New group moving up from the south. Pickups with guns, maybe two."
+    text: "Python, Jackal. New group moving up from the south. Two gun pickups."
   - id: assault_wave_v3
     speaker: jtac_ortiz
     beat: assault_wave_report
-    text: "Python, Jackal. They're reinforcing. Vehicles coming out of Tell Rifaat, heading our way."
+    text: "Python, Jackal. They're reinforcing. Vehicles out of Tell Rifaat, heading our way."
   - id: assault_wave_v4
     speaker: jtac_ortiz
     beat: assault_wave_report
@@ -654,7 +714,7 @@ lines:
   - id: civ_check_fire_v1
     speaker: jtac_ortiz
     beat: civilian_hit
-    text: "Check fire, check fire. That was a civilian car on the north road."
+    text: "Check fire, check fire. Civilian car on the north road."
   - id: civ_check_fire_v2
     speaker: jtac_ortiz
     beat: civilian_hit

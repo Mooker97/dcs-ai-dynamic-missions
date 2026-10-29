@@ -36,7 +36,7 @@ beats:
     guaranteed: true
     speaker: jtac_ortiz
     lines: [jackal_report_v1, jackal_report_v2, jackal_report_v3, jackal_report_v4]
-    text: "Python, Jackal Two-Three. NBB observers had trucks in and out of the Quarry overnight. Hamlet east of the wall is occupied."
+    text: "Python, Jackal Two-Three. Trucks in and out of the Quarry overnight. Hamlet east of the wall occupied."
     mark: {type: circle, at: "zone:hamlet", radius_m: 250, text: "HAMLET - NO STRIKE"}
     effects: {set_flag: jackal_reported}
 
@@ -76,6 +76,19 @@ beats:
     lines: [ops_on_deck_v1, ops_on_deck_v2, ops_on_deck_v3]
     text: "Python, Rook Ops. Copy on deck. Debrief in the vault after shutdown."
     effects: {set_flag: landed, end_mission: success}
+
+  # Spine timeout for on_deck (guide rule 1): an air-start player who never lands still gets an
+  # ending. Requires are rechecked at delivery, so a landing inside the 25 min cancels it.
+  - id: recovery_timeout
+    when: {event: beat.fired, beat: rtb_call}
+    delay_sec: 1500
+    requires: {beats_not_fired: [on_deck]}
+    priority: 80
+    once: true
+    speaker: ops_lindqvist
+    lines: [ops_recovery_timeout_v1, ops_recovery_timeout_v2, ops_recovery_timeout_v3]
+    text: "Python, Rook Ops. Closing the sortie log. Recover when able."
+    effects: {set_flag: landed, outcome: {landed: false}, end_mission: success}
 
   # GUARANTEED (mission-end record on death; silent). Not flagged guaranteed: true, because the
   # test harness checks every guaranteed beat fires in order and the proxy is not meant to die.

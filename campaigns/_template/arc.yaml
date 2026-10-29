@@ -41,12 +41,26 @@ acts:
           intel: "+1 if patrol_complete"
         branches:
           - when: {flags: [m01_player_lost]}
-            goto: m01-first-light
-            description: "Replay with a new seed."
+            goto: m01b-fallback        # fail forward: a new situation, never a replay
+            description: "The flight went down; the enemy pressed on. Recover and rejoin at m02."
           - when: {qualities: [{quality: intel, op: ">=", value: 2}]}
             goto: m02-next
             description: "Enough picture to go on."
         optional: false
+
+      - id: m01b-fallback          # branch-and-bottleneck: failure mission, rejoins at m02
+        title: "Fallback mission"
+        mission_type: CSAR
+        status: planned
+        dramatic_question: "Can we recover what the last flight lost?"
+        synopsis: "Planned. Only flown when m01 failed; the story changes, not the map reset."
+        quality_effects:
+          trust: "-1 if player_lost"   # losing again still costs something downstream
+        branches:
+          - when: {}
+            goto: m02-next
+            description: "Bottleneck: back on the main line."
+        optional: true
 
       - id: m02-next
         title: "Next mission"

@@ -19,7 +19,7 @@ beats:
     once: true
     guaranteed: true
     speaker: ops_lindqvist
-    lines: [ops_radio_check_v1, ops_radio_check_v2, ops_radio_check_v3, ops_radio_check_v4]
+    lines: [ops_radio_check_v1, ops_radio_check_v2, ops_radio_check_v3]  # v4 (8.2 s) rendered but benched: line_too_long
     text: "Python, Rook Ops, radio check. Brief is unchanged. Check in with Magic at ARROW."
     mark: {type: text, at: "zone:ip_arrow", text: "IP ARROW"}
     effects: {set_flag: started}
@@ -32,7 +32,7 @@ beats:
     once: true
     guaranteed: true
     speaker: awacs_magic
-    lines: [magic_checkin_v1, magic_checkin_v2, magic_checkin_v3, magic_checkin_v4]
+    lines: [magic_checkin_v1, magic_checkin_v3, magic_checkin_v4]  # v2 (14 words) rendered but benched
     text: "Python, Magic, radar contact ARROW. Picture clean, no air. Push Rook Ops."
     effects: {set_flag: checked_in}
 
@@ -97,6 +97,19 @@ beats:
     text: "Python, Rook Ops. Copy on deck. Debrief in the vault."
     effects: {set_flag: landed, outcome: {landed: true}, end_mission: success}
 
+  # Spine timeout for on_deck (guide rule 1): an air-start player who never lands still gets an
+  # ending. Requires are rechecked at delivery, so a landing inside the 25 min cancels it.
+  # Text only (no voice line): m01's audio is already rendered; voice it in a later render pass.
+  - id: recovery_timeout
+    when: {event: beat.fired, beat: rtb_call}
+    delay_sec: 1500
+    requires: {beats_not_fired: [on_deck]}
+    priority: 80
+    once: true
+    speaker: ops_lindqvist
+    text: "Python, Rook Ops. Closing the sortie log. Recover when able."
+    effects: {set_flag: landed, outcome: {landed: false}, end_mission: success}
+
   # ---- Optional: ramp-start extras (ramp variant only) ---------------------------------------
   - id: ground_taxi                 # ramp only: the player spawns inside the Incirlik zone; the air
     # start first enters it on recovery, after check-in, so checked_in/window_open block it
@@ -134,7 +147,7 @@ beats:
     priority: 88
     once: true
     speaker: ops_lindqvist
-    lines: [ops_sa6_elint_v1, ops_sa6_elint_v2, ops_sa6_elint_v3, ops_sa6_elint_v4]
+    lines: [ops_sa6_elint_v1, ops_sa6_elint_v3, ops_sa6_elint_v4]  # v2 (8.3 s) rendered but benched
     text: "Python, Rook Ops. ELINT has a Straight Flush coming up, south-east of Al Bab."
     effects: {set_flag: sa6_warned}
 
@@ -184,7 +197,7 @@ beats:
     priority: 75
     once: true
     speaker: ops_lindqvist
-    lines: [ops_radar_down_v1, ops_radar_down_v2, ops_radar_down_v3, ops_radar_down_v4]
+    lines: [ops_radar_down_v2, ops_radar_down_v3]  # v1/v4 (14/17 words) rendered but benched: peak_chatter
     text: "Python, Rook Ops. ELINT has the Straight Flush off the air. Copy your shot."
     effects: {set_flag: sa6_radar_dead, outcome: {sa6_radar_destroyed: true}}
 

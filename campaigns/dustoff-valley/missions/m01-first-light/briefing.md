@@ -19,6 +19,9 @@ a walled farm in the north-east corner of the box. We do not know what they carr
 Civilians are still on the roads. Their trucks look like the militia's trucks. Positive
 identification is the whole job this morning.
 
+**Stakes:** if we fail, the push goes inland blind, and the detachment has one Apache it cannot
+replace.
+
 ## 1. Situation
 
 - **Enemy.** Known AAA (ZU-23 class) at Reyhanli and south of Kirikhan, both static. Militia
@@ -56,6 +59,9 @@ establish enemy disposition and air-defence locations ahead of the push inland.
 - **Loadout:** 8x AGM-114K, FCR, full 30 mm. No rockets.
 - **Start:** ramp cold, Hatay. **Divert:** none; Hatay is the only friendly field.
 - **Fuel:** full internal; plan 45 minutes from push to recovery.
+- **Bingo:** turn for home with 1,100 lb remaining, wherever you are in the box.
+- **Duration:** ~40 min if the valley stays quiet; ~45-50 min if the unlisted gun opens up or
+  you work a militia contact; ~55 min if you chase the farm trucks north toward Kirikhan.
 - **CSAR:** none available east of the ridge. Do not get shot down.
 
 ## 5. Command & signal

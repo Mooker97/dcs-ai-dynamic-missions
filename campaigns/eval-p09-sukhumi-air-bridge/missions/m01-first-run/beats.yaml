@@ -1,0 +1,206 @@
+# m01 First Run — beats. Schema: schemas/beats.schema.json (BeatSheet).
+# Guaranteed spine: mission_start → tower_inbound → on_apron → apron_landed → boarding_done →
+#   fuel_homeward → kolkhi_inbound → on_deck (player_lost ends the mission on death).
+# Arc outcome keys set here: cargo_delivered, refugees_carried, fuel_found, player_lost, landed.
+mission_id: m01-first-run
+beats:
+  # ---- Guaranteed spine -------------------------------------------------------------------------
+  # GUARANTEED
+  - id: mission_start
+    when: {event: player.spawned, players_only: true}
+    delay_sec: 10
+    priority: 90
+    once: true
+    guaranteed: true
+    speaker: ops_gelashvili
+    lines: [kolkhi_cleared_v1, kolkhi_cleared_v2, kolkhi_cleared_v3, kolkhi_cleared_v4]
+    text: "Merani Two-One, Kolkhi. Cleared Babushara. Fuel is the ration, no more. Coast route."
+    mark: {type: text, at: "zone:babushara", text: "BABUSHARA APRON"}
+    effects: {set_flag: started}
+
+  # GUARANTEED
+  - id: tower_inbound
+    when: {event: zone.entered, zone: babushara_approach, players_only: true}
+    requires: {flags_not: [cargo_delivered]}
+    priority: 85
+    once: true
+    guaranteed: true
+    speaker: tower_abashidze
+    lines: [tower_inbound_v1, tower_inbound_v2, tower_inbound_v3, tower_inbound_v4]
+    text: "Merani Two-One, Babushara. Approach from the sea. Apron is clear. Guns north of the field."
+    effects: {set_flag: inbound_babushara}
+
+  # GUARANTEED
+  - id: on_apron                     # silent: marks the player inside the apron circle
+    when: {event: zone.entered, zone: babushara, players_only: true}
+    priority: 80
+    once: true
+    guaranteed: true
+    effects: {set_flag: at_babushara}
+
+  # GUARANTEED
+  - id: apron_landed
+    when: {event: unit.landed, players_only: true}
+    requires: {flags: [at_babushara], flags_not: [cargo_delivered]}
+    priority: 88
+    once: true
+    guaranteed: true
+    speaker: ground_beridze
+    lines: [granite_unload_v1, granite_unload_v2, granite_unload_v3, granite_unload_v4]
+    text: "Merani, Granite. Unloading now. Keep the engines running."
+    effects: {set_flag: cargo_delivered, outcome: {cargo_delivered: true}}
+
+  # GUARANTEED
+  - id: boarding_done
+    when: {event: beat.fired, beat: apron_landed}
+    delay_sec: 50
+    priority: 88
+    once: true
+    guaranteed: true
+    speaker: ground_beridze
+    lines: [granite_boarded_v1, granite_boarded_v2, granite_boarded_v3, granite_boarded_v4]
+    text: "Merani, Granite. Twenty-four aboard, three on stretchers. Doors closed. Go."
+    effects: {set_flag: boarded, outcome: {refugees_carried: 24}}
+
+  # GUARANTEED
+  - id: fuel_homeward
+    when: {event: zone.entered, zone: egress_ochamchire, players_only: true}
+    requires: {flags: [cargo_delivered]}
+    priority: 80
+    once: true
+    guaranteed: true
+    speaker: crew_tsiklauri
+    lines: [bort_fuel_home_v1, bort_fuel_home_v2, bort_fuel_home_v3, bort_fuel_home_v4]
+    text: "Commander, fuel nine hundred. Enough for Senaki. Not for Kutaisi."
+    effects: {set_flag: homeward}
+
+  # GUARANTEED
+  - id: kolkhi_inbound
+    when: {event: zone.entered, zone: senaki_approach, players_only: true}
+    requires: {flags: [cargo_delivered]}
+    priority: 82
+    once: true
+    guaranteed: true
+    speaker: ops_gelashvili
+    lines: [kolkhi_inbound_v1, kolkhi_inbound_v2, kolkhi_inbound_v3]
+    text: "Merani Two-One, Kolkhi. Copy inbound. Ambulances on the pad."
+    effects: {set_flag: rtb}
+
+  # GUARANTEED
+  - id: on_deck
+    when: {event: unit.landed, players_only: true}
+    requires: {flags: [rtb]}
+    priority: 90
+    once: true
+    guaranteed: true
+    speaker: ops_gelashvili
+    lines: [kolkhi_on_deck_v1, kolkhi_on_deck_v2, kolkhi_on_deck_v3]
+    text: "Merani, Kolkhi. On deck. Give me the count and the fuel."
+    effects: {set_flag: landed, outcome: {landed: true}, end_mission: success}
+
+  # GUARANTEED
+  - id: player_lost                  # silent: nobody on the net says it to a dead crew
+    when: {event: unit.dead, players_only: true}
+    priority: 100
+    once: true
+    guaranteed: true
+    effects: {set_flag: player_lost, outcome: {player_lost: true}, end_mission: failure}
+
+  # ---- Optional: transit ------------------------------------------------------------------------
+  - id: bort_outbound_fuel
+    when: {event: zone.entered, zone: ip_inguri, players_only: true}
+    requires: {flags_not: [cargo_delivered]}
+    priority: 50
+    once: true
+    speaker: crew_tsiklauri
+    lines: [bort_fuel_out_v1, bort_fuel_out_v2, bort_fuel_out_v3]
+    text: "Commander, coast in. Fuel one thousand six hundred. On the plan."
+
+  # ---- Optional: the approach -------------------------------------------------------------------
+  - id: granite_gun_warning          # telegraph for encounter unlisted_gun
+    when: {event: encounter.spawned, encounter: unlisted_gun}
+    priority: 87
+    once: true
+    speaker: ground_beridze
+    lines: [granite_gun_warning_v1, granite_gun_warning_v2, granite_gun_warning_v3, granite_gun_warning_v4]
+    text: "Merani, Granite. New gun moved up last night. Not where the old one was. Come in low from the sea."
+    effects: {set_flag: gun_warned}
+
+  - id: guns_firing
+    when: {event: unit.shot, group_prefix: approach_guns}
+    priority: 70
+    once: false
+    cooldown_sec: 120
+    speaker: tower_abashidze
+    lines: [tower_guns_firing_v1, tower_guns_firing_v2, tower_guns_firing_v3]
+    text: "Merani Two-One, Babushara. Traffic: gunfire from the hills, east. Stay low over the water."
+
+  - id: known_guns_firing
+    when: {event: unit.shot, group_prefix: guns_north}
+    priority: 65
+    once: false
+    cooldown_sec: 150
+    speaker: tower_abashidze
+    lines: [tower_known_guns_v1, tower_known_guns_v2, tower_known_guns_v3]
+    text: "Merani Two-One, Babushara. Guns north of the field active. Approach from the sea."
+
+  # ---- Optional: on the apron -------------------------------------------------------------------
+  - id: shelling
+    when: {event: beat.fired, beat: apron_landed}
+    delay_sec: 25
+    requires: {chance: 60}
+    priority: 75
+    once: true
+    speaker: tower_abashidze
+    lines: [tower_shelling_v1, tower_shelling_v2, tower_shelling_v3, tower_shelling_v4]
+    text: "Merani Two-One, Babushara. Rockets impacting west end of the field. Apron not affected."
+    effects: {set_flag: shelled}
+
+  - id: fuel_offer
+    when: {event: beat.fired, beat: apron_landed}
+    delay_sec: 35
+    requires: {chance: 50}
+    priority: 70
+    once: true
+    speaker: ground_beridze
+    lines: [granite_fuel_v1, granite_fuel_v2, granite_fuel_v3]
+    text: "Merani, Granite. Found a bowser. Four hundred litres, nobody's name on it. It goes to Senaki with you."
+    effects: {set_flag: fuel_found, outcome: {fuel_found: true}}
+
+  # ---- Optional: the way home -------------------------------------------------------------------
+  - id: roadblock_warning            # telegraph for encounter zviadist_roadblock
+    when: {event: encounter.spawned, encounter: zviadist_roadblock}
+    delay_sec: 5
+    priority: 78
+    once: true
+    speaker: ops_gelashvili
+    lines: [kolkhi_roadblock_v1, kolkhi_roadblock_v2, kolkhi_roadblock_v3, kolkhi_roadblock_v4]
+    text: "Merani, Kolkhi. Zviadist roadblock reported near Zugdidi. They fire on our aircraft. Stay south of the road."
+    effects: {set_flag: roadblock_warned}
+
+  - id: roadblock_firing
+    when: {event: unit.shot, group_prefix: roadblock}
+    priority: 72
+    once: true
+    speaker: crew_tsiklauri
+    lines: [bort_roadblock_fire_v1, bort_roadblock_fire_v2, bort_roadblock_fire_v3]
+    text: "Commander, tracers left side. From the road."
+
+  - id: player_hit
+    when: {event: unit.hit, players_only: true}
+    priority: 86
+    once: false
+    cooldown_sec: 120
+    speaker: crew_tsiklauri
+    lines: [bort_hit_v1, bort_hit_v2, bort_hit_v3, bort_hit_v4]
+    text: "Commander, we're hit. Pressures normal. Checking the cabin."
+    effects: {outcome: {player_hit: true}}
+
+  - id: civilian_hit
+    when: {event: unit.dead, coalition: 0}
+    priority: 60
+    once: true
+    speaker: ops_gelashvili
+    lines: [kolkhi_civilian_v1, kolkhi_civilian_v2, kolkhi_civilian_v3]
+    text: "Merani, Kolkhi. Report on deck what happened on the coast road."
+    effects: {set_flag: civilian_harmed}

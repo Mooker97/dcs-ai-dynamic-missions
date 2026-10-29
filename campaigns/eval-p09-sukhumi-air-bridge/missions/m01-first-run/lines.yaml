@@ -1,0 +1,267 @@
+# m01 First Run — voice lines. Schema: VoiceLineSet. One entry per variant; text has no audio tags.
+# Style: callsign first, terse, numbers over adjectives. The crew engineer speaks on the intercom.
+mission_id: m01-first-run
+model: eleven_v3
+lines:
+- id: kolkhi_cleared_v1
+  speaker: ops_gelashvili
+  beat: mission_start
+  text: Merani Two-One, Kolkhi. Cleared Babushara. Fuel is the ration, no more. Coast route.
+  delivery: Night shift voice, numbers first, unhurried.
+- id: kolkhi_cleared_v2
+  speaker: ops_gelashvili
+  beat: mission_start
+  text: Merani Two-One, Kolkhi. Two tonnes for Granite. Coast in at the Inguri. Bring the aircraft back.
+- id: kolkhi_cleared_v3
+  speaker: ops_gelashvili
+  beat: mission_start
+  text: Merani, Kolkhi. Babushara is open this morning. Known guns north of the field. Come in from the
+    sea.
+- id: kolkhi_cleared_v4
+  speaker: ops_gelashvili
+  beat: mission_start
+  text: Merani Two-One, Kolkhi. You are the only flight today. Ammunition in, people out. Same fuel as
+    yesterday.
+- id: tower_inbound_v1
+  speaker: tower_abashidze
+  beat: tower_inbound
+  text: Merani Two-One, Babushara. Approach from the sea. Apron is clear. Guns north of the field.
+  delivery: Perfect phraseology, even pace, distant noise outside.
+- id: tower_inbound_v2
+  speaker: tower_abashidze
+  beat: tower_inbound
+  text: Merani Two-One, Babushara tower. Wind two-four-zero, light. Land on the apron, not the runway.
+- id: tower_inbound_v3
+  speaker: tower_abashidze
+  beat: tower_inbound
+  text: Merani Two-One, Babushara. Radar contact none, radio only. Report short final from the sea.
+- id: tower_inbound_v4
+  speaker: tower_abashidze
+  beat: tower_inbound
+  text: Merani Two-One, Babushara. Field open. Shelling earlier, west end. Apron is usable.
+- id: granite_unload_v1
+  speaker: ground_beridze
+  beat: apron_landed
+  text: Merani, Granite. Unloading now. Keep the engines running.
+  delivery: Walking fast across the apron, rotor noise.
+- id: granite_unload_v2
+  speaker: ground_beridze
+  beat: apron_landed
+  text: Merani, Granite. Crates off first. Two minutes. Do not shut down.
+- id: granite_unload_v3
+  speaker: ground_beridze
+  beat: apron_landed
+  text: Merani, Granite. My people are at the door. Ammunition off, then the passengers.
+- id: granite_unload_v4
+  speaker: ground_beridze
+  beat: apron_landed
+  text: Merani, Granite. Good. Stay turning. We work fast.
+- id: granite_boarded_v1
+  speaker: ground_beridze
+  beat: boarding_done
+  text: Merani, Granite. Twenty-four aboard, three on stretchers. Doors closed. Go.
+  delivery: Counting under his breath, then the number twice.
+- id: granite_boarded_v2
+  speaker: ground_beridze
+  beat: boarding_done
+  text: Merani, Granite. Twenty-four. Twenty-four, three wounded. That's all you can lift. Go.
+- id: granite_boarded_v3
+  speaker: ground_beridze
+  beat: boarding_done
+  text: Merani, Granite. Full. Twenty-four people. The rest wait for the next one. Go now.
+- id: granite_boarded_v4
+  speaker: ground_beridze
+  beat: boarding_done
+  text: Merani, Granite. Doors shut, twenty-four aboard. Lift when ready.
+- id: bort_fuel_home_v1
+  speaker: crew_tsiklauri
+  beat: fuel_homeward
+  text: Commander, fuel nine hundred. Enough for Senaki. Not for Kutaisi.
+  delivery: Reads the gauge like a ledger; no alarm.
+- id: bort_fuel_home_v2
+  speaker: crew_tsiklauri
+  beat: fuel_homeward
+  text: Commander, nine hundred kilos. Heavy aircraft. Senaki only.
+- id: bort_fuel_home_v3
+  speaker: crew_tsiklauri
+  beat: fuel_homeward
+  text: Commander, fuel nine hundred. Twenty-four in the back. Nobody standing near the door.
+- id: bort_fuel_home_v4
+  speaker: crew_tsiklauri
+  beat: fuel_homeward
+  text: Commander, nine hundred. If we go around at Senaki, we go around once.
+- id: kolkhi_inbound_v1
+  speaker: ops_gelashvili
+  beat: kolkhi_inbound
+  text: Merani Two-One, Kolkhi. Copy inbound. Ambulances on the pad.
+  delivery: Tired relief, never shown.
+- id: kolkhi_inbound_v2
+  speaker: ops_gelashvili
+  beat: kolkhi_inbound
+  text: Merani Two-One, Kolkhi. Copy. Land on the pad by the hangar. Doctors waiting.
+- id: kolkhi_inbound_v3
+  speaker: ops_gelashvili
+  beat: kolkhi_inbound
+  text: Merani, Kolkhi. Have you in sight. Pad two. Wounded off first.
+- id: kolkhi_on_deck_v1
+  speaker: ops_gelashvili
+  beat: on_deck
+  text: Merani, Kolkhi. On deck. Give me the count and the fuel.
+  delivery: Counts before he asks anything else.
+- id: kolkhi_on_deck_v2
+  speaker: ops_gelashvili
+  beat: on_deck
+  text: Merani, Kolkhi. Copy on deck. Shut down. Fuel truck comes when I sign for it.
+- id: kolkhi_on_deck_v3
+  speaker: ops_gelashvili
+  beat: on_deck
+  text: Merani Two-One, Kolkhi. On deck. Twenty-four out. Tomorrow, the same.
+- id: bort_fuel_out_v1
+  speaker: crew_tsiklauri
+  beat: bort_outbound_fuel
+  text: Commander, coast in. Fuel one thousand six hundred. On the plan.
+  delivery: Slow, patient.
+- id: bort_fuel_out_v2
+  speaker: crew_tsiklauri
+  beat: bort_outbound_fuel
+  text: Commander, one thousand six hundred. Heavy. She climbs slowly today.
+- id: bort_fuel_out_v3
+  speaker: crew_tsiklauri
+  beat: bort_outbound_fuel
+  text: Commander, coast. Fuel on the plan. Cargo secure.
+- id: granite_gun_warning_v1
+  speaker: ground_beridze
+  beat: granite_gun_warning
+  text: Merani, Granite. New gun moved up last night. Not where the old one was. Come in low from the
+    sea.
+  delivery: Urgent but controlled.
+- id: granite_gun_warning_v2
+  speaker: ground_beridze
+  beat: granite_gun_warning
+  text: Merani, Granite. My lookouts saw a gun move on the ridge. Stay over the water until short final.
+- id: granite_gun_warning_v3
+  speaker: ground_beridze
+  beat: granite_gun_warning
+  text: Merani, Granite. Second gun somewhere east or at the Gumista. Low and fast from the sea.
+- id: granite_gun_warning_v4
+  speaker: ground_beridze
+  beat: granite_gun_warning
+  text: Merani, Granite. They brought another gun forward. We don't know where. Sea approach only.
+- id: tower_guns_firing_v1
+  speaker: tower_abashidze
+  beat: guns_firing
+  text: 'Merani Two-One, Babushara. Traffic: gunfire from the hills, east. Stay low over the water.'
+  delivery: Same rhythm, fewer words.
+- id: tower_guns_firing_v2
+  speaker: tower_abashidze
+  beat: guns_firing
+  text: Merani Two-One, Babushara. Tracers east of the field. Continue from the sea.
+- id: tower_guns_firing_v3
+  speaker: tower_abashidze
+  beat: guns_firing
+  text: Merani Two-One, Babushara. Gun active. Not the known one. Your discretion.
+- id: tower_known_guns_v1
+  speaker: tower_abashidze
+  beat: known_guns_firing
+  text: Merani Two-One, Babushara. Guns north of the field active. Approach from the sea.
+  delivery: Traffic information, not drama.
+- id: tower_known_guns_v2
+  speaker: tower_abashidze
+  beat: known_guns_firing
+  text: Merani Two-One, Babushara. North guns firing. Keep south of the runway.
+- id: tower_known_guns_v3
+  speaker: tower_abashidze
+  beat: known_guns_firing
+  text: Merani Two-One, Babushara. Fire from the north hills. Field still open.
+- id: tower_shelling_v1
+  speaker: tower_abashidze
+  beat: shelling
+  text: Merani Two-One, Babushara. Rockets impacting west end of the field. Apron not affected.
+  delivery: Keeps the phraseology under impacts.
+- id: tower_shelling_v2
+  speaker: tower_abashidze
+  beat: shelling
+  text: Merani Two-One, Babushara. Impacts on the runway, west. Apron is clear. Expedite.
+- id: tower_shelling_v3
+  speaker: tower_abashidze
+  beat: shelling
+  text: Merani Two-One, Babushara. Grad on the field. Recommend you lift when loaded.
+- id: tower_shelling_v4
+  speaker: tower_abashidze
+  beat: shelling
+  text: Merani Two-One, Babushara. Shelling, west end. Next salvo expected. Expedite departure.
+- id: granite_fuel_v1
+  speaker: ground_beridze
+  beat: fuel_offer
+  text: Merani, Granite. Found a bowser. Four hundred litres, nobody's name on it. It goes to Senaki with
+    you.
+  delivery: A small private satisfaction.
+- id: granite_fuel_v2
+  speaker: ground_beridze
+  beat: fuel_offer
+  text: Merani, Granite. Fuel drums in the back with the passengers. Gift from the garrison.
+- id: granite_fuel_v3
+  speaker: ground_beridze
+  beat: fuel_offer
+  text: Merani, Granite. Two drums of kerosene. Don't ask. Take them.
+- id: kolkhi_roadblock_v1
+  speaker: ops_gelashvili
+  beat: roadblock_warning
+  text: Merani, Kolkhi. Zviadist roadblock reported near Zugdidi. They fire on our aircraft. Stay south
+    of the road.
+  delivery: Flat, the politics left out.
+- id: kolkhi_roadblock_v2
+  speaker: ops_gelashvili
+  beat: roadblock_warning
+  text: Merani, Kolkhi. Armed men on the Zugdidi road. Not ours. Avoid by two kilometres.
+- id: kolkhi_roadblock_v3
+  speaker: ops_gelashvili
+  beat: roadblock_warning
+  text: Merani Two-One, Kolkhi. Roadblock on the way home. Technical with a machine gun. Go around it.
+- id: kolkhi_roadblock_v4
+  speaker: ops_gelashvili
+  beat: roadblock_warning
+  text: 'Merani, Kolkhi. Report from Khobi: gunmen on the road again. Fly south of it.'
+- id: bort_roadblock_fire_v1
+  speaker: crew_tsiklauri
+  beat: roadblock_firing
+  text: Commander, tracers left side. From the road.
+  delivery: Calm observation.
+- id: bort_roadblock_fire_v2
+  speaker: crew_tsiklauri
+  beat: roadblock_firing
+  text: Commander, they're shooting from the roadblock. Low, behind us.
+- id: bort_roadblock_fire_v3
+  speaker: crew_tsiklauri
+  beat: roadblock_firing
+  text: Commander, fire from the road. Machine gun. Missed.
+- id: bort_hit_v1
+  speaker: crew_tsiklauri
+  beat: player_hit
+  text: Commander, we're hit. Pressures normal. Checking the cabin.
+  delivery: Checks gauges before speaking.
+- id: bort_hit_v2
+  speaker: crew_tsiklauri
+  beat: player_hit
+  text: Commander, hits in the tail boom. Controls good. Temperatures normal.
+- id: bort_hit_v3
+  speaker: crew_tsiklauri
+  beat: player_hit
+  text: Commander, something hit us. Fuel steady. Nobody hurt in the back.
+- id: bort_hit_v4
+  speaker: crew_tsiklauri
+  beat: player_hit
+  text: Commander, hit. Engines both good. Keep flying.
+- id: kolkhi_civilian_v1
+  speaker: ops_gelashvili
+  beat: civilian_hit
+  text: Merani, Kolkhi. Report on deck what happened on the coast road.
+  delivery: Quiet, deliberate.
+- id: kolkhi_civilian_v2
+  speaker: ops_gelashvili
+  beat: civilian_hit
+  text: Merani, Kolkhi. Report of a civilian vehicle hit near Babushara. Explain on deck.
+- id: kolkhi_civilian_v3
+  speaker: ops_gelashvili
+  beat: civilian_hit
+  text: Merani, Kolkhi. We have a report from the coast road. We talk when you land.

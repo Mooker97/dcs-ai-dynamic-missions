@@ -61,6 +61,11 @@ Al Bab, with laser-guided bombs to destroy the insurgents' stocks without harmin
   - Laser codes: 1688 lead, 1687 wing.
   - Abort: SAM launch, MANPADS launch on the run-in, civilian vehicles inside 300 m of the aimpoint,
     or check fire from Rook Ops. Joker 5,000 lb, bingo 3,500 lb (from the IP).
+- **Duration:** air start ~35 min (IP to TOT ~5 min, egress and recovery ~25 min); ramp start
+  ~70 min (start-up and taxi ~15 min, 100 NM transit ~20 min).
+- **Stakes:** if we fail, the NPF keeps the stocks that arm its push on the Brigade, and m03's
+  assault comes heavier (more technicals, mortars and MANPADS). Bombing the hamlet costs the
+  Brigade the villages' trust and tightens our ROE for the rest of the detachment.
 
 ## 4. Administration & logistics
 
@@ -79,10 +84,10 @@ Al Bab, with laser-guided bombs to destroy the insurgents' stocks without harmin
 |---|---|---|
 | Squadron / ops | Rook Ops (PYTHON 1 flight freq) | 305.0 AM |
 | AWACS (E-3A) | Magic 1-1 | 251.0 AM |
-| JTAC (with NBB, CJTF Blue) | Jackal Two-Three | 41.5 FM |
+| JTAC (with NBB, CJTF Blue) | Jackal Two-Three | 138.5 AM |
 | Tanker (KC-135, boom) | Shell 1-1 | 276.1 AM, TACAN 51Y |
 | Incirlik Ground/Tower | Incirlik | 360.0 AM / 122.0 AM |
 
-- Frequencies, callsigns and TACAN are set on the aircraft in the mission (out/plan.json: flight 305.0, Magic 251.0, Shell 276.1 / 51Y, Jackal 41.5 FM). Incirlik from the airfield data. The cockpit callsign is PYTHON 1-1 in both files.
+- Frequencies, callsigns and TACAN are set on the aircraft in the mission (out/plan.json: flight 305.0, Magic 251.0, Shell 276.1 / 51Y, Jackal 138.5 AM). Incirlik from the airfield data. The cockpit callsign is PYTHON 1-1 in both files.
 - Bullseye: Minakh. Codeword for stocks destroyed: none; call BDA in plain text on egress.
 - Lost comms: complete the attack only with PID, egress via GATE, recover Incirlik.

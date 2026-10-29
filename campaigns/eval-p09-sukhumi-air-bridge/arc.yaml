@@ -1,0 +1,215 @@
+# Campaign arc — Air Bridge to Sukhumi. Schema: schemas/campaign-arc.schema.json (CampaignArc).
+# Missions are designed one at a time, after the previous one is flown.
+# Outcomes feed forward: the debriefer turns each [DMS.OUTCOME] key into a campaign flag
+# <mNN>_<key> and applies quality_effects. Branches are checked in order; the first `when` that
+# holds wins; no branches = next mission in order.
+#
+# Replayability: every mission re-rolls which gun lines are manned, where the Zviadist roadblock
+# sits, when the Grad lands on Babushara and how many people are waiting. Only qualities and flags
+# persist between missions.
+
+schema_version: 1
+title: "Air Bridge to Sukhumi"
+logline: >-
+  Eleven days, one Mi-8 and a city that is falling: fly the ammunition in, fly the people out,
+  and decide every sortie what the fuel and the airframe can still buy.
+
+qualities:
+  - id: garrison_supply
+    description: "Ammunition the Babushara garrison holds. Sets how long the airfield stays open in m05 and how heavy the shelling is in m03."
+    initial: 1
+    min: 0
+    max: 3
+  - id: refugees_saved
+    description: "Planeloads of civilians flown out (one point per full load). Drives Granite's list, briefings and the ending."
+    initial: 0
+    min: 0
+    max: 5
+  - id: airframes
+    description: "Serviceable detachment Mi-8s. A loss means no sister ship in later missions; zero means a borrowed, worn airframe."
+    initial: 2
+    min: 0
+    max: 2
+  - id: fuel
+    description: "Detachment fuel beyond the ration. High fuel allows the long sea route and longer loiter at Babushara."
+    initial: 1
+    min: 0
+    max: 3
+  - id: approach_threat
+    description: "Strength of the guns and MANPADS under the Babushara approach lanes. Scales threat strength in m03 and m05."
+    initial: 1
+    min: 0
+    max: 3
+
+acts:
+  - id: act1
+    title: "The Bridge"
+    summary: >-
+      17-20 September. The bridge opens as a routine if dangerous shuttle; by the end of the act
+      the detachment has lost, or nearly lost, its second aircraft and the coast is no longer
+      safe south of the city.
+    missions:
+      - id: m01-first-run
+        title: "First Run"
+        mission_type: TRANSPORT
+        status: designed
+        player_aircraft: Mi-8MT
+        dramatic_question: "Can Merani 2-1 make the turnaround at Babushara fast enough to bring out a full load before the shelling finds the apron?"
+        synopsis: >-
+          Day run from Senaki to Sukhumi-Babushara along the coast with ammunition for the
+          garrison, land on the apron, load refugees and fly home. The besiegers' guns cover the
+          approach from the hills north of the airfield, and a Zviadist roadblock may open up on
+          the way home near the Inguri. The runtime rolls which approach gun line is manned, where
+          the roadblock sits (or whether it is there at all), when the Grad lands on the airfield
+          and whether Granite has found spare fuel. Outcome keys: cargo_delivered (bool),
+          refugees_carried (number), fuel_found (bool), player_lost (bool), landed (bool).
+        characters: [ops_gelashvili, tower_abashidze, ground_beridze, crew_tsiklauri]
+        key_beats:
+          - "Kolkhi clears Merani 2-1 out with the fuel number for the sortie"
+          - "Babushara tower talks the helicopter onto the apron under shelling"
+          - "Granite unloads the ammunition and counts the refugees aboard"
+          - "Flight engineer calls the fuel on the way home"
+          - "Kolkhi takes the count on deck at Senaki"
+        quality_effects:
+          garrison_supply: "+1 if cargo_delivered"
+          refugees_saved: "+1 if refugees_carried >= 20"
+          fuel: "+1 if fuel_found"
+          airframes: "-1 if player_lost"
+        branches: []
+        optional: false
+
+      - id: m02-sister-ship
+        title: "Sister Ship"
+        mission_type: CSAR
+        status: designed
+        player_aircraft: Mi-8MT
+        dramatic_question: "Will Merani 2-1 risk the last flyable airframe to bring Dolidze's crew out from the coast at Ochamchire?"
+        synopsis: >-
+          Merani 2-2 is forced down by ground fire near Ochamchire on the coast road. The player
+          flies from Senaki, finds the crew at one of several possible landing sites near the
+          river mouth, lands, picks them up and returns before a patrol reaches them. The runtime
+          picks the crash site, which patrols are on the coast road and whether a gun opens up
+          from the hills. Outcome keys: crew_rescued (bool), player_lost (bool), landed (bool),
+          player_hit (bool).
+        characters: [ops_gelashvili, wing_dolidze, crew_tsiklauri]
+        key_beats:
+          - "Kolkhi relays Merani 2-2's last position"
+          - "Dolidze comes up on the emergency frequency"
+          - "Pick-up on the ground, crew aboard"
+          - "Kolkhi takes the count on deck at Senaki"
+        quality_effects:
+          airframes: "-1 if player_lost"
+          approach_threat: "+1 if player_hit"
+        branches:
+          - when: {flags: [m02_crew_rescued]}
+            goto: m03-night-shuttle
+            description: "Crew home; Dolidze flies again in act 2."
+          - when: {flags_not: [m02_crew_rescued]}
+            goto: m02b-walking-out
+            description: "Crew not recovered: they walk inland toward the Kodori and call again."
+        optional: false
+
+      - id: m02b-walking-out
+        title: "Walking Out"
+        mission_type: CSAR
+        status: planned
+        player_aircraft: Mi-8MT
+        dramatic_question: "Can the crew be found in the hills before the Abkhaz patrols find them first?"
+        synopsis: >-
+          Recovery mission if m02 failed: Dolidze's crew has walked inland toward the lower
+          Kodori valley. Search a wider box for a signal, land in a clearing, and fly them out.
+          The runtime picks the clearing and the patrols. Outcome keys: crew_rescued (bool),
+          player_lost (bool), landed (bool).
+        characters: [ops_gelashvili, wing_dolidze, crew_tsiklauri]
+        key_beats:
+          - "Dolidze's signal on the emergency frequency"
+          - "Crew aboard"
+          - "Landing at Senaki"
+        quality_effects:
+          airframes: "-1 if player_lost"
+        branches: []
+        optional: true
+
+  - id: act2
+    title: "The Last Seats"
+    summary: >-
+      22-27 September. The airliners stop coming after the shoot-downs; the helicopters are the
+      bridge. Every run is fuller and the approach lanes tighter, until the city falls and only
+      the list is left.
+    missions:
+      - id: m03-night-shuttle
+        title: "Night Shuttle"
+        mission_type: TRANSPORT
+        status: planned
+        player_aircraft: Mi-8MT
+        dramatic_question: "After the airliner losses, can a helicopter still get in at night, and how many people is Merani 2-1 willing to carry out?"
+        synopsis: >-
+          Night run into Babushara the day after the Tu-154 burned on the runway. Ammunition in,
+          wounded and civilians out, with the option of an overloaded take-off. If the crew was
+          rescued in m02, Merani 2-2 flies the same run as an AI sister ship. The runtime rolls
+          the gun lines (scaled by approach_threat), the Grad timing and how many are waiting.
+          Outcome keys: cargo_delivered (bool), refugees_carried (number), player_lost (bool),
+          landed (bool).
+        characters: [ops_gelashvili, tower_abashidze, ground_beridze, crew_tsiklauri, wing_dolidze]
+        key_beats:
+          - "Babushara tower reports the runway blocked by the wreck; apron only"
+          - "Granite loads beyond the limit, or doesn't"
+          - "Landing at Senaki"
+        quality_effects:
+          garrison_supply: "+1 if cargo_delivered"
+          refugees_saved: "+1 if refugees_carried >= 20; +1 more if refugees_carried >= 30"
+          airframes: "-1 if player_lost"
+        branches: []
+        optional: false
+
+      - id: m04-gumista-guns
+        title: "Gumista Guns"
+        mission_type: RECON
+        status: planned
+        player_aircraft: Mi-8MT
+        dramatic_question: "Can Merani 2-1 find the guns covering the approach lanes without becoming their next target?"
+        synopsis: >-
+          Armed reconnaissance with rocket pods along the Gumista heights and the hills north of
+          Babushara: find the gun and MANPADS positions so the garrison can mortar them and the
+          last runs can avoid them. The runtime places 2-4 positions among several candidate
+          areas. Outcome keys: guns_found (number), player_lost (bool), landed (bool).
+        characters: [ops_gelashvili, ground_beridze, crew_tsiklauri]
+        key_beats:
+          - "Granite gives the last known positions"
+          - "Positions reported"
+          - "Landing at Senaki"
+        quality_effects:
+          approach_threat: "-1 if guns_found >= 2; -1 more if guns_found >= 4"
+          airframes: "-1 if player_lost"
+        branches: []
+        optional: false
+
+      - id: m05-last-flight-out
+        title: "Last Flight Out"
+        mission_type: TRANSPORT
+        status: planned
+        player_aircraft: Mi-8MT
+        dramatic_question: "When the city falls, who gets the last seats, and does Granite take one?"
+        synopsis: >-
+          27 September: the city is falling. One last run into Babushara, or onto the coast at
+          Gulripshi if the airfield is lost (garrison_supply 0), to bring out the last people on
+          Granite's list. Threat strength follows approach_threat; fuel decides whether the long
+          sea route is possible. The runtime rolls where the front is and how long the apron
+          holds. Outcome keys: refugees_carried (number), granite_evacuated (bool),
+          player_lost (bool), landed (bool).
+        characters: [ops_gelashvili, tower_abashidze, ground_beridze, crew_tsiklauri, wing_dolidze]
+        key_beats:
+          - "Babushara tower's last transmission"
+          - "Granite reads the end of the list"
+          - "Landing at Senaki"
+        quality_effects:
+          refugees_saved: "+1 if refugees_carried >= 20; +1 more if granite_evacuated"
+        branches: []
+        optional: false
+
+ending_notes: >-
+  The city falls whatever the player does; the ending is the count. refugees_saved >= 4 with
+  airframes >= 1: the detachment's bridge is remembered by name in Senaki. refugees_saved 2-3:
+  Gelashvili's last line is the number, nothing else. refugees_saved <= 1 or airframes 0: the
+  detachment is disbanded and the crew's last flight is a ferry to Kutaisi. Whether Granite was
+  evacuated and whether Dolidze came home colour the final continuity entry.

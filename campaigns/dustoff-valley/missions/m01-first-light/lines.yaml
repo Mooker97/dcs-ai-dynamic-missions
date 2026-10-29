@@ -11,26 +11,40 @@ lines:
     speaker: ops_walsh
     beat: mission_start
     delivery: "Routine morning tasking. Unhurried, dry."
-    text: "Dusty, Hatay Ops. Cleared for patrol when ready. Triple-A confirmed at Reyhanli and Kirikhan. Give both a wide berth unless you're feeling bold. Weapons free on armed targets. Report anything interesting."
+    text: "Dusty, Hatay Ops. Cleared for patrol. Known triple-A at Reyhanli and Kirikhan."
   - id: ops_cleared_v2
     speaker: ops_walsh
     beat: mission_start
-    text: "Dusty, Ops. Morning. Box is as briefed. Known guns at Reyhanli and Kirikhan, stand off two miles. Weapons free on armed targets. Call everything you see."
+    text: "Dusty, Ops. Morning. Box as briefed. Known guns Reyhanli and Kirikhan."
   - id: ops_cleared_v3
     speaker: ops_walsh
     beat: mission_start
-    text: "Dusty, Hatay Ops. You're cleared out. Two known triple-A sites, Reyhanli and Kirikhan. Don't go poking them. Weapons free, armed targets only. We want a picture, not a medal."
+    text: "Dusty, Hatay Ops. Cleared out. Reyhanli and Kirikhan guns are live."
   - id: ops_cleared_v4
     speaker: ops_walsh
     beat: mission_start
-    text: "Dusty, Ops. Picture's thin this morning. That's why you're going. Avoid Reyhanli and Kirikhan, weapons free on armed targets, and bring the aircraft back."
+    text: "Dusty, Ops. Picture's thin this morning. That's why you're going."
+
+  # --- Hatay Ops: ROE follow-on (mission_start_roe, chained after mission_start) ------------------
+  - id: ops_roe_v1
+    speaker: ops_walsh
+    beat: mission_start_roe
+    text: "Weapons free on armed targets. We want a picture, not a medal."
+  - id: ops_roe_v2
+    speaker: ops_walsh
+    beat: mission_start_roe
+    text: "Weapons free, armed targets only. Stand off the known guns two miles."
+  - id: ops_roe_v3
+    speaker: ops_walsh
+    beat: mission_start_roe
+    text: "Weapons free on armed targets. Bring the aircraft back."
 
   # --- Hatay Tower: departure ---------------------------------------------------------------------
   - id: tower_departure_v1
     speaker: tower_hatay
     beat: tower_departure
     delivery: "Standard phraseology, flat."
-    text: "Dusty One-One, Hatay Tower. Airborne. Frequency change approved, contact Hatay Ops. Good day."
+    text: "Dusty One-One, Hatay Tower. Airborne. Contact Hatay Ops. Good day."
   - id: tower_departure_v2
     speaker: tower_hatay
     beat: tower_departure
@@ -45,19 +59,19 @@ lines:
     speaker: kestrel_ferris
     beat: kestrel_checkin
     delivery: "Quiet, close to the mic, lying in a hide."
-    text: "Dusty, Kestrel Two-Two. We're on the high ground north of the canal. Eyes on the box. Quiet so far."
+    text: "Dusty, Kestrel Two-Two. Ridge north of the canal. Eyes on the box."
   - id: kestrel_checkin_v2
     speaker: kestrel_ferris
     beat: kestrel_checkin
-    text: "Dusty, Kestrel Two-Two, in position on the ridge. Nothing moving yet. We'll call it when it does."
+    text: "Dusty, Kestrel Two-Two, on the ridge. Nothing moving yet."
   - id: kestrel_checkin_v3
     speaker: kestrel_ferris
     beat: kestrel_checkin
-    text: "Dusty, Kestrel Two-Two. Loud and clear. Few dogs, one tractor, nothing armed. We'll call it if that changes."
+    text: "Dusty, Kestrel Two-Two. Few dogs, one tractor, nothing armed."
   - id: kestrel_checkin_v4
     speaker: kestrel_ferris
     beat: kestrel_checkin
-    text: "Dusty, Kestrel Two-Two. We've had eyes on the canal road since oh-four-hundred. Farm trucks only. Box is yours."
+    text: "Dusty, Kestrel Two-Two. Eyes on the canal road since oh-four-hundred."
 
   # --- Hatay Ops: on station ------------------------------------------------------------------------
   - id: ops_on_station_v1
@@ -67,7 +81,7 @@ lines:
   - id: ops_on_station_v2
     speaker: ops_walsh
     beat: on_station
-    text: "Dusty, Hatay Ops. Copy you in the box. Kestrel's on the ridge if you need eyes."
+    text: "Dusty, Hatay Ops. Copy in the box. Kestrel's on the ridge."
   - id: ops_on_station_v3
     speaker: ops_walsh
     beat: on_station
@@ -78,19 +92,19 @@ lines:
     speaker: kestrel_ferris
     beat: known_aaa_firing
     delivery: "Matter-of-fact. He has watched this gun for a week."
-    text: "Dusty, Kestrel. Triple-A up from the known site. Tracer's falling short. Recommend you open the range."
+    text: "Dusty, Kestrel. Triple-A from the known site. Falling short. Open the range."
   - id: kestrel_aaa_firing_v2
     speaker: kestrel_ferris
     beat: known_aaa_firing
-    text: "Dusty, Kestrel Two-Two. That's the known gun firing. Bursts low and behind you."
+    text: "Dusty, Kestrel Two-Two. Known gun firing. Bursts low and behind."
   - id: kestrel_aaa_firing_v3
     speaker: kestrel_ferris
     beat: known_aaa_firing
-    text: "Dusty, Kestrel. Known site's awake. He's shooting by eye. No radar that we can hear."
+    text: "Dusty, Kestrel. Known site's awake. Shooting by eye, no radar."
   - id: kestrel_aaa_firing_v4
     speaker: kestrel_ferris
     beat: known_aaa_firing
-    text: "Dusty, Kestrel. Tracer from the known position. Your call, but he's dug in."
+    text: "Dusty, Kestrel. Tracer from the known position. He's dug in."
 
   # --- Kestrel: first kill --------------------------------------------------------------------------
   - id: kestrel_good_effect_v1
@@ -105,7 +119,7 @@ lines:
   - id: kestrel_good_effect_v3
     speaker: kestrel_ferris
     beat: first_armed_kill
-    text: "Dusty, Kestrel. That's a kill. Secondary from the back of the truck. He was carrying ammunition."
+    text: "Dusty, Kestrel. That's a kill. Secondary from the truck. Ammunition."
   - id: kestrel_good_effect_v4
     speaker: kestrel_ferris
     beat: first_armed_kill
@@ -142,7 +156,7 @@ lines:
   - id: kestrel_say_status_v3
     speaker: kestrel_ferris
     beat: player_hit
-    text: "Dusty, Kestrel. Rounds close. If you're hurt, don't hang about. Hatay's behind you."
+    text: "Dusty, Kestrel. Rounds close. If you're hurt, head for Hatay."
   - id: kestrel_say_status_v4
     speaker: kestrel_ferris
     beat: player_hit
@@ -153,26 +167,26 @@ lines:
     speaker: kestrel_ferris
     beat: popup_aa_warning
     delivery: "Uncertain, deliberate. A warning, not an alarm."
-    text: "Dusty, Kestrel. Heard a heavy gun test-fire east of the canal. No visual. Could be a ZU."
+    text: "Dusty, Kestrel. Heavy gun test-fired east of the canal. No visual."
   - id: popup_aa_warning_v2
     speaker: kestrel_ferris
     beat: popup_aa_warning
-    text: "Dusty, Kestrel Two-Two. Truck with something on the back just pulled into the trees east of you. Couldn't see what."
+    text: "Dusty, Kestrel Two-Two. Truck with something on the back, trees east."
   - id: popup_aa_warning_v3
     speaker: kestrel_ferris
     beat: popup_aa_warning
-    text: "Dusty, Kestrel. Movement into the tree line east of the canal. Treat it as a gun until it isn't."
+    text: "Dusty, Kestrel. Movement into the tree line east. Treat as a gun."
   - id: popup_aa_warning_v4
     speaker: kestrel_ferris
     beat: popup_aa_warning
-    text: "Dusty, Kestrel. Two men just pulled a tarp off something east of the canal. I don't like it."
+    text: "Dusty, Kestrel. Men pulling a tarp off something east. Don't like it."
 
   # --- Kestrel: unlisted gun opens up ---------------------------------------------------------------
   - id: popup_aa_engaging_v1
     speaker: kestrel_ferris
     beat: popup_aa_engaging
     delivery: "Firm, faster. Voice up a notch, no more."
-    text: "Dusty, Kestrel. Tracer east of the canal. That's a new gun. Not on the list."
+    text: "Dusty, Kestrel. Tracer east of the canal. New gun, not listed."
   - id: popup_aa_engaging_v2
     speaker: kestrel_ferris
     beat: popup_aa_engaging
@@ -180,18 +194,18 @@ lines:
   - id: popup_aa_engaging_v3
     speaker: kestrel_ferris
     beat: popup_aa_engaging
-    text: "Dusty, Kestrel Two-Two. You've got a gun on you from the trees. Not one of the known ones."
+    text: "Dusty, Kestrel Two-Two. Gun on you from the trees. Unlisted."
   - id: popup_aa_engaging_v4
     speaker: kestrel_ferris
     beat: popup_aa_engaging
-    text: "Dusty, Kestrel. Unlisted triple-A, east of the canal, firing now. Marking it for Ops."
+    text: "Dusty, Kestrel. Unlisted triple-A east of the canal, firing. Marking it."
 
   # --- Hatay Ops: unlisted gun destroyed ------------------------------------------------------------
   - id: ops_new_site_logged_v1
     speaker: ops_walsh
     beat: popup_aa_destroyed
     delivery: "The closest she gets to pleased."
-    text: "Dusty, Ops. Copy that gun destroyed. One off a list we didn't know we had."
+    text: "Dusty, Ops. Copy gun destroyed. One off a list we never had."
   - id: ops_new_site_logged_v2
     speaker: ops_walsh
     beat: popup_aa_destroyed
@@ -203,35 +217,35 @@ lines:
   - id: ops_new_site_logged_v4
     speaker: ops_walsh
     beat: popup_aa_destroyed
-    text: "Dusty, Ops. Copy. That site goes in tomorrow's brief as a kill, not a threat."
+    text: "Dusty, Ops. Copy. Tomorrow's brief lists that site as a kill."
 
   # --- Kestrel: the farm ----------------------------------------------------------------------------
   - id: kestrel_staging_v1
     speaker: kestrel_ferris
     beat: staging_spotted
     delivery: "Interested. Slower, choosing words."
-    text: "Dusty, Kestrel. You're near the farm compound. I count four trucks under netting, north-east corner."
+    text: "Dusty, Kestrel. Farm compound, four trucks under netting, north-east corner."
   - id: kestrel_staging_v2
     speaker: kestrel_ferris
     beat: staging_spotted
-    text: "Dusty, Kestrel Two-Two. That compound below you. Trucks under cam nets, maybe five. Weren't there yesterday."
+    text: "Dusty, Kestrel Two-Two. Compound below you. Cam nets. Weren't there yesterday."
   - id: kestrel_staging_v3
     speaker: kestrel_ferris
     beat: staging_spotted
-    text: "Dusty, Kestrel. Farm compound below you. Vehicles under netting. Worth a look before anyone shoots. Could be fuel."
+    text: "Dusty, Kestrel. Vehicles under netting below you. Look before anyone shoots."
 
   - id: kestrel_staging_moving_v1
     speaker: kestrel_ferris
     beat: staging_moving
-    text: "Ops, Kestrel. Movement out of the farm. Four trucks, northbound on the canal road, towards Kirikhan."
+    text: "Ops, Kestrel. Four trucks out of the farm, northbound for Kirikhan."
   - id: kestrel_staging_moving_v2
     speaker: kestrel_ferris
     beat: staging_moving
-    text: "Dusty, Kestrel. Trucks leaving the compound, heading north. No escort I can see."
+    text: "Dusty, Kestrel. Trucks leaving the compound, northbound. No escort seen."
   - id: kestrel_staging_moving_v3
     speaker: kestrel_ferris
     beat: staging_moving
-    text: "Ops, Kestrel Two-Two. Vehicles rolling from the farm, northbound. Can't see cargo. Nets are off."
+    text: "Ops, Kestrel Two-Two. Vehicles rolling from the farm. Nets are off."
 
   # --- Kestrel: civilian hit --------------------------------------------------------------------------
   - id: kestrel_check_fire_v1
@@ -246,11 +260,11 @@ lines:
   - id: kestrel_check_fire_v3
     speaker: kestrel_ferris
     beat: civilian_hit
-    text: "Check fire, Dusty. Farm truck on the canal road. No weapons on it. It's burning."
+    text: "Check fire, Dusty. Farm truck on the canal road. Unarmed. Burning."
   - id: kestrel_check_fire_v4
     speaker: kestrel_ferris
     beat: civilian_hit
-    text: "Dusty, Kestrel. Check fire. Civilian vehicle hit. Confirm your target before you shoot again."
+    text: "Dusty, Kestrel. Check fire. Civilian hit. Confirm target before shooting."
 
   # --- Hatay Ops: patrol complete, early return, on deck ----------------------------------------------
   - id: ops_rtb_v1
@@ -281,12 +295,12 @@ lines:
   - id: ops_early_rtb_v3
     speaker: ops_walsh
     beat: early_rtb
-    text: "Dusty, Ops. Copy early return. Someone will have to fill that gap tomorrow."
+    text: "Dusty, Ops. Copy early return. Someone fills that gap tomorrow."
 
   - id: ops_on_deck_v1
     speaker: ops_walsh
     beat: on_deck
-    text: "Dusty, Ops. Copy on deck. Debrief at the TOC when you're shut down."
+    text: "Dusty, Ops. Copy on deck. Debrief at the TOC after shutdown."
   - id: ops_on_deck_v2
     speaker: ops_walsh
     beat: on_deck
@@ -294,17 +308,30 @@ lines:
   - id: ops_on_deck_v3
     speaker: ops_walsh
     beat: on_deck
-    text: "Dusty, Ops. On deck, copy. Intel's waiting on your tapes. TOC in twenty."
+    text: "Dusty, Ops. On deck, copy. Intel wants your tapes. TOC in twenty."
+
+  - id: ops_recovery_timeout_v1
+    speaker: ops_walsh
+    beat: recovery_timeout
+    text: "Dusty, Ops. Logging you recovered. Debrief at the TOC."
+  - id: ops_recovery_timeout_v2
+    speaker: ops_walsh
+    beat: recovery_timeout
+    text: "Dusty, Hatay Ops. Closing the sortie. Debrief when you're down."
+  - id: ops_recovery_timeout_v3
+    speaker: ops_walsh
+    beat: recovery_timeout
+    text: "Dusty, Ops. Calling it complete. Report in once shut down."
 
   # --- Hatay Tower: recovery ----------------------------------------------------------------------------
   - id: tower_cleared_land_v1
     speaker: tower_hatay
     beat: tower_welcome
-    text: "Dusty, Hatay Tower, welcome back. Cleared to land at your discretion, winds are calm."
+    text: "Dusty, Hatay Tower, welcome back. Land at your discretion, winds calm."
   - id: tower_cleared_land_v2
     speaker: tower_hatay
     beat: tower_welcome
-    text: "Dusty One-One, Hatay Tower. Welcome home. Land at your discretion, wind calm, no traffic."
+    text: "Dusty One-One, Hatay Tower. Welcome home. Wind calm, no traffic."
   - id: tower_cleared_land_v3
     speaker: tower_hatay
     beat: tower_welcome
@@ -323,7 +350,7 @@ lines:
   - id: net_kestrel_v2
     speaker: kestrel_ferris
     beat: ambient_net
-    text: "Ops, Kestrel. Shepherd moving his flock across the canal road, west to east. Nothing else."
+    text: "Ops, Kestrel. Shepherd moving his flock across the canal road. Nothing else."
   - id: net_kestrel_v3
     speaker: kestrel_ferris
     beat: ambient_net

@@ -25,6 +25,6 @@ Ramp start: steerpoint 0 is the Incirlik ramp. Route planned at 20,000 ft. Jacka
 |---|---|---|
 | Ops / flight | Rook Ops / Python 1 | 305.000 AM |
 | AWACS | Magic | 251.000 AM |
-| JTAC | Jackal Two-Three | 41.500 FM |
+| JTAC | Jackal Two-Three | 138.500 AM |
 | Tanker (KC-135) | Shell 1-1 (AR track E of Incirlik) | 276.100 AM · TACAN 51Y |
 | Ground / Tower | Incirlik | DCS airfield freqs (F10) |

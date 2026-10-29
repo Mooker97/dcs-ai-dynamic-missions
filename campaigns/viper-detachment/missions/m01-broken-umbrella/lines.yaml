@@ -20,10 +20,12 @@ lines:
     speaker: ops_lindqvist
     beat: mission_start
     text: "Python, Rook Ops. Weather is as briefed, threat is as briefed. Window opens on your push from ARROW."
-  - id: ops_radio_check_v4
-    speaker: ops_lindqvist
-    beat: mission_start
-    text: "Python, Rook Ops, radio check. Cyclops Two is airborne and waiting on you. Magic at ARROW."
+  # BENCHED (rendered audio kept in voice/; lint line_too_long/peak_chatter). Re-enable by
+  # uncommenting and adding the id back to its beat.
+  # - id: ops_radio_check_v4
+  #  speaker: ops_lindqvist
+  #  beat: mission_start
+  #  text: "Python, Rook Ops, radio check. Cyclops Two is airborne and waiting on you. Magic at ARROW."
 
   # --- Incirlik Ground: taxi (ground_taxi, ramp start only) ------------------------------------
   - id: ground_taxi_v1
@@ -65,10 +67,12 @@ lines:
     beat: magic_checkin
     delivery: "Cool, exact, unhurried. Slightly formal English."
     text: "Python, Magic, radar contact at ARROW. Picture clean. Push Rook Ops."
-  - id: magic_checkin_v2
-    speaker: awacs_magic
-    beat: magic_checkin
-    text: "Python, Magic, contact. No air south of the border. Rook Ops has your push."
+  # BENCHED (rendered audio kept in voice/; lint line_too_long/peak_chatter). Re-enable by
+  # uncommenting and adding the id back to its beat.
+  # - id: magic_checkin_v2
+  #  speaker: awacs_magic
+  #  beat: magic_checkin
+  #  text: "Python, Magic, contact. No air south of the border. Rook Ops has your push."
   - id: magic_checkin_v3
     speaker: awacs_magic
     beat: magic_checkin
@@ -122,10 +126,12 @@ lines:
     beat: sa6_emitting
     delivery: "Shorter sentences now. Still level."
     text: "Python, Rook Ops. ELINT has a Straight Flush coming up, south-east of Al Bab."
-  - id: ops_sa6_elint_v2
-    speaker: ops_lindqvist
-    beat: sa6_emitting
-    text: "Python, Rook Ops. SA-6 search radar active. South-east of the town. Expect it to go quiet fast."
+  # BENCHED (rendered audio kept in voice/; lint line_too_long/peak_chatter). Re-enable by
+  # uncommenting and adding the id back to its beat.
+  # - id: ops_sa6_elint_v2
+  #  speaker: ops_lindqvist
+  #  beat: sa6_emitting
+  #  text: "Python, Rook Ops. SA-6 search radar active. South-east of the town. Expect it to go quiet fast."
   - id: ops_sa6_elint_v3
     speaker: ops_lindqvist
     beat: sa6_emitting
@@ -203,11 +209,13 @@ lines:
     text: "Python, Magic. Cyclops Two reports the missile went stupid. Back on station."
 
   # --- Rook Ops: SA-6 radar destroyed (sa6_radar_destroyed) ----------------------------------
-  - id: ops_radar_down_v1
-    speaker: ops_lindqvist
-    beat: sa6_radar_destroyed
-    delivery: "Dry. The nearest she comes to pleased."
-    text: "Python, Rook Ops. ELINT has the Straight Flush off the air. Copy your shot."
+  # BENCHED (rendered audio kept in voice/; lint line_too_long/peak_chatter). Re-enable by
+  # uncommenting and adding the id back to its beat.
+  # - id: ops_radar_down_v1
+  #  speaker: ops_lindqvist
+  #  beat: sa6_radar_destroyed
+  #  delivery: "Dry. The nearest she comes to pleased."
+  #  text: "Python, Rook Ops. ELINT has the Straight Flush off the air. Copy your shot."
   - id: ops_radar_down_v2
     speaker: ops_lindqvist
     beat: sa6_radar_destroyed
@@ -216,10 +224,12 @@ lines:
     speaker: ops_lindqvist
     beat: sa6_radar_destroyed
     text: "Python, Rook Ops. SA-6 radar is down. Launchers are still out there."
-  - id: ops_radar_down_v4
-    speaker: ops_lindqvist
-    beat: sa6_radar_destroyed
-    text: "Python, Rook Ops. Copy. Six radar off the air. Get eyes on the site if you can."
+  # BENCHED (rendered audio kept in voice/; lint line_too_long/peak_chatter). Re-enable by
+  # uncommenting and adding the id back to its beat.
+  # - id: ops_radar_down_v4
+  #  speaker: ops_lindqvist
+  #  beat: sa6_radar_destroyed
+  #  text: "Python, Rook Ops. Copy. Six radar off the air. Get eyes on the site if you can."
 
   # --- Pike: SA-6 battery dead (sa6_battery_dead) --------------------------------------------
   - id: pike_battery_dead_v1

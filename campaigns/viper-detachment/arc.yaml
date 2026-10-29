@@ -99,7 +99,7 @@ acts:
         quality_effects:
           sam_threat: "-1 if sa6_radar_destroyed; -1 more if sa8_destroyed and sa6_launchers_destroyed >= 2 (min 0)"
           intel: "+1 if window_held (the MQ-9 maps the Quarry for m02)"
-          collateral: "+1 if any civilian vehicle or building in Al Bab is hit"
+          collateral: "+1 if civilians_hit (any civilian vehicle or building in Al Bab is hit)"
         branches:
           - when: {flags: [m01_player_lost]}
             goto: m01-broken-umbrella
@@ -177,7 +177,7 @@ acts:
           - "Assault breaks (or the NBB falls back); Jackal's 'good effects' or terse withdrawal call"
           - "Check-out with Jackal and RTB"
         quality_effects:
-          partner_morale: "+1 if position_held; +1 more if position_held and fortified_positions_destroyed >= 3; -2 if fratricide; -1 if not position_held"
+          partner_morale: "+1 if position_held; +1 more if position_held and fortified_positions_destroyed >= 3; -2 if fratricide; -1 if not position_held and not fratricide"
           insurgent_supply: "-1 if technicals_destroyed >= 4"
           collateral: "+1 if civilians_hit"
         branches:
@@ -216,7 +216,7 @@ acts:
           - "Carrier hit, or the convoy reaches the river and Rook Ops calls 'endex'"
           - "Final RTB; Lindqvist's closing line depends on the campaign's qualities"
         quality_effects:
-          sam_threat: "set to 0 if sam_carrier_destroyed and overwatch_sam_destroyed; -1 if only one of them"
+          sam_threat: "-2 if sam_carrier_destroyed and overwatch_sam_destroyed; -1 if sam_carrier_destroyed and not overwatch_sam_destroyed; -1 if overwatch_sam_destroyed and not sam_carrier_destroyed"
           insurgent_supply: "-1 if escort_destroyed >= 3"
           collateral: "+2 if civilians_hit (the decoy convoy)"
           partner_morale: "+1 if sam_carrier_destroyed and not civilians_hit"

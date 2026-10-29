@@ -153,7 +153,10 @@ acts:
           intel: "+1 if HAMMER's command vehicle is located or destroyed"
           trust: "+1 if the outpost survives; -1 if it is overrun"
           fob_supply: "-1 if the outpost is overrun"
-        branches: []
+        branches:
+          - when: {flags: [m04_player_lost]}
+            goto: m04-grad-hunt
+            description: "Replay with a new seed. The outpost has taken another night of rockets; Hollis's first call is worse."
 
   - id: act3
     title: "Across the Orontes"

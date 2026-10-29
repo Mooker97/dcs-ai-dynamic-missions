@@ -30,3 +30,14 @@
 - New places: the militia compound on the canal road 4 NM south of Kestrel's ridge; the ridge LZ on its south slope.
 - One of Kestrel Two-Two's team wounded (urgent surgical) and evacuated; Kestrel stays on the ridge.
 - Status: implemented, not flown.
+
+### 2026-10-30 — mission-designer — w02 Warden in Contact designed (watch mission)
+- Side story (spectator, all AI), not in arc.yaml; changes no qualities. Set D+5, 14 APR 1530L.
+- New place: the Idlib plain between Binnish and Taftanaz (open farmland, east of the Amik valley). NVC holds a
+  garrison with armour at Taftanaz airfield; militia operate in the fields east of Binnish.
+- New canon character: SFC Andre Booker (Warden Three-One), leader of a US mounted reconnaissance patrol
+  (dismounts Warden Three-One, three HMMWVs Warden Three-Two) operating east of the valley.
+- Dusty flies as a two-ship (Dusty One-One and One-Two) for the first time; canon rule amended in the bible
+  (watch-mission exception, both serviceable airframes).
+- Reaper (UAV feed relayed by Hatay Ops) exists over the plain.
+- Status: implemented, not flown.

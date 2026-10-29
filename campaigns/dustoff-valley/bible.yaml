@@ -50,7 +50,7 @@ factions:
     dcs:
       country: USA
       coalition: blue
-      units: [A-10C_2, F-16C_50, UH-60A, M1126 Stryker ICV, M-2 Bradley, Hummer, M 818, M978 HEMTT Tanker, Soldier M4]
+      units: [A-10C_2, F-16C_50, UH-60A, M1126 Stryker ICV, M-2 Bradley, Hummer, M1043 HMMWV Armament, M1045 HMMWV TOW, M 818, M978 HEMTT Tanker, Soldier M4, Soldier M249]
 
   - id: ctf_uk
     name: "CTF Orontes — reconnaissance teams"
@@ -68,7 +68,7 @@ factions:
     dcs:
       country: CJTF Red
       coalition: red
-      units: [ZSU-23-4 Shilka, ZU-23 Emplacement Closed, Ural-375 ZU-23, Osa 9A33 ln, Strela-1 9P31, BMP-1, BRDM-2, T-55, Grad-URAL, Ural-375, SA-18 Igla manpad, Infantry AK]
+      units: [ZSU-23-4 Shilka, ZU-23 Emplacement Closed, Ural-375 ZU-23, Osa 9A33 ln, Strela-1 9P31, BMP-1, BMP-2, BTR-80, BRDM-2, T-55, Grad-URAL, Ural-375, ATMZ-5, SA-18 Igla manpad, SA-18 Igla-S manpad, Infantry AK, Soldier AK, Soldier RPG]
       tech_veneer: "Invented army; generic Soviet-pattern equipment of the 1970s-80s stands in for its inventory."
 
   - id: valley_militia
@@ -78,7 +78,7 @@ factions:
     dcs:
       country: Insurgents
       coalition: red
-      units: [HL_DSHK, tt_DSHK, HL_ZU-23, tt_ZU-23, Infantry AK Ins]
+      units: [HL_DSHK, tt_DSHK, HL_ZU-23, tt_ZU-23, HL_KORD, Infantry AK Ins, Soldier AK, Soldier RPG]
 
   - id: valley_civilians
     name: "Valley civilians"
@@ -320,6 +320,31 @@ characters:
       eleven_voice_id: vIuLMrDs3Mbl0w5kvuKe
       notes: "Mask mic. Two to five words per call when he can."
 
+  - id: warden_booker
+    name: "SFC Andre Booker"
+    callsign: "Warden Three-One"
+    role: mounted reconnaissance patrol leader (US cavalry troop, CTF Orontes)
+    faction: ctf_us
+    real_person: false
+    description: >-
+      Leads a mounted reconnaissance patrol (Warden Three-One dismounts, Warden Three-Two's three
+      HMMWVs) sent east of the Amik valley to watch the Idlib plain road. Fourteen years in, two
+      tours. Loud on the radio only because the rifles are louder; never drops format.
+    arc: "Introduced in w02 (in contact east of Binnish, extracted by Dustoff behind his own line)."
+    voice:
+      design_prompt: >-
+        Male US Army sergeant first class, late 30s, African-American, General American accent,
+        high-energy and hoarse, shouting over small-arms fire into a handheld radio. Breathing hard
+        while moving; relieved and steadier once he is out of contact. Keeps correct radio format.
+      accent: General American
+      age: 37
+      gender: male
+      cadence: brisk
+      brevity: normal
+      radio_fx: vhf_noisy
+      eleven_voice_id: KgoKSoe0uSDQXTd5sh94
+      notes: "Reuses the stock 'ground_troops' voice (Sgt Butterfield - Combat Ground). Shouts in contact; calm at the PZ."
+
   - id: hammer
     name: "HAMMER (coalition intelligence designator)"
     callsign: null
@@ -345,6 +370,9 @@ timeline:
   - date: "2012-04-11"
     event: "m01 First Light: first armed reconnaissance of the valley."
     fictional: true
+  - date: "2012-04-14"
+    event: "w02 Warden in Contact: a US mounted patrol is caught by militia and an NVC QRF east of Binnish on the Idlib plain."
+    fictional: true
 
 sources:
   - claim: "Hatay Airport serves Antakya in Hatay Province, southern Turkey."
@@ -367,7 +395,7 @@ sources:
     confidence: medium
 
 canon_rules:
-  - "Dusty flight is a single AH-64D. No wingman unless the arc adds one."
+  - "Dusty flight is a single AH-64D. No wingman unless the arc adds one. Exception: in watch missions both serviceable airframes may fly as Dusty One-One and One-Two (w02)."
   - "Hatay is the only friendly airfield and the only divert."
   - "Enemy air defence is guns and short-range SAMs only (no long-range radar SAMs) until act 3."
   - "Real towns and terrain keep their names; no real nation, unit, operation or person is depicted."

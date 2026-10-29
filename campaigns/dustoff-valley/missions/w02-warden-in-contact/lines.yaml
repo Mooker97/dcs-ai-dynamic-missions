@@ -1,0 +1,415 @@
+# w02 Warden in Contact — voice lines (WATCH mission). Schema: schemas/voice-lines.schema.json (VoiceLineSet).
+# Budget: v1 of every spine and action beat is voiced (<= 6,000 voiced characters); minor variants and
+# filler are `voiced: false` (subtitle only, never sent to ElevenLabs).
+# ORDER = RENDER PRIORITY: if credits run out mid-render, whatever rendered keeps its audio and the rest
+# falls back to subtitles, so the spine comes first, then the action, then reactions, then fallbacks.
+# Style: callsign-first, terse, no cheering. Eleven v3 tags only where the speaker is under fire.
+mission_id: w02-warden-in-contact
+model: eleven_v3
+lines:
+  # ===== Priority 1: the spine (voiced) =========================================================
+  - id: ops_start_v1
+    speaker: ops_walsh
+    beat: mission_start
+    delivery: "Routine tasking, dry, a shade quicker than usual."
+    text: "Dusty, Dustoff, Hatay Ops. Warden in contact east of Binnish. Cleared in."
+  - id: warden_contact_v1
+    speaker: warden_booker
+    beat: warden_contact
+    delivery: "Shouting over rifle fire, breathing hard, still in format."
+    text: "[shouting] Dusty, Warden Three-One. Troops in contact. Militia five hundred metres east. Two wounded."
+    subtitle: "Dusty, Warden Three-One. Troops in contact. Militia five hundred metres east. Two wounded."
+  - id: ops_qrf_v1
+    speaker: ops_walsh
+    beat: qrf_spotted
+    delivery: "Measured, reading off a screen."
+    text: "Dusty, Ops. Reaper has a column leaving Taftanaz. Armour and a gun."
+  - id: ops_strike_v1
+    speaker: ops_walsh
+    beat: strike_cleared
+    delivery: "Every word deliberate."
+    text: "Venom One-One, Hatay Ops. Column on the Taftanaz road. Cleared hot."
+  - id: warden_moving_v1
+    speaker: warden_booker
+    beat: warden_moving
+    delivery: "Out of breath, moving, fire still behind him."
+    text: "[breathing heavily] Dusty, Warden. Breaking contact. Moving west to the PZ. Cover us."
+    subtitle: "Dusty, Warden. Breaking contact. Moving west to the PZ. Cover us."
+  - id: warden_at_pz_v1
+    speaker: warden_booker
+    beat: warden_at_pz
+    delivery: "Winded, relieved, back in control."
+    text: "Dustoff, Warden. At the PZ. Eight pax, two litter. PZ is secure."
+  - id: dustoff_inbound_v1
+    speaker: dustoff_whitfield
+    beat: dustoff_inbound
+    delivery: "Businesslike, rotor noise behind."
+    text: "Warden, Dustoff Three-One. Inbound from the west. One minute."
+  - id: dustoff_lifting_v1
+    speaker: dustoff_whitfield
+    beat: dustoff_lifting
+    delivery: "Strained by max power, still even."
+    text: "Dustoff Three-One lifting. Eight aboard. Low level, westbound."
+  - id: ops_clear_v1
+    speaker: ops_walsh
+    beat: dustoff_clear
+    delivery: "Dry; the faintest release of tension."
+    text: "Dustoff, Hatay Ops. Copy clear. Surgical team on the pad."
+
+  # ===== Priority 2: the action (voiced) =======================================================
+  - id: dusty_check_in_v1
+    speaker: dusty_brennan
+    beat: dusty_check_in
+    delivery: "Flat, working voice."
+    text: "Warden, Dusty One-One, two Apaches. Three minutes. Hold on."
+  - id: warden_cleared_hot_v1
+    speaker: warden_booker
+    beat: warden_cleared_hot
+    delivery: "Fast, loud, rounds cracking overhead."
+    text: "[urgent] Dusty, Warden. Farm wall, five hundred east. Cleared hot. Danger close."
+    subtitle: "Dusty, Warden. Farm wall, five hundred east. Cleared hot. Danger close."
+  - id: dusty_launch_v1
+    speaker: dusty_brennan
+    beat: missile_launch
+    delivery: "Sharp, fast, the only raised voice he has."
+    text: "[urgent] Dusty One-Two, missile launch south. Flares, break left."
+    subtitle: "Dusty One-Two, missile launch south. Flares, break left."
+  - id: venom_bombs_v1
+    speaker: venom_lindqvist
+    beat: bombs_away
+    delivery: "Clipped, through the mask."
+    text: "Venom One-One, bombs away. Thirty seconds."
+  - id: dusty_qrf_v1
+    speaker: dusty_brennan
+    beat: dusty_qrf_tally
+    delivery: "Calm, already planning."
+    text: "Ops, Dusty. Copy the column. Taking the gun first."
+  - id: venom_copy_v1
+    speaker: venom_lindqvist
+    beat: venom_copy
+    delivery: "Flat, mask breath."
+    text: "Venom One-One, cleared hot. Three minutes."
+  - id: warden_manpads_v1
+    speaker: warden_booker
+    beat: manpads_warning
+    delivery: "Urgent, pointing it out to someone beside him too."
+    text: "Dusty, Warden. Missile team, farm buildings north of the road."
+  - id: ops_ambush_v1
+    speaker: ops_walsh
+    beat: ambush_warning
+    delivery: "Quick, flat, no alarm in it."
+    text: "Dusty, Ops. Reaper sees a missile tube, south of the road."
+  - id: dusty_covering_v1
+    speaker: dusty_brennan
+    beat: dusty_covering
+    delivery: "Short, firm."
+    text: "Warden, Dusty. Covering. Go now."
+  - id: dustoff_down_v1
+    speaker: dustoff_whitfield
+    beat: dustoff_down
+    delivery: "Clipped, rotor wash and shouting outside."
+    text: "Dustoff on the ground. Load them up."
+  - id: dusty_bda_v1
+    speaker: dusty_brennan
+    beat: strike_bda
+    delivery: "Even, a beat of satisfaction he keeps out of it."
+    text: "Venom, Dusty. Good hits on the column. Nothing moving."
+  - id: dusty_aa_dead_v1
+    speaker: dusty_brennan
+    beat: qrf_aa_dead
+    delivery: "Flat, slightly breathless."
+    text: "Ops, Dusty. Gun's destroyed. Moving to the lead vehicle."
+  - id: dusty_on_station_v1
+    speaker: dusty_brennan
+    beat: dusty_on_station
+    delivery: "Working voice."
+    text: "Warden, Dusty. On station west of you. Tally the farm wall."
+  - id: dusty_aa_fire_v1
+    speaker: dusty_brennan
+    beat: qrf_aa_firing
+    delivery: "Quick, controlled."
+    text: "Dusty One-Two, gun's firing. Drop behind the tree line."
+  - id: dusty_qrf_hit_v1
+    speaker: dusty_brennan
+    beat: qrf_hit
+    delivery: "Flat."
+    text: "Ops, Dusty. Lead vehicle's burning. Column's stopped."
+  - id: warden_vehicle_lost_v1
+    speaker: warden_booker
+    beat: gunvee_lost
+    delivery: "Angry, clipped, holding it in."
+    text: "Dusty, Warden. Three-Two lost a truck. RPG from the orchard."
+  - id: dustoff_check_in_v1
+    speaker: dustoff_whitfield
+    beat: dustoff_check_in
+    delivery: "Calm, warm underneath."
+    text: "Warden, Dustoff Three-One. Holding west. Call me at the PZ."
+  - id: dusty_escort_v1
+    speaker: dusty_brennan
+    beat: dusty_escort
+    delivery: "Low, easy."
+    text: "Dustoff, Dusty. On your left. Keep it low."
+  - id: warden_good_hits_v1
+    speaker: warden_booker
+    beat: militia_hit
+    delivery: "Loud, a breath of relief."
+    text: "Dusty, Warden. Good hits. Fire's slackening."
+  - id: warden_qrf_close_v1
+    speaker: warden_booker
+    beat: qrf_reached_fight
+    delivery: "Urgent, the noise of tracks behind."
+    text: "Dusty, Warden. Armour on the road, a click east. They're dismounting."
+  - id: dusty_hit_v1
+    speaker: dusty_brennan
+    beat: dusty_hit
+    delivery: "Tight, controlled."
+    text: "Dusty, taking fire. Still in the fight."
+
+  # ===== Priority 3: fallbacks and failure (v1 voiced) ==========================================
+  - id: warden_pz_late_v1
+    speaker: warden_booker
+    beat: pz_ready_timeout
+    delivery: "Running, gasping."
+    text: "Dustoff, Warden. Nearly at the PZ. Come now."
+  - id: ops_qrf_timeout_v1
+    speaker: ops_walsh
+    beat: qrf_spotted_timeout
+    delivery: "Measured."
+    text: "Dusty, Ops. Vehicles moving at Taftanaz. Expect a QRF."
+  - id: ops_status_v1
+    speaker: ops_walsh
+    beat: ops_say_status
+    delivery: "Dry, patient."
+    text: "Warden, Hatay Ops. Say status. Can you move?"
+  - id: warden_status_v1
+    speaker: warden_booker
+    beat: warden_status_reply
+    delivery: "Strained, firing between words."
+    text: "Ops, Warden. Still pinned. Moving once the jets hit."
+  - id: dusty_dustoff_down_v1
+    speaker: dusty_brennan
+    beat: dustoff_lost
+    delivery: "Flat, very quiet."
+    text: "Ops, Dusty. Dustoff is down. Marking the site."
+  - id: ops_dustoff_down_v1
+    speaker: ops_walsh
+    beat: dustoff_lost_end
+    delivery: "Fewer words, same voice."
+    text: "Dusty, Hatay Ops. Copy. CSAR is launching. Hold overhead."
+  - id: ops_timeout_ok_v1
+    speaker: ops_walsh
+    beat: timeout_end_ok
+    delivery: "Dry."
+    text: "Dustoff, Hatay Ops. Copy Warden aboard. Surgical team standing by."
+  - id: ops_timeout_fail_v1
+    speaker: ops_walsh
+    beat: timeout_end_fail
+    delivery: "Level, owning it."
+    text: "Warden, Hatay Ops. Ground QRF is coming to you. Hold the PZ."
+  - id: warden_dusty_down_v1
+    speaker: warden_booker
+    beat: dusty_lost
+    delivery: "Shocked, then back in format."
+    text: "Ops, Warden. Apaches are down. We need the jets."
+
+  # ===== Priority 4: repeatable reaction variants (voiced), then subtitle-only filler (voiced: false) ===
+  - id: dusty_launch_v2
+    speaker: dusty_brennan
+    beat: missile_launch
+    text: "Dusty One-One, launch north. Flares, breaking right."
+  - id: dusty_launch_v3
+    speaker: dusty_brennan
+    beat: missile_launch
+    text: "Dusty, missile in the air. Flares, flares."
+  - id: dusty_hit_v2
+    speaker: dusty_brennan
+    beat: dusty_hit
+    text: "Dusty One-Two, hit. Systems good. Staying."
+  - id: dusty_hit_v3
+    speaker: dusty_brennan
+    beat: dusty_hit
+    voiced: false
+    text: "Dusty, rounds through the tail. Still flying."
+  - id: dusty_on_station_v2
+    speaker: dusty_brennan
+    beat: dusty_on_station
+    voiced: false
+    text: "Warden, Dusty. Overhead west. Contact the wall east of you."
+  - id: dusty_on_station_v3
+    speaker: dusty_brennan
+    beat: dusty_on_station
+    voiced: false
+    text: "Warden, Dusty, two Apaches on station. Tally your enemy."
+  - id: dustoff_holding_v1
+    speaker: dustoff_whitfield
+    beat: dustoff_holding
+    voiced: false
+    text: "Dustoff Three-One, holding west. Ready when you are."
+  - id: dustoff_holding_v2
+    speaker: dustoff_whitfield
+    beat: dustoff_holding
+    voiced: false
+    text: "Dustoff, in the hold. Medic's ready."
+  - id: dustoff_holding_v3
+    speaker: dustoff_whitfield
+    beat: dustoff_holding
+    voiced: false
+    text: "Dustoff Three-One, orbiting west. Call the PZ."
+  - id: warden_good_hits_v2
+    speaker: warden_booker
+    beat: militia_hit
+    voiced: false
+    text: "Dusty, Warden. On target. Keep it coming."
+  - id: warden_good_hits_v3
+    speaker: warden_booker
+    beat: militia_hit
+    voiced: false
+    text: "Dusty, Warden. Good effect on the wall. They're moving north."
+  - id: warden_more_hits_v1
+    speaker: warden_booker
+    beat: militia_kill_followup
+    text: "Warden. Another one down on the wall."
+  - id: warden_more_hits_v2
+    speaker: warden_booker
+    beat: militia_kill_followup
+    voiced: false
+    text: "Warden. Good hit. One less shooter."
+  - id: warden_more_hits_v3
+    speaker: warden_booker
+    beat: militia_kill_followup
+    voiced: false
+    text: "Warden. That's the gun on the corner. Thanks."
+  - id: warden_vehicle_lost_v2
+    speaker: warden_booker
+    beat: gunvee_lost
+    voiced: false
+    text: "Dusty, Warden. Three-Two's hit. One vehicle burning."
+  - id: warden_vehicle_lost_v3
+    speaker: warden_booker
+    beat: gunvee_lost
+    voiced: false
+    text: "Dusty, Warden. We lost a Humvee. Crew's out."
+  - id: dusty_qrf_hit_v2
+    speaker: dusty_brennan
+    beat: qrf_hit
+    voiced: false
+    text: "Ops, Dusty. One B-T-R destroyed. Column's halting."
+  - id: dusty_qrf_hit_v3
+    speaker: dusty_brennan
+    beat: qrf_hit
+    voiced: false
+    text: "Ops, Dusty. Lead's hit. They're bunching on the road."
+  - id: dusty_qrf_more_v1
+    speaker: dusty_brennan
+    beat: qrf_kill_followup
+    text: "Dusty. Another one stopped on the road."
+  - id: dusty_qrf_more_v2
+    speaker: dusty_brennan
+    beat: qrf_kill_followup
+    voiced: false
+    text: "Dusty. One more. Re-attacking."
+  - id: dusty_qrf_more_v3
+    speaker: dusty_brennan
+    beat: qrf_kill_followup
+    voiced: false
+    text: "Dusty. Second vehicle's burning."
+  - id: warden_qrf_close_v2
+    speaker: warden_booker
+    beat: qrf_reached_fight
+    voiced: false
+    text: "Dusty, Warden. B-T-Rs at the road bend. Troops getting out."
+  - id: warden_qrf_close_v3
+    speaker: warden_booker
+    beat: qrf_reached_fight
+    voiced: false
+    text: "Dusty, Warden. QRF's here. One click east, dismounting."
+  - id: warden_pz_late_v2
+    speaker: warden_booker
+    beat: pz_ready_timeout
+    voiced: false
+    text: "Dustoff, Warden. Two hundred short. Land, we'll run to you."
+  - id: warden_pz_late_v3
+    speaker: warden_booker
+    beat: pz_ready_timeout
+    voiced: false
+    text: "Dustoff, Warden. Slow with the litters. Come in anyway."
+  - id: ops_qrf_timeout_v2
+    speaker: ops_walsh
+    beat: qrf_spotted_timeout
+    voiced: false
+    text: "Dusty, Hatay Ops. Activity at Taftanaz. Watch the road east."
+  - id: ops_qrf_timeout_v3
+    speaker: ops_walsh
+    beat: qrf_spotted_timeout
+    voiced: false
+    text: "Dusty, Ops. Garrison's stirring. Expect armour from the east."
+  - id: ops_status_v2
+    speaker: ops_walsh
+    beat: ops_say_status
+    voiced: false
+    text: "Warden, Ops. Status. When can you move?"
+  - id: ops_status_v3
+    speaker: ops_walsh
+    beat: ops_say_status
+    voiced: false
+    text: "Warden, Hatay Ops. Say your status and casualties."
+  - id: warden_status_v2
+    speaker: warden_booker
+    beat: warden_status_reply
+    voiced: false
+    text: "Ops, Warden. Two wounded, stable. Need the wall gone before we move."
+  - id: warden_status_v3
+    speaker: warden_booker
+    beat: warden_status_reply
+    voiced: false
+    text: "Ops, Warden. Pinned. Ready to move on the strike."
+  - id: dusty_dustoff_down_v2
+    speaker: dusty_brennan
+    beat: dustoff_lost
+    voiced: false
+    text: "Ops, Dusty. Dustoff's down west of the PZ."
+  - id: dusty_dustoff_down_v3
+    speaker: dusty_brennan
+    beat: dustoff_lost
+    voiced: false
+    text: "Ops, Dusty. Lost Dustoff. Smoke at the crash site."
+  - id: ops_dustoff_down_v2
+    speaker: ops_walsh
+    beat: dustoff_lost_end
+    voiced: false
+    text: "Dusty, Ops. Copy. CSAR launching. Stay overhead."
+  - id: ops_dustoff_down_v3
+    speaker: ops_walsh
+    beat: dustoff_lost_end
+    voiced: false
+    text: "Dusty, Hatay Ops. Copy all. Second bird is spinning."
+  - id: ops_timeout_ok_v2
+    speaker: ops_walsh
+    beat: timeout_end_ok
+    voiced: false
+    text: "Dustoff, Ops. Copy all aboard. Straight to the pad."
+  - id: ops_timeout_ok_v3
+    speaker: ops_walsh
+    beat: timeout_end_ok
+    voiced: false
+    text: "Dustoff, Hatay Ops. Copy eight aboard. Surgeons are waiting."
+  - id: ops_timeout_fail_v2
+    speaker: ops_walsh
+    beat: timeout_end_fail
+    voiced: false
+    text: "Warden, Ops. Out of time for the bird. Ground relief inbound."
+  - id: ops_timeout_fail_v3
+    speaker: ops_walsh
+    beat: timeout_end_fail
+    voiced: false
+    text: "Warden, Hatay Ops. Hold the PZ. Relief by road."
+  - id: warden_dusty_down_v2
+    speaker: warden_booker
+    beat: dusty_lost
+    voiced: false
+    text: "Ops, Warden. Apache's gone in, east of us."
+  - id: warden_dusty_down_v3
+    speaker: warden_booker
+    beat: dusty_lost
+    voiced: false
+    text: "Ops, Warden. We've lost air cover. Need the jets now."

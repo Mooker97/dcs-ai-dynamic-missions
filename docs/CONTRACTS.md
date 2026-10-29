@@ -1164,6 +1164,15 @@ reach `outcomes`/flags with `--acmi-facts`.
   The runtime calls `DMS.Ground.routeTo(group, zoneCentre, {speed, action})` plus `Ground.watch`.
   When the group's lead is within max(150 m, zone radius) of the target, it emits
   `ground.arrived {group, zone}`, and beats can trigger on that event.
+  Implemented as `BeatEffects.move_group: BeatMoveGroup` (`group`, `to`, `speed_kts`, `off_road`;
+  `speed_mps`/`action` are filled by `dms plan`, `dms_gen.planner.moves`). Infantry = every unit
+  an infantry type. `dms validate`: `to` not an area id is an error; `group` not a
+  support/flight/threat/pool id is a warning. Runtime: `DMS.Narrative.moveGroup(mv, beatId)`
+  logs `[DMS][Narrative] moveGroup '<g>' -> <zone> (<action>, <speed> m/s)` and
+  `moveGroup '<g>' arrived at <zone>`; it polls every 3 s and stops when the group dies.
+- Beat `group` filter (all events): equal, or the name is `<group>_...` / `<group>-...` (a leading
+  `DMS_` stripped), so `when: {event: ground.arrived, group: kestrel}` matches `kestrel_1`
+  (`sam_1` does not match `sam_10`).
 - `Support.immortal: bool` (default false) adds a SetImmortal command to the group at mission
   start. This works for any support with a group (friendly_ground, jtac, convoy).
 

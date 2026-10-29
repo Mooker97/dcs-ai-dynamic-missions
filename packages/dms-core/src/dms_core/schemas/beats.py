@@ -44,6 +44,7 @@ BeatEvent = Literal[
     "convoy.halted",
     "convoy.resumed",
     "ground.stuck",
+    "ground.arrived",
     "intel.revealed",
     "flight.order",
     "flight.arrived",
@@ -76,6 +77,10 @@ _CAMEL_KEYS: dict[str, str] = {
     "qualityDeltas": "quality_deltas",
     "endMission": "end_mission",
     "directorState": "director_state",
+    "moveGroup": "move_group",
+    "speedKts": "speed_kts",
+    "offRoad": "off_road",
+    "speedMps": "speed_mps",
 }
 
 
@@ -270,6 +275,44 @@ class BeatSpeak(DMSModel):
     )
 
 
+class BeatMoveGroup(DMSModel):
+    """Send a ground group to an area on cue; the runtime emits ground.arrived {group, zone} there.
+
+    Authors write group/to (+ optional speed_kts/off_road). `dms plan` resolves support/flight ids
+    to DCS group names and fills speed_mps/action (runtime: {group, to, speedMps, action}).
+    """
+
+    group: str = Field(
+        min_length=1,
+        description=(
+            "Support id, flight id or threat/pool id (support/flight ids are resolved to the DCS "
+            "group name by `dms plan`; anything else is a group-name prefix resolved at runtime)."
+        ),
+    )
+    to: Ident = Field(description="Area id (zone) to drive to; the group heads for its centre.")
+    speed_kts: float | None = Field(
+        default=None, gt=0, description="Speed in knots (default 4 m/s, about 7.8 kts)."
+    )
+    off_road: bool | None = Field(
+        default=None,
+        description="Drive cross-country ('Off Road'); null = off-road for infantry, else on road.",
+    )
+    speed_mps: float | None = Field(
+        default=None,
+        gt=0,
+        description="Runtime speed in m/s (set by `dms plan` from speed_kts; don't write it).",
+    )
+    action: Literal["On Road", "Off Road"] | None = Field(
+        default=None,
+        description="Runtime DCS route action (set by `dms plan` from off_road; don't write it).",
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _camel(cls, data: Any) -> Any:
+        return _snake_keys(data) if isinstance(data, dict) else data
+
+
 class BeatEffects(DMSModel):
     """What the beat changes when it fires."""
 
@@ -310,6 +353,14 @@ class BeatEffects(DMSModel):
     )
     mark: BeatMark | None = Field(
         default=None, description="F10 mark dropped when the beat itself has no `mark`."
+    )
+    move_group: BeatMoveGroup | None = Field(
+        default=None,
+        description=(
+            "Send a ground group to an area: {group, to, speed_kts?, off_road?}. When its lead is "
+            "within max(150 m, zone radius) of the area centre the runtime emits ground.arrived "
+            "{group, zone}, which beats can trigger on."
+        ),
     )
 
     @model_validator(mode="before")

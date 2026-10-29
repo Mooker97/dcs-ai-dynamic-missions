@@ -84,6 +84,7 @@ from .context import (
 )
 from .flights import compile_flights, group_base_name, plan_flight_group, watch_config
 from .loadouts import payload_for
+from .moves import compile_moves
 from .radios import plan_comms
 
 Manifest = Mapping[str, Mapping[str, Any]]
@@ -799,6 +800,7 @@ class _Planner:
             if s.role == "tanker":
                 g.tacan = s.tacan
             g.radio_callsign = self._support_callsign(s, tpl.units[0][0], country)
+            g.immortal = s.immortal
             return g
         if s.role not in ("convoy", "friendly_ground", "jtac"):
             return None  # medevac / farp: not supported by the builder yet (validate warns)
@@ -838,6 +840,7 @@ class _Planner:
             frequency_mhz=s.frequency_mhz,
             modulation=radio_modulation(s.frequency_mhz, s.modulation),  # type: ignore[arg-type]
             source=s.id,
+            immortal=s.immortal,
         )
 
     def _support_callsign(self, s: Support, aircraft: str, country: str) -> str | None:
@@ -1246,7 +1249,7 @@ def plan_mission(
     manifest, mdir = load_manifest(voice_manifest)
     sound_dir = Path(voice_dir) if voice_dir is not None else mdir
     voice = build_voice_map(lines, manifest)
-    runtime = p.runtime(rt_zones, beat_list, voice, debug)
+    runtime = p.runtime(rt_zones, compile_moves(beat_list, spec, p.groups), voice, debug)
     runtime.speakers = build_speakers(spec, bible, lines)
     runtime.flights = compile_flights(spec, p.groups, p.areas)
     runtime.watch = watch_config(spec, p.groups)

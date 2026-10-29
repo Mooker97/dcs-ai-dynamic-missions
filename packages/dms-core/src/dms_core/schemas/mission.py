@@ -265,6 +265,10 @@ class Support(DMSModel):
         pattern=r"^([1-9]|[1-9][0-9]|1[0-1][0-9]|12[0-6])[XY]$",
         description="Tanker TACAN channel, e.g. '51Y'. Null = the builder default ('10X'). Ignored for other roles.",
     )
+    immortal: bool = Field(
+        default=False,
+        description="SetImmortal at mission start (any support with a group: friendly_ground, jtac, convoy, AWACS/tanker).",
+    )
 
 
 class Objective(DMSModel):

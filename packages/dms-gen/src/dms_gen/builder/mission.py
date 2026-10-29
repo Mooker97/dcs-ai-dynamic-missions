@@ -727,8 +727,12 @@ class MissionBuilder:
         hidden: bool = False,
         waypoints: Sequence[WaypointLike] = (),
         skill: Skill = "Average",
+        immortal: bool = False,
     ) -> unitgroup.VehicleGroup:
-        """Ground group at ``position``; unit offsets are relative to it. Waypoints speed km/h."""
+        """Ground group at ``position``; unit offsets are relative to it. Waypoints speed km/h.
+
+        ``immortal`` adds a SetImmortal command to the first (start) waypoint.
+        """
         m = self.mission
         c = self.country(coalition, country)
         specs = [as_unit(u) for u in units]
@@ -753,6 +757,8 @@ class MissionBuilder:
         first_speed = wps[0].speed if wps else 0
         wp0 = vg.add_waypoint(vg.units[0].position, first_action, first_speed)
         wp0.ETA_locked = True
+        if immortal:
+            wp0.tasks.append(task.SetImmortalCommand(True))
         for w in wps:
             vg.add_waypoint(
                 self.point(w.x, w.y),

@@ -27,6 +27,7 @@ from typing import TYPE_CHECKING, Any
 
 from dcs import action as dcs_action
 from dcs import condition as dcs_condition
+from dcs import task as dcs_task
 from dcs import triggers as dcs_triggers
 from dcs.forcedoptions import ForcedOptions
 
@@ -178,6 +179,7 @@ def _add_group(b: MissionBuilder, g: PlanGroup) -> None:
                     for p in route
                 ],
                 skill=skill,  # type: ignore[arg-type]
+                immortal=g.immortal,
             )
         else:
             b.add_ship_group(
@@ -264,6 +266,8 @@ def _add_group(b: MissionBuilder, g: PlanGroup) -> None:
             callsign=_parse_callsign(g.radio_callsign),
             modulation=g.modulation,
         )
+        if g.immortal and group.points:  # support AWACS/tanker
+            group.points[0].tasks.append(dcs_task.SetImmortalCommand(True))
     b.rename_units(group, [u.name for u in g.units])
     group.late_activation = g.late_activation
     group.hidden = g.hidden

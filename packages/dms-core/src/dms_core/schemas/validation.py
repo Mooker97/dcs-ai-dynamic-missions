@@ -70,6 +70,12 @@ def validate_mission_bundle(
     pool_ids = [p.id for p in spec.dynamic.pools]
     encounter_ids = [e.id for e in spec.dynamic.encounters]
     beat_ids = [b.id for b in beat_list]
+    group_ids = [
+        *(s.id for s in spec.support),
+        *(f.id for f in spec.flights),
+        *(t.id for t in spec.threats),
+        *pool_ids,
+    ]
     line_map = lines.by_id()
     speakers = set(spec.cast)
     if bible is not None:
@@ -130,6 +136,21 @@ def validate_mission_bundle(
             _ref(issues, path, enc, encounter_ids, "encounter")
         if b.effects.spawn_pool:
             _ref(issues, bp + ".effects.spawn_pool", b.effects.spawn_pool, pool_ids, "pool")
+        mg = b.effects.move_group
+        if mg is not None:
+            _ref(issues, bp + ".effects.move_group.to", mg.to, area_ids, "area")
+            if mg.group not in group_ids:
+                issues.append(
+                    Issue(
+                        path=bp + ".effects.move_group.group",
+                        problem=(
+                            f"move_group group '{mg.group}' is not a support/flight/threat/pool "
+                            "id; it is used as a runtime group-name prefix"
+                        ),
+                        suggestions=suggest(mg.group, group_ids),
+                        severity="warning",
+                    )
+                )
         if b.mark and b.mark.at.startswith("zone:"):
             _ref(issues, bp + ".mark.at", b.mark.at[5:], area_ids, "zone/area")
 

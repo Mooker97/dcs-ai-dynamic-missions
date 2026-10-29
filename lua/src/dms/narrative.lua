@@ -2,7 +2,8 @@
 -- A beat is *triggered* by its `when` (edge), rolls `chance` once per trigger, then waits in a short
 -- pending queue until `requires`, `once`, `cooldownSec` and the global min gap allow it to fire.
 -- Among ready beats the highest priority fires first (ties random).
--- Depends on: DMS.Log, DMS.Clock, DMS.Bus, DMS.Rng; optional DMS.Comms, DMS.Intel, DMS.Encounters.
+-- Depends on: DMS.Log, DMS.Clock, DMS.Bus, DMS.Rng; optional DMS.Comms, DMS.Intel, DMS.Encounters,
+-- DMS.Spawner, DMS.Ground (moveGroup effect).
 DMS = DMS or {}
 DMS.Narrative = DMS.Narrative or {}
 
@@ -13,6 +14,9 @@ N.TICK_SEC = 1
 N.MIN_GAP_SEC = 8 -- override: DMS_CONFIG.narrative.minGapSec
 N.PENDING_TTL_SEC = 45 -- override: DMS_CONFIG.narrative.pendingTtlSec
 N.ZONE_POLL_SEC = 3 -- override: DMS_CONFIG.narrative.zonePollSec
+N.MOVE_POLL_SEC = 3 -- moveGroup arrival poll
+N.MOVE_ARRIVE_MIN_M = 150 -- arrival radius = max(this, zone radius)
+N.MOVE_DEFAULT_MPS = 4 -- moveGroup default speed
 
 local function cfg()
   return DMS_CONFIG or {}
@@ -72,6 +76,7 @@ local function freshState()
     result = nil,
     tokens = {},
     clocks = {},
+    moves = {}, -- group name -> arrival poll clock id (moveGroup)
     started = false,
     pumping = false,
   }
@@ -411,6 +416,100 @@ local function asList(v)
   return { v }
 end
 
+local function aliveGroup(name)
+  if DMS.Ground and DMS.Ground.aliveUnits then
+    return #DMS.Ground.aliveUnits(name) > 0
+  end
+  return false
+end
+
+-- Resolve a moveGroup group: exact live group, else DMS.Intel.resolveGroup (prefix, DMS_ stripped).
+local function resolveMoveGroup(name)
+  if type(name) ~= "string" then
+    return nil
+  end
+  if aliveGroup(name) then
+    return name
+  end
+  if DMS.Intel and DMS.Intel.resolveGroup then
+    return DMS.Intel.resolveGroup(name)
+  end
+  return nil
+end
+
+local function cancelMove(name)
+  local s = N._s
+  local id = s.moves[name]
+  if id and DMS.Clock then
+    DMS.Clock.cancel(id)
+  end
+  s.moves[name] = nil
+end
+
+-- effects.moveGroup = {group, to, speedMps, action}: route the group to the zone centre, watch it
+-- for getting stuck and emit ground.arrived {group, zone} once when its lead is within
+-- max(150 m, zone radius) of the centre. Returns true when the route was issued.
+function N.moveGroup(mv, beatId)
+  if type(mv) ~= "table" or not mv.group or not mv.to then
+    log("warn", "beat '%s': moveGroup needs group and to", tostring(beatId))
+    return false
+  end
+  local name = resolveMoveGroup(mv.group)
+  if not name then
+    log("warn", "beat '%s': moveGroup skipped - no live group '%s'", tostring(beatId), tostring(mv.group))
+    return false
+  end
+  local zone = DMS.Spawner and DMS.Spawner.getZone and DMS.Spawner.getZone(mv.to)
+  local centre = zone and DMS.Spawner.zoneCenter(zone)
+  if not centre then
+    log("warn", "beat '%s': moveGroup '%s' skipped - unknown zone '%s'", tostring(beatId), name, tostring(mv.to))
+    return false
+  end
+  if not (DMS.Ground and DMS.Ground.routeTo) then
+    log("warn", "beat '%s': moveGroup '%s' skipped - DMS.Ground missing", tostring(beatId), name)
+    return false
+  end
+  local speed = tonumber(mv.speedMps) or N.MOVE_DEFAULT_MPS
+  local action = mv.action or "On Road"
+  if not DMS.Ground.routeTo(name, centre, { speed = speed, action = action }) then
+    log("warn", "beat '%s': moveGroup '%s' -> %s: route failed", tostring(beatId), name, tostring(mv.to))
+    return false
+  end
+  log("info", "moveGroup '%s' -> %s (%s, %.1f m/s)", name, tostring(mv.to), action, speed)
+  if DMS.Ground.watch then
+    DMS.Ground.watch(name)
+  end
+  cancelMove(name)
+  local radius = (DMS.Spawner.zoneRadius and DMS.Spawner.zoneRadius(zone)) or 0
+  local arriveM = math.max(N.MOVE_ARRIVE_MIN_M, radius)
+  local zid = mv.to
+  if DMS.Clock then
+    N._s.moves[name] = DMS.Clock.every(N.MOVE_POLL_SEC, function()
+      local p = DMS.Ground.leadPos(name)
+      if not p then
+        log("info", "moveGroup '%s': group dead, stopped watching for %s", name, tostring(zid))
+        N._s.moves[name] = nil
+        return false
+      end
+      local py = p.z or p.y
+      local dx, dy = p.x - centre.x, py - centre.y
+      if math.sqrt(dx * dx + dy * dy) <= arriveM then
+        N._s.moves[name] = nil
+        log("info", "moveGroup '%s' arrived at %s", name, tostring(zid))
+        if DMS.Ground.unwatch then
+          DMS.Ground.unwatch(name)
+        end
+        if DMS.Bus then
+          DMS.Bus.emit("ground.arrived", { group = name, zone = zid })
+        end
+        return false
+      end
+      return true
+    end, { firstDelay = N.MOVE_POLL_SEC })
+  end
+  return true
+end
+
 local function applyEffects(beat)
   local e = beat.effects or {}
   -- flags
@@ -492,6 +591,13 @@ local function applyEffects(beat)
       end
     else
       log("warn", "beat '%s': pool '%s' requested but DMS.Spawner missing", beat.id, tostring(pool))
+    end
+  end
+  -- ground moves
+  if type(e.moveGroup) == "table" then
+    local ok, err = call(N.moveGroup, e.moveGroup, beat.id)
+    if not ok then
+      log("error", "moveGroup %s: %s", tostring(e.moveGroup.group), tostring(err))
     end
   end
   -- outcome / end
@@ -700,6 +806,21 @@ local function prefixMatch(name, prefix)
 end
 N._prefixMatch = prefixMatch
 
+-- `group` filter fallback: the name is <id>_<n> / <id>-<n> (optionally DMS_-prefixed), so a support
+-- or flight id like "kestrel" matches the DCS group "kestrel_1" but "sam_1" does not match "sam_10".
+local function groupIdMatch(name, id)
+  if not prefixMatch(name, id) then
+    return false
+  end
+  local rest = string.sub(name, #id + 1)
+  if string.sub(name, 1, #id) ~= id then
+    rest = string.sub(name, #id + 5)
+  end
+  local c = string.sub(rest, 1, 1)
+  return c == "_" or c == "-"
+end
+N._groupIdMatch = groupIdMatch
+
 local function isPlayerUnit(u)
   if type(u) ~= "string" then
     return false
@@ -790,7 +911,7 @@ local function matchesFilters(w, payload, name)
       elseif k == "groupPrefix" or k == "group_prefix" then
         ok = prefixMatch(group, v)
       elseif k == "group" then
-        ok = group == v
+        ok = group == v or groupIdMatch(group, v)
       elseif k == "unitPrefix" or k == "unit_prefix" then
         ok = prefixMatch(subjectUnit(name, payload), v)
       elseif k == "unit" then
@@ -1179,6 +1300,9 @@ function N.stop()
     for _, id in ipairs(s.clocks) do
       DMS.Clock.cancel(id)
     end
+    for _, id in pairs(s.moves or {}) do
+      DMS.Clock.cancel(id)
+    end
   end
-  s.tokens, s.clocks, s.started = {}, {}, false
+  s.tokens, s.clocks, s.moves, s.started = {}, {}, {}, false
 end

@@ -183,6 +183,7 @@
             "convoy.halted",
             "convoy.resumed",
             "ground.stuck",
+            "ground.arrived",
             "intel.revealed",
             "flight.order",
             "flight.arrived",
@@ -2035,6 +2036,12 @@
           "default": null,
           "description": "Tanker TACAN channel, e.g. '51Y'. Null = the builder default ('10X'). Ignored for other roles.",
           "title": "Tacan"
+        },
+        "immortal": {
+          "default": false,
+          "description": "SetImmortal at mission start (any support with a group: friendly_ground, jtac, convoy, AWACS/tanker).",
+          "title": "Immortal",
+          "type": "boolean"
         }
       },
       "required": [

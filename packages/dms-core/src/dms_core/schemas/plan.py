@@ -175,7 +175,8 @@ class PlanGroup(DMSModel):
         ),
     )
     immortal: bool = Field(
-        default=False, description="Air groups: SetImmortal start command on the first waypoint."
+        default=False,
+        description="SetImmortal start command on the first waypoint (AI flights, support groups).",
     )
     invisible: bool = Field(
         default=False, description="Air groups: SetInvisible start command on the first waypoint."

@@ -742,6 +742,18 @@
           ],
           "default": null,
           "description": "F10 mark dropped when the beat itself has no `mark`."
+        },
+        "move_group": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BeatMoveGroup"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Send a ground group to an area: {group, to, speed_kts?, off_road?}. When its lead is within max(150 m, zone radius) of the area centre the runtime emits ground.arrived {group, zone}, which beats can trigger on."
         }
       },
       "title": "BeatEffects",
@@ -817,6 +829,89 @@
         "at"
       ],
       "title": "BeatMark",
+      "type": "object"
+    },
+    "BeatMoveGroup": {
+      "additionalProperties": false,
+      "description": "Send a ground group to an area on cue; the runtime emits ground.arrived {group, zone} there.\n\nAuthors write group/to (+ optional speed_kts/off_road). `dms plan` resolves support/flight ids\nto DCS group names and fills speed_mps/action (runtime: {group, to, speedMps, action}).",
+      "properties": {
+        "group": {
+          "description": "Support id, flight id or threat/pool id (support/flight ids are resolved to the DCS group name by `dms plan`; anything else is a group-name prefix resolved at runtime).",
+          "minLength": 1,
+          "title": "Group",
+          "type": "string"
+        },
+        "to": {
+          "description": "Area id (zone) to drive to; the group heads for its centre.",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.\\-]*$",
+          "title": "To",
+          "type": "string"
+        },
+        "speed_kts": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Speed in knots (default 4 m/s, about 7.8 kts).",
+          "title": "Speed Kts"
+        },
+        "off_road": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Drive cross-country ('Off Road'); null = off-road for infantry, else on road.",
+          "title": "Off Road"
+        },
+        "speed_mps": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Runtime speed in m/s (set by `dms plan` from speed_kts; don't write it).",
+          "title": "Speed Mps"
+        },
+        "action": {
+          "anyOf": [
+            {
+              "enum": [
+                "On Road",
+                "Off Road"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Runtime DCS route action (set by `dms plan` from off_road; don't write it).",
+          "title": "Action"
+        }
+      },
+      "required": [
+        "group",
+        "to"
+      ],
+      "title": "BeatMoveGroup",
       "type": "object"
     },
     "BeatSpeak": {
@@ -911,6 +1006,7 @@
             "convoy.halted",
             "convoy.resumed",
             "ground.stuck",
+            "ground.arrived",
             "intel.revealed",
             "flight.order",
             "flight.arrived",

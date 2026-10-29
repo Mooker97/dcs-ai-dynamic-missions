@@ -117,7 +117,7 @@ flights:
     orders:
       - {do: fly, to: gate_hold, alt_ft: 1000, speed_kts: 135}
       - {do: hold, at: gate_hold, alt_ft: 1000, speed_kts: 90, until: {flag: lz_cleared}, max_min: 6}
-      - {do: land, at: lz_ridge, ground_min: [1.25, 1.75], pickup: kestrel_casualty}
+      - {do: land, at: lz_ridge, alt_ft: 1000, speed_kts: 130, ground_min: [1.25, 1.75], pickup: kestrel_casualty}
       - {do: fly, to: egress_west, alt_ft: 300, speed_kts: 140}   # low-level dash out under the gun
       - {do: rtb}
 

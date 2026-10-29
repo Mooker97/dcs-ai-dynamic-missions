@@ -9,6 +9,13 @@ tagged **(flown)** once it has been verified in DCS. Everything else is "impleme
 
 ## [Unreleased]: v0.3 skeleton
 
+### Added (2026-10-30, implemented, not flown)
+- U3 kneeboard map page (`dms_gen.builder.kneeboard_map`): a deterministic 768x1024 PNG drawn
+  from `plan.json` only (graticule, north arrow, NM scale bar, bullseye, routes and steerpoints,
+  IP/TGT, friendly airbases, known threat rings, no-strike areas, steerpoint lat/lon list). It
+  never draws hidden threats. On by default (`MissionSpec.kneeboard.map` ->
+  `PlanOptions.kneeboard_map`).
+
 ### Added (2026-10-29, all implemented, not flown)
 - Few-prompt path: `dms-quickstart` skill, `dms install`, `dms doctor`, `dms run --install`.
 - `dms_core.lint`: 26 mission-quality rules (spine timeouts, telegraphs, radio density, peak

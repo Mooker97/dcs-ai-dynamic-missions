@@ -7,6 +7,7 @@ from .env import configure_dcs_environment
 from .geo import latlon_to_xy, point_in_polygon, random_point_in_polygon, xy_to_latlon
 from .inspect import MizSummary, inspect
 from .kneeboard import render_kneeboard, write_kneeboard_pages
+from .kneeboard_map import map_features, render_map_page, write_map_page
 from .mission import MissionBuilder, terrain_by_name
 from .payloads import PRESETS, pylon_options, resolve_payload
 from .specs import GroundWaypoint, UnitSpec
@@ -25,13 +26,16 @@ __all__ = [
     "inspect",
     "latlon_to_xy",
     "load_briefing",
+    "map_features",
     "point_in_polygon",
     "pylon_options",
     "random_point_in_polygon",
     "render_conditionals",
     "render_kneeboard",
+    "render_map_page",
     "resolve_payload",
     "terrain_by_name",
     "write_kneeboard_pages",
+    "write_map_page",
     "xy_to_latlon",
 ]

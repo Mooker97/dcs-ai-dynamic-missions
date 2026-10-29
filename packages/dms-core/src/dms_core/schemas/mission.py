@@ -604,6 +604,18 @@ PluginName = Literal["mist", "skynet", "moose"]
 """Optional pinned Lua plugins (lua/plugins/, docs/CONTRACTS.md "Optional plugins")."""
 
 
+class KneeboardOptions(DMSModel):
+    """Generated kneeboard pages (CONTRACTS "Briefing and kneeboard in the miz")."""
+
+    map: bool = Field(
+        default=True,
+        description=(
+            "Add the generated map page (route, steerpoints, bullseye, friendly airbases, known "
+            "threat rings, no-strike areas; hidden threats are never drawn)."
+        ),
+    )
+
+
 class MissionSpec(DMSModel):
     """Declarative mission spec (mission-spec.yaml). Areas by reference, forces by role."""
 
@@ -668,6 +680,9 @@ class MissionSpec(DMSModel):
     )
     test: MissionTestHints | None = Field(
         default=None, description="Headless test-build hints (dms build --test)."
+    )
+    kneeboard: KneeboardOptions = Field(
+        default_factory=KneeboardOptions, description="Generated kneeboard pages."
     )
     notes: str | None = Field(default=None, description="Designer notes; not compiled.")
 

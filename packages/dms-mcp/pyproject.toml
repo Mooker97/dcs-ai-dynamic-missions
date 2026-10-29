@@ -3,7 +3,7 @@ name = "dms-mcp"
 version = "0.3.0.dev0"
 description = "DMS MCP server (FastMCP, stdio): coarse tools over the generator library"
 requires-python = ">=3.11"
-dependencies = ["dms-core", "dms-gen", "dms-cli", "mcp>=1.9,<2"]
+dependencies = ["dms-core", "dms-gen", "dms-cli", "dms-voice", "mcp>=1.9,<2"]
 
 [build-system]
 requires = ["hatchling"]
@@ -16,6 +16,7 @@ packages = ["src/dms_mcp"]
 dms-core = { workspace = true }
 dms-gen = { workspace = true }
 dms-cli = { workspace = true }
+dms-voice = { workspace = true }
 
 [project.scripts]
 dms-mcp = "dms_mcp.server:main"

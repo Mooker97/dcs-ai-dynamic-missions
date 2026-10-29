@@ -18,22 +18,24 @@ from types import ModuleType
 from typing import Any
 
 from dms_cli.util import (
+    CHECK_FILE,
+    LINES_FILE,
     PLAN_FILE,
     CliError,
     Finding,
     MissionPaths,
+    eras_for,
     find_root,
     finding_from,
     latest_mtime,
     load_yaml,
     pydantic_findings,
+    record_check,
     resolve_mission,
     to_jsonable,
 )
 from pydantic import BaseModel, ValidationError
 
-#: Last check result, written next to the .miz by ``build`` and ``check``.
-CHECK_FILE = "check.json"
 TEST_DIR = "test"
 TEST_PLAN_FILE = "plan.test.json"
 ROOT_ENV = "DMS_ROOT"
@@ -541,23 +543,7 @@ def build(
 def _check_and_record(miz: Path) -> dict[str, Any]:
     from dms_gen.check import check_miz  # type: ignore[import-untyped,unused-ignore]
 
-    data: dict[str, Any] = to_jsonable(check_miz(miz))
-    record = miz.parent / CHECK_FILE
-    try:
-        existing = json.loads(record.read_text(encoding="utf-8")) if record.is_file() else {}
-    except (OSError, ValueError):
-        existing = {}
-    if not isinstance(existing, dict):
-        existing = {}
-    existing[miz.name] = {**data, "checked_at": _now()}
-    record.write_text(json.dumps(existing, indent=2), encoding="utf-8")
-    return data
-
-
-def _now() -> str:
-    import datetime
-
-    return datetime.datetime.now(datetime.UTC).isoformat(timespec="seconds")
+    return record_check(miz, check_miz(miz))
 
 
 def check(miz_path: str | Path, root: Path | None = None) -> dict[str, Any]:
@@ -690,4 +676,145 @@ def campaign_status(campaign_slug: str, root: Path | None = None) -> dict[str, A
         "outcomes": flown,
         "missions": missions,
         "arc_missions_not_designed": undesigned,
+    }
+
+
+# ---- read-only helpers: catalog / outcome / doctor / voice_estimate ----------------------------
+
+CATALOG_KINDS = ("units", "templates", "airbases", "mission-types")
+
+
+def catalog(
+    kind: str,
+    era: str | None = None,
+    coalition: str | None = None,
+    role: str | None = None,
+    category: str | None = None,
+    theater: str | None = None,
+    root: Path | None = None,
+) -> dict[str, Any]:
+    """Grounding lookups, the same rows as ``dms catalog <kind> --json``."""
+    from dms_core import catalog as cat_mod
+    from dms_core.catalog import CatalogLookupError
+
+    if kind not in CATALOG_KINDS:
+        raise OpError(f"unknown catalog kind {kind!r}; available: {', '.join(CATALOG_KINDS)}")
+    rows: list[dict[str, Any]]
+    try:
+        if kind == "airbases":
+            if not theater:
+                raise OpError("catalog kind 'airbases' needs theater (e.g. Caucasus, Syria)")
+            rows = [b.model_dump(mode="json") for b in cat_mod.find_airbases(theater)]
+        else:
+            cat_dir = repo_root(root) / "data" / "catalog"
+            cat = cat_mod.load_catalog(cat_dir if cat_dir.is_dir() else None)
+            if kind == "mission-types":
+                rows = [m.model_dump(mode="json") for m in cat.mission_types.values()]
+            elif kind == "units":
+                eras = eras_for(cat, era)
+                units = cat.find_units(coalition=coalition, role=role, category=category)
+                if eras is not None:
+                    units = [u for u in units if set(u.eras) & set(eras)]
+                rows = [u.model_dump(mode="json") for u in units]
+            else:
+                eras = eras_for(cat, era)
+                tpls = cat.find_templates(role=role, coalition=coalition, category=category)
+                if eras is not None:
+                    tpls = [t for t in tpls if not t.eras or set(t.eras) & set(eras)]
+                rows = [{**t.model_dump(mode="json"), "n_units": len(t.units)} for t in tpls]
+    except CatalogLookupError as exc:
+        raise OpError(str(exc)) from None
+    return {"ok": True, "kind": kind, "count": len(rows), "rows": rows}
+
+
+def outcome(
+    log_path: str | Path | None = None,
+    mission_id: str | None = None,
+    root: Path | None = None,
+) -> dict[str, Any]:
+    """``[DMS.OUTCOME]`` records from a dcs.log (default: newest stable/openbeta). Read-only."""
+    from dms_core import outcomes as oc
+    from dms_core.schemas import parse_dcs_log, summarize_outcomes
+
+    if log_path is not None:
+        given = _resolve(log_path, repo_root(root))
+        paths = oc.explicit_log_paths(given)
+        if not paths:
+            raise OpError(f"not found: {given}")
+    else:
+        paths = oc.default_log_paths()
+        if not paths:
+            raise OpError("no dcs.log found under Saved Games/DCS or DCS.openbeta; pass log_path")
+    log = paths[0]
+    recs = parse_dcs_log(oc.read_log(log))
+    if mission_id:
+        recs = [r for r in recs if r.mission_id == mission_id]
+    return {
+        "ok": True,
+        "log": str(log),
+        "count": len(recs),
+        "records": to_jsonable(recs),
+        "summary": to_jsonable(summarize_outcomes(recs)),
+    }
+
+
+def doctor(root: Path | None = None) -> dict[str, Any]:
+    """Toolchain checks, the same rows as ``dms doctor --json``. ``ok`` is false on any FAIL."""
+    from dms_cli import install
+
+    rows = install.run_doctor(repo_root(root))
+    return {
+        "ok": not any(r.status == "FAIL" for r in rows),
+        "checks": [r.to_dict() for r in rows],
+    }
+
+
+def voice_estimate(
+    mission: str | Path, offline: bool = False, root: Path | None = None
+) -> dict[str, Any]:
+    """Cost estimate of rendering a mission's lines.yaml (``dms voice --dry-run``).
+
+    Planning only (``dms_voice.render.plan_lines`` + the local TTS cache): no ElevenLabs client
+    is constructed and nothing is rendered or billed."""
+    from dms_voice.cli import load_line_set, resolve_voices
+    from dms_voice.render import PLACEHOLDER_MODEL, plan_lines
+
+    r = repo_root(root)
+    lines = _resolve(mission, r)
+    if lines.is_dir():
+        lines = lines / LINES_FILE
+    if not lines.is_file():
+        raise OpError(f"not found: {lines}")
+    try:
+        line_set = load_line_set(lines)
+        model = PLACEHOLDER_MODEL if offline else line_set.model
+        est = plan_lines(line_set.lines, resolve_voices(lines), model=model)
+    except ValidationError as exc:
+        from dms_core.schemas import VoiceLineSet
+
+        detail = "; ".join(f.render() for f in pydantic_findings(exc, lines.name, VoiceLineSet))
+        raise OpError(f"schema errors in {lines.name}: {detail}") from None
+    except (KeyError, ValueError, OSError) as exc:
+        raise OpError(f"estimate failed: {exc}") from None
+    return {
+        "ok": True,
+        "lines": _rel(lines, r),
+        "model": est.model,
+        "offline": est.offline,
+        "total_lines": est.total_lines,
+        "to_render": est.to_render,
+        "cached": est.total_lines - est.to_render,
+        "characters": est.characters,
+        "credits": est.credits,
+        "subtitle_only": list(est.subtitle_only),
+        "summary": est.summary(),
+        "per_line": [
+            {
+                "line_id": p.line_id,
+                "speaker": p.speaker,
+                "characters": p.characters,
+                "cached": p.cached,
+            }
+            for p in est.lines
+        ],
     }

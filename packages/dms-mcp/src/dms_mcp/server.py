@@ -1,4 +1,7 @@
-"""``dms-mcp``: a FastMCP stdio server exposing six coarse DMS tools.
+"""``dms-mcp``: a FastMCP stdio server exposing ten coarse DMS tools.
+
+Six workflow tools (validate, plan, build, check, schema, campaign_status) and four read-only
+helpers (catalog, outcome, doctor, voice_estimate).
 
 Relative paths resolve against the repo root (``$DMS_ROOT`` or the uv workspace found from the
 working directory). Every tool returns a dict with ``ok``; fixable failures come back as
@@ -18,7 +21,10 @@ INSTRUCTIONS = (
     "DMS turns campaign YAML into DCS World .miz missions. Typical loop for a mission folder "
     "(campaigns/<slug>/missions/mNN-<slug>): validate -> fix YAML (max 3 loops) -> plan -> "
     "build -> read the check result. Use schema(name) for the exact file format and "
-    "campaign_status(slug) to see what exists. Paths may be relative to the repo root. "
+    "campaign_status(slug) to see what exists, catalog(kind, ...) for valid DCS type names, "
+    "voice_estimate(mission) for a no-cost voice estimate, outcome() to read the last flight's "
+    "[DMS.OUTCOME] lines and doctor() to check the toolchain. Paths may be relative to the "
+    "repo root. "
     "Nothing here flies the mission; a built .miz is 'implemented, not flown'."
 )
 
@@ -119,6 +125,68 @@ def campaign_status(
     """Campaign overview: qualities/flags, debriefed outcomes, and per mission whether it is
     designed, voiced, planned, built, which out/ files exist and the last check result."""
     return ops.guarded(ops.campaign_status)(campaign_slug)
+
+
+# ---- read-only helpers -------------------------------------------------------------------------
+
+
+@mcp.tool()
+def catalog(
+    kind: Annotated[str, Field(description="units | templates | airbases | mission-types.")],
+    era: Annotated[
+        str | None, Field(description="Era id (e.g. modern, cold_war) or a year (e.g. 1985).")
+    ] = None,
+    coalition: Annotated[str | None, Field(description="blue | red | neutral.")] = None,
+    role: Annotated[str | None, Field(description="Role or tag, e.g. sam_short, mbt, cas.")] = None,
+    category: Annotated[
+        str | None, Field(description="Domain for units/templates, e.g. ground, air, ship.")
+    ] = None,
+    theater: Annotated[
+        str | None, Field(description="DCS map for kind=airbases, e.g. Caucasus, Syria.")
+    ] = None,
+) -> dict[str, Any]:
+    """Read-only grounding lookup (like `dms catalog <kind> --json`): DCS unit types, group
+    templates, airbases on a map, or mission types. Use it instead of guessing type names.
+    Returns kind, count and rows."""
+    return ops.guarded(ops.catalog)(kind, era, coalition, role, category, theater)
+
+
+@mcp.tool()
+def outcome(
+    log_path: Annotated[
+        str | None,
+        Field(
+            description="dcs.log or its Logs folder. Null: the newest stable/openbeta dcs.log "
+            "under Saved Games."
+        ),
+    ] = None,
+    mission_id: Annotated[str | None, Field(description="Only this mission id.")] = None,
+) -> dict[str, Any]:
+    """Read-only parse of [DMS.OUTCOME] lines from dcs.log (like `dms outcome --json`). Writes
+    nothing; campaign debriefs stay with the CLI (`dms debrief`). Returns log, count, records and
+    a per-mission summary."""
+    return ops.guarded(ops.outcome)(log_path, mission_id)
+
+
+@mcp.tool()
+def doctor() -> dict[str, Any]:
+    """Read-only toolchain check (like `dms doctor --json`): packages, Lua 5.1, ffmpeg, voice key
+    presence, DCS folders, Lua bundle, Git LFS, uv. ok is false when any check FAILs. Returns
+    checks (name, status, detail, fix)."""
+    return ops.guarded(ops.doctor)()
+
+
+@mcp.tool()
+def voice_estimate(
+    mission: Annotated[str, Field(description="Mission folder or its lines.yaml.")],
+    offline: Annotated[
+        bool, Field(description="Estimate placeholder tone clips (0 credits) instead.")
+    ] = False,
+) -> dict[str, Any]:
+    """Dry-run cost estimate of voicing a mission (like `dms voice --dry-run`). Never calls
+    ElevenLabs and renders nothing. Returns lines to render, cached count, characters, credits
+    and per-line detail."""
+    return ops.guarded(ops.voice_estimate)(mission, offline)
 
 
 def main() -> None:

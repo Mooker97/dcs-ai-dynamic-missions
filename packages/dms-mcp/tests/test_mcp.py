@@ -193,13 +193,184 @@ def test_campaign_status_unknown(repo: Path) -> None:
     assert "dustoff-valley" in res["error"]
 
 
+def test_check_records_check_json_like_cli(repo: Path, mission: Path, lua_bundle: Path) -> None:
+    """MCP and CLI share dms_cli.util.record_check: same file, merged per .miz."""
+    from dms_cli.util import CHECK_FILE, record_check
+
+    built = ops.build(mission, root=repo, lua=lua_bundle)
+    miz = repo / built["miz"]
+    record = miz.parent / CHECK_FILE
+    other = miz.parent / "other.miz"
+    record_check(other, {"ok": False, "issues": [], "stats": {}})
+    data = json.loads(record.read_text(encoding="utf-8"))
+    assert set(data) >= {miz.name, "other.miz"}
+    assert data[miz.name]["ok"] is True and data[miz.name]["checked_at"]
+
+
+# ---- read-only helpers -------------------------------------------------------------------------
+
+
+def test_catalog_units_by_year() -> None:
+    res = ops.catalog("units", era="1985", coalition="red", category="ground", root=ROOT)
+    assert res["ok"] is True
+    assert res["kind"] == "units"
+    assert res["count"] == len(res["rows"]) > 0
+    assert all("red" in r["coalitions"] for r in res["rows"])
+
+
+def test_catalog_templates_and_mission_types() -> None:
+    tpls = ops.catalog("templates", root=ROOT)
+    assert tpls["count"] > 0 and "n_units" in tpls["rows"][0]
+    mts = ops.catalog("mission-types", root=ROOT)
+    assert mts["count"] > 0 and "id" in mts["rows"][0]
+
+
+def test_catalog_airbases() -> None:
+    res = ops.catalog("airbases", theater="Caucasus")
+    assert res["count"] > 0
+    assert any("Batumi" in r["name"] for r in res["rows"])
+
+
+@pytest.mark.parametrize(
+    ("args", "needle"),
+    [
+        ({"kind": "nope"}, "available"),
+        ({"kind": "airbases"}, "theater"),
+        ({"kind": "units", "era": "1066"}, "no era covers"),
+        ({"kind": "airbases", "theater": "Atlantis"}, "Atlantis"),
+    ],
+)
+def test_catalog_errors_are_structured(args: dict[str, Any], needle: str) -> None:
+    res = ops.guarded(ops.catalog)(**args, root=ROOT)
+    assert res["ok"] is False
+    assert needle in res["error"]
+
+
+OUTCOME_LOG = """\
+2026-10-27 18:00:00.000 INFO    SCRIPTING (Main): [DMS][Init] DMS v0.3 starting
+2026-10-27 18:20:11.500 INFO    SCRIPTING (Main): [DMS.OUTCOME] {"missionId":"m01-first-light","t":1150.5,"kind":"beat","beat":"convoy_hit","outcome":{"convoy_contact":true},"flags":[]}
+2026-10-27 18:22:00.000 INFO    SCRIPTING (Main): [DMS.OUTCOME] {not json}
+2026-10-27 18:30:00.000 INFO    SCRIPTING (Main): [DMS.OUTCOME] {"missionId":"m02-other","t":10,"kind":"beat","beat":"x"}
+"""  # noqa: E501
+
+
+def test_outcome_reads_log_file_and_folder(tmp_path: Path) -> None:
+    log = tmp_path / "Logs" / "dcs.log"
+    log.parent.mkdir()
+    log.write_text(OUTCOME_LOG, encoding="utf-8")
+    res = ops.outcome(log)
+    assert res["ok"] is True
+    assert res["count"] == 2
+    assert set(res["summary"]) == {"m01-first-light", "m02-other"}
+    only = ops.outcome(log.parent, mission_id="m01-first-light")
+    assert only["count"] == 1
+    assert only["records"][0]["beat"] == "convoy_hit"
+    assert only["log"] == str(log)
+
+
+def test_outcome_missing_log_is_structured(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    res = ops.guarded(ops.outcome)(tmp_path / "nope.log")
+    assert res["ok"] is False and "not found" in res["error"]
+    from dms_core import outcomes as oc
+
+    monkeypatch.setattr(oc, "default_log_paths", lambda: [])
+    res = ops.guarded(ops.outcome)()
+    assert res["ok"] is False and "log_path" in res["error"]
+
+
+def test_doctor_uses_cli_checks(monkeypatch: pytest.MonkeyPatch) -> None:
+    from dms_cli import install
+
+    rows = [install.Check("python", "OK", "3.12"), install.Check("lua", "FAIL", "no", "fix it")]
+    monkeypatch.setattr(install, "run_doctor", lambda root: rows)
+    res = ops.doctor(root=ROOT)
+    assert res["ok"] is False
+    assert res["checks"][1] == {"name": "lua", "status": "FAIL", "detail": "no", "fix": "fix it"}
+
+
+def _boom(*_a: Any, **_k: Any) -> Any:
+    raise AssertionError("voice_estimate must never touch ElevenLabs or the network")
+
+
+@pytest.fixture
+def no_voice_client(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Fail loudly if anything builds an ElevenLabs client; empty key, private TTS cache."""
+    from dms_voice import client
+
+    boom = _boom
+    monkeypatch.setattr(client.VoiceClient, "__init__", boom)
+    try:
+        import elevenlabs.client as el_client
+    except ImportError:  # pragma: no cover
+        pass
+    else:
+        monkeypatch.setattr(el_client, "ElevenLabs", boom)
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "")
+    monkeypatch.setenv("DMS_TTS_CACHE", str(tmp_path / "tts-cache"))
+
+
+@pytest.mark.usefixtures("no_voice_client")
+def test_voice_estimate_is_dry_run_only(
+    repo: Path, mission: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    import socket
+
+    monkeypatch.setattr(socket.socket, "connect", _boom)  # no network at all
+    monkeypatch.setattr(socket, "create_connection", _boom)
+    # quickstart-demo: every speaker has a voice id (read-only use of the real campaign)
+    demo = ROOT / "campaigns" / "quickstart-demo" / "missions" / "m01-hog-down-low"
+    if not demo.is_dir():  # pragma: no cover
+        pytest.skip("campaigns/quickstart-demo missing")
+    res = ops.voice_estimate(demo, root=ROOT)
+    assert res["ok"] is True, res
+    assert res["lines"].endswith("lines.yaml")
+    assert res["total_lines"] == len(res["per_line"]) > 0
+    assert res["to_render"] == res["total_lines"]  # empty private cache: everything to render
+    assert res["characters"] > 0 and res["credits"] > 0
+    assert "ElevenLabs credits" in res["summary"]
+    assert not (tmp_path / "tts-cache").exists()  # the estimate wrote nothing to the cache
+
+    # dustoff m01 lacks voice ids for some speakers: a structured error, like `dms voice --dry-run`
+    bad = ops.guarded(ops.voice_estimate)(mission, root=repo)
+    assert bad["ok"] is False and "no ElevenLabs voice id" in bad["error"]
+    off = ops.voice_estimate(mission / "lines.yaml", offline=True, root=repo)
+    assert off["ok"] is True and off["offline"] is True and off["credits"] == 0
+    assert not (mission / "voice").exists()  # nothing rendered or written
+
+
+@pytest.mark.usefixtures("no_voice_client")
+def test_voice_estimate_through_server(repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(ops.ROOT_ENV, str(repo))
+    rel = f"campaigns/dustoff-valley/missions/{MISSION_NAME}"
+    result: Any = asyncio.run(
+        server.mcp.call_tool("voice_estimate", {"mission": rel, "offline": True})
+    )
+    assert "0 ElevenLabs credits" in json.dumps(result, default=str)
+
+
+def test_voice_estimate_missing(repo: Path) -> None:
+    res = ops.guarded(ops.voice_estimate)("campaigns/nope", root=repo)
+    assert res["ok"] is False and "not found" in res["error"]
+
+
 # ---- FastMCP surface ---------------------------------------------------------------------------
 
 
-def test_server_lists_six_tools() -> None:
+def test_server_lists_ten_tools() -> None:
     tools = asyncio.run(server.mcp.list_tools())
     names = {t.name for t in tools}
-    assert names == {"validate", "plan", "build", "check", "schema", "campaign_status"}
+    assert names == {
+        "validate",
+        "plan",
+        "build",
+        "check",
+        "schema",
+        "campaign_status",
+        "catalog",
+        "outcome",
+        "doctor",
+        "voice_estimate",
+    }
     by_name = {t.name: t for t in tools}
     assert by_name["plan"].inputSchema["required"] == ["mission_dir"]
     assert "test" in by_name["build"].inputSchema["properties"]

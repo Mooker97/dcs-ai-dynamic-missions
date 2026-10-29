@@ -337,6 +337,16 @@ def test_check_command(fakes: types.SimpleNamespace, tmp_path: Path) -> None:
     assert res.exit_code == 1 and "ERROR mission bad id" in res.output
 
 
+def test_check_writes_check_json(fakes: types.SimpleNamespace, tmp_path: Path) -> None:
+    """`dms check` records out/check.json like the MCP build/check (ADR 0005: no MCP-only data)."""
+    miz = tmp_path / "a.miz"
+    with zipfile.ZipFile(miz, "w") as z:
+        z.writestr("mission", "mission = {}")
+    assert invoke("check", str(miz)).exit_code == 0
+    data = json.loads((tmp_path / "check.json").read_text(encoding="utf-8"))
+    assert data["a.miz"]["ok"] is True and data["a.miz"]["checked_at"]
+
+
 def test_check_mission_folder_checks_every_variant(
     mission: Path, fakes: types.SimpleNamespace, lua_file: Path
 ) -> None:

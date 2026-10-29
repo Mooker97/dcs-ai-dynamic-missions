@@ -1,8 +1,9 @@
 # dms-mcp
 
-This package is a FastMCP server over stdio. It exposes six coarse DMS tools to any MCP client:
-`validate`, `plan`, `build`, `check`, `schema` and `campaign_status`. The tools call `dms_core` and
-`dms_gen` directly. The contract is in [docs/CONTRACTS.md, "MCP server"](../../docs/CONTRACTS.md#mcp-server-packagesdms-mcp-v08).
+This package is a FastMCP server over stdio. It exposes ten coarse DMS tools to any MCP client:
+six workflow tools (`validate`, `plan`, `build`, `check`, `schema` and `campaign_status`) and four
+read-only helpers (`catalog`, `outcome`, `doctor` and `voice_estimate`, a dry run that never calls
+ElevenLabs). The tools call `dms_core`, `dms_gen` and `dms_voice` directly. The contract is in [docs/CONTRACTS.md, "MCP server"](../../docs/CONTRACTS.md#mcp-server-packagesdms-mcp-v08).
 
 ```bash
 uv sync --all-packages

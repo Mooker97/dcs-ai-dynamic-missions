@@ -25,12 +25,14 @@ from .util import (
     Finding,
     MissionPaths,
     dumps,
+    eras_for,
     find_root,
     finding_from,
     latest_mtime,
     load_yaml,
     mission_dir_for_plan,
     pydantic_findings,
+    record_check,
     resolve_mission,
     to_jsonable,
 )
@@ -312,7 +314,9 @@ def _attach_lua(plan: Any, lua: Path, tmp: Path) -> str:
 def _check(path: Path) -> Any:
     from dms_gen.check import check_miz  # type: ignore[import-untyped,unused-ignore]
 
-    return check_miz(path)
+    report = check_miz(path)
+    record_check(path, report)  # out/check.json, same as the MCP build/check
+    return report
 
 
 def _print_check(report: Any) -> bool:
@@ -1064,21 +1068,7 @@ def _cell(v: Any) -> str:
     return "" if v is None else str(v)
 
 
-def _eras_for(cat: Any, era: str | None) -> list[str] | None:
-    """Era id, or a year (e.g. 1985) mapped to every era whose span contains it."""
-    if era is None:
-        return None
-    if re.fullmatch(r"\d{4}", era):
-        year = int(era)
-        ids = [e.id for e in cat.eras.values() if e.years[0] <= year <= e.years[1]]
-        if not ids:
-            raise CliError(f"no era covers {year}; eras: {', '.join(cat.eras)}")
-        return ids
-    if era not in cat.eras:
-        from dms_core.catalog import CatalogLookupError
-
-        raise CliError(str(CatalogLookupError("era", era, cat.suggest(era, "era"))))
-    return [era]
+_eras_for = eras_for  # shared with dms-mcp (dms_cli.util)
 
 
 def _catalog() -> Any:

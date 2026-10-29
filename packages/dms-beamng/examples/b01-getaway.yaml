@@ -1,0 +1,62 @@
+# The Getaway (MVP): reach the safe house while the police pursuit escalates, then lose them.
+# Places are names from dms_beamng.locations (coordinates are placeholders until read in-game).
+schema_version: 1
+id: b01_getaway
+title: "The Getaway: Bank Job"
+kind: getaway
+seed: 1027
+level: west_coast_usa
+player:
+  model: etk800
+  license: DMS-01
+start:
+  one_of: [downtown_bank, docs_spawn]
+time_limit_sec: 600
+time_of_day: {min: 0.75, max: 0.95}
+traffic:
+  amount: {min: 6, max: 12}
+  police_ratio: 0.15
+  parked: 4
+pursuit:
+  start_after_sec: {min: 5, max: 20}
+  evade_sec: 30
+  arrest_sec: 8
+  escalation:
+    - {after_sec: 60, police_units: 2}
+    - {after_sec: 150, police_units: 2, roadblocks: 1, aggression: 0.6}
+    - {after_sec: 270, police_units: 3, roadblocks: 2, aggression: 0.9}
+objectives:
+  - id: lose_police
+    type: evade
+  - id: reach_safehouse
+    type: stop_at
+    place: {one_of: [harbour_warehouse, hillside_garage, industrial_yard]}
+    radius_m: 12
+    hold_sec: 5
+    after: lose_police
+  - id: clean_car
+    type: max_damage
+    max_damage: 2000
+    optional: true
+beats:
+  - id: alarm
+    when: {event: start}
+    effects:
+      speak: {speaker: dispatch, text: "All units, 211 in progress downtown."}
+  - id: roadblocks_up
+    when: {event: pursuit.level, level: 3}
+    effects:
+      speak: {speaker: scanner, text: "Roadblocks going up on the main routes."}
+      outcome: {roadblocks_seen: true}
+  - id: lost_them
+    when: {event: evaded}
+    effects:
+      speak: {speaker: partner, text: "We lost them. Get to the safe house."}
+  - id: home_free
+    when: {event: objective.complete, objective: reach_safehouse}
+    effects:
+      quality_deltas: {heat: -1, cash: 1}
+  - id: busted
+    when: {event: arrested}
+    effects:
+      quality_deltas: {heat: 2}

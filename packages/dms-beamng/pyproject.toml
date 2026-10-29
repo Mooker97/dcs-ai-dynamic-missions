@@ -1,0 +1,21 @@
+[project]
+name = "dms-beamng"
+version = "0.3.0.dev0"
+description = "DMS BeamNG.drive backend: driving-mission spec -> seeded scenario plan -> scenario builder"
+requires-python = ">=3.11"
+dependencies = ["dms-core", "pydantic>=2.9", "pyyaml>=6"]
+
+[project.optional-dependencies]
+# BeamNGpy targets BeamNG.tech (needs the tech/techCore extension, not shipped in Steam .drive 0.40).
+# Imported lazily by dms_beamng.builder.BeamNGpySink; nothing else needs it.
+beamngpy = ["beamngpy>=1.36"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dms_beamng"]
+
+[tool.uv.sources]
+dms-core = { workspace = true }

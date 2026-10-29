@@ -1,0 +1,229 @@
+template: the_hill
+world: Altis
+name: The Hill
+sites:
+  sites:
+  - name: Outpost between Zaros and Therisa
+    center: [10013, 11231]
+    compound_dir: 0
+    start_bearing: 0
+    qrf_spawns: [[9092, 11962], [10619, 12237]]
+    qrf_names: [Zaros, Therisa]
+    mode: OUTPOST
+  - name: Outpost south of Agia Triada
+    center: [16586, 19008]
+    compound_dir: 0
+    start_bearing: 270
+    qrf_spawns: [[17827, 18129], [16207, 17297]]
+    qrf_names: [Kalithea, Telos]
+    mode: OUTPOST
+  - name: Outpost north of Agios Petros
+    center: [20602, 18810]
+    compound_dir: 0
+    start_bearing: 90
+    qrf_spawns: [[19339, 17642], [20885, 16959]]
+    qrf_names: [Agios Petros, Paros]
+    mode: OUTPOST
+  outpost_classes: [Land_Cargo_HQ_V1_F, Land_Cargo_House_V1_F, Land_Cargo_Patrol_V1_F, Land_Cargo_Tower_V1_F]
+  outpost_radius: 60
+  outpost_composition:
+  - kind: INTEL
+    class_name: Land_CampingTable_F
+    radius: [0, 30]
+    clear_radius: 4
+  - kind: OVER
+    class_name: CamoNet_OPFOR_open_F
+    radius: [0, 0]
+    clear_radius: 0
+  - kind: OBJ
+    class_name: Box_East_Ammo_F
+    radius: [0, 35]
+    clear_radius: 2
+  - kind: STATIC
+    class_name: O_HMG_01_high_F
+    radius: [12, 40]
+    clear_radius: 3
+  - kind: STATIC
+    class_name: O_HMG_01_high_F
+    radius: [12, 40]
+    clear_radius: 3
+  - kind: SENTRY
+    class_name: ''
+    radius: [20, 45]
+    clear_radius: 2
+  - kind: SENTRY
+    class_name: ''
+    radius: [20, 45]
+    clear_radius: 2
+  site_snap_radius: 250
+  clear_radius: 32
+  start_distance: 1000
+  lz_distance: 350
+  ao_marker_radius: 300
+  ao_marker_fuzz: [50, 150]
+squad:
+  leader_class: B_Soldier_TL_F
+  classes: [B_soldier_AR_F, B_Soldier_GL_F, B_medic_F, B_soldier_LAT_F, B_soldier_M_F, B_Soldier_F]
+  skill: 0.6
+compound:
+  composition:
+  - kind: BLD
+    class_name: Land_Cargo_HQ_V1_F
+    offset: [-10, 8]
+    rel_dir: 90
+  - kind: BLD
+    class_name: Land_Cargo_House_V1_F
+    offset: [11, 6]
+    rel_dir: 270
+  - kind: BLD
+    class_name: Land_Cargo_Patrol_V1_F
+    offset: [0, 17]
+    rel_dir: 180
+  - kind: OBJ
+    class_name: CamoNet_OPFOR_open_F
+    offset: [3, -6]
+    rel_dir: 0
+  - kind: INTEL
+    class_name: Land_CampingTable_F
+    offset: [3, -6]
+    rel_dir: 0
+  - kind: OBJ
+    class_name: Box_East_Ammo_F
+    offset: [5.5, -7.5]
+    rel_dir: 0
+  - kind: OBJ
+    class_name: Land_BagBunker_Small_F
+    offset: [-15, -15]
+    rel_dir: 225
+  - kind: OBJ
+    class_name: Land_BagFence_Round_F
+    offset: [15, -15]
+    rel_dir: 135
+  - kind: STATIC
+    class_name: O_HMG_01_high_F
+    offset: [15, -14]
+    rel_dir: 135
+  - kind: OBJ
+    class_name: Land_BagFence_Round_F
+    offset: [-15, 15]
+    rel_dir: 315
+  - kind: STATIC
+    class_name: O_HMG_01_high_F
+    offset: [-15, 14]
+    rel_dir: 315
+  - kind: OBJ
+    class_name: Land_HBarrier_5_F
+    offset: [-10, -20]
+    rel_dir: 0
+  - kind: OBJ
+    class_name: Land_HBarrier_5_F
+    offset: [10, -20]
+    rel_dir: 0
+  - kind: OBJ
+    class_name: Land_HBarrier_5_F
+    offset: [-20, -5]
+    rel_dir: 90
+  - kind: OBJ
+    class_name: Land_HBarrier_5_F
+    offset: [-20, 5]
+    rel_dir: 90
+  - kind: OBJ
+    class_name: Land_HBarrier_5_F
+    offset: [20, -5]
+    rel_dir: 90
+  - kind: OBJ
+    class_name: Land_HBarrier_5_F
+    offset: [20, 5]
+    rel_dir: 90
+  - kind: OBJ
+    class_name: Land_BagFence_Long_F
+    offset: [-8, 21]
+    rel_dir: 0
+  - kind: OBJ
+    class_name: Land_BagFence_Long_F
+    offset: [8, 21]
+    rel_dir: 0
+  - kind: OBJ
+    class_name: Land_Razorwire_F
+    offset: [-13, -25]
+    rel_dir: 0
+  - kind: OBJ
+    class_name: Land_Razorwire_F
+    offset: [13, -25]
+    rel_dir: 0
+  - kind: SENTRY
+    class_name: ''
+    offset: [0, -22]
+    rel_dir: 180
+  - kind: SENTRY
+    class_name: ''
+    offset: [18, 18]
+    rel_dir: 45
+  intel_class: Land_Laptop_unfolded_F
+  intel_hold_seconds: 8
+enemy:
+  sentry_class: O_Soldier_F
+  garrison_classes: [O_Soldier_F, O_Soldier_F, O_Soldier_AR_F, O_Soldier_GL_F, O_Soldier_LAT_F, O_soldier_M_F]
+  garrison_count: 5
+  patrol_size: 3
+  patrol_radius: 200
+  skill:
+    general: 0.5
+    aimingAccuracy: 0.18
+    aimingShake: 0.25
+    aimingSpeed: 0.35
+    spotDistance: 0.7
+    spotTime: 0.6
+    courage: 0.6
+    reloadSpeed: 0.5
+    commanding: 0.5
+  alarm_knows_about: 1.5
+qrf:
+  wave1:
+    vehicle_classes: [O_Truck_02_transport_F, O_Truck_03_transport_F]
+    infantry_classes: [O_Soldier_TL_F, O_Soldier_F, O_Soldier_AR_F, O_Soldier_LAT_F, O_Soldier_GL_F, O_medic_F]
+    infantry_count: 8
+    dismount_distance: [350, 500]
+  wave2:
+    vehicle_classes: [O_APC_Wheeled_02_rcws_v2_F, O_APC_Wheeled_02_rcws_F, O_Truck_02_transport_F]
+    infantry_classes: [O_Soldier_TL_F, O_Soldier_F, O_Soldier_AR_F, O_Soldier_LAT_F, O_Soldier_GL_F]
+    infantry_count: 6
+    dismount_distance: [450, 600]
+  wave1_delay: [300, 480]
+  wave2_delay: [120, 240]
+  wave2_drag_time: 1200
+  wave2_quick_kill: 300
+  flank_offset: 250
+  flank_angle: 70
+artillery:
+  missions: 3
+  rounds_ffe: 5
+  spot_rounds: 3
+  process_time: 60
+  time_of_flight: 25
+  cep: 50
+  adjusted_cep: 25
+  adjust_window: 150
+  danger_close: 150
+  ammo: Sh_82mm_AMOS
+  interval: [3, 6]
+exfil:
+  heli_class: B_Heli_Transport_01_F
+  spawn_distance: 4000
+  hold_distance: 1500
+  fly_height: 60
+  hot_radius: 200
+  hot_vehicle_radius: 600
+  ready_radius: 75
+  ready_max_wait: 600
+  hot_max_hold: 300
+  hot_count: 3
+  wait_on_ground: 150
+  board_radius: 400
+  depart_distance: 1200
+test:
+  arty_at: 60
+  alarm_timeout: 1200
+  intel_timeout: 1800
+  expected: [spawn_compound, spawn_garrison, spawn_intel, spawn_squad, artillery, alarm, compound_cleared,
+    intel, qrf_wave1, exfil_requested, exfil_landed, exfil_boarded, outcome_win]

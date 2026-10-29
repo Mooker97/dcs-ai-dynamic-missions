@@ -1,0 +1,70 @@
+FileType=text/acmi/tacview
+FileVersion=2.2
+// Hand-written DMS fixture: player F-16 kills a MiG-29 (AIM-120, Parent set),
+// a truck (GBU-12, no Parent: launch proximity + removal without Destroyed event),
+// and a second truck (Timeout event). An SA-8 shoots and misses. Wingman lands.
+0,ReferenceTime=2026-10-29T08:00:00Z,RecordingTime=2026-10-29T19:12:00Z,Title=m03 Viper strike fixture
+0,DataSource=DCS 2.9.9,DataRecorder=Tacview 1.9.4,Author=Mooker,ReferenceLongitude=41,ReferenceLatitude=42
+0,Briefing=Find the convoy\, kill the trucks
+0,Comments=Line one of the comments\
+line two of the comments
+#0
+101,T=0.5|0.2|50|0|0|90|0|0|90,Type=Air+FixedWing,Name=F-16C_50,Pilot=Mooker,Group=Viper 1,Coalition=Allies,Color=Blue,Country=us,CallSign=Viper11
+102,T=0.5|0.201|50|0|0|90,Type=Air+FixedWing,Name=F-16C_50,Pilot=Viper 1-2,Group=Viper 1,Coalition=Allies,Color=Blue,Country=us
+201,T=0.7|0.17|400,Type=Ground+AntiAircraft,Name=Osa 9A33 ln,Group=SA-8 Hill,Coalition=Enemies,Color=Red,Country=ru
+202,T=0.66|0.15|300,Type=Ground+Vehicle,Name=Ural-375,Group=Convoy,Coalition=Enemies,Color=Red,Country=ru
+203,T=0.665|0.15|300,Type=Ground+Vehicle,Name=Ural-375,Group=Convoy,Coalition=Enemies,Color=Red,Country=ru
+501,T=0.52|0.21|100|12000|-3000,Type=Ground+Static+Building,Name=FARP London,Coalition=Allies
+xyz,Name=Broken line
+#5
+101,T=0.505||60||||||
+0,Event=TakenOff|101|Mooker has taken off from Kutaisi
+#30
+101,T=0.55|0.2|3000||||||
+102,T=0.55|0.25|3000|||
+301,T=0.8|0.2|5000|0|0|270|0|0|270,Type=Air+FixedWing,Name=MiG-29S,Pilot=Fulcrum 1,Group=Bandit,Coalition=Enemies,Color=Red,Country=ru
+0,Event=Message|101|Viper 1-1 fence in
+#60
+101,T=0.6|0.2|4000||||||
+301,T=0.7||||||||
+401,T=0.6|0.2|4000|0|5|90,Type=Weapon+Missile,Name=AIM-120C,Parent=101,Coalition=Allies,Color=Blue
+#65
+401,T=0.63||4600|||
+301,T=0.68||||||||
+#70
+401,T=0.6595||4990|||
+301,T=0.66||||||||
+0,Event=Destroyed|301|
+-401
+#71
+-301
+#90
+101,T=0.65|0.2|4000||||||
+402,T=0.65|0.2|4000|0|-10|180,Type=Weapon+Bomb,Name=GBU-12,Coalition=Allies,Color=Blue
+#95
+403,T=0.7001|0.1701|420|0|60|300,Type=Weapon+Missile,Name=9M33,Coalition=Enemies,Color=Red
+0,Event=Bookmark|SA-8 launch
+#100
+402,T=0.655|0.175|2000|||
+403,T=0.68|0.19|2500|||
+#105
+403,T=0.66|0.205|3800|||
+-403
+#110
+402,T=0.6601|0.1501|305|||
+-402
+#111
+-202
+#120
+101,T=0.7|0.21|3500||||||
+102,T=0.51|0.2|60|||
+#125
+0,Event=Landed|102|Viper 1-2 has landed at Kutaisi
+#130
+-102
+#140
+0,Event=Timeout|SourceId:101|AmmoType:M61A1|AmmoCount:50|TargetId:203|Outcome:Kill
+#141
+0,Event=Destroyed|203|
+#150
+101,T=0.72|0.22|3000||||||

@@ -21,6 +21,30 @@ describe("DMS.Rng", function()
     assert.equals(s2, DMS.Rng.lastSeed)
   end)
 
+  it("seed(nil) adds per-launch entropy (heap addresses), so a fixed start time still varies", function()
+    local e = DMS.Rng.launchEntropy()
+    assert.is_number(e)
+    assert(e >= 0 and e < 1000003 and e == math.floor(e), tostring(e))
+    DMS_CONFIG = { seed = 5 }
+    local real = DMS.Rng.launchEntropy
+    DMS.Rng.launchEntropy = function()
+      return 0
+    end
+    local a = DMS.Rng.seed()
+    DMS.Rng.launchEntropy = function()
+      return 1
+    end
+    local b = DMS.Rng.seed()
+    DMS.Rng.launchEntropy = real
+    assert.not_equals(a, b)
+    assert.equals(b - a, 2003)
+    -- an explicit seed stays deterministic
+    DMS.Rng.seed(a)
+    local x = DMS.Rng.random()
+    DMS.Rng.seed(a)
+    assert.equals(x, DMS.Rng.random())
+  end)
+
   it("random() is in [0,1) with a sane mean over 1000 draws", function()
     DMS.Rng.seed(1)
     local sum = 0

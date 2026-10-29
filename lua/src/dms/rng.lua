@@ -22,8 +22,30 @@ local function step()
   return z -- 1 .. M1-1
 end
 
+-- Per-launch entropy without os: DMS boots at t = 0 with a fixed start time, so time alone gives
+-- the same seed on every launch of a .miz (headless DCS 2026-10-29). A fresh table's and
+-- closure's heap address (tostring) differ between processes, and the GC byte count adds a
+-- little more. -> integer in [0, 1000003)
+function Rng.launchEntropy()
+  local e = 0
+  local okS, s = pcall(function()
+    return tostring({}) .. tostring(function() end)
+  end)
+  if okS and type(s) == "string" then
+    for i = 1, #s do
+      e = (e * 31 + string.byte(s, i)) % 1000003
+    end
+  end
+  local okG, kb = pcall(collectgarbage, "count")
+  if okG and type(kb) == "number" then
+    e = (e + math.floor((kb * 1024) % 1000003)) % 1000003
+  end
+  return e
+end
+
 -- DMS.Rng.seed(n): deterministic for a given n. With n nil, mixes the sub-second part of
--- timer.getTime()/getAbsTime() with DMS_CONFIG.seed. Returns the effective seed.
+-- timer.getTime()/getAbsTime() and Rng.launchEntropy() with DMS_CONFIG.seed. Returns the
+-- effective seed (logged by Init; Rng.seed(<that>) replays a run).
 function Rng.seed(n)
   if n == nil then
     local cfg = DMS_CONFIG
@@ -31,7 +53,11 @@ function Rng.seed(n)
     local t = (timer and timer.getTime and timer.getTime()) or 0
     local abs = (timer and timer.getAbsTime and timer.getAbsTime()) or 0
     local frac = t - math.floor(t)
-    n = base + math.floor(frac * 1000003) + math.floor(abs * 7919) % 1000003 + math.floor(t * 31)
+    n = base
+      + math.floor(frac * 1000003)
+      + math.floor(abs * 7919) % 1000003
+      + math.floor(t * 31)
+      + Rng.launchEntropy() * 2003
   end
   n = math.floor(math.abs(tonumber(n) or 0))
   Rng._s1 = (n % (M1 - 1)) + 1

@@ -266,6 +266,7 @@ All payload names are strings; `pos` is vec3; coalition is 0 neutral / 1 red / 2
 | `encounter.proximity` | `{id, encounter, zone, group, unit}` | encounters proximity trigger (NOT `zone.entered`) |
 | `convoy.halted` / `convoy.resumed` | `{group, by?}` | ground.haltOnHit |
 | `ground.stuck` | `{group}` | ground.watch |
+| `ground.arrived` | `{group, zone}` | narrative `moveGroup` effect |
 | `director.state` | `{flight, state, intensity}` | director |
 | `intel.revealed` | `{group, reason}` | intel |
 | `ambient.activated` | `{site, groups, statics}` (groups/statics = number queued for spawn) | ambient |
@@ -1111,12 +1112,23 @@ stdout, and the MCP `campaign_status` tool returns the same shape:
  "issues": [{"severity": "warning", "code": "...", "message": "..."}]}
 ```
 
-**`dms debrief --acmi <file.acmi>`** (G1, `packages/dms-tacview`, `cmd_debrief_acmi.py`). This
-reads a Tacview ACMI (zip or text) recorded during the same session, and adds facts the log
-can't give into the outcome's `extra.acmi`: `{"file", "durationSec", "players": {<name>:
-{"maxG", "minAltFt", "distanceNm", "weaponsFired": {...}, "hits": {...}}}}`. Log facts always
-win. ACMI facts never change `outcomes`, flags or qualities, and the debrief shows them as
-narrative colour only. Without `--acmi`, debrief behaves as today.
+**`dms debrief --acmi <file.acmi|auto>`** (G1, implemented): see "Debrief: Tacview ACMI" above,
+which is authoritative. Facts land in `extra.tacview`; log facts always win, and ACMI facts only
+reach `outcomes`/flags with `--acmi-facts`.
+
+### Ground moves on cue and immortal support (v0.9.1)
+
+- Beat effect `move_group: {group, to, speed_kts?, off_road?}` (spec) ->
+  `effects.moveGroup = {group, to, speedMps, action}` (runtime). `group` is a support id, a
+  flight id or a threat/pool id. Python resolves support/flight ids to DCS group names; anything
+  else passes through as a prefix, resolved at runtime like `group:` marks (`DMS.Intel.resolveGroup`).
+  `to` is an area id (zone). The default speed is 4 m/s. `action` is `"On Road"`, or
+  `"Off Road"` when `off_road: true` (the default for infantry).
+  The runtime calls `DMS.Ground.routeTo(group, zoneCentre, {speed, action})` plus `Ground.watch`.
+  When the group's lead is within max(150 m, zone radius) of the target, it emits
+  `ground.arrived {group, zone}`, and beats can trigger on that event.
+- `Support.immortal: bool` (default false) adds a SetImmortal command to the group at mission
+  start. This works for any support with a group (friendly_ground, jtac, convoy).
 
 ## Python schemas (packages/dms-core/src/dms_core/schemas/)
 

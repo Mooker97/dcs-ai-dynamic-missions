@@ -67,6 +67,7 @@ from ..builder.mission import (
     closest_callsign,
     support_callsign_names,
 )
+from ..plugins import runtime_lua_source, skynet_options
 from ..plugins import split_files as plugin_files
 from . import forces
 from .ambient import plan_ambient
@@ -1327,6 +1328,7 @@ def plan_mission(
         ),
         options=PlanOptions(fog_of_war_map=spec.dynamic.fog_of_war.enabled),
         runtime=runtime,
+        skynet=skynet_options(spec.plugins, spec.threats, p.groups),
     )
 
 
@@ -1365,6 +1367,8 @@ def load_campaign_flags(mission_dir: str | os.PathLike[str]) -> dict[str, bool]:
 def write_runtime_config(plan: BuildPlan, base_dir: str | os.PathLike[str] | None = None) -> Path:
     """Write ``plan.runtime`` as Lua to the ``dms_config.lua`` resource's source path.
 
+    When ``plan.skynet`` is set, ``DMS_SKYNET = {...}`` follows ``DMS_CONFIG`` in the same file.
+
     Relative sources resolve against ``base_dir`` (default: cwd), the same directory later
     passed to ``build_from_plan``. Returns the written path.
     """
@@ -1375,5 +1379,5 @@ def write_runtime_config(plan: BuildPlan, base_dir: str | os.PathLike[str] | Non
     if not src.is_absolute():
         src = Path(base_dir or ".") / src
     src.parent.mkdir(parents=True, exist_ok=True)
-    src.write_text(plan.runtime.to_lua_source() + "\n", encoding="utf-8")
+    src.write_text(runtime_lua_source(plan) + "\n", encoding="utf-8")
     return src

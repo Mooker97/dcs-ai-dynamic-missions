@@ -1,0 +1,69 @@
+# arc.yaml — Plugin Smoke. Schema: schemas/campaign-arc.schema.json (CampaignArc).
+# Not a story campaign: a headless test bed for the optional plugins (docs/rebuild/PLAN.md A6).
+# bible.yaml and state/qualities.yaml are copies of viper-detachment's; the missions are copies of
+# viper-detachment m01/m02 with `plugins:` added. No branches: each mission stands alone.
+
+schema_version: 1
+title: "Plugin Smoke"
+logline: >-
+  Viper Detachment's first two sorties rebuilt as plugin smoke tests: m01 with Skynet-IADS, m02
+  with MOOSE.
+
+qualities:
+  - id: sam_threat
+    description: "Strength of the NPF's captured radar-SAM umbrella. Sizes SA-6/SA-8/SA-13 pools and pop-up chances in every mission."
+    initial: 2
+    min: 0
+    max: 3
+  - id: intel
+    description: "Completeness of the coalition picture. Marks known sites in briefings and shrinks decoy/candidate sets (m02 bunker, m04 convoy route)."
+    initial: 1
+    min: 0
+    max: 3
+  - id: insurgent_supply
+    description: "NPF weapons and ammunition stocks. Sizes technical, mortar and MANPADS pools in m03 and the convoy escort in m04."
+    initial: 2
+    min: 0
+    max: 3
+  - id: collateral
+    description: "Civilian harm and damage caused by PYTHON. Tightens ROE in later missions, cools Jackal's tone, and shapes the ending."
+    initial: 0
+    min: 0
+    max: 3
+
+acts:
+  - id: act1
+    title: "Plugin smoke"
+    summary: "Each mission proves one optional plugin loads and coexists with the DMS runtime."
+    missions:
+      - id: p01-skynet
+        title: "Broken Umbrella (Skynet)"
+        mission_type: SEAD
+        status: designed
+        player_aircraft: F-16C_50
+        dramatic_question: "Does the Skynet adapter register the planned SA-6 and leave the ambush SAMs to their encounters?"
+        synopsis: >-
+          viper-detachment m01 plus plugins: [skynet], with the SA-6 as a planned threat (sa6_site_1)
+          so the generated DMS_SKYNET prefixes register it at load. The ambush SA-6/SA-8 stay under
+          their ambush_sam encounters and are skipped by the adapter.
+        characters: [ops_lindqvist, wingman_pike, awacs_magic, tower_incirlik]
+        quality_effects:
+          sam_threat: "-1 if sa6_radar_destroyed (as viper m01; min 0)"
+          intel: "+1 if window_held"
+          collateral: "+1 if civilians_hit"
+      - id: p02-moose
+        title: "The Quarry (MOOSE)"
+        mission_type: STRIKE
+        status: designed
+        player_aircraft: F-16C_50
+        dramatic_question: "Does m02 still pass every normal check with MOOSE loaded?"
+        synopsis: >-
+          viper-detachment m02 plus plugins: [moose]. Pass = the MOOSE include banner in dcs.log and
+          all of m02's normal checks, proving MOOSE does not starve DMS.Bus.
+        characters: [ops_lindqvist, wingman_pike, jtac_ortiz, awacs_magic, tower_incirlik]
+        quality_effects:
+          insurgent_supply: "-1 if full_bunkers_destroyed >= 1 (as viper m02; min 0)"
+          intel: "+1 if command_building_destroyed"
+          collateral: "+1 if civilians_hit"
+
+ending_notes: "No ending: a test campaign."

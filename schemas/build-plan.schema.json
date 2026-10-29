@@ -3158,6 +3158,26 @@
       "title": "PlanResource",
       "type": "object"
     },
+    "PlanSkynet": {
+      "additionalProperties": false,
+      "description": "Options for the Skynet-IADS adapter, emitted as ``DMS_SKYNET`` in dms_config.lua.",
+      "properties": {
+        "prefixes": {
+          "description": "Group name prefixes the adapter registers: 'DMS_' (runtime spawns) plus the planned SAM threat group names.",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Prefixes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "prefixes"
+      ],
+      "title": "PlanSkynet",
+      "type": "object"
+    },
     "PlanTask": {
       "additionalProperties": false,
       "description": "A DCS task attached to a waypoint (pydcs task id + params).",
@@ -4976,6 +4996,18 @@
       ],
       "default": null,
       "description": "DMS_CONFIG to emit as dms_config.lua."
+    },
+    "skynet": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PlanSkynet"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "DMS_SKYNET to append to dms_config.lua (set when the spec lists 'skynet')."
     }
   },
   "required": [

@@ -1,0 +1,347 @@
+# m02 The Quarry — beats. Schema: schemas/beats.schema.json (BeatSheet). Compiled into DMS_CONFIG.beats.
+# group_prefix values are spec ids (threat / pool); planned and runtime group names start with them.
+# Guaranteed spine (guaranteed: true; reachable from BOTH player flights, none depends on takeoff):
+#   checkin_magic (zone checkin_ring) -> jackal_report (chain) -> cleared_engage (zone target_ring)
+#   -> rtb_call (zone egress_gate) -> on_deck (landing, ends the mission) ; player_lost on death.
+# Ground/Tower beats are optional extras that only the ramp flight hears.
+mission_id: p02-moose
+beats:
+  # ---- Guaranteed spine ---------------------------------------------------------------------
+  # GUARANTEED
+  - id: checkin_magic
+    when: {event: zone.entered, zone: checkin_ring, players_only: true}
+    requires: {flags_not: [checked_in]}
+    priority: 90
+    once: true
+    guaranteed: true
+    speaker: awacs_magic
+    lines: [magic_checkin_v1, magic_checkin_v2, magic_checkin_v3, magic_checkin_v4]
+    text: "Python, Magic. Radar contact. Picture clean. Proceed IP SHALE."
+    mark: {type: circle, at: "zone:ip_shale", text: "IP SHALE"}
+    effects:
+      set_flag: checked_in
+      outcome:
+        full_bunkers_destroyed: 0
+        command_building_destroyed: false
+        secondaries: false
+        civilians_hit: false
+        player_lost: false
+
+  # GUARANTEED
+  - id: jackal_report
+    when: {event: beat.fired, beat: checkin_magic}
+    delay_sec: 12
+    priority: 88
+    once: true
+    guaranteed: true
+    speaker: jtac_ortiz
+    lines: [jackal_report_v1, jackal_report_v2, jackal_report_v3, jackal_report_v4]
+    text: "Python, Jackal Two-Three. Trucks in and out of the Quarry overnight. Hamlet east of the wall occupied."
+    mark: {type: circle, at: "zone:hamlet", radius_m: 250, text: "HAMLET - NO STRIKE"}
+    effects: {set_flag: jackal_reported}
+
+  # GUARANTEED
+  - id: cleared_engage
+    when: {event: zone.entered, zone: target_ring, players_only: true}
+    requires: {flags: [checked_in], flags_not: [cleared_hot]}
+    priority: 92
+    once: true
+    guaranteed: true
+    speaker: ops_lindqvist
+    lines: [ops_cleared_v1, ops_cleared_v2, ops_cleared_v3, ops_cleared_v4]
+    text: "Python, Rook Ops. Cleared to engage the Quarry. PID each aimpoint on the pod. Nothing east of the wall."
+    mark: {type: circle, at: "zone:quarry", radius_m: 600, text: "THE QUARRY"}
+    effects: {set_flag: cleared_hot}
+
+  # GUARANTEED
+  - id: rtb_call
+    when: {event: zone.entered, zone: egress_gate, players_only: true}
+    requires: {flags: [cleared_hot], flags_not: [rtb_called]}
+    priority: 85
+    once: true
+    guaranteed: true
+    speaker: ops_lindqvist
+    lines: [ops_rtb_v1, ops_rtb_v2, ops_rtb_v3, ops_rtb_v4]
+    text: "Python, Rook Ops. Copy off target. Say BDA. RTB, check out with Magic."
+    effects: {set_flag: rtb_called}
+
+  # GUARANTEED
+  - id: on_deck
+    when: {event: unit.landed, players_only: true}
+    requires: {flags: [rtb_called]}
+    priority: 85
+    once: true
+    guaranteed: true
+    speaker: ops_lindqvist
+    lines: [ops_on_deck_v1, ops_on_deck_v2, ops_on_deck_v3]
+    text: "Python, Rook Ops. Copy on deck. Debrief in the vault after shutdown."
+    effects: {set_flag: landed, end_mission: success}
+
+  # Spine timeout for on_deck (guide rule 1): an air-start player who never lands still gets an
+  # ending. Requires are rechecked at delivery, so a landing inside the 25 min cancels it.
+  - id: recovery_timeout
+    when: {event: beat.fired, beat: rtb_call}
+    delay_sec: 1500
+    requires: {beats_not_fired: [on_deck]}
+    priority: 80
+    once: true
+    speaker: ops_lindqvist
+    lines: [ops_recovery_timeout_v1, ops_recovery_timeout_v2, ops_recovery_timeout_v3]
+    text: "Python, Rook Ops. Closing the sortie log. Recover when able."
+    effects: {set_flag: landed, outcome: {landed: false}, end_mission: success}
+
+  # GUARANTEED (mission-end record on death; silent). Not flagged guaranteed: true, because the
+  # test harness checks every guaranteed beat fires in order and the proxy is not meant to die.
+  - id: player_lost
+    when: {event: unit.dead, players_only: true}
+    priority: 100
+    once: true
+    effects: {set_flag: player_lost, outcome: {player_lost: true}, end_mission: failure}
+
+  # ---- Optional: both flights, scene setting --------------------------------------------------
+  - id: mission_start
+    when: {event: player.spawned, players_only: true}
+    delay_sec: 15
+    priority: 60
+    once: true
+    speaker: ops_lindqvist
+    lines: [ops_start_v1, ops_start_v2, ops_start_v3]
+    text: "Python, Rook Ops on squadron. Tasking unchanged. Check in with Magic short of SHALE."
+
+  # ---- Optional: ramp flight only (Ground/Tower) ----------------------------------------------
+  - id: ramp_ground
+    when: {event: zone.entered, zone: incirlik, players_only: true}
+    requires: {flags_not: [checked_in]}
+    delay_sec: 240
+    priority: 55
+    once: true
+    speaker: tower_incirlik
+    lines: [ground_taxi_v1, ground_taxi_v2, ground_taxi_v3]
+    text: "Python One, Incirlik Ground. Taxi runway zero-five. Hold short."
+
+  - id: tower_departure
+    when: {event: unit.takeoff, players_only: true}
+    requires: {flags_not: [checked_in]}
+    priority: 60
+    once: true
+    speaker: tower_incirlik
+    lines: [tower_departure_v1, tower_departure_v2, tower_departure_v3]
+    text: "Python One, Incirlik Tower. Airborne. Contact departure."
+
+  - id: tower_recovery
+    when: {event: zone.entered, zone: incirlik_approach, players_only: true}
+    requires: {flags: [rtb_called]}
+    priority: 60
+    once: true
+    speaker: tower_incirlik
+    lines: [tower_recovery_v1, tower_recovery_v2, tower_recovery_v3]
+    text: "Python One, Incirlik Tower. Runway zero-five. Report five-mile final."
+
+  # ---- Optional: exchange after Jackal's report -----------------------------------------------
+  - id: jackal_report_ack
+    when: {event: beat.fired, beat: jackal_report}
+    delay_sec: 3
+    priority: 70
+    once: true
+    speaker: ops_lindqvist
+    lines: [ops_jackal_ack_v1, ops_jackal_ack_v2, ops_jackal_ack_v3]
+    text: "Jackal, Rook Ops. Copy. Python, collateral estimate stands. East wall is the limit."
+
+  # ---- Optional: intel (only if m01 improved the picture) ------------------------------------
+  - id: intel_mark
+    when: {event: beat.fired, beat: cleared_engage}
+    delay_sec: 10
+    requires:
+      qualities: [{quality: intel, op: ">=", value: 2}]
+    priority: 65
+    once: true
+    speaker: ops_lindqvist
+    lines: [ops_intel_mark_v1, ops_intel_mark_v2, ops_intel_mark_v3]
+    text: "Python, Rook Ops. MQ-9 imagery shows one active storage site. Marked on your map."
+    mark: {type: circle, at: "group:full_bunkers", radius_m: 150, text: "ACTIVE SITE (MQ-9)"}
+    effects: {set_flag: intel_marked}
+
+  # ---- Optional: the SAM (gated on sam_threat) ------------------------------------------------
+  - id: sam_cue                    # silent: starts popup_sam only if the umbrella survived m01
+    when: {event: zone.entered, zone: target_ring, players_only: true}
+    requires:
+      qualities: [{quality: sam_threat, op: ">=", value: 2}]
+    priority: 50
+    once: true
+
+  - id: sam_warning                # telegraph for popup_sam (spawns dark, 30-60 s before hot)
+    when: {event: encounter.spawned, encounter: popup_sam}
+    priority: 87
+    once: true
+    speaker: ops_lindqvist
+    lines: [ops_sam_warning_v1, ops_sam_warning_v2, ops_sam_warning_v3]
+    text: "Python, Rook Ops. ELINT has a short-range SAM moving east of Al Bab. Location unconfirmed."
+    effects: {set_flag: sam_warned}
+
+  - id: sam_launch
+    when: {event: unit.shot, group_prefix: short_sam}
+    priority: 90
+    once: false
+    cooldown_sec: 90
+    speaker: jtac_ortiz
+    lines: [jackal_sam_launch_v1, jackal_sam_launch_v2, jackal_sam_launch_v3]
+    text: "Python, Jackal. Observers report a missile launch east of the Quarry."
+
+  - id: sam_destroyed
+    when: {event: group.dead, group_prefix: short_sam}
+    priority: 60
+    once: true
+    speaker: ops_lindqvist
+    lines: [ops_sam_dead_v1, ops_sam_dead_v2, ops_sam_dead_v3]
+    text: "Python, Rook Ops. Copy SAM destroyed. One less for the Engineer."
+
+  # ---- Optional: MANPADS and guns -------------------------------------------------------------
+  - id: manpads_warning            # telegraph for manpads_ambush
+    when: {event: encounter.spawned, encounter: manpads_ambush}
+    priority: 86
+    once: true
+    speaker: jtac_ortiz
+    lines: [jackal_manpads_warning_v1, jackal_manpads_warning_v2, jackal_manpads_warning_v3, jackal_manpads_warning_v4]
+    text: "Python, Jackal. Observers report a MANPADS team moving near the Quarry. Vary your attack heading."
+    effects: {set_flag: manpads_warned}
+
+  - id: manpads_launch
+    when: {event: unit.shot, group_prefix: igla_teams}
+    priority: 90
+    once: false
+    cooldown_sec: 60
+    speaker: jtac_ortiz
+    lines: [jackal_manpads_launch_v1, jackal_manpads_launch_v2, jackal_manpads_launch_v3]
+    text: "Python, Jackal. Launch near the Quarry. Shoulder-fired."
+
+  - id: aaa_firing
+    when: {event: unit.shot, group_prefix: quarry_aaa}
+    priority: 55
+    once: false
+    cooldown_sec: 180
+    speaker: jtac_ortiz
+    lines: [jackal_aaa_v1, jackal_aaa_v2, jackal_aaa_v3]
+    text: "Python, Jackal. Triple-A up from the Quarry rim."
+
+  # ---- Optional: weapons effects (counting the stocks) ----------------------------------------
+  - id: first_release              # silent: first weapon off the player's jet
+    when: {event: unit.shot, players_only: true}
+    priority: 40
+    once: true
+    effects: {set_flag: weapons_released}
+
+  - id: impact_no_secondaries     # ~45 s after the first release, if nothing at an active site died
+    when: {event: beat.fired, beat: first_release}
+    delay_sec: 45
+    requires: {flags_not: [secondaries_seen]}
+    priority: 62
+    once: true
+    speaker: wingman_pike
+    lines: [pike_no_secondaries_v1, pike_no_secondaries_v2, pike_no_secondaries_v3]
+    text: "Lead, Two. Impact. No secondaries."
+
+  # A storage site is a 3-4 vehicle cluster (trucks + bowser). The first vehicle killed at any
+  # active site is the secondary; the site counts as destroyed when its whole group is dead.
+  - id: secondaries_first
+    when: {event: unit.dead, group_prefix: full_bunkers}
+    requires: {flags_not: [secondaries_seen]}
+    priority: 80
+    once: true
+    speaker: wingman_pike
+    lines: [pike_secondaries_v1, pike_secondaries_v2, pike_secondaries_v3, pike_secondaries_v4]
+    text: "Lead, Two. Secondaries. Multiple. That one was full."
+    effects:
+      set_flag: secondaries_seen
+      outcome: {secondaries: true}
+
+  - id: site_destroyed_one         # silent: count
+    when: {event: group.dead, group_prefix: full_bunkers}
+    requires: {flags_not: [bunker_one]}
+    priority: 80
+    once: true
+    effects:
+      set_flag: bunker_one
+      outcome: {full_bunkers_destroyed: 1, secondaries: true}
+
+  - id: secondaries_second
+    when: {event: group.dead, group_prefix: full_bunkers}
+    requires: {flags: [bunker_one], flags_not: [stocks_destroyed]}
+    priority: 80
+    once: true
+    speaker: wingman_pike
+    lines: [pike_secondaries_two_v1, pike_secondaries_two_v2, pike_secondaries_two_v3]
+    text: "Lead, Two. Second site destroyed. Still cooking off."
+    effects:
+      set_flag: stocks_destroyed
+      outcome: {full_bunkers_destroyed: 2, secondaries: true}
+
+  - id: stocks_done_ops
+    when: {event: beat.fired, beat: secondaries_second}
+    delay_sec: 5
+    priority: 70
+    once: true
+    speaker: ops_lindqvist
+    lines: [ops_stocks_done_v1, ops_stocks_done_v2, ops_stocks_done_v3]
+    text: "Python, Rook Ops. Copy two sites with secondaries. Nice work, Python."
+
+  - id: command_destroyed
+    when: {event: group.dead, group_prefix: command_post}
+    priority: 75
+    once: true
+    speaker: jtac_ortiz
+    lines: [jackal_command_v1, jackal_command_v2, jackal_command_v3]
+    text: "Python, Jackal. Good effects on the command building."
+    effects:
+      set_flag: command_destroyed
+      outcome: {command_building_destroyed: true}
+
+  # ---- Optional: the squirter -----------------------------------------------------------------
+  - id: squirter_warning           # telegraph for squirters
+    when: {event: encounter.spawned, encounter: squirters}
+    priority: 72
+    once: true
+    speaker: jtac_ortiz
+    lines: [jackal_squirter_v1, jackal_squirter_v2, jackal_squirter_v3]
+    text: "Python, Jackal. One truck leaving the Quarry, south toward Al Bab. Civilian traffic on that road."
+    effects: {set_flag: squirter_seen}
+
+  - id: squirter_destroyed
+    when: {event: group.dead, group_prefix: squirter}
+    priority: 60
+    once: true
+    speaker: jtac_ortiz
+    lines: [jackal_squirter_dead_v1, jackal_squirter_dead_v2, jackal_squirter_dead_v3]
+    text: "Python, Jackal. Truck stopped. Good effects."
+
+  # ---- Optional: consequences -----------------------------------------------------------------
+  - id: civilian_hit
+    when: {event: unit.dead, coalition: 0}
+    priority: 95
+    once: false
+    cooldown_sec: 60
+    speaker: ops_lindqvist
+    lines: [ops_check_fire_v1, ops_check_fire_v2, ops_check_fire_v3, ops_check_fire_v4]
+    text: "Python, Rook Ops. Check fire, check fire. Civilian vehicle hit."
+    effects:
+      set_flag: civilians_hit
+      outcome: {civilians_hit: true}
+
+  - id: player_hit
+    when: {event: unit.hit, players_only: true}
+    priority: 85
+    once: false
+    cooldown_sec: 120
+    speaker: wingman_pike
+    lines: [pike_player_hit_v1, pike_player_hit_v2, pike_player_hit_v3]
+    text: "Lead, Two. You took hits. Say status."
+
+  # ---- Filler: picture calls during RELAX -----------------------------------------------------
+  - id: ambient_picture
+    when: {event: director.state, state: RELAX}
+    requires: {flags: [checked_in], flags_not: [rtb_called], chance: 40}
+    priority: 10
+    once: false
+    cooldown_sec: 420
+    speaker: awacs_magic
+    lines: [magic_picture_v1, magic_picture_v2, magic_picture_v3]
+    text: "Python, Magic. Picture clean."

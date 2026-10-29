@@ -1,0 +1,299 @@
+# Story bible — Viper Detachment. Canonical. Change canon here first, then log it in continuity.md.
+# Schema: schemas/story-bible.schema.json (dms_core.schemas.story.StoryBible)
+#
+# MODE RATIONALE (fictional, not adapted): the insurgency, the partner force, the task force and the
+# calendar are invented. Real towns and airfields keep their names as terrain only. "Adapted" would
+# invite later agents to anchor events to the real 2010s Syrian conflict, which the user does not want.
+# Insurgents fly DCS's Insurgents flag, their captured heavy weapons CJTF Red, the partner force CJTF
+# Blue, so no real nation's forces are depicted on either side of the ground war.
+
+schema_version: 1
+title: "Viper Detachment"
+mode: fictional
+
+setting:
+  era: 2016
+  theater: Syria
+  region: >-
+    Incirlik air base (Adana, southern Turkey) as home; the area of operations is the border plain
+    north and north-east of Aleppo, about 80-110 NM south-east of Incirlik: Minakh airstrip (held by
+    the partner force), the farmland around Tell Rifaat, the town of Al Bab, Kuweires air base east
+    of Aleppo (held by the insurgents), and the road east toward Manbij. Late October; in-fiction
+    calendar starts 3 November 2016 (D+0 of the detachment's tasking). No real event is implied.
+  premise_summary: >-
+    A regional army garrison at Kuweires dissolved and the Northern Plains Front, a well-funded
+    insurgency, looted its stocks: technicals and mortars, a few old tanks, and a handful of radar
+    SAMs it has learned to use. The partner Northern Border Brigade holds Minakh and the border
+    plain and is being pushed back. A six-jet USAF F-16 detachment, Rook, flies out of Incirlik to
+    take away the insurgents' air-defence umbrella, their weapons stocks and their freedom to mass
+    against the Brigade, without making enemies of the farms the war is fought across.
+
+tone:
+  style: professional-terse
+  themes:
+    - "the job, done properly"
+    - "the picture is never complete"
+    - "precision as a moral obligation (PID, collateral, ROE)"
+    - "trust between the jet and the man on the ground"
+
+player_role: >-
+  PYTHON 1-1: flight lead of a 2-ship of F-16C Block 50s (DCS F-16C_50), Rook detachment
+  (fictional), USAF, deployed to Incirlik. AI wingman PYTHON 1-2 (1st Lt. Pike). Home base
+  Incirlik; diverts Adana Sakirpasa, Gaziantep, Hatay. Each mission offers a ramp start at
+  Incirlik or an air start near the IP.
+
+factions:
+  - id: usaf_rook
+    name: "Rook detachment and coalition air support (USAF)"
+    description: >-
+      Six F-16CM Block 50s and their maintainers, deployed for 90 days. Two jets down for parts on
+      a normal day. Supported by the coalition E-3, KC-135 tankers and MQ-9 ISR orbits; a USAF JTAC
+      team is embedded with the partner brigade.
+    doctrine: "Deliberate, ROE-bound. PID before weapons release; collateral estimates on every target near buildings; 2-ship mutual support."
+    dcs:
+      country: USA
+      coalition: blue
+      units: [F-16C_50, KC-135, KC135MPRS, E-3A, MQ-9 Reaper, JTAC, Soldier M4, M1043 HMMWV Armament, Hummer]
+
+  - id: partner_nbb
+    name: "Northern Border Brigade (NBB)"
+    description: >-
+      Locally raised partner force: light infantry in pickups and old armoured carriers, brave and
+      short of everything. Holds Minakh airstrip, the villages north of Tell Rifaat and the road
+      to the border.
+    doctrine: "Hold the villages, patrol the plain by day, call for air when the technicals come. Poor at reporting their own positions accurately."
+    dcs:
+      country: CJTF Blue
+      coalition: blue
+      units: [Soldier M4, Soldier M249, M1043 HMMWV Armament, M1045 HMMWV TOW, M-113, MaxxPro_MRAP, Hummer]
+      tech_veneer: "Invented partner force; generic Western light kit on the CJTF Blue flag so no real nation or real militia is depicted."
+
+  - id: npf
+    name: "Northern Plains Front (NPF)"
+    description: >-
+      The insurgency: a few thousand fighters, well paid and well supplied, organised in mobile
+      groups around technicals. Fights from farm compounds and villages, moves at night and in
+      civilian traffic, and has learned that aircraft can be shot at.
+    doctrine: "Disperse, hide among civilians, mass quickly for a raid, then scatter. Mortar and rocket teams shoot and move. MANPADS teams sit on likely attack headings."
+    dcs:
+      country: Insurgents
+      coalition: red
+      units: [tt_DSHK, tt_ZU-23, HL_DSHK, ZU-23 Emplacement, ZU-23 Emplacement Closed, Igla manpad INS, Infantry AK Ins, Soldier RPG, 2B11 mortar, GAZ-66, UAZ-469]
+
+  - id: npf_heavy
+    name: "NPF captured heavy weapons (the Garrison stocks)"
+    description: >-
+      Everything the NPF took from the Kuweires garrison and could make work: one SA-6 battery
+      (radar plus two or three launchers), two or three SA-8s, SA-9/SA-13 short-range vehicles, a
+      Shilka, a handful of T-55s and BMP-1s, and a couple of Grad trucks. Crewed by former
+      conscripts paid to stay.
+    doctrine: "SAMs emit late and briefly, move after shooting, and hide in hardened shelters or under nets. Armour is used as mobile artillery, never massed."
+    dcs:
+      country: CJTF Red
+      coalition: red
+      units: [Kub 1S91 str, Kub 2P25 ln, Osa 9A33 ln, Strela-1 9P31, Strela-10M3, ZSU-23-4 Shilka, T-55, BMP-1, Grad-URAL, Ural-375, ATMZ-5]
+      tech_veneer: >-
+        Represents the looted stocks of an invented regional garrison; generic Soviet-pattern
+        equipment on the CJTF Red flag so no real army is depicted. Captured kit is operated by the
+        NPF; for ROE and radio purposes it IS the NPF.
+
+  - id: plain_civilians
+    name: "Civilians of the plain"
+    description: "Farmers, traders and displaced families still using the roads. Their pickups look exactly like technicals from 15,000 feet."
+    doctrine: "Keep moving, keep farming, stay off the main road when jets are heard."
+    dcs:
+      country: UN Peacekeepers
+      coalition: neutral
+      units: [GAZ-3307, Land_Rover_109_S3, VAZ Car, IKARUS Bus]
+      tech_veneer: "Placeholder neutral country; only civilian vehicle types are ever spawned for it."
+
+characters:
+  - id: ops_lindqvist
+    name: "Maj. Karin Lindqvist"
+    callsign: "Rook Ops"
+    role: detachment operations officer; runs the mass brief and the ops desk, and is on the squadron discrete frequency during every sortie
+    faction: usaf_rook
+    real_person: false
+    description: >-
+      Former Weasel instructor pilot, now the detachment's ops officer and the voice on the
+      squadron frequency. Builds every brief from the threat outward. Values clean execution over
+      aggressive results and says so. Plain Upper-Midwest manner, dry when she is pleased.
+    arc: >-
+      Starts by managing risk ("I want six jets in 90 days"). By m04 she is passing on a time
+      critical target with incomplete information and has to trust PYTHON's judgement on PID.
+    voice:
+      design_prompt: >-
+        Female US Air Force major in her early forties, a former fighter pilot now running the
+        operations desk. Mid-low pitch, clear and slightly flat Upper-Midwest American accent
+        (Minnesota), even and deliberate. She reads frequencies and times precisely and never
+        hurries; pressure shows only as shorter sentences. Recorded close on a headset microphone
+        in a quiet operations room, no background noise. Professional, unemotional, with a very
+        dry edge when something goes well.
+      accent: Upper-Midwest American (Minnesota)
+      age: 42
+      gender: female
+      cadence: measured
+      brevity: normal
+      radio_fx: uhf_clean
+      notes: "Never says 'good job'. Approval sounds like 'Copy. Nice work, Python.' at most."
+
+  - id: wingman_pike
+    name: "1st Lt. Owen 'Tuna' Pike"
+    callsign: "PYTHON 1-2"
+    role: player's AI wingman (#2 in every PYTHON 2-ship)
+    faction: usaf_rook
+    real_person: false
+    description: >-
+      Fresh off upgrade; this is his first deployment. Technically sharp, does everything by the
+      book, slightly too quick on the radio at first. Got the callsign by eating tuna out of a can
+      in the life-support shop. Not a comedian.
+    arc: >-
+      m01 he is tense and over-talks. By m03 his comm is clean and his shots are good. In m04 he
+      calls a PID problem the player may have missed. Never heroic, just better.
+    voice:
+      design_prompt: >-
+        Male USAF fighter pilot, 26, West Coast American accent (Southern California), mid-high
+        pitch, bright and slightly quick. Speaking into an oxygen mask microphone in a fighter
+        cockpit, faint breathing between phrases, words clipped short. Early in the campaign he
+        rushes his calls a little and sounds tense; later he is calm and economical. Never jokes on
+        the radio, never shouts; stress shows as speed, not volume.
+      accent: West Coast American (Southern California)
+      age: 26
+      gender: male
+      cadence: brisk
+      brevity: terse
+      radio_fx: uhf_clean
+      notes: "Standard brevity: 'Two', 'Two's naked', 'Magnum', 'Two, contact', 'Two's winchester'. Acknowledges with his number only."
+
+  - id: jtac_ortiz
+    name: "TSgt. Rafael Ortiz"
+    callsign: "Jackal Two-Three"
+    role: USAF JTAC embedded with the Northern Border Brigade; controls all CAS and gives talk-ons
+    faction: usaf_rook
+    real_person: false
+    description: >-
+      Tactical air control party veteran on his third deployment, living with an NBB company in a
+      village north of Tell Rifaat. Knows every compound on the plain by its nickname. Patient on
+      a talk-on, unforgiving about PID, and quietly protective of the Brigade's fighters.
+    arc: >-
+      Heard first in m02 passing ground reporting on the Quarry; in m03 he runs the CAS fight. His
+      warmth toward PYTHON tracks partner_morale and collateral. In m04 his observers spot the
+      SAM convoy if partner_morale is high enough.
+    voice:
+      design_prompt: >-
+        Male US Air Force JTAC, mid thirties, light South Texas accent with a slight Hispanic
+        lilt, mid pitch with a little grit. Crisp, deliberate radio delivery, every number spoken
+        clearly; on a talk-on he is patient and descriptive, in contact he gets faster and tighter
+        but never loud. Speaking into a handheld radio outdoors, wind and distant small-arms fire
+        sometimes behind him.
+      accent: South Texas American
+      age: 34
+      gender: male
+      cadence: brisk
+      brevity: normal
+      radio_fx: vhf_noisy
+      notes: "Uses standard JTAC format: 9-lines, 'type 2 control', 'cleared hot', 'abort abort abort', 'good effects'. Talk-ons go from big to small: town, compound, building, corner."
+
+  - id: awacs_magic
+    name: "Capt. Lotte van Dijk"
+    callsign: "Magic"
+    role: weapons controller on the coalition E-3; picture calls, threat warnings, check-in/out and tanker coordination
+    faction: usaf_rook
+    real_person: false
+    description: "Exchange officer from a coalition AWACS squadron, flying on the E-3 that covers the area. Calm, exact, slightly formal English."
+    arc: static
+    voice:
+      design_prompt: >-
+        Female AWACS weapons controller, early thirties, Dutch accent in fluent, slightly formal
+        English, clear mid pitch with a cool, smooth timbre. Perfectly measured and unhurried,
+        technical, uses brevity words exactly; even threat warnings come out at the same pace.
+        Speaking from a console aboard a large aircraft, wearing a headset, faint cabin hum.
+      accent: Dutch-accented English
+      age: 33
+      gender: female
+      cadence: measured
+      brevity: terse
+      radio_fx: uhf_clean
+      notes: "BRAA and bullseye calls, 'picture clean', 'pop-up group', 'spike' warnings relayed from RC-135 are not her job; she reports what the E-3 sees."
+
+  - id: tower_incirlik
+    name: "SrA. Devon Clarke"
+    callsign: "Incirlik Ground / Incirlik Tower"
+    role: air traffic controller (ground and tower) for ramp-start flights
+    faction: usaf_rook
+    real_person: false
+    description: "Young controller on the Incirlik tower cab. Heard only by ramp-start players and on recovery."
+    arc: static
+    voice:
+      design_prompt: >-
+        Male air traffic controller, about 24, neutral General American accent, mid pitch, a
+        little nasal. Practised and fast standard ATC phraseology, flat and slightly bored,
+        precise with numbers. Speaking from a tower cab on a headset, quiet background.
+      accent: General American
+      age: 24
+      gender: male
+      cadence: brisk
+      brevity: terse
+      radio_fx: uhf_clean
+      notes: "Only standard phraseology. Never comments on the mission."
+
+  - id: npf_commander
+    name: "The Engineer (intelligence nickname)"
+    callsign: null
+    role: NPF air-defence chief; former garrison SAM technician who keeps the captured radars running
+    faction: npf_heavy
+    real_person: false
+    description: >-
+      Known only through intelligence reporting: the man who got the SA-6 working again. Never
+      heard, never seen. His habits (emit late, move after every shot) are the threat brief.
+    arc: "Referenced in briefings only. Whether his last launcher escapes is m04's question."
+    voice: null
+
+timeline:
+  - date: "2016-09"
+    event: "The regional garrison at Kuweires air base dissolves; the Northern Plains Front loots its stocks, including a working SA-6 battery and several SA-8s."
+    fictional: true
+  - date: "2016-10"
+    event: "NPF raids push the Northern Border Brigade back toward Minakh. A coalition MQ-9 is shot down by a radar SAM near Al Bab, and coalition ISR pulls back."
+    fictional: true
+  - date: "2016-10-28"
+    event: "Rook detachment (six F-16CM Block 50) arrives at Incirlik with a JTAC team already embedded with the NBB."
+    fictional: true
+  - date: "2016-11-03"
+    event: "m01: first tasked sortie, SEAD/DEAD against the captured SAM belt."
+    fictional: true
+
+sources:
+  - claim: "Incirlik Air Base is in Adana province, southern Turkey, and has hosted USAF fighter detachments."
+    source_url: "https://en.wikipedia.org/wiki/Incirlik_Air_Base"
+    confidence: high
+    note: "Used as terrain/home base only. The detachment and its tasking are invented."
+  - claim: "The F-16C/D Block 50/52 is the USAF's dedicated SEAD variant, using the AN/ASQ-213 HARM Targeting System pod with the AGM-88 HARM."
+    source_url: "https://en.wikipedia.org/wiki/AN/ASQ-213_HARM_targeting_system"
+    confidence: high
+  - claim: "The DCS F-16C Viper models a USAF/ANG F-16C Block 50 of the late 2000s, with AGM-88, HTS, Litening targeting pod, GBU-12/GBU-10/GBU-24 laser-guided bombs and AGM-65 Maverick."
+    source_url: "https://www.digitalcombatsimulator.com/en/products/planes/f-16c_viper/"
+    confidence: medium
+    note: "Exact store availability varies with DCS updates; mission designers confirm with the stores list."
+  - claim: "The 2K12 Kub (SA-6) is a mobile medium-range radar SAM with a 1S91 Straight Flush radar and 2P25 launchers; the 9K33 Osa (SA-8) is a self-contained short-range radar SAM."
+    source_url: "https://en.wikipedia.org/wiki/2K12_Kub"
+    confidence: high
+  - claim: "Kuweires (Kweires) air base lies east of Aleppo; Minakh (Menagh) air base lies north of Aleppo near Azaz; Al Bab is north-east of Aleppo."
+    source_url: "https://en.wikipedia.org/wiki/Kuweires_Military_Airbase"
+    confidence: medium
+    note: "Terrain facts only; DCS Syria models Kuweires, Minakh and Aleppo airfields. Occupation in this fiction is invented."
+  - claim: "Joint terminal attack controllers use 9-line briefings and Type 1/2/3 terminal attack control."
+    source_url: "https://en.wikipedia.org/wiki/Joint_terminal_attack_controller"
+    confidence: medium
+
+canon_rules:
+  - "Mode fictional: the NPF, the NBB, the task force and the calendar are invented; Incirlik and the towns of the plain are real terrain only; no real nation, unit, operation or person is depicted."
+  - "The player is always PYTHON 1-1 leading a 2-ship with PYTHON 1-2 (Pike). Both start options (ramp at Incirlik, air start near the IP) use that callsign; only one is flown."
+  - "Story beats never depend on takeoff. Ground/Tower lines are extras for ramp-start players; the story starts at check-in with Magic or the push."
+  - "Incirlik is home; Adana Sakirpasa, Gaziantep and Hatay are diverts. Tanker 'Shell' sits on an AR track over southern Turkey."
+  - "Comms plan: Rook Ops on squadron discrete UHF; Magic on the area control frequency; Jackal Two-Three on a VHF tactical frequency; Incirlik Ground/Tower on the airfield frequencies (catalog: UHF 360.0)."
+  - "The NPF's radar SAMs are finite: one SA-6 battery and two or three SA-8s at the start. Destroyed SAMs never come back; continuity.md tracks what is left."
+  - "Weapons release requires PID. Near buildings or civilian traffic, Rook Ops or the JTAC must clear the attack."
+  - "No fixed-wing enemy air threat: the NPF has no flying aircraft. Air-to-air loads are self-defence only."
+  - "The Engineer is never heard or seen; he exists only in briefings."
+  - "Radio is callsign-first and brevity-correct. Nobody cheers on the net, nobody makes speeches."

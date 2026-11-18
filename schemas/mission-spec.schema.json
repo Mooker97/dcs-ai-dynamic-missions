@@ -1356,6 +1356,22 @@
           "default": null,
           "description": "outcome_end must see this result (unset = any mission end passes).",
           "title": "Require Result"
+        },
+        "proxy_orders": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/FlightOrder"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Orders for the AI player proxy (same shape as flights[].orders). Set = the proxy is driven by DMS.Flights (strike, hold ... until a beat, rtb) instead of flying the spine zones, so headless runs exercise kill beats. Planes come home with rtb.",
+          "title": "Proxy Orders"
         }
       },
       "title": "MissionTestHints",

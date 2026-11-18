@@ -430,8 +430,17 @@ DMS_CONFIG = {
 - `test` is only present in `dms build --test` builds (headless DCS runs): `dms_test.lua`, loaded
   between `dms_config.lua` and `dms.lua`, sets `DMS_CONFIG.test` and `debug = true`; read by
   `lua/src/dms/test.lua`. Python model: `RuntimeConfig.test` (`TestSettings`, `TestCheck`).
-  Mission spec: optional `test: {require_result: success|failure}` (headless test hints; default
-  unset = any mission end passes `outcome_end`, since an AI proxy cannot attack).
+  Mission spec: optional `test: {require_result: success|failure, proxy_orders: [...]}` (headless
+  test hints; `require_result` unset = any mission end passes `outcome_end`).
+  `proxy_orders` (a list of `FlightOrder`, same shape as `flights[].orders`) makes the AI proxy
+  an attacking stand-in: instead of the spine-zone route, loiter and landing waypoint, the proxy
+  group gets a start point plus a first leg toward the first order's area, and a
+  `DMS_CONFIG.flights` entry `{id = "proxy", group = <proxy name>, orders = ...}` that
+  `DMS.Flights` drives (so `strike` orders drop the player's loadout on threat/pool groups, and
+  `hold ... until {event: beat.fired, beat: <clearance>}` waits for the story). The proxy keeps
+  the player's payload and stays the `playerProxy` (players_only beats see it). Plane proxies
+  come home with `rtb` (a `land` order's `at` is passed through unresolved). Test minutes default
+  to `duration_min` when `--test-minutes` is not given. Unset = the route proxy above.
 - Spec-level `convoy` encounters (`mission-spec.yaml` `dynamic.encounters`, which only name a
   pool) compile to `spawnZone` = the pool's first area and `destination` = the pool's last area
   (pool with 2+ areas), else the proximity trigger area when it differs, else the nearest
@@ -1387,7 +1396,9 @@ writes JSON Schema files to `schemas/` at the repo root for skills and editors.
     `--test`; a `.miz` argument installs just that file) to
     `<Saved Games>/DCS[.openbeta]/Missions/DMS/<campaign>/`. `<campaign>` is the `campaigns/<slug>` folder,
     else the spec's `campaign`, else `misc`. Saved Games is `$DMS_DCS_SAVED_GAMES` (the Saved Games dir
-    itself), else the Windows known folder (FOLDERID_SavedGames), else `~/Saved Games`. `auto` uses whichever
+    itself), else the Windows known folder (FOLDERID_SavedGames), else under WSL (`$WSL_DISTRO_NAME`
+    or a Microsoft kernel) the first `/mnt/*/Users/*/Saved Games` holding `DCS` or `DCS.openbeta` (the
+    Windows user named like the WSL user first), else `~/Saved Games`. `auto` uses whichever
     of `DCS`/`DCS.openbeta` exists (both: newest `Logs/dcs.log`; neither: `DCS` with a warning). Exit 1 when
     nothing is built.
   - `dms doctor [--json]`: environment checks (python + dms packages + pydcs, lupa Lua 5.1, luac, ffmpeg,
@@ -1402,6 +1413,11 @@ writes JSON Schema files to `schemas/` at the repo root for skills and editors.
     like `dms build` (`out/<id>-<variant>.miz` per `out/plan.json` variant, else `out/<id>.miz`;
     no plan: every non-test `out/*.miz`); `--json` with several files is `{miz path: report}`.
     `dms schema [--out]`, `dms bundle-lua [--out]`.
+  - `dms art <mission> [IMAGE ...] [--append] [--build] [--install] [--dcs ...] [--dry-run]`: copy the
+    images (`.png`/`.jpg`/`.jpeg`) into the mission folder as the briefing pictures, in the order given
+    (`briefing.EXT`, `briefing-2.EXT`, ...). Without `--append` the current pictures move to
+    `out/replaced-art/<timestamp>/` first; `--append` numbers after the highest existing one. With no
+    images it lists the current set. `--build` rebuilds every variant; `--install` also runs `dms install`.
   - `dms catalog units|templates [--era --coalition --role --category]`, (`templates --role` takes a
     template role/tag or a spec `ThreatRole`, resolved through `dms_core.catalog.THREAT_ROLE_TEMPLATES`,
     the planner's role -> template table; an unknown role prints the valid ones),
@@ -1422,6 +1438,10 @@ writes JSON Schema files to `schemas/` at the repo root for skills and editors.
     A heading containing `Red` (e.g. `## Red task`) becomes `descriptionRedTask` until the next heading at the
     same or a higher level. Markdown is stripped to plain text, with paragraphs unwrapped so that DCS wraps them.
     Empty fields fall back to `PlanBriefing`.
+  - **Briefing pictures:** `briefing.jpg`/`briefing.png`, then `briefing-2`, `briefing-3`, ... (`.jpg` or `.png`,
+    by number) next to `briefing.md` are embedded in that order as briefing pictures for every side
+    (blue, red, neutral). DCS pages through them on the briefing screen. A `briefing-N` without a
+    `briefing` first is still used. Skipped if the plan already carries `briefing_image` resources.
   - `kneeboard.md` renders to 768x1024 PNG pages at `KNEEBOARD/IMAGES/<mission_id>-kneeboard-NN.png`
     (all aircraft). It supports headings, paragraph lines (line breaks kept), bullets, pipe tables and `**bold**`,
     and paginates when needed. It uses Pillow's default font and no bundled font files. The bytes are

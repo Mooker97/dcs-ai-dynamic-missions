@@ -621,6 +621,14 @@ class MissionTestHints(DMSModel):
         default=None,
         description="outcome_end must see this result (unset = any mission end passes).",
     )
+    proxy_orders: list[FlightOrder] | None = Field(
+        default=None,
+        description=(
+            "Orders for the AI player proxy (same shape as flights[].orders). Set = the proxy "
+            "is driven by DMS.Flights (strike, hold ... until a beat, rtb) instead of flying the "
+            "spine zones, so headless runs exercise kill beats. Planes come home with rtb."
+        ),
+    )
 
 
 PluginName = Literal["mist", "skynet", "moose"]

@@ -76,8 +76,22 @@ def comms_markdown(comms: Sequence[PlanComm], title: str = "COMMS") -> str:
     )
 
 
-# A picture next to briefing.md becomes the briefing image (all sides).
+# Pictures next to briefing.md become the briefing images (all sides), in this order:
+# briefing.jpg / briefing.png, then briefing-2, briefing-3, ... (.jpg or .png).
 BRIEFING_IMAGES = ("briefing.jpg", "briefing.png")
+_BRIEFING_EXTRA = re.compile(r"^briefing-(\d+)\.(jpg|png)$", re.IGNORECASE)
+
+
+def briefing_pictures(mission_dir: Path) -> list[Path]:
+    """The mission folder's briefing pictures in display order (one per number, .jpg first)."""
+    first = next((p for n in BRIEFING_IMAGES if (p := mission_dir / n).is_file()), None)
+    extra: dict[int, Path] = {}
+    if mission_dir.is_dir():
+        for p in sorted(mission_dir.iterdir(), key=lambda q: q.name.lower()):
+            m = _BRIEFING_EXTRA.match(p.name)
+            if m and p.is_file():
+                extra.setdefault(int(m.group(1)), p)
+    return ([first] if first else []) + [extra[k] for k in sorted(extra)]
 
 
 def apply_mission_docs(
@@ -113,14 +127,14 @@ def apply_mission_docs(
         pages += write_kneeboard_pages(
             cm, Path(work_dir), stem=f"{plan.mission_id}-kneeboard-comms", title="COMMS"
         )
-    picture = next(
-        (mdir_src for name in BRIEFING_IMAGES if (mdir_src := Path(mission_dir) / name).is_file()),
-        None,
-    )
-    if picture is not None and not any(r.kind == "briefing_image" for r in plan.resources):
+    pictures = briefing_pictures(Path(mission_dir))
+    if pictures and not any(r.kind == "briefing_image" for r in plan.resources):
         update["resources"] = [
             *plan.resources,
-            PlanResource(path=picture.name, source=str(picture.resolve()), kind="briefing_image"),
+            *(
+                PlanResource(path=p.name, source=str(p.resolve()), kind="briefing_image")
+                for p in pictures
+            ),
         ]
     if plan.options.kneeboard_map:
         pages += write_map_page(plan, Path(work_dir))

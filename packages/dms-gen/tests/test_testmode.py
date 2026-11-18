@@ -296,3 +296,34 @@ def test_plugins_check_from_spec(m01: Any) -> None:
     kinds = [c["kind"] for c in checks]
     assert "watch_mode" not in kinds and "camera_cues" not in kinds
     assert "flight_strike" not in kinds
+
+
+def test_proxy_orders_make_an_attacking_flights_proxy(m01: Any) -> None:
+    """test.proxy_orders: the proxy is a DMS.Flights flight with the player's payload, no loiter."""
+    plan, spec, beats = m01
+    orders = [
+        {"do": "fly", "to": "gate_west"},
+        {"do": "strike", "at": "patrol_box", "group": "some_threat"},
+        {"do": "rtb"},
+    ]
+    raw = spec.model_dump(mode="json")
+    raw["test"] = {"require_result": "success", "proxy_orders": orders}
+    hinted = MissionSpec.model_validate(raw)
+    tb = make_test_plan(plan, hinted, beats)
+    proxy = next(g for g in tb.plan.groups if g.name == tb.proxy)
+    orig = next(g for g in plan.groups if g.client)
+    assert proxy.ai_flight and not proxy.client
+    assert proxy.units[0].payload == orig.units[0].payload
+    assert len(proxy.route) == 2 and proxy.route[0].action == "From Parking Area Hot"
+    assert not any(w.action == "Landing" for w in proxy.route)
+    rt = tb.plan.runtime
+    assert rt is not None and rt.flights
+    fl = next(f for f in rt.flights if f.id == "proxy")
+    assert fl.group == tb.proxy and fl.start_airbase == "Hatay"
+    assert [o.kind for o in fl.orders] == ["fly", "strike", "rtb"]
+    assert fl.orders[1].weapon == "guided_bomb" and fl.orders[1].group == "some_threat"
+    assert tb.minutes == float(spec.duration_min)
+    assert "flight_strike" in tb.lua and "loiter" not in tb.lua.split("checks")[0]
+    # the hint never touches the normal plan
+    assert plan.runtime is not None
+    assert not any(f.id == "proxy" for f in plan.runtime.flights or [])

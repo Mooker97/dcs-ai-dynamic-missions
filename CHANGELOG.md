@@ -9,6 +9,13 @@ tagged **(flown)** once it has been verified in DCS. Everything else is "impleme
 
 ## [Unreleased]: v0.3 skeleton
 
+### Added (2026-11-02, implemented, headless-verified)
+- `test.proxy_orders` in the mission spec: in `dms build --test`, the AI player proxy becomes a
+  `DMS.Flights` flight running those orders (hold until a beat, `strike` with the player's
+  loadout, `rtb`) instead of a route-only stand-in, so headless runs exercise kill beats.
+  First used by `campaigns/range-day` m01: the proxy bombed both range targets and the compound
+  (16/16 headless checks).
+
 ### Added (2026-10-30, implemented, not flown)
 - U3 kneeboard map page (`dms_gen.builder.kneeboard_map`): a deterministic 768x1024 PNG drawn
   from `plan.json` only (graticule, north arrow, NM scale bar, bullseye, routes and steerpoints,

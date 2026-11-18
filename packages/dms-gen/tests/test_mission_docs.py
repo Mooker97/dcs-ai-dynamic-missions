@@ -24,6 +24,7 @@ from dms_gen.builder import (
     build_from_plan,
     render_kneeboard,
 )
+from dms_gen.builder.docs import briefing_pictures
 from dms_gen.builder.kneeboard import PAGE_H, PAGE_W, printable
 from PIL import Image
 
@@ -209,3 +210,22 @@ def test_briefing_picture_embedded_for_every_side(mission_dir: Path, tmp_path: P
     for key in ("pictureFileNameB", "pictureFileNameR", "pictureFileNameN"):
         assert mission[key], key
     assert "l10n/DEFAULT/briefing.jpg" in miz.files()
+
+
+def test_extra_briefing_pictures_in_number_order(mission_dir: Path, tmp_path: Path) -> None:
+    for name in ("briefing.png", "briefing-10.jpg", "briefing-2.png", "briefing-x.png"):
+        Image.new("RGB", (64, 36), (40, 120, 200)).save(mission_dir / name)
+    out = build_from_plan(_plan(), tmp_path / "pics.miz", base_dir=mission_dir)
+    miz = MizFile.open(out)
+    mission = miz.table("mission")
+    for key in ("pictureFileNameB", "pictureFileNameR", "pictureFileNameN"):
+        assert len(mission[key]) == 3, key
+    files = miz.files()
+    for name in ("briefing.png", "briefing-2.png", "briefing-10.jpg"):
+        assert f"l10n/DEFAULT/{name}" in files
+    assert "l10n/DEFAULT/briefing-x.png" not in files
+    assert [p.name for p in briefing_pictures(mission_dir)] == [
+        "briefing.png",
+        "briefing-2.png",
+        "briefing-10.jpg",
+    ]

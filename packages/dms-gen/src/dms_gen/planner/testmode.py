@@ -50,6 +50,8 @@ HELO_SPEED_KMH = 220.0
 HELO_ALT_M = 120.0  # AGL
 PLANE_SPEED_KMH = 780.0  # ~420 kt
 PLANE_ALT_M = 4500.0  # MSL, ~15,000 ft
+FT = 0.3048
+KTS_KMH = 1.852
 # Loiter (orbit over the objective until the RTB beat): orbit speeds, trigger radius floors, cap.
 PLANE_LOITER_KMH = 600.0
 HELO_LOITER_KMH = 150.0
@@ -378,6 +380,19 @@ def make_test_plan(
     start_xy: XY = (first.x, first.y) if first else (u0.x, u0.y)
     airbase = first.airbase if first is not None else None
     at_airbase = bool(airbase) and first is not None and first.action != "Turning Point"
+    if spec.test is not None and spec.test.proxy_orders:
+        return _orders_test_plan(
+            tp,
+            spec,
+            beat_list,
+            orig,
+            start_xy,
+            airbase if at_airbase else None,
+            minutes=minutes,
+            alt_m=proxy_alt_m,
+            speed_kmh=proxy_speed_kmh,
+            subtitle_only=sub,
+        )
 
     # turning points through guaranteed zone beats
     zone_ids: list[str] = []
@@ -557,6 +572,141 @@ def make_test_plan(
         plugins=runtime_plugins(spec.plugins),
         subtitle_only=sub,
     )
+    return TestBuild(plan=tp, lua=lua, proxy=proxy_name, minutes=mins, route_km=route_km)
+
+
+def _orders_test_plan(
+    tp: BuildPlan,
+    spec: MissionSpec,
+    beat_list: list[Beat],
+    orig: PlanGroup,
+    start_xy: XY,
+    airbase: str | None,
+    *,
+    minutes: float | None,
+    alt_m: float,
+    speed_kmh: float,
+    subtitle_only: list[str] | None,
+) -> TestBuild:
+    """`test.proxy_orders`: the proxy is a DMS.Flights flight (strike, hold-until, rtb)."""
+    from dms_core.schemas.mission import FlightSpec
+    from dms_core.schemas.runtime import FlightConfig
+
+    from .flights import compile_order, is_helicopter
+
+    assert tp.runtime is not None and spec.test is not None and spec.test.proxy_orders
+    rt = tp.runtime
+    orders = spec.test.proxy_orders
+    u0 = orig.units[0]
+    helo = is_helicopter(u0.type)
+    alt_type: Literal["BARO", "RADIO"] = "RADIO" if helo else "BARO"
+    fs = FlightSpec(
+        id="proxy",
+        callsign=orig.radio_callsign or orig.name,
+        aircraft=u0.type,
+        coalition="red" if orig.coalition == "red" else "blue",
+        start_area="proxy_start",
+        start_type="parking_hot" if airbase else "air",
+        start_alt_ft=round(alt_m / FT, 1),
+        start_speed_kts=round(speed_kmh / KTS_KMH, 1),
+        orders=orders,
+    )
+    centres: list[XY] = []
+    for o in orders:
+        area = o.to or o.at
+        if area and area in rt.zones:
+            centres.append(_zone_centre(rt.zones[area])[0])
+    leg = centres[0] if centres else (start_xy[0] + 5000.0, start_xy[1])
+    start = PlanWaypoint(x=round(start_xy[0], 1), y=round(start_xy[1], 1))
+    if airbase:
+        start = PlanWaypoint(x=start.x, y=start.y, action="From Parking Area Hot", airbase=airbase)
+    else:
+        start = PlanWaypoint(
+            x=start.x, y=start.y, alt_m=alt_m, alt_type=alt_type, speed_kmh=speed_kmh
+        )
+    route = [
+        start,
+        PlanWaypoint(
+            x=round(leg[0], 1),
+            y=round(leg[1], 1),
+            alt_m=alt_m,
+            alt_type=alt_type,
+            speed_kmh=speed_kmh,
+        ),
+    ]
+    proxy_name = f"Proxy {orig.name}"
+    proxy = PlanGroup(
+        name=proxy_name,
+        category=orig.category,
+        coalition=orig.coalition,
+        country=orig.country,
+        task=str(spec.mission_type or orig.task or "CAS"),
+        units=[
+            PlanUnit(
+                name=f"{proxy_name}-1",
+                type=u0.type,
+                x=u0.x,
+                y=u0.y,
+                alt_m=None if airbase else alt_m,
+                heading_deg=u0.heading_deg,
+                skill="High",
+                payload=u0.payload,
+                livery=u0.livery,
+            )
+        ],
+        route=route,
+        frequency_mhz=orig.frequency_mhz,
+        modulation=orig.modulation,
+        client=False,
+        source=None,
+        ai_flight=True,
+    )
+    tp.groups = [proxy if g is orig else g for g in tp.groups if not g.client or g is orig]
+    rt.flights = [
+        *(rt.flights or []),
+        FlightConfig(
+            id="proxy",
+            group=proxy_name,
+            category="helicopter" if helo else "plane",
+            coalition=1 if orig.coalition == "red" else 2,
+            start_airbase=airbase,
+            orders=[compile_order(o, fs, helo, {}, spec, tp.groups) for o in orders],
+        ),
+    ]
+    rt.debug = True
+    for e in rt.encounters:
+        e.chance = 100
+    res = [r for r in tp.resources if Path(r.path).name != TEST_SCRIPT]
+    idx = next((i for i, r in enumerate(res) if Path(r.path).name == "dms_config.lua"), None)
+    if idx is None:
+        idx = next((i - 1 for i, r in enumerate(res) if Path(r.path).name == "dms.lua"), -1)
+    res.insert(idx + 1, PlanResource(path=TEST_SCRIPT_PATH, source=TEST_SCRIPT, kind="script"))
+    tp.resources = res
+    path = [start_xy, *centres]
+    ambient = (
+        rt.ambient is not None
+        and rt.ambient.enabled
+        and any(
+            s.point is None
+            or max(_dist((s.point.x, s.point.y), p) for p in path) > s.despawn_radius_m
+            for s in rt.ambient.sites
+        )
+    )
+    mins = float(minutes) if minutes is not None else float(spec.duration_min)
+    lua = build_test_lua(
+        proxy_name,
+        mins,
+        beat_list,
+        [e.id for e in rt.encounters],
+        ambient=ambient,
+        optional={e.id: None for e in rt.encounters},
+        require_result=spec.test.require_result,
+        flights=True,
+        strike=_has_strike(tp),
+        plugins=runtime_plugins(spec.plugins),
+        subtitle_only=subtitle_only,
+    )
+    route_km = round(sum(_dist(path[i], path[i + 1]) for i in range(len(path) - 1)) / 1000, 1)
     return TestBuild(plan=tp, lua=lua, proxy=proxy_name, minutes=mins, route_km=route_km)
 
 

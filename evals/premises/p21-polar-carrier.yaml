@@ -1,0 +1,28 @@
+# Eval premise p21-polar-carrier. Schema: evals/run.py Premise. Give `prompt` to the story-writer skill verbatim,
+# then score: uv run python evals/run.py --score campaigns/<slug> --premise p21-polar-carrier
+id: p21-polar-carrier
+title: Polar Deck
+genre: fictional
+prompt: 2028. A fictional Russian carrier group exercises in the Barents Sea when a NATO submarine incident
+  escalates. The player flies Su-33s from the carrier; weather and deck operations are as dangerous as
+  the enemy.
+expect:
+  theater: Kola
+  era: [2026, 2030]
+  mode: fictional
+  player_coalition: red
+  airframes: [Su-33]
+  airframe_role: fighter
+  missions: [3, 5]
+  mission_types: [CAP]
+  story_elements:
+  - id: carrier
+    description: Carrier deck operations
+    any_of: [carrier, deck]
+  - id: submarine
+    description: A submarine incident
+    any_of: [submarine]
+  - id: arctic_weather
+    description: Arctic weather
+    any_of: [snow, icing, sea ice, polar, arctic]
+notes: Fictional red naval aviation.

@@ -1,0 +1,28 @@
+# Eval premise p03-shahikot-valley. Schema: evals/run.py Premise. Give `prompt` to the story-writer skill verbatim,
+# then score: uv run python evals/run.py --score campaigns/<slug> --premise p03-shahikot-valley
+id: p03-shahikot-valley
+title: The Valley Floor
+genre: historical
+prompt: 'March 2002, eastern Afghanistan. Operation Anaconda in the Shah-i-Kot valley: attack helicopters
+  support infantry pinned down on the valley floor at high altitude. The player is an Apache crew coping
+  with thin air, heavy fire from the ridgelines and confused coordination.'
+expect:
+  theater: Afghanistan
+  era: [2002, 2002]
+  mode: historical
+  player_coalition: blue
+  airframes: [AH-64D_BLK_II]
+  airframe_role: attack_helo
+  missions: [3, 5]
+  mission_types: [CAS]
+  story_elements:
+  - id: altitude
+    description: High-altitude performance limits
+    any_of: [altitude, thin air, density]
+  - id: ridgelines
+    description: Enemy fire from the ridges
+    any_of: [ridge]
+  - id: anaconda
+    description: Operation Anaconda named and dated
+    any_of: [anaconda]
+notes: Historical helicopter CAS, terrain-driven threats.

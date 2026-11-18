@@ -1,0 +1,28 @@
+# Eval premise p10-strait-escort. Schema: evals/run.py Premise. Give `prompt` to the story-writer skill verbatim,
+# then score: uv run python evals/run.py --score campaigns/<slug> --premise p10-strait-escort
+id: p10-strait-escort
+title: Hormuz Shepherd
+genre: adapted
+prompt: 2019, the Strait of Hormuz. After tanker seizures, a Hornet section escorts merchant convoys and
+  responds to fast-boat swarms and drone shadows, under tight rules of engagement where shooting first
+  could start a war.
+expect:
+  theater: PersianGulf
+  era: [2019, 2020]
+  mode: adapted
+  player_coalition: blue
+  airframes: [FA-18C_hornet]
+  airframe_role: multirole
+  missions: [4, 6]
+  mission_types: [ESCORT, CAP]
+  story_elements:
+  - id: tankers
+    description: Tanker seizures
+    any_of: [tanker]
+  - id: roe
+    description: Restrictive rules of engagement
+    any_of: [rules of engagement, weapons tight, hold fire]
+  - id: fast_boats
+    description: Fast-boat swarms
+    any_of: [fast boat, fast-boat, boghammar, swarm]
+notes: Adapted, naval escort with ROE tension.

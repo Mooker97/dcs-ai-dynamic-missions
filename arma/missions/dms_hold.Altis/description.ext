@@ -1,0 +1,180 @@
+// DMS "Hold the OP" - Arma 3, Altis. Needs CBA_A3, ACE, LAMBS_Danger, RHSAFRF, RHSUSAF.
+// Solo player leading an AI squad, defending an observation post with mortar and air support.
+author = "DMS";
+onLoadName = "Hold the OP";
+onLoadMission = "Hold an observation post against a Russian motor-rifle attack.";
+briefingName = "DMS - Hold the OP";
+overviewText = "Lead a US Army squad holding a hilltop observation post on Altis against a Russian motor-rifle attack, with 81 mm mortars and one AH-64D sortie on call. Needs CBA_A3, ACE, LAMBS_Danger, RHSAFRF and RHSUSAF.";
+
+respawn = 0;
+respawnDialog = 0;
+disabledAI = 1;
+enableDebugConsole = 1;
+corpseManagerMode = 0;
+wreckManagerMode = 0;
+
+class Header
+{
+	gameType = "Coop";
+	minPlayers = 1;
+	maxPlayers = 1;
+};
+
+class Params
+{
+	class DMS_seed
+	{
+		title = "Random seed (0 = random, logged)";
+		values[] = {0, 1, 2, 3, 7, 42, 1337, 4242};
+		texts[] = {"Random", "1", "2", "3", "7", "42", "1337", "4242"};
+		default = 0;
+	};
+	class DMS_site
+	{
+		title = "Observation post";
+		values[] = {0, 1, 2};
+		texts[] = {"From seed", "OP Agia Triada", "OP Agios Petros"};
+		default = 0;
+	};
+	class DMS_debug
+	{
+		title = "Debug (log to screen, wave markers)";
+		values[] = {0, 1};
+		texts[] = {"Off", "On"};
+		default = 0;
+	};
+	class DMS_testMode
+	{
+		title = "Test mode (AI squad plays unattended)";
+		values[] = {0, 1};
+		texts[] = {"Off", "On"};
+		default = 0;
+	};
+	class DMS_testMinutes
+	{
+		title = "Test mode time limit (minutes)";
+		values[] = {15, 20, 30, 45, 60};
+		texts[] = {"15", "20", "30", "45", "60"};
+		default = 45;
+	};
+	class DMS_testTimeScale
+	{
+		title = "Test mode time scale for mission delays (percent)";
+		values[] = {100, 50, 25, 15, 10};
+		texts[] = {"100% (real)", "50%", "25%", "15%", "10%"};
+		default = 100;
+	};
+	class DMS_testStartDist
+	{
+		title = "Test mode enemy spawn distance (m, at least 450; 0 = normal 900-1150)";
+		values[] = {0, 300, 500};
+		texts[] = {"Normal", "300", "500"};
+		default = 0;
+	};
+	class DMS_testAssist
+	{
+		title = "Test mode wave assist (s after a wave closes to 300 m; 0 = off)";
+		values[] = {0, 120, 180, 300};
+		texts[] = {"Off", "120", "180", "300"};
+		default = 0;
+	};
+	class DMS_testForce
+	{
+		title = "Test mode forced failure";
+		values[] = {0, 1, 2};
+		texts[] = {"None", "Squad wiped out", "OP overrun"};
+		default = 0;
+	};
+};
+
+class CfgFunctions
+{
+	class DMS
+	{
+		tag = "DMS";
+		class mission
+		{
+			file = "functions";
+			class config {};
+			class log {};
+			class rng {};
+			class t {};
+			class findPos {};
+			class mods {};
+			class op {};
+			class waves {};
+			class support {};
+			class air {};
+			class end {};
+			class testMode {};
+		};
+	};
+};
+
+class CfgCommunicationMenu
+{
+	class DMS_ArtyFire
+	{
+		text = "Mortars: fire for effect";
+		submenu = "";
+		expression = "['REQUEST', [_this select 0, _this select 1, 'FFE']] remoteExecCall ['DMS_fnc_support', 2];";
+		icon = "\a3\Ui_f\data\GUI\Cfg\CommunicationMenu\artillery_ca.paa";
+		cursor = "\a3\Ui_f\data\IGUI\Cfg\Cursors\iconCursorSupport_ca.paa";
+		enable = "1";
+		removeAfterExpressionCall = 1;
+	};
+	class DMS_ArtySpot
+	{
+		text = "Mortars: spotting round";
+		submenu = "";
+		expression = "['REQUEST', [_this select 0, _this select 1, 'SPOT']] remoteExecCall ['DMS_fnc_support', 2];";
+		icon = "\a3\Ui_f\data\GUI\Cfg\CommunicationMenu\artillery_ca.paa";
+		cursor = "\a3\Ui_f\data\IGUI\Cfg\Cursors\iconCursorSupport_ca.paa";
+		enable = "1";
+		removeAfterExpressionCall = 1;
+	};
+	class DMS_AirSupport
+	{
+		text = "AH-64D: attack marked position";
+		submenu = "";
+		expression = "['REQUEST', [_this select 0, _this select 1]] remoteExecCall ['DMS_fnc_air', 2];";
+		icon = "\a3\Ui_f\data\GUI\Cfg\CommunicationMenu\attack_ca.paa";
+		cursor = "\a3\Ui_f\data\IGUI\Cfg\Cursors\iconCursorSupport_ca.paa";
+		enable = "1";
+		removeAfterExpressionCall = 1;
+	};
+};
+
+class CfgDebriefing
+{
+	class DMS_Win
+	{
+		title = "Mission complete";
+		subtitle = "OP held";
+		description = "The squad held the observation post until the relief arrived.";
+	};
+	class DMS_FailDead
+	{
+		title = "Mission failed";
+		subtitle = "Squad lost";
+		description = "You were killed or the squad was wiped out.";
+	};
+	class DMS_FailOverrun
+	{
+		title = "Mission failed";
+		subtitle = "OP overrun";
+		description = "The enemy took the observation post.";
+	};
+	class DMS_FailMods
+	{
+		title = "Mission cannot start";
+		subtitle = "Required mods missing";
+		description = "Load CBA_A3, ACE, LAMBS_Danger, RHSAFRF and RHSUSAF. The server log lists exactly what was missing.";
+	};
+	class DMS_TestEnd
+	{
+		title = "Test run ended";
+		subtitle = "Time limit";
+		description = "The unattended test run reached its time limit.";
+	};
+};

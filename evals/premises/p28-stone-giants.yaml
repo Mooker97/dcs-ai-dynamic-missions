@@ -1,0 +1,28 @@
+# Eval premise p28-stone-giants. Schema: evals/run.py Premise. Give `prompt` to the story-writer skill verbatim,
+# then score: uv run python evals/run.py --score campaigns/<slug> --premise p28-stone-giants
+id: p28-stone-giants
+title: Stone Giants
+genre: fantasy
+prompt: The mountains of the Caucasus map are home to waking stone giants (played by armour columns) marching
+  on the valley towns, guided by a mountain sorcerer. Apache crews of the valley league hold them off;
+  the giants can only be stopped at the river crossings.
+expect:
+  theater: Caucasus
+  era: [2005, 2015]
+  mode: fictional
+  player_coalition: blue
+  airframes: [AH-64D_BLK_II]
+  airframe_role: attack_helo
+  missions: [4, 6]
+  mission_types: [CAS, STRIKE]
+  story_elements:
+  - id: giants
+    description: Stone giants
+    any_of: [giant, golem]
+  - id: sorcerer
+    description: A mountain sorcerer
+    any_of: [sorcer, wizard, warlock]
+  - id: crossings
+    description: River crossings as chokepoints
+    any_of: [crossing, bridge]
+notes: Fantasy ground war with armour as monsters.

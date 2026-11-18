@@ -1,0 +1,206 @@
+# DMS catalog: mission types
+# -----------------------------------------------------------------------------
+# Grounding data for the mission-designer skill and `dms plan`. SEAD is migrated from
+# legacy/mission-generation/templates/missions/sead.yaml; the rest are new.
+#
+# Fields (per mission type, keyed by upper-case id used in MissionSpec.mission_type)
+#   name                 full name
+#   description          what the player is asked to do
+#   player_roles         unit_types.yaml roles/tags suited to the player flight
+#   typical_aircraft     example player types (unit_types.yaml ids)
+#   loadouts             named loadout per aircraft type (resolved by dms-gen; optional)
+#   objectives           typical objective kinds: {kind, description}; first = usual primary
+#   threats              by intensity (light|moderate|heavy): group_templates.yaml ids + counts
+#   support              awacs | tanker | jtac | escort | sead | csar | cap : required|recommended|optional
+#   dynamic_encounters   recommended DMS encounter kinds (CONTRACTS.md: pool, ambush_sam, waves, hunt,
+#                        convoy, cap) with the template pools they usually draw from
+#   beats                typical narrative beat ids the mission-designer should write lines for
+#   duration_min         typical [min, max] flight time in minutes
+#   briefing_hints       short notes for the briefing writer
+version: 1
+mission_types:
+  SEAD:
+    name: Suppression of Enemy Air Defenses
+    description: >
+      Suppress or destroy enemy air defence systems so follow-on strikes can operate.
+      Primary targets are radar-guided SAM sites.
+    player_roles: [sead, multirole]
+    typical_aircraft: [F-16C_50, FA-18C_hornet, F-15E, Su-25T]
+    loadouts: {F-16C_50: SEAD_Standard, FA-18C_hornet: SEAD_Standard, F-15E: SEAD_AGM88}
+    objectives:
+      - {kind: destroy_group, description: "Destroy or suppress {count} SAM sites"}
+      - {kind: rtb, description: Return safely to base}
+      - {kind: bonus_kills, description: Destroy additional threats of opportunity}
+    threats:
+      light:
+        sam_sites: 2
+        templates: [sa3_goa_battery, sa6_gainful_battery]
+        cap_flights: 0
+      moderate:
+        sam_sites: 4
+        templates: [sa6_gainful_battery, sa11_gadfly_battery, sa15_tor_battery]
+        cap_flights: 1
+      heavy:
+        sam_sites: 6
+        templates: [sa10_grumble_battalion, sa6_gainful_battery, sa15_tor_battery]
+        cap_flights: 2
+        cap_templates: [mig29_cap_2ship, su27_cap_2ship]
+    support: {awacs: recommended, tanker: recommended, jtac: optional, escort: optional}
+    dynamic_encounters:
+      - {kind: ambush_sam, pool: [sa8, sa15_single, tunguska], note: pop-up SAM that goes hot when the flight is close}
+      - {kind: cap, pool: [mig29_cap_2ship], note: reactive fighters after the first HARM shot}
+    beats: [push, magnum, sam_spike, sam_down, all_sams_down, rtb]
+    duration_min: [45, 90]
+    briefing_hints: List radar types and last-known positions; give the HARM timeline and the strike TOT it enables.
+
+  CAS:
+    name: Close Air Support
+    description: >
+      Support friendly ground forces in contact; find, identify and destroy enemy ground
+      units close to friendlies under JTAC control.
+    player_roles: [cas, attack, attack_helo]
+    typical_aircraft: [A-10C_2, AH-64D_BLK_II, Ka-50_3, Su-25T, F-16C_50, AV8BNA]
+    objectives:
+      - {kind: protect_group, description: Keep the friendly unit in contact alive}
+      - {kind: destroy_count, description: "Destroy {count} enemy vehicles near the friendlies"}
+      - {kind: rtb, description: Return safely to base}
+    threats:
+      light: {templates: [technical_pair, infantry_squad, zu23_technical], aa: [zu23_technical]}
+      moderate: {templates: [bmp_section, btr_squad, checkpoint], aa: [shilka, manpads_team, strela_section]}
+      heavy: {templates: [t72_platoon, qrf_heavy, bmp_section], aa: [tunguska, sa8, sa15_single]}
+    support: {jtac: required, awacs: optional, sead: optional}
+    dynamic_encounters:
+      - {kind: waves, pool: [qrf_light, qrf_medium, qrf_heavy], note: reinforcement waves toward the friendlies}
+      - {kind: ambush_sam, pool: [manpads_team, aa_ambush], note: MANPADS near the target area}
+      - {kind: hunt, pool: [technical_pair], note: technicals hunting the friendly position}
+    beats: [checkin, nine_line, tic, good_hits, danger_close, friendlies_safe, winchester, rtb]
+    duration_min: [40, 80]
+    briefing_hints: Give the friendly position and callsign, the JTAC frequency, and an expected enemy axis. Stress fratricide risk.
+
+  CAP:
+    name: Combat Air Patrol
+    description: Hold a patrol station and intercept enemy aircraft entering a defended area.
+    player_roles: [cap, fighter]
+    typical_aircraft: [F-15C, F-16C_50, FA-18C_hornet, F-14B, MiG-29S, Su-27]
+    loadouts: {F-16C_50: CAP_Standard, F-15C: CAP_Standard}
+    objectives:
+      - {kind: defend_zone, description: "Prevent enemy aircraft reaching {zone}"}
+      - {kind: destroy_count, description: "Destroy {count} hostile aircraft"}
+      - {kind: rtb, description: Return safely to base}
+    threats:
+      light: {templates: [mig21_cap_2ship, l39_light_2ship]}
+      moderate: {templates: [mig29_cap_2ship, su25_cas_2ship]}
+      heavy: {templates: [su27_cap_2ship, mig29_cap_4ship], packages: [high_value_cap, mixed_strike_package]}
+    support: {awacs: required, tanker: recommended}
+    dynamic_encounters:
+      - {kind: cap, pool: [mig29_cap_2ship, su27_cap_2ship, mig21_cap_2ship], note: raids spawn at the edge of AWACS picture; director-paced}
+      - {kind: waves, pool: [su30_strike_2ship, su25_cas_2ship], note: strike packages escorted by fighters}
+    beats: [on_station, picture, bogey_dope, splash, raid_inbound, bingo, rtb]
+    duration_min: [60, 120]
+    briefing_hints: Define the CAP station, the commit criteria and the ROE (BVR allowed or VID required).
+
+  STRIKE:
+    name: Strike
+    description: Destroy a fixed or high-value target (bridge, depot, command post, Scud site).
+    player_roles: [strike, multirole]
+    typical_aircraft: [F-15E, F-16C_50, FA-18C_hornet, Su-24M, Su-34]
+    loadouts: {F-16C_50: Strike_JDAM, FA-18C_hornet: Strike_Mixed, F-15E: Strike_Heavy}
+    objectives:
+      - {kind: destroy_group, description: "Destroy {target}"}
+      - {kind: tot, description: "Time on target {tot}"}
+      - {kind: rtb, description: Return safely to base}
+    threats:
+      light: {templates: [zu23_battery, shilka]}
+      moderate: {templates: [sa6_gainful_battery, sa8_section, shilka], cap_flights: 1}
+      heavy: {packages: [basic_iads], cap_flights: 2}
+    support: {sead: recommended, escort: recommended, awacs: recommended, tanker: optional}
+    dynamic_encounters:
+      - {kind: ambush_sam, pool: [sa8, sa15_single, tunguska], note: point defence that wakes on approach}
+      - {kind: cap, pool: [mig29_cap_2ship], note: intercept launched once the strike is detected}
+    beats: [push, fence_in, ip_inbound, bombs_away, target_destroyed, rtb]
+    duration_min: [50, 100]
+    briefing_hints: Give target coordinates/imagery reference, desired effect, TOT window and ingress/egress routes.
+
+  CSAR:
+    name: Combat Search and Rescue
+    description: Locate and recover a downed aircrew before enemy forces capture them.
+    player_roles: [utility_helo, attack_helo, csar]
+    typical_aircraft: [UH-1H, Mi-8MT, CH-47Fbl1, AH-64D_BLK_II]
+    objectives:
+      - {kind: pickup, description: "Recover {survivor} at {zone}"}
+      - {kind: deliver, description: Deliver the survivor to the field hospital}
+      - {kind: protect_group, description: Keep the survivor alive}
+    threats:
+      light: {templates: [infantry_fireteam, technical_mg]}
+      moderate: {templates: [insurgent_cell, technical_pair, zu23_technical]}
+      heavy: {templates: [btr_squad, ambush_team, aa_ambush]}
+    support: {escort: recommended, awacs: optional, cap: optional}
+    dynamic_encounters:
+      - {kind: hunt, pool: [technical_pair, recon_patrol], note: search party closing on the survivor; clock pressure}
+      - {kind: ambush_sam, pool: [manpads_team, zu23_technical], note: ambush on the ingress route}
+    beats: [mayday, survivor_contact, smoke_out, enemy_closing, survivor_aboard, delivered]
+    duration_min: [30, 70]
+    briefing_hints: Give survivor callsign, authentication word, last-known position and the enemy search party's estimated time.
+
+  CONVOY_ESCORT:
+    name: Convoy Escort
+    description: Escort a friendly ground convoy along a road route and defeat ambushes.
+    player_roles: [attack_helo, cas, scout_helo]
+    typical_aircraft: [AH-64D_BLK_II, OH58D, A-10C_2, Ka-50_3, Mi-24P]
+    objectives:
+      - {kind: protect_group, description: "Get {convoy} to {destination} with at least {percent}% of vehicles"}
+      - {kind: destroy_count, description: Clear ambush positions along the route}
+    threats:
+      light: {templates: [technical_mg, rpg_team, infantry_squad]}
+      moderate: {templates: [checkpoint, technical_aa_mg, ambush_team, mortar_team]}
+      heavy: {templates: [bmp_section, t72_single, aa_ambush, artillery_battery]}
+    support: {awacs: optional, jtac: optional}
+    dynamic_encounters:
+      - {kind: convoy, pool: [blue_patrol], note: the escorted friendly convoy itself}
+      - {kind: pool, pool: [rpg_team, technical_mg, mg_nest, infantry_squad], note: random ambush positions along road segments}
+      - {kind: ambush_sam, pool: [manpads_team, zu23_technical], note: anti-helo ambush ahead of the convoy}
+      - {kind: waves, pool: [qrf_light, qrf_medium], note: QRF once the convoy is hit}
+    beats: [convoy_rolling, contact_front, convoy_hit, ambush_cleared, convoy_arrived]
+    duration_min: [40, 80]
+    briefing_hints: Brief the route with named checkpoints, the convoy callsign/frequency and likely ambush terrain.
+
+  RECON:
+    name: Armed Reconnaissance
+    description: Scout an area, find and report enemy forces; engage targets of opportunity if cleared.
+    player_roles: [scout_helo, attack_helo, recon]
+    typical_aircraft: [OH58D, SA342M, AH-64D_BLK_II, Ka-50_3, F-16C_50]
+    objectives:
+      - {kind: reconnoiter_zone, description: "Find and report enemy forces in {zone}"}
+      - {kind: destroy_group, description: Destroy the high-value target if found}
+      - {kind: rtb, description: Return safely to base}
+    threats:
+      light: {templates: [recon_patrol, technical_mg, infantry_fireteam]}
+      moderate: {templates: [checkpoint, btr_squad, zu23_truck, hvt_vehicle]}
+      heavy: {templates: [t72_platoon, bmp_section, strela_section, sa8]}
+    support: {awacs: optional, jtac: optional}
+    dynamic_encounters:
+      - {kind: pool, pool: [checkpoint, btr_squad, mg_nest, infantry_squad, hvt_vehicle], note: random enemy dispositions; intel fog of war marks on detection}
+      - {kind: ambush_sam, pool: [manpads_single, zu23_technical], note: hidden AA in the search area}
+    beats: [area_entered, contact_report, hvt_spotted, hvt_destroyed, rtb]
+    duration_min: [40, 90]
+    briefing_hints: Give named areas of interest and reporting format (SALUTE); state whether engagement is authorised.
+
+  TRANSPORT:
+    name: Transport / Logistics
+    description: Move troops or cargo between landing zones, possibly under threat.
+    player_roles: [utility_helo, transport_helo, transport]
+    typical_aircraft: [UH-1H, Mi-8MT, CH-47Fbl1, C-130]
+    objectives:
+      - {kind: deliver, description: "Deliver {cargo} to {zone}"}
+      - {kind: pickup, description: "Extract troops from {zone}"}
+    threats:
+      light: {templates: [infantry_fireteam]}
+      moderate: {templates: [insurgent_cell, technical_mg, zu23_technical]}
+      heavy: {templates: [aa_ambush, manpads_team, technical_aa_mg]}
+    support: {escort: recommended, awacs: optional}
+    dynamic_encounters:
+      - {kind: ambush_sam, pool: [manpads_team, zu23_technical], note: threat near the LZ}
+      - {kind: hunt, pool: [technical_pair], note: enemy moves on the LZ while you are on the ground}
+    beats: [lz_approach, lz_hot, troops_aboard, cargo_delivered, rtb]
+    duration_min: [30, 75]
+    briefing_hints: Give LZ names/coordinates, load and the timing window. Brief the LZ threat (cold/hot).

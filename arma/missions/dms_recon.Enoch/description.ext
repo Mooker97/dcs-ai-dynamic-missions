@@ -1,0 +1,174 @@
+// DMS "Recon and Strike" - Livonia (Enoch), CBA + ACE + LAMBS + RHS AFRF/USAF. Solo player leading a 4-man recon team.
+author = "DMS";
+onLoadName = "Recon and Strike";
+onLoadMission = "Find the hidden mortar battery, call fire on it, confirm the kill and exfil.";
+briefingName = "DMS - Recon and Strike";
+overviewText = "Lead a USMC Force Recon team through the Livonian forest to find a Russian mortar battery, report it for a 155 mm fire mission, confirm the kill and walk out.";
+
+respawn = 0;
+respawnDialog = 0;
+disabledAI = 1;
+enableDebugConsole = 1;
+corpseManagerMode = 0;
+wreckManagerMode = 0;
+
+class Header
+{
+	gameType = "Coop";
+	minPlayers = 1;
+	maxPlayers = 1;
+};
+
+class Params
+{
+	class DMS_seed
+	{
+		title = "Random seed (0 = random, logged)";
+		values[] = {0, 1, 2, 3, 7, 42, 1337, 4242};
+		texts[] = {"Random", "1", "2", "3", "7", "42", "1337", "4242"};
+		default = 0;
+	};
+	class DMS_site
+	{
+		title = "Battery site";
+		values[] = {0, 1, 2, 3};
+		texts[] = {"From seed", "Forest south-west of Nadbor", "Forest west of Rodzanica hill", "Forest between Lembork and Borek"};
+		default = 0;
+	};
+	class DMS_debug
+	{
+		title = "Debug (log to screen, battery and QRF markers)";
+		values[] = {0, 1};
+		texts[] = {"Off", "On"};
+		default = 0;
+	};
+	class DMS_testMode
+	{
+		title = "Test mode (AI team plays unattended)";
+		values[] = {0, 1};
+		texts[] = {"Off", "On"};
+		default = 0;
+	};
+	class DMS_testMinutes
+	{
+		title = "Test mode time limit (minutes)";
+		values[] = {15, 20, 30, 45, 60, 90};
+		texts[] = {"15", "20", "30", "45", "60", "90"};
+		default = 45;
+	};
+	class DMS_testTimeScale
+	{
+		title = "Test mode time scale for mission delays (percent)";
+		values[] = {100, 50, 25, 15, 10};
+		texts[] = {"100% (real)", "50%", "25%", "15%", "10%"};
+		default = 100;
+	};
+	class DMS_testStartDist
+	{
+		title = "Test mode team start distance (m, 0 = normal)";
+		values[] = {0, 300, 500, 800};
+		texts[] = {"Normal", "300", "500", "800"};
+		default = 0;
+	};
+	class DMS_testAssist
+	{
+		title = "Test mode find assist (reveal the battery if not found from the last OP; 0 = off)";
+		values[] = {0, 120, 180, 300};
+		texts[] = {"Off", "On (120)", "On (180)", "On (300)"};
+		default = 0;
+	};
+	class DMS_testForce
+	{
+		title = "Test mode forced failure";
+		values[] = {0, 1};
+		texts[] = {"None", "Team killed after the first report"};
+		default = 0;
+	};
+};
+
+class CfgFunctions
+{
+	class DMS
+	{
+		tag = "DMS";
+		class mission
+		{
+			file = "functions";
+			class config {};
+			class log {};
+			class rng {};
+			class t {};
+			class findPos {};
+			class site {};
+			class alarm {};
+			class strike {};
+			class bda {};
+			class end {};
+			class testMode {};
+		};
+	};
+};
+
+class CfgCommunicationMenu
+{
+	class DMS_ReportLaser
+	{
+		text = "Fire mission: target at my laser spot";
+		submenu = "";
+		expression = "private _u = _this select 0; private _lt = laserTarget _u; ['REPORT', [_u, [getPosATL _lt, []] select (isNull _lt), 'LASER']] remoteExecCall ['DMS_fnc_strike', 2];";
+		icon = "\a3\Ui_f\data\GUI\Cfg\CommunicationMenu\artillery_ca.paa";
+		cursor = "";
+		enable = "1";
+		removeAfterExpressionCall = 1;
+	};
+	class DMS_ReportCursor
+	{
+		text = "Fire mission: target at cursor / map position";
+		submenu = "";
+		expression = "['REPORT', [_this select 0, _this select 1, 'CURSOR']] remoteExecCall ['DMS_fnc_strike', 2];";
+		icon = "\a3\Ui_f\data\GUI\Cfg\CommunicationMenu\artillery_ca.paa";
+		cursor = "\a3\Ui_f\data\IGUI\Cfg\Cursors\iconCursorSupport_ca.paa";
+		enable = "1";
+		removeAfterExpressionCall = 1;
+	};
+};
+
+class CfgDebriefing
+{
+	class DMS_Win
+	{
+		title = "Mission complete";
+		subtitle = "Battery destroyed";
+		description = "The battery was destroyed, the kill confirmed and the team walked out.";
+	};
+	class DMS_FailDead
+	{
+		title = "Mission failed";
+		subtitle = "Team lost";
+		description = "You were killed or the team was wiped out.";
+	};
+	class DMS_FailTime
+	{
+		title = "Mission failed";
+		subtitle = "Battery still active";
+		description = "The battery was not destroyed within the time limit.";
+	};
+	class DMS_FailAmmo
+	{
+		title = "Mission failed";
+		subtitle = "Out of fire missions";
+		description = "All fire missions were spent and the battery is still active.";
+	};
+	class DMS_FailMods
+	{
+		title = "Mission cannot run";
+		subtitle = "Required mods missing";
+		description = "Load CBA_A3, ACE, LAMBS_Danger, RHSAFRF and RHSUSAF. The missing mods are listed in the hint and the .rpt log.";
+	};
+	class DMS_TestEnd
+	{
+		title = "Test run ended";
+		subtitle = "Time limit";
+		description = "The unattended test run reached its time limit.";
+	};
+};

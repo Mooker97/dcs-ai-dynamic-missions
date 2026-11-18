@@ -1,0 +1,339 @@
+# w02 Warden in Contact — WATCH mission (spectator, all AI, no player slot).
+# Schema: schemas/mission-spec.schema.json (MissionSpec, CONTRACTS "AI flights and watch missions (v0.9)"
+# and "Ground moves on cue and immortal support (v0.9.1)": support `immortal`, beat effect `move_group`).
+# Validate: uv run dms validate campaigns/dustoff-valley/missions/w02-warden-in-contact
+# Side story: not in arc.yaml and changes no campaign qualities. Set D+5, east of the Amik valley.
+#
+# Geography: the open, flat farmland of the Idlib plain between Binnish (west) and Taftanaz (east).
+# Every area is an offset from Taftanaz airfield (DCS airbase name), so the planner resolves it exactly.
+# Rough layout (km east / north of Taftanaz airfield):
+#   Warden dismounts (-4.0, 1.5) | militia line 540 m east, militia north 600 m NNE
+#   PZ 1.3 km west of the fight (-5.3, 1.75) | Warden 3-2 vehicles rally 5 km west (-9.0, 2.4)
+#   QRF garrison at the airfield (0.6, -0.4) -> dismount point 1.7 km east of Warden (-2.3, 1.5)
+#   MANPADS: north of the road (-2.4, 3.4, telegraphed), south of the road (-1.7, 0.3, hidden ambush)
+#   Dusty / Dustoff air start 12-14 km west; Venom holds 31 km west-north-west at 20,000 ft.
+schema_version: 1
+id: w02-warden-in-contact
+title: "Warden in Contact"
+campaign: dustoff-valley
+content_mode: fictional
+theater: Syria
+era: 2012
+date: 2012-04-14
+start_time: "15:30"
+weather_preset: clear
+mission_type: CSAR
+duration_min: 18
+blue_countries: [Australia, USA, UK]
+red_countries: [Combined Joint Task Forces Red, Insurgents]
+cast: [ops_walsh, warden_booker, dustoff_whitfield, dusty_brennan, venom_lindqvist]
+
+watch:
+  focus: dusty                      # Dusty 1-1 stands in for "the player" (comms position, fog-of-war reveal)
+  cues: true
+
+areas:
+  - id: hatay
+    description: "Hatay airfield, home of all three flights (only used for RTB after the mission ends)."
+    where: {kind: near_airbase, airbase: Hatay, radius_nm: 1}
+  - id: start_dusty
+    description: "Dusty flight's air start, 7 NM west of the fight over open fields, inbound from Hatay."
+    where: {kind: near_airbase, airbase: Taftanaz, radius_nm: 0.5, bearing_deg: 282, distance_nm: 9.11}
+    terrain: open
+  - id: start_dustoff
+    description: "Dustoff 3-1's air start, 1 NM behind Dusty."
+    where: {kind: near_airbase, airbase: Taftanaz, radius_nm: 0.5, bearing_deg: 279, distance_nm: 10.12}
+    terrain: open
+  - id: battle_west
+    description: "Dusty's battle position: open fields 1.3 NM west-north-west of Warden, outside small-arms range of the militia."
+    where: {kind: near_airbase, airbase: Taftanaz, radius_nm: 0.4, bearing_deg: 293, distance_nm: 3.63}
+    terrain: open
+  - id: dustoff_hold
+    description: "Dustoff's holding orbit, 3 NM west of the PZ, out of the fight."
+    where: {kind: near_airbase, airbase: Taftanaz, radius_nm: 0.8, bearing_deg: 284, distance_nm: 6.13}
+    terrain: open
+  - id: patrol_pos
+    description: "Where Warden Three-One's dismounts are pinned: an irrigation ditch in open fields east of Binnish."
+    where: {kind: near_airbase, airbase: Taftanaz, radius_nm: 0.05, bearing_deg: 291, distance_nm: 2.31}
+    terrain: open
+  - id: gunvee_pos
+    description: "Warden Three-Two's three HMMWVs, 300 m south-west of the dismounts, firing over them."
+    where: {kind: near_airbase, airbase: Taftanaz, radius_nm: 0.05, bearing_deg: 288, distance_nm: 2.41}
+    terrain: open
+  - id: militia_line
+    description: "Militia firing line along a farm wall 540 m east of Warden."
+    where: {kind: near_airbase, airbase: Taftanaz, radius_nm: 0.08, bearing_deg: 295, distance_nm: 2.07}
+    terrain: open
+  - id: militia_north
+    description: "Militia flanking group in an orchard 600 m north-north-east of Warden."
+    where: {kind: near_airbase, airbase: Taftanaz, radius_nm: 0.08, bearing_deg: 299, distance_nm: 2.31}
+    terrain: open
+  - id: pz
+    description: "The pickup zone: a fallow field 1.3 km west of the fight, behind Warden's own line."
+    where: {kind: near_airbase, airbase: Taftanaz, radius_nm: 0.1, bearing_deg: 288, distance_nm: 3.01}
+    terrain: open
+  - id: rally_west
+    description: "Warden Three-Two's rally point on the Binnish road, 5 km west. The vehicles drive out overland."
+    where: {kind: near_airbase, airbase: Taftanaz, radius_nm: 0.2, bearing_deg: 285, distance_nm: 5.03}
+    terrain: road
+  - id: qrf_garrison
+    description: "NVC garrison at Taftanaz airfield. The QRF column forms up on the perimeter road."
+    where: {kind: near_airbase, airbase: Taftanaz, radius_nm: 0.3, bearing_deg: 124, distance_nm: 0.39}
+    terrain: road
+  - id: qrf_dismount
+    description: "Where the QRF means to dismount: the Taftanaz-Binnish road 1.7 km east of Warden."
+    where: {kind: near_airbase, airbase: Taftanaz, radius_nm: 0.3, bearing_deg: 303, distance_nm: 1.48}
+    terrain: road
+  - id: manpads_ridge
+    description: "Farm buildings north of the road, 2.5 km north-east of Warden. A missile team may set up here (telegraphed)."
+    where: {kind: near_airbase, airbase: Taftanaz, radius_nm: 0.15, bearing_deg: 325, distance_nm: 2.25}
+    terrain: open
+  - id: manpads_hidden
+    description: "Ditch south of the road where the QRF route bends. A hidden missile team may wait here (ambush)."
+    where: {kind: near_airbase, airbase: Taftanaz, radius_nm: 0.15, bearing_deg: 280, distance_nm: 0.93}
+    terrain: open
+  - id: egress_west
+    description: "Egress point 4.5 NM west of the PZ. Dustoff reaching it ends the mission."
+    where: {kind: near_airbase, airbase: Taftanaz, radius_nm: 1.0, bearing_deg: 284, distance_nm: 7.52}
+    terrain: open
+  - id: venom_hold
+    description: "Venom flight's holding orbit, 15 NM west-north-west of the fight at 20,000 ft."
+    where: {kind: near_airbase, airbase: Taftanaz, radius_nm: 3, bearing_deg: 287, distance_nm: 16.91}
+
+player_flights: []                  # watch mission: no client slots
+
+flights:
+  - id: dusty
+    callsign: "Dusty 1-1"
+    aircraft: AH-64D_BLK_II
+    count: 2                        # both serviceable airframes today: Dusty 1-1 and 1-2
+    coalition: blue
+    country: Australia
+    skill: High
+    start_area: start_dusty
+    start_type: air
+    start_alt_ft: 1000
+    start_speed_kts: 135
+    heading_toward: battle_west
+    loadout: hellfire_rockets
+    speaker: dusty_brennan
+    frequency_mhz: 251.0
+    modulation: AM
+    orders:
+      - {do: fly, to: battle_west, alt_ft: 1000, speed_kts: 135}
+      # Warden clears them hot on the farm wall: a directed gun attack, not a passive orbit
+      - {do: strike, at: militia_line, group: militia, weapon: gun, alt_ft: 800, speed_kts: 100, max_min: 4}
+      - {do: engage, at: militia_line, radius_nm: 1, targets: [infantry, ground], alt_ft: 800, speed_kts: 90,
+         until: {flag: qrf_inbound}, max_min: 4}
+      # The column: Hellfires on the Shilka first (it kills helicopters), then the lead armour
+      - {do: strike, at: qrf_dismount, group: qrf_aa, weapon: missile, alt_ft: 1000, speed_kts: 110,
+         when: {flag: qrf_inbound}, max_min: 4}
+      - {do: strike, at: qrf_dismount, group: qrf_armor, weapon: missile, alt_ft: 1000, speed_kts: 110, max_min: 5}
+      # Cover Warden's move and the pickup, then ride shotgun on the way out
+      - {do: engage, at: pz, radius_nm: 2, targets: [ground, aaa], alt_ft: 1000, speed_kts: 90,
+         until: {event: flight.lifted, flight: dustoff}, max_min: 10}
+      - {do: escort, flight: dustoff, radius_nm: 1.5, targets: [ground, aaa], max_min: 5}
+      - {do: rtb}
+
+  - id: dustoff
+    callsign: "Dustoff 3-1"
+    aircraft: UH-60A
+    count: 1
+    coalition: blue
+    country: USA
+    skill: High
+    start_area: start_dustoff
+    start_type: air
+    start_alt_ft: 1000
+    start_speed_kts: 135
+    heading_toward: dustoff_hold
+    speaker: dustoff_whitfield
+    frequency_mhz: 251.0
+    modulation: AM
+    orders:
+      - {do: fly, to: dustoff_hold, alt_ft: 1000, speed_kts: 135}
+      - {do: hold, at: dustoff_hold, alt_ft: 1000, speed_kts: 90, until: {flag: pz_ready}, max_min: 13}
+      - {do: land, at: pz, alt_ft: 1000, speed_kts: 130, ground_min: [1.5, 2], pickup: patrol}
+      - {do: fly, to: egress_west, alt_ft: 300, speed_kts: 140}   # low-level dash out, the only low leg
+      - {do: rtb}
+
+  - id: venom
+    callsign: "Venom 1-1"
+    aircraft: F-16C_50
+    count: 2
+    coalition: blue
+    country: USA
+    skill: Excellent
+    start_area: venom_hold
+    start_type: air
+    start_alt_ft: 20000
+    start_speed_kts: 350
+    loadout: lgb_strike
+    speaker: venom_lindqvist
+    frequency_mhz: 251.0
+    modulation: AM
+    orders:
+      - {do: hold, at: venom_hold, alt_ft: 20000, speed_kts: 350, until: {flag: strike_cleared}, max_min: 10}
+      - {do: strike, at: qrf_dismount, group: qrf_armor, weapon: guided_bomb, alt_ft: 18000, max_min: 6}
+      - {do: strike, at: qrf_dismount, group: qrf_trucks, weapon: guided_bomb, alt_ft: 18000, max_min: 4}
+      - {do: rtb}
+
+objectives:
+  - id: extract_warden
+    kind: rescue
+    description: "Dustoff 3-1 lands at the PZ behind the lines and lifts Warden Three-One's dismounts, two of them wounded."
+    primary: true
+    area: pz
+    target: patrol
+    success_flag: patrol_aboard
+  - id: clear_plain
+    kind: reach
+    description: "Dustoff clears the plain westbound with Warden aboard."
+    primary: true
+    area: egress_west
+    success_flag: dustoff_clear
+    failure_flag: dustoff_lost
+  - id: stop_qrf
+    kind: protect
+    description: "Dusty and Venom stop the QRF column (a pool, not a placed group) before it reaches Warden."
+    primary: false
+    area: patrol_pos
+    target: patrol
+    success_flag: qrf_hit
+  - id: warden_vehicles_out
+    kind: reach
+    description: "Warden Three-Two's vehicles reach the rally point on the Binnish road."
+    primary: false
+    area: rally_west
+    target: gunvees
+    success_flag: gunvees_out
+
+support:
+  - id: patrol
+    role: friendly_ground
+    callsign: "Warden Three-One"
+    area: patrol_pos
+    composition: "6x Soldier M4, 2x Soldier M249"
+    faction: ctf_us
+    speaker: warden_booker
+    frequency_mhz: 41.5
+    modulation: FM
+    immortal: true                   # the dismounts must live to reach the PZ; the stakes sit with Three-Two
+  - id: gunvees
+    role: friendly_ground
+    callsign: "Warden Three-Two"
+    area: gunvee_pos
+    composition: "2x M1043 HMMWV Armament, 1x M1045 HMMWV TOW"
+    faction: ctf_us                  # mortal: can lose a truck to the militia RPGs or the QRF
+
+dynamic:
+  pools:
+    - id: militia
+      roles: [infantry]
+      areas: [militia_line, militia_north]
+      pick: [2, 3]
+      faction: valley_militia
+      templates: [infantry_squad, infantry_fireteam, rpg_team, mg_nest]
+      notes: "The firefight: 2-3 militia groups 540-600 m from Warden, in rifle range so both sides shoot."
+    - id: qrf_armor
+      roles: [armor, ifv]
+      areas: [qrf_garrison, qrf_dismount]
+      pick: [1, 2]
+      faction: nvc
+      templates: [btr_squad, qrf_medium, bmp_section]
+      notes: "QRF lead: 2-6 BTR-80 / BMP-2. Venom's and Dusty's main target."
+    - id: qrf_aa
+      roles: [aaa]
+      areas: [qrf_garrison, qrf_dismount]
+      pick: [1, 1]
+      faction: nvc
+      templates: [shilka, zu23_truck]
+      notes: "The column's air defence: a ZSU-23-4 Shilka or a ZU-23 on a Ural. Dusty's first target."
+    - id: qrf_trucks
+      roles: [hvt]
+      areas: [qrf_garrison, qrf_dismount]
+      pick: [0, 1]
+      faction: nvc
+      templates: [supply_convoy]
+      notes: "Variety: half the time a truck serial (Urals and a fuel bowser) follows the armour."
+    - id: manpads_north
+      roles: [manpads]
+      areas: [manpads_ridge]
+      pick: [1, 1]
+      faction: nvc
+      templates: [manpads_team, manpads_single]
+      notes: "Telegraphed missile team in farm buildings north of the road."
+    - id: manpads_hidden
+      roles: [manpads]
+      areas: [manpads_hidden]
+      pick: [1, 1]
+      faction: nvc
+      templates: [manpads_single]
+      notes: "One hidden Igla gunner south of the road. Ambush; flares beat it, AI pilots dispense."
+  encounters:
+    - id: firefight
+      kind: pool
+      pool: militia
+      trigger: {type: time, after_min: 0}
+      chance: 100                    # set piece: Warden is in contact from the first second
+      notes: "Militia already in contact with Warden when the mission starts."
+    - id: qrf_column
+      kind: convoy
+      pool: qrf_armor
+      trigger: {type: beat, beat: qrf_launch}
+      chance: 100                    # set piece; the timing roll (early/late) is on beats qrf_launch_early/late
+      notes: "Armour leaves the Taftanaz garrison westbound for the fight."
+    - id: qrf_column_aa
+      kind: convoy
+      pool: qrf_aa
+      trigger: {type: beat, beat: qrf_launch_aa}
+      chance: 100
+      notes: "The Shilka / ZU-23 truck follows the armour 25 s later."
+    - id: qrf_column_trucks
+      kind: convoy
+      pool: qrf_trucks
+      trigger: {type: beat, beat: qrf_launch_trucks}
+      chance: 100                    # pool pick [0, 1]: about half the runs have no truck serial
+      notes: "Truck serial 50 s behind the armour (sometimes none)."
+    - id: manpads_ridge_team
+      kind: pool
+      pool: manpads_north
+      trigger: {type: beat, beat: manpads_ridge_spawn}
+      chance: 100                    # the 60% roll is on the telegraph beat manpads_warning
+      notes: "Telegraphed by Warden (manpads_warning) 40 s before it appears."
+    - id: manpads_ambush
+      kind: ambush_sam
+      pool: manpads_hidden
+      trigger: {type: proximity, area: qrf_dismount, radius_nm: 2}
+      chance: 50
+      telegraph_beat: ambush_warning
+      hunt: false
+      notes: "Hidden Igla south of the road. Spawns dark when Dusty works the column; Reaper calls it 30-60 s before it goes hot."
+  director:
+    enabled: false                   # no filler: every encounter is scripted
+    intensity: intense
+    adaptive: false
+  fog_of_war:
+    enabled: true
+    reveal_radius_km: 5
+    mark_refresh_sec: 15
+
+seed: null
+
+notes: >-
+  Watch mission, 15-18 min, all AI. T+ from mission start (= mission_start, the first guaranteed beat).
+  T+0:00 Warden Three-One (8 dismounts, immortal) and Warden Three-Two (3 HMMWVs, mortal) are in
+  contact with 2-3 militia groups 540-600 m east; Dusty (2x AH-64D) and Dustoff 3-1 airborne 7-8 NM west.
+  T+0:08 Ops clears them in; T+0:14 Warden's contact report (hook). T+0:45 (50%) or T+3:00 the QRF leaves
+  the Taftanaz garrison: 1-2 armour groups, a Shilka or ZU-23 truck, sometimes a truck serial.
+  T+3 Dusty on station west of the fight, Warden clears them hot; gun runs on the farm wall (peak 1).
+  QRF launch +60 s: Ops (Reaper feed) calls the column; Dusty switches to Hellfires on the AA vehicle,
+  then the lead armour. +45 s Venom cleared hot; bombs ~T+6-9 (peak 2). 60%: a telegraphed missile team
+  north of the road; 50%: a hidden Igla south of it (called 30-60 s before it is hot); launches get
+  flare/break calls. Bombs away +45 s (fallback T+9:30): Warden breaks contact, dismounts move 1.3 km
+  west to the PZ (move_group), Three-Two drives 5 km west to the rally point. Warden at the PZ
+  (ground.arrived; fallback 6 min after the move) -> Dustoff inbound +15 s, ~1.5-2 min on the ground,
+  lifts with Warden aboard, dashes west at 300 ft. Dustoff reaches egress_west (~T+15-17): Ops copies,
+  end success 20 s later. Hard stop T+20:00. Variety: militia count and mix, QRF early (reaches the
+  road bend before the bombs) or late, column size and AA type, truck serial or not, MANPADS north
+  (60%), hidden MANPADS (50%), whether Three-Two loses a truck.

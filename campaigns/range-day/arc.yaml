@@ -1,0 +1,31 @@
+# Arc - Range Day. Single sortie (dms-quickstart fast path). Schema: schemas/campaign-arc.schema.json
+schema_version: 1
+title: "Range Day"
+logline: "A rusty Viper pilot requalifies on laser-guided bombs, then uses the last two for real."
+qualities:
+  - {id: trust, description: "How much Rook Ops and the JTAC trust PYTHON with live tasking after this ride.", initial: 0, min: -3, max: 3}
+acts:
+  - id: act1
+    title: "Requalification"
+    summary: "One sortie; extend the arc after the flight."
+    missions:
+      - id: m01-range-day
+        title: "Range Day"
+        mission_type: STRIKE
+        dramatic_question: "Are PYTHON's hands back in time to put a real bomb on the compound?"
+        synopsis: >-
+          Hot start at Incirlik, two coached GBU-12 passes on Range Seven (a truck line and a
+          tank hulk), then Rook Ops retasks PYTHON to Jackal Two-Three near Tell Rifaat with the
+          last two bombs. Which compound holds the
+          technicals, where the ZU-23 sits and whether a second technical turns up vary each play. Outcome keys:
+          range_hits (count), range_qualified, compound_destroyed, player_lost.
+          Director: calm.
+        player_aircraft: F-16C_50
+        characters: [rco_anvil, ops_lindqvist, jtac_ortiz, tower_incirlik]
+        key_beats: ["Anvil opens the range", "Anvil clears each pass hot", "Rook Ops retasks PYTHON", "Jackal clears PYTHON hot", "RTB call"]
+        quality_effects:
+          trust: "+1 if range_qualified; +1 more if compound_destroyed; -1 if not compound_destroyed and not range_qualified"
+        branches: []
+        optional: false
+        status: designed
+ending_notes: "Single sortie. Extend the arc after the flight; trust reads into any follow-on tasking."

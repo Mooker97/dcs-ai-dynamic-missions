@@ -1,0 +1,63 @@
+# Golden eval bible (fictional). Minimal but schema-valid StoryBible.
+schema_version: 1
+title: "High Ground Freight"
+mode: fictional
+setting:
+  era: 2011
+  theater: Afghanistan
+  region: "Bagram and the valleys north-east of Kabul."
+  premise_summary: >-
+    A US Army heavy-lift detachment keeps a ridge-line outpost alive by air. Resupply runs
+    are routine until a local militia starts watching the landing zone.
+tone:
+  style: professional-terse
+  themes: [logistics under fire, routine as risk]
+player_role: "Hauler 1-1: single CH-47F out of Bagram."
+factions:
+  - id: us_army
+    name: "Task Force Longhaul"
+    description: "US Army aviation and the outpost it supplies."
+    doctrine: "Predictable schedules, minimal time on the ground."
+    dcs:
+      country: USA
+      coalition: blue
+      units: [CH-47Fbl1, Hummer, Soldier M4]
+  - id: ridge_militia
+    name: "Ridge militia"
+    description: "Local fighters with pickups and rifles who know every goat track."
+    doctrine: "Watch, wait for a helicopter on the ground, then shoot."
+    dcs:
+      country: Insurgents
+      coalition: red
+      units: [Infantry AK, Soldier RPG, HL_DSHK, Ural-375]
+characters:
+  - id: ops_bagram
+    name: "Capt. Dana Reyes"
+    callsign: "Longhaul Ops"
+    role: operations officer
+    faction: us_army
+    description: "Runs the board; never wastes a word."
+    voice:
+      design_prompt: "Female, mid-thirties, General American, calm and clipped, tactical radio."
+      accent: General American
+      age: 35
+      gender: female
+      cadence: brisk
+      brevity: terse
+      radio_fx: uhf_clean
+  - id: outpost_lead
+    name: "SSgt. Owen Pike"
+    callsign: "Eyrie"
+    role: outpost commander
+    faction: us_army
+    description: "Tired, dry, grateful for every pallet."
+    voice:
+      design_prompt: "Male, late twenties, Southern US accent, wind noise, FM radio, steady."
+      accent: Southern US
+      age: 28
+      gender: male
+      cadence: measured
+      brevity: terse
+      radio_fx: vhf_noisy
+canon_rules:
+  - "No real units or people."

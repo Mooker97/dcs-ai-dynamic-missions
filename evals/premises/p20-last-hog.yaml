@@ -1,0 +1,28 @@
+# Eval premise p20-last-hog. Schema: evals/run.py Premise. Give `prompt` to the story-writer skill verbatim,
+# then score: uv run python evals/run.py --score campaigns/<slug> --premise p20-last-hog
+id: p20-last-hog
+title: Last Hog Out
+genre: fictional
+prompt: '2023. In a fictional return to Afghanistan, the last A-10 detachment at Bagram covers a drawdown
+  while a mountain warlord tests the shrinking perimeter. Themes: leaving, and what is owed to those left
+  behind.'
+expect:
+  theater: Afghanistan
+  era: [2022, 2024]
+  mode: fictional
+  player_coalition: blue
+  airframes: [A-10C_2]
+  airframe_role: attack
+  missions: [4, 6]
+  mission_types: [CAS, CONVOY_ESCORT]
+  story_elements:
+  - id: drawdown
+    description: Withdrawal / drawdown
+    any_of: [drawdown, withdraw]
+  - id: warlord
+    description: A warlord antagonist
+    any_of: [warlord]
+  - id: left_behind
+    description: Those left behind
+    any_of: [left behind, interpreter]
+notes: Fictional A-10 CAS and convoy escort.

@@ -1,0 +1,161 @@
+# Story bible — Quickstart Demo (dms-quickstart dry run). Schema: dms_core.schemas.story.StoryBible
+schema_version: 1
+title: "Hog Down Low"
+mode: fictional
+
+setting:
+  era: 2016
+  theater: Caucasus
+  region: >-
+    Senaki-Kolkhi air base in western Georgia as home; the fight is in the farmland and low hills
+    east of Zugdidi, about 20 NM north-west of Senaki. Real towns and airfields keep their names as
+    terrain only.
+  premise_summary: >-
+    A breakaway militia equipped with looted Soviet-pattern armour has pushed out of the hills
+    toward Zugdidi. A partner-force company holds a road checkpoint east of the town with a
+    coalition JTAC, Bulldog One-Two. HAWG, an alert two-ship of A-10C IIs at Senaki, is scrambled
+    to break up the column before it reaches the checkpoint, without hitting the farms around it.
+
+tone:
+  style: professional-terse
+  themes:
+    - "the job, done properly"
+    - "trust between the jet and the man on the ground"
+
+player_role: >-
+  HAWG 1-1: flight lead of a 2-ship of A-10C IIs (DCS A-10C_2), coalition CAS detachment
+  (fictional), USAF, at Senaki-Kolkhi. AI wingman HAWG 1-2. Ramp start at Senaki or an air start
+  near the IP.
+
+factions:
+  - id: usaf_cas
+    name: "Coalition CAS detachment (USAF)"
+    description: "Four A-10C IIs on alert at Senaki-Kolkhi, supported by an E-3 and an embedded JTAC team."
+    doctrine: "PID before release, JTAC-controlled Type 2 CAS, 2-ship mutual support."
+    dcs:
+      country: USA
+      coalition: blue
+      units: [A-10C_2, E-3A, JTAC, Hummer, Soldier M4]
+
+  - id: partner_coy
+    name: "Partner checkpoint company"
+    description: "Locally raised light infantry holding the road checkpoint east of Zugdidi."
+    doctrine: "Hold the checkpoint, call for air when armour comes."
+    dcs:
+      country: CJTF Blue
+      coalition: blue
+      units: [Soldier M4, Soldier M249, M1043 HMMWV Armament, M-113]
+      tech_veneer: "Invented partner force on the CJTF Blue flag so no real army is depicted."
+
+  - id: militia
+    name: "Hill militia (looted armour)"
+    description: "A breakaway militia with a few looted BMPs, T-72s, a Shilka and MANPADS teams."
+    doctrine: "Move in columns on the valley roads, cover them with a Shilka and Igla teams."
+    dcs:
+      country: CJTF Red
+      coalition: red
+      units: [BMP-2, T-72B, BTR-80, ZSU-23-4 Shilka, SA-18 Igla manpad, Infantry AK, Ural-375]
+      tech_veneer: "Generic Soviet-pattern kit on the CJTF Red flag; no real army is depicted."
+
+characters:
+  - id: ops_reyes
+    name: "Capt. Dana Reyes"
+    callsign: "Sabre Ops"
+    role: detachment operations officer on the squadron frequency
+    faction: usaf_cas
+    real_person: false
+    description: "Former A-10 instructor, calm and exact. Runs the alert desk at Senaki."
+    arc: "One sortie: sends HAWG out and brings it home."
+    voice:
+      eleven_voice_id: XrExE9yKIg1WjnnlVkGX   # library voice 'ops_lindqvist' (data/voice/voices.json)
+      design_prompt: >-
+        Female US Air Force captain in her mid thirties running an operations desk. Mid pitch,
+        neutral General American accent, calm and exact, reading frequencies and times with care.
+        She never hurries; pressure shows only as shorter sentences. Recorded close on a headset
+        microphone in a quiet operations room, no background noise. Professional, warm underneath
+        but never chatty, with a dry edge when things go well.
+      accent: General American
+      age: 35
+      gender: female
+      cadence: measured
+      brevity: normal
+      radio_fx: uhf_clean
+
+  - id: jtac_cole
+    name: "SSgt. Marcus Cole"
+    callsign: "Bulldog One-Two"
+    role: JTAC with the partner company at the checkpoint
+    faction: usaf_cas
+    real_person: false
+    description: "Experienced JTAC, steady under fire, precise with talk-ons."
+    arc: "Gets the column stopped short of the checkpoint, or doesn't."
+    voice:
+      eleven_voice_id: PtGjyQZ7kCARwCuiOKQL   # library voice 'jtac' (data/voice/voices.json)
+      design_prompt: >-
+        Male US Air Force JTAC in his early thirties, speaking on a handheld radio from a roadside
+        checkpoint. Mid-low pitch, Southern US accent softened by years in the service. Clipped,
+        procedural, slightly breathless when rounds are landing nearby, but every number is clear.
+        Outdoor recording with faint wind and distant vehicle noise, the voice close to the mic.
+        Calm authority, no theatrics, dry humour only after the shooting stops.
+      accent: Southern US (Georgia)
+      age: 32
+      gender: male
+      cadence: brisk
+      brevity: terse
+      radio_fx: vhf_noisy
+
+  - id: awacs_darkstar
+    name: "Darkstar (E-3 controller)"
+    callsign: "Darkstar"
+    role: AWACS controller
+    faction: usaf_cas
+    real_person: false
+    description: "Anonymous E-3 weapons controller. Flat, fast and correct."
+    arc: "Background voice."
+    voice:
+      eleven_voice_id: 2qVLKOamXa29yju9mqTK   # library voice 'awacs_magic' (data/voice/voices.json)
+      design_prompt: >-
+        Male US Air Force air battle manager in his late twenties on an E-3 AWACS. Neutral General
+        American accent, fast, flat and procedural, reading bearings and ranges without emotion.
+        Slight cabin hum behind the headset microphone. He sounds like he is working several
+        flights at once and gives each exactly what it needs and nothing more. Never casual.
+      accent: General American
+      age: 28
+      gender: male
+      cadence: rapid
+      brevity: terse
+      radio_fx: uhf_clean
+
+  - id: tower_senaki
+    name: "Senaki Tower"
+    callsign: "Senaki Tower"
+    role: air traffic control at Senaki-Kolkhi
+    faction: usaf_cas
+    real_person: false
+    description: "Coalition tower controller at Senaki."
+    arc: "Background voice."
+    voice:
+      eleven_voice_id: IqaWsJgCV6ihH2Uh6Jb2   # library voice 'tower_incirlik' (data/voice/voices.json)
+      design_prompt: >-
+        Female US Air Force air traffic controller in her mid twenties in a control tower. Neutral
+        American accent, bright and even, standard ATC phraseology at a steady pace. Tower cab
+        ambience very faint behind the headset microphone. Efficient, friendly but strictly
+        procedural, she never adds words a pilot does not need.
+      accent: General American
+      age: 25
+      gender: female
+      cadence: measured
+      brevity: terse
+      radio_fx: uhf_clean
+
+timeline:
+  - date: "2016-05-14"
+    event: "Militia column pushes west out of the hills toward Zugdidi."
+    fictional: true
+
+sources: []
+
+canon_rules:
+  - "Mode fictional: invented militia, partner force and detachment; real places are terrain only."
+  - "Player flight callsign HAWG; JTAC Bulldog One-Two; AWACS Darkstar; ops Sabre Ops."
+  - "Release only on the JTAC's cleared hot. The checkpoint is a no-fire area."

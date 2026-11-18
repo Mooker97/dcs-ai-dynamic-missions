@@ -1,0 +1,27 @@
+# Eval premise p13-kola-intercept. Schema: evals/run.py Premise. Give `prompt` to the story-writer skill verbatim,
+# then score: uv run python evals/run.py --score campaigns/<slug> --premise p13-kola-intercept
+id: p13-kola-intercept
+title: Northern Bastion
+genre: adapted
+prompt: 1989, the Kola peninsula. A Soviet MiG-29 pilot at a remote northern base intercepts NATO reconnaissance
+  flights while the Cold War thaws; orders grow contradictory as the political ground shifts.
+expect:
+  theater: Kola
+  era: [1987, 1989]
+  mode: adapted
+  player_coalition: red
+  airframes: [MiG-29A, MiG-29S]
+  airframe_role: fighter
+  missions: [3, 5]
+  mission_types: [CAP]
+  story_elements:
+  - id: intercepts
+    description: Intercepts of reconnaissance flights
+    any_of: [intercept, reconnaissance, recon]
+  - id: thaw
+    description: The political thaw
+    any_of: [thaw, glasnost, perestroika]
+  - id: orders
+    description: Contradictory orders
+    any_of: [orders]
+notes: Adapted, red air-to-air, Kola map.

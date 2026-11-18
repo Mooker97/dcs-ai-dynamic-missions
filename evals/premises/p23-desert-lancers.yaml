@@ -1,0 +1,27 @@
+# Eval premise p23-desert-lancers. Schema: evals/run.py Premise. Give `prompt` to the story-writer skill verbatim,
+# then score: uv run python evals/run.py --score campaigns/<slug> --premise p23-desert-lancers
+id: p23-desert-lancers
+title: Desert Lancers
+genre: fictional
+prompt: 1968. A fictional Arab air force MiG-21 squadron defends the Sinai skies during a fictional war
+  of attrition; a veteran flight leader and a young pilot argue over doctrine imported from foreign advisers.
+expect:
+  theater: Sinai
+  era: [1966, 1970]
+  mode: fictional
+  player_coalition: red
+  airframes: [MiG-21Bis]
+  airframe_role: fighter
+  missions: [3, 5]
+  mission_types: [CAP]
+  story_elements:
+  - id: advisers
+    description: Foreign advisers
+    any_of: [adviser, advisor]
+  - id: doctrine
+    description: Doctrine conflict
+    any_of: [doctrine]
+  - id: attrition
+    description: Attrition warfare
+    any_of: [attrition]
+notes: Fictional early Cold War, red fighter.

@@ -1,0 +1,28 @@
+# Eval premise p19-pirate-coast. Schema: evals/run.py Premise. Give `prompt` to the story-writer skill verbatim,
+# then score: uv run python evals/run.py --score campaigns/<slug> --premise p19-pirate-coast
+id: p19-pirate-coast
+title: Pirate Coast
+genre: fictional
+prompt: 2025, the Musandam peninsula. A fictional coalition task group hunts a pirate syndicate that hides
+  armed dhows and speedboats among the fjords. Apaches flying from a ship run armed patrols and boardings
+  support.
+expect:
+  theater: PersianGulf
+  era: [2024, 2026]
+  mode: fictional
+  player_coalition: blue
+  airframes: [AH-64D_BLK_II]
+  airframe_role: attack_helo
+  missions: [3, 5]
+  mission_types: [RECON, STRIKE]
+  story_elements:
+  - id: pirates
+    description: A pirate syndicate
+    any_of: [pirate]
+  - id: fjords
+    description: The Musandam fjords
+    any_of: [fjord, khasab, musandam]
+  - id: boarding
+    description: Boarding operations
+    any_of: [boarding]
+notes: Fictional maritime helo ops.

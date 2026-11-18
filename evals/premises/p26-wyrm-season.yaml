@@ -1,0 +1,28 @@
+# Eval premise p26-wyrm-season. Schema: evals/run.py Premise. Give `prompt` to the story-writer skill verbatim,
+# then score: uv run python evals/run.py --score campaigns/<slug> --premise p26-wyrm-season
+id: p26-wyrm-season
+title: Wyrm Season
+genre: fantasy
+prompt: A fantasy kingdom on the Syria map where dragon-riding raiders (played by enemy fighters) come
+  down from the northern mountains each spring. The player is a sky-knight of the Order of the Lantern
+  flying an F-14 as their enchanted war-kite. Keep radio terse even in a fantasy register.
+expect:
+  theater: Syria
+  era: [1995, 2010]
+  mode: fictional
+  player_coalition: blue
+  airframes: [F-14B]
+  airframe_role: fighter
+  missions: [3, 6]
+  mission_types: [CAP]
+  story_elements:
+  - id: dragons
+    description: Dragon riders
+    any_of: [dragon, wyrm]
+  - id: order
+    description: The knightly order
+    any_of: [order of the lantern, knight]
+  - id: veneer
+    description: Tech veneer mapping fantasy to DCS kit
+    any_of: [veneer, stands in, stand-in, played by]
+notes: Fantasy with an explicit tech veneer.

@@ -1,0 +1,28 @@
+# Eval premise p04-five-day-war. Schema: evals/run.py Premise. Give `prompt` to the story-writer skill verbatim,
+# then score: uv run python evals/run.py --score campaigns/<slug> --premise p04-five-day-war
+id: p04-five-day-war
+title: Five Days in August
+genre: historical
+prompt: August 2008, South Ossetia. A Russian Su-25 pilot flies close air support around Tskhinvali during
+  the five-day war, facing Georgian air defences that are more capable than briefed. Tell it from the
+  cockpit, cite events, and do not invent words for real commanders.
+expect:
+  theater: Caucasus
+  era: [2008, 2008]
+  mode: historical
+  player_coalition: red
+  airframes: [Su-25, Su-25T]
+  airframe_role: attack
+  missions: [3, 5]
+  mission_types: [CAS]
+  story_elements:
+  - id: tskhinvali
+    description: Tskhinvali as the focal point
+    any_of: [tskhinvali]
+  - id: air_defence
+    description: Underestimated Georgian air defences
+    any_of: [buk, sa-11, air defence, air defense, sam site, sams]
+  - id: red_view
+    description: Told from the Russian side
+    any_of: [russian]
+notes: Historical, red-side player.

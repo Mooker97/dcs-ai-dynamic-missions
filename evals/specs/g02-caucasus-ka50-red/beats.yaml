@@ -1,0 +1,65 @@
+# Golden g02 beats. Players are coalition 1 (red); the enemy is coalition 2 (blue).
+mission_id: g02-caucasus-ka50-red
+beats:
+  - id: mission_start
+    guaranteed: true
+    when: {event: player.spawned, players_only: true}
+    priority: 90
+    delay_sec: 10
+    speaker: ops_volkov
+    lines: [ops_start_v1, ops_start_v2]
+    text: "Akula, Granit. Column moving north toward the bridge. Go now."
+    mark: {type: text, at: "zone:valley", text: "COLUMN"}
+    effects: {set_flag: started}
+  - id: fac_checkin
+    guaranteed: true
+    when: {event: zone.entered, zone: valley, players_only: true}
+    priority: 80
+    speaker: fac_orlova
+    lines: [fac_checkin_v1, fac_checkin_v2]
+    text: "Akula, Vershina. Armour on the road below you. Weapons free."
+    effects: {set_flag: on_station}
+  - id: column_stopped
+    guaranteed: true
+    when: {event: group.dead, group_prefix: column}
+    priority: 85
+    speaker: fac_orlova
+    lines: [fac_stopped_v1, fac_stopped_v2]
+    text: "Akula, Vershina. Column is burning. Road is blocked."
+    effects:
+      set_flag: [column_stopped, bridge_held]
+      outcome: {column_stopped: true}
+  - id: echelon_warning
+    when: {event: beat.fired, beat: column_stopped}
+    priority: 75
+    delay_sec: 20
+    speaker: fac_orlova
+    lines: [fac_echelon_v1, fac_echelon_v2]
+    text: "Akula, Vershina. More vehicles coming up behind. Stay on station."
+  - id: sam_down
+    when: {event: group.dead, group_prefix: sam_ridge}
+    priority: 60
+    speaker: fac_orlova
+    lines: [fac_sam_v1, fac_sam_v2]
+    text: "Akula, Vershina. The launcher on the spur is down."
+    effects:
+      outcome: {sam_down: true}
+  - id: rtb_call
+    when: {event: beat.fired, beat: column_stopped}
+    priority: 65
+    delay_sec: 120
+    speaker: ops_volkov
+    lines: [ops_rtb_v1, ops_rtb_v2]
+    text: "Akula, Granit. Bridge holds. Come home."
+  - id: landed
+    guaranteed: true
+    when: {event: unit.landed, players_only: true}
+    requires: {flags: [column_stopped]}
+    priority: 95
+    speaker: ops_volkov
+    lines: [ops_landed_v1, ops_landed_v2]
+    text: "Akula, Granit. On the ground. Well done."
+    effects:
+      set_flag: landed
+      outcome: {landed: true}
+      end_mission: success

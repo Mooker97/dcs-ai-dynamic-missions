@@ -1,0 +1,220 @@
+# m01 Hog Down Low — beats. Schema: BeatSheet.
+# Guaranteed spine (reachable from both start variants; nothing hangs on takeoff):
+#   mission_start -> darkstar_handoff (IP MULE, or the fight box) -> jtac_checkin -> nine_line_1 (+1b)
+#   -> nine_line_2 (via the column kill OR the 10-min retask) -> fight_over -> jtac_checkout -> ops_rtb
+mission_id: m01-hog-down-low
+beats:
+  # GUARANTEED
+  - id: mission_start
+    when: {event: timer, after_sec: 20}
+    priority: 90
+    once: true
+    guaranteed: true
+    speaker: ops_reyes
+    lines: [ops_scramble_v1, ops_scramble_v2, ops_scramble_v3]
+    text: "Hawg, Sabre Ops. Armour moving on the checkpoint east of Zugdidi. Push IP Mule, check in with Darkstar."
+    mark: {type: text, at: "zone:ip_mule", text: "IP MULE"}
+    effects: {set_flag: started}
+
+  # GUARANTEED
+  - id: darkstar_handoff
+    when: {event: zone.entered, zone: ip_mule, players_only: true}
+    requires: {flags_not: [checked_in]}
+    priority: 88
+    once: true
+    guaranteed: true
+    speaker: awacs_darkstar
+    lines: [darkstar_handoff_v1, darkstar_handoff_v2, darkstar_handoff_v3]
+    text: "Hawg, Darkstar. Radar contact, Mule. Picture clean. Contact Bulldog One-Two, his push."
+    mark: {type: circle, at: "zone:checkpoint", radius_m: 400, text: "ANVIL CHECKPOINT - FRIENDLIES - NO FIRE"}
+    effects: {set_flag: checked_in}
+
+  - id: darkstar_handoff_late       # fallback if the flight skips the IP
+    when: {event: zone.entered, zone: fight_box, players_only: true}
+    requires: {flags_not: [checked_in]}
+    priority: 88
+    once: true
+    speaker: awacs_darkstar
+    lines: [darkstar_late_v1, darkstar_late_v2, darkstar_late_v3]
+    text: "Hawg, Darkstar. You're past Mule. Contact Bulldog One-Two now."
+    mark: {type: circle, at: "zone:checkpoint", radius_m: 400, text: "ANVIL CHECKPOINT - FRIENDLIES - NO FIRE"}
+    effects: {set_flag: checked_in}
+
+  # GUARANTEED
+  - id: jtac_checkin
+    when: {event: flag, flag: checked_in}
+    delay_sec: 12
+    priority: 87
+    once: true
+    guaranteed: true
+    speaker: jtac_cole
+    lines: [jtac_checkin_v1, jtac_checkin_v2, jtac_checkin_v3]
+    text: "Hawg, Bulldog One-Two. Armour on the road east, closing. Friendlies checkpoint only."
+    effects: {set_flag: on_station}
+
+  # GUARANTEED
+  - id: nine_line_1
+    when: {event: beat.fired, beat: jtac_checkin}
+    delay_sec: 25
+    priority: 86
+    once: true
+    guaranteed: true
+    speaker: jtac_cole
+    lines: [nine_line_1_v1, nine_line_1_v2, nine_line_1_v3]
+    text: "Hawg, Bulldog. Type two, bomb on target. Lead armour, four klicks east."
+    mark: {type: circle, at: "zone:column_road", radius_m: 400, text: "BULLDOG TGT 1 - COLUMN"}
+    effects: {set_flag: nine_line_1}
+
+  - id: nine_line_1b                # continuation of the 9-line: friendlies + egress (same speaker)
+    when: {event: beat.fired, beat: nine_line_1}
+    delay_sec: 2
+    priority: 86
+    once: true
+    speaker: jtac_cole
+    lines: [nine_line_1b_v1, nine_line_1b_v2, nine_line_1b_v3]
+    text: "Hawg, friendlies west four thousand. Egress south. Mark on your map."
+
+  - id: cleared_hot_1
+    when: {event: beat.fired, beat: nine_line_1}
+    delay_sec: 45
+    requires: {flags_not: [column_destroyed]}
+    priority: 80
+    once: true
+    speaker: jtac_cole
+    lines: [cleared_hot_1_v1, cleared_hot_1_v2, cleared_hot_1_v3]
+    text: "Hawg, Bulldog. Attack zero-six-zero to one-two-zero, east of the bridge. Cleared hot."
+
+  - id: column_dead
+    when: {event: group.dead, group_prefix: column}
+    priority: 75
+    once: true
+    speaker: jtac_cole
+    lines: [column_dead_v1, column_dead_v2, column_dead_v3]
+    text: "Hawg, Bulldog. Good effects. Lead group is burning."
+    effects: {set_flag: [column_destroyed, next_target], outcome: {column_destroyed: true}}
+
+  - id: jtac_retask                 # column survives 10 minutes: Bulldog moves on anyway
+    when: {event: beat.fired, beat: nine_line_1}
+    delay_sec: 600
+    requires: {flags_not: [next_target]}
+    priority: 70
+    once: true
+    speaker: jtac_cole
+    lines: [jtac_retask_v1, jtac_retask_v2, jtac_retask_v3]
+    text: "Hawg, Bulldog. Column's in the trees. Stand by for next target."
+    effects: {set_flag: next_target, outcome: {column_destroyed: false}}
+
+  # GUARANTEED
+  - id: nine_line_2
+    when: {event: flag, flag: next_target}
+    delay_sec: 30
+    priority: 86
+    once: true
+    guaranteed: true
+    speaker: jtac_cole
+    lines: [nine_line_2_v1, nine_line_2_v2, nine_line_2_v3]
+    text: "Hawg, Bulldog. Next target, Shilka on the hill north of the road."
+    mark: {type: circle, at: "zone:shilka_hill", radius_m: 400, text: "BULLDOG TGT 2 - SHILKA"}
+    effects: {set_flag: shilka_tasked}
+
+  - id: nine_line_2b                # continuation: friendlies + clearance (same speaker)
+    when: {event: beat.fired, beat: nine_line_2}
+    delay_sec: 2
+    priority: 86
+    once: true
+    speaker: jtac_cole
+    lines: [nine_line_2b_v1, nine_line_2b_v2, nine_line_2b_v3]
+    text: "Hawg, friendlies west five thousand. Cleared hot when tally."
+
+  - id: shilka_dead
+    when: {event: group.dead, group_prefix: shilka}
+    priority: 75
+    once: true
+    speaker: jtac_cole
+    lines: [shilka_dead_v1, shilka_dead_v2, shilka_dead_v3]
+    text: "Hawg, Bulldog. Shilka is down. Good hits."
+    effects: {set_flag: [aaa_destroyed, fight_over], outcome: {aaa_destroyed: true}}
+
+  - id: fight_timeout               # silent: the fight ends 8 minutes after the second 9-line anyway
+    when: {event: beat.fired, beat: nine_line_2}
+    delay_sec: 480
+    requires: {flags_not: [fight_over]}
+    priority: 60
+    once: true
+    effects: {set_flag: fight_over, outcome: {aaa_destroyed: false}}
+
+  - id: reinf_warning               # telegraph for encounter reinforcements
+    when: {event: encounter.telegraph, encounter: reinforcements}
+    priority: 85
+    once: false
+    cooldown_sec: 120
+    speaker: jtac_cole
+    lines: [reinf_warning_v1, reinf_warning_v2, reinf_warning_v3]
+    text: "Hawg, Bulldog. More vehicles down the road from the east, nine kilometres."
+
+  - id: manpads_launch
+    when: {event: unit.shot, group_prefix: manpads}
+    priority: 95
+    once: true
+    speaker: jtac_cole
+    lines: [manpads_launch_v1, manpads_launch_v2, manpads_launch_v3]
+    text: "Hawg, Bulldog. Missile launch from the farms south of the road!"
+
+  # GUARANTEED
+  - id: jtac_checkout
+    when: {event: flag, flag: fight_over}
+    delay_sec: 30
+    priority: 84
+    once: true
+    guaranteed: true
+    speaker: jtac_cole
+    lines: [jtac_checkout_v1, jtac_checkout_v2, jtac_checkout_v3]
+    text: "Hawg, Bulldog One-Two. Copy BDA. Nothing further. Cleared off station, contact Darkstar."
+    effects: {set_flag: checked_out}
+
+  # GUARANTEED
+  - id: ops_rtb
+    when: {event: beat.fired, beat: jtac_checkout}
+    delay_sec: 15
+    priority: 84
+    once: true
+    guaranteed: true
+    speaker: ops_reyes
+    lines: [ops_rtb_v1, ops_rtb_v2, ops_rtb_v3]
+    text: "Hawg, Sabre Ops. Copy off station. RTB Senaki."
+    effects: {set_flag: rtb}
+
+  # ---- Optional: departure / recovery -----------------------------------------------------------
+  - id: tower_departure
+    when: {event: unit.takeoff, players_only: true}
+    requires: {flags_not: [checked_in]}
+    priority: 60
+    once: true
+    speaker: tower_senaki
+    lines: [tower_departure_v1, tower_departure_v2, tower_departure_v3]
+    text: "Hawg One, Senaki Tower. Airborne. Contact Darkstar. Good hunting."
+
+  - id: tower_inbound
+    when: {event: zone.entered, zone: senaki_approach, players_only: true}
+    requires: {flags: [rtb]}
+    priority: 60
+    once: true
+    speaker: tower_senaki
+    lines: [tower_inbound_v1, tower_inbound_v2, tower_inbound_v3]
+    text: "Hawg One, Senaki Tower. Runway zero-niner, wind calm. Cleared to land."
+
+  - id: on_deck
+    when: {event: unit.landed, players_only: true}
+    requires: {flags: [fight_over]}
+    priority: 85
+    once: true
+    speaker: ops_reyes
+    lines: [ops_on_deck_v1, ops_on_deck_v2, ops_on_deck_v3]
+    text: "Hawg, Sabre Ops. Copy on deck. Debrief at the ops desk."
+    effects: {set_flag: landed, outcome: {landed: true}, end_mission: success}
+
+  - id: player_lost                 # silent; ends the mission on death
+    when: {event: unit.dead, players_only: true}
+    priority: 100
+    once: true
+    effects: {set_flag: player_lost, outcome: {player_lost: true}, end_mission: failure}

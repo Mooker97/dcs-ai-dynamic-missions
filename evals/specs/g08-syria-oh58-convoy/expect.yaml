@@ -1,0 +1,11 @@
+# Golden expectations checked by evals/run.py --golden
+theater: Syria
+mission_type: CONVOY_ESCORT
+player_aircraft: [OH58D]
+max_warnings: 1        # cap on validate warnings (observed: callsign is not a DCS name for the type)
+min_groups: 3          # plan.groups lower bound (set to observed)
+runtime:               # exact counts in plan.runtime (set to observed)
+  beats: 7
+  pools: 1
+  encounters: 1
+  voice: 14

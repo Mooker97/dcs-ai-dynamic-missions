@@ -1,0 +1,62 @@
+mission_id: g05-afghanistan-ch47-transport
+beats:
+  - id: mission_start
+    guaranteed: true
+    when: {event: player.spawned, players_only: true}
+    priority: 90
+    delay_sec: 10
+    speaker: ops_bagram
+    lines: [ops_start_v1, ops_start_v2]
+    text: "Hauler, Longhaul Ops. Load is on. Eyrie is expecting you."
+    mark: {type: text, at: "zone:outpost", text: "OP EYRIE"}
+    effects: {set_flag: started}
+  - id: eyrie_warning
+    when: {event: zone.entered, zone: ridge_villages, players_only: true}
+    priority: 70
+    speaker: outpost_lead
+    lines: [eyrie_warn_v1, eyrie_warn_v2]
+    text: "Hauler, Eyrie. Movement in the village. Make it quick on the pad."
+  - id: on_finals
+    when: {event: zone.entered, zone: outpost, players_only: true}
+    priority: 80
+    speaker: outpost_lead
+    lines: [eyrie_finals_v1, eyrie_finals_v2]
+    text: "Hauler, Eyrie. Pad is clear, wind light from the west."
+    effects: {set_flag: at_outpost}
+  - id: cargo_down
+    guaranteed: true
+    when: {event: unit.landed, players_only: true}
+    requires: {flags: [at_outpost], flags_not: [cargo_delivered]}
+    priority: 85
+    speaker: outpost_lead
+    lines: [eyrie_thanks_v1, eyrie_thanks_v2]
+    text: "Hauler, Eyrie. Pallets off. Go, go."
+    effects: {set_flag: cargo_delivered, outcome: {cargo_delivered: true}}
+  - id: ambush_spawned
+    when: {event: encounter.spawned, encounter: lz_ambush}
+    priority: 75
+    speaker: outpost_lead
+    lines: [eyrie_contact_v1, eyrie_contact_v2]
+    text: "Hauler, Eyrie. Taking fire from the village. Lift now."
+    effects: {outcome: {ambushed: true}}
+  - id: rtb_call
+    when: {event: zone.entered, zone: bagram_approach, players_only: true}
+    requires: {flags: [cargo_delivered]}
+    priority: 70
+    speaker: ops_bagram
+    lines: [ops_rtb_v1, ops_rtb_v2]
+    text: "Hauler, Ops. Copy delivery. Cleared straight in."
+    effects: {set_flag: rtb_inbound}
+  - id: home_landed
+    when: {event: unit.landed, players_only: true}
+    requires: {flags: [rtb_inbound]}
+    priority: 90
+    effects: {set_flag: landed_home, outcome: {landed: true}}
+  - id: mission_end
+    when: {event: beat.fired, beat: home_landed}
+    priority: 90
+    delay_sec: 5
+    speaker: ops_bagram
+    lines: [ops_end_v1, ops_end_v2]
+    text: "Hauler, Ops. Good run. Shut down."
+    effects: {end_mission: success}

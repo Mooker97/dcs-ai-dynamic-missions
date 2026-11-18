@@ -1,0 +1,319 @@
+# Story bible — Air Bridge to Sukhumi. Canonical. Change canon here first, then log it in continuity.md.
+# Schema: schemas/story-bible.schema.json (dms_core.schemas.story.StoryBible)
+#
+# MODE RATIONALE (adapted): the war in Abkhazia, the September 1993 fall of Sukhumi, the airliner
+# shoot-downs at Babushara and the Zviadist revolt in Mingrelia are real and sourced below. The
+# helicopter detachment, its crews, the named characters and every individual sortie are invented.
+# Real people are never voiced. The player side is Georgia; the DCS coalition is red because the
+# catalog lists the Mi-8MT as a red-flown type (coalition colour carries no political meaning here).
+
+schema_version: 1
+title: "Air Bridge to Sukhumi"
+mode: adapted
+
+setting:
+  era: 1993
+  theater: Caucasus
+  region: >-
+    The Black Sea coast of Abkhazia and western Georgia: Sukhumi and its coastal airfield at
+    Babushara, the Gumista river front north-west of the city, the coast road south-east through
+    Ochamchire and Gali to the Inguri river, and Mingrelia beyond it (Zugdidi, Senaki). Home base
+    Senaki-Kolkhi, about 55 NM south-east of Babushara; divert Kutaisi. In-story calendar
+    17-27 September 1993.
+  premise_summary: >-
+    September 1993: the Sochi ceasefire has collapsed and Abkhaz forces with North Caucasian
+    volunteers are closing on Georgian-held Sukhumi. Babushara airfield is the city's last
+    reliable link to the rest of Georgia. Merani 2-1, a Mi-8 crew of an invented transport
+    helicopter detachment at Senaki, flies ammunition in and refugees and wounded out, shot at
+    over the coast by the besiegers and on the way home by Zviadist irregulars in revolt against
+    Tbilisi, with fuel rationed at both ends. The detachment exists to keep the bridge open one
+    more day.
+
+tone:
+  style: somber, professional-terse
+  themes: [who gets a seat, fuel as arithmetic, the city you cannot save, friends who shoot at you]
+
+player_role: >-
+  Merani 2-1: Mi-8MTV2 aircraft commander, 2nd Transport Helicopter Detachment (fictional),
+  Georgian Air Force, home base Senaki-Kolkhi, destination Sukhumi-Babushara, divert Kutaisi.
+  Crew of three; the flight engineer is heard on the intercom.
+
+factions:
+  - id: geo_air
+    name: "2nd Transport Helicopter Detachment, Senaki (fictional)"
+    description: >-
+      Four Mi-8s, two of them flyable on a good day, ex-Soviet crews who stayed when the Soviet
+      units left. The detachment flies the Senaki-Babushara bridge until the airfield falls.
+    doctrine: "Fly low along the coast, never the same track twice, load fast, never shut down at Babushara."
+    dcs:
+      country: Georgia
+      coalition: red
+      units: [Mi-8MT, Su-25, L-39ZA]
+      tech_veneer: null
+
+  - id: geo_ground
+    name: "Sukhumi garrison (Georgian government forces)"
+    description: >-
+      National Guard and volunteer units holding Sukhumi and the airfield perimeter. Short of
+      ammunition, heavy weapons and sleep.
+    doctrine: "Static defence of the city line and the airfield; small counter-attacks at night."
+    dcs:
+      country: Georgia
+      coalition: red
+      units: [T-55, BMP-2, BTR-80, ZU-23 Emplacement, Ural-375, Ural-375 ZU-23, Soldier AK]
+      tech_veneer: null
+
+  - id: abkhaz
+    name: "Abkhaz forces and North Caucasian volunteers"
+    description: >-
+      The besiegers: Abkhaz units and volunteers from the North Caucasus, armed with ex-Soviet
+      equipment. They want Sukhumi, and closing Babushara is how they get it.
+    doctrine: >-
+      Artillery and Grad on the airfield, guns and shoulder-launched missiles under the approach
+      lanes, infantry infiltration through the hills north of the city.
+    dcs:
+      country: Abkhazia
+      coalition: blue
+      units: [T-72B, T-55, BMP-1, BMP-2, BRDM-2, ZSU-23-4 Shilka, Ural-375 ZU-23, ZU-23 Emplacement, SA-18 Igla manpad, Grad-URAL, 2B11 mortar, Soldier AK, Soldier RPG]
+      tech_veneer: >-
+        SA-18 Igla stands in for the mix of Strela-2/Igla-1 MANPADS reported in the war; DCS has
+        no Strela-2 ground unit. Unit types are generic ex-Soviet stock; no specific order of
+        battle is claimed.
+
+  - id: zviadists
+    name: "Zviadist irregulars (Mingrelia)"
+    description: >-
+      Armed supporters of the deposed president, in revolt against the government in Tbilisi in
+      western Georgia. To them a government helicopter is a government target.
+    doctrine: "Roadblocks, light vehicles, machine guns and the odd ZU-23 on a truck along the Zugdidi corridor."
+    dcs:
+      country: Insurgents
+      coalition: blue
+      units: [tt_DSHK, HL_DSHK, tt_ZU-23, Infantry AK, UAZ-469]
+      tech_veneer: >-
+        DCS Insurgents country and its technical types stand in for an irregular militia of 1993.
+        They share the blue coalition with the Abkhaz only because DCS has two sides; in the story
+        they are a separate enemy, and lines never treat them as allies of the besiegers.
+
+  - id: refugees
+    name: "Civilians of Sukhumi"
+    description: "Families waiting at Babushara and on the coast road with what they can carry."
+    doctrine: "Wait at the terminal, rush any aircraft that lands, walk south when no aircraft comes."
+    dcs:
+      country: UN Peacekeepers
+      coalition: neutral
+      units: [GAZ-3307, IKARUS Bus, LAZ Bus, VAZ Car]
+      tech_veneer: >-
+        Placeholder neutral country; only civilian vehicle types are ever spawned for it. It does
+        not imply UN involvement in any scene.
+
+characters:
+  - id: ops_gelashvili
+    name: "Lt. Col. Tamaz Gelashvili"
+    callsign: "Kolkhi"
+    role: detachment operations officer, Senaki
+    faction: geo_air
+    real_person: false
+    description: >-
+      Flew Mi-8s in Afghanistan for the Soviet Air Force, now runs a detachment with no spare
+      parts and a fuel ration he signs for in person. Counts everything: tonnes, litres, seats.
+    arc: >-
+      Starts by guarding airframes as the one thing he cannot replace. By the last mission he is
+      sending them in overloaded, and has to say so on the radio.
+    voice:
+      eleven_voice_id: null
+      design_prompt: >-
+        Male air force operations officer in his mid fifties, Georgian, speaking English with a
+        clear Georgian accent softened by years of Russian-language aviation. Low, slightly
+        gravelly voice, heavy smoker's texture without rasp. Measured and economical, he gives
+        numbers before opinions and never raises his voice; under pressure he slows down and the
+        pauses get longer. Speaking from a cramped operations room on a desk microphone, late at
+        night, tired but entirely in control.
+      accent: Georgian
+      age: 55
+      gender: male
+      cadence: measured
+      brevity: terse
+      radio_fx: uhf_clean
+      notes: "Numbers first: fuel, tonnes, seats. Never says 'good luck'; says 'bring it back'."
+
+  - id: tower_abashidze
+    name: "Capt. Nino Abashidze"
+    callsign: "Babushara"
+    role: air traffic controller, Sukhumi-Babushara
+    faction: geo_ground
+    real_person: false
+    description: >-
+      Runs what is left of Babushara tower from a sandbagged room with one working radio. Her
+      phraseology stays perfect while the airfield is shelled; it is the only thing she can keep
+      in order.
+    arc: "Static in procedure; what changes is what she reports between the standard phrases."
+    voice:
+      eleven_voice_id: null
+      design_prompt: >-
+        Female air traffic controller in her early thirties, Georgian, speaking precise
+        aviation English with a light Georgian accent. Clear, bright mid-range voice with crisp
+        consonants. Brisk, practised phraseology delivered at an even pace; when shells land
+        close she keeps the same rhythm but drops every word that is not needed. Speaking from a
+        small, crowded control room on a headset microphone with distant noise outside.
+      accent: Georgian
+      age: 32
+      gender: female
+      cadence: brisk
+      brevity: terse
+      radio_fx: uhf_clean
+      notes: "Standard phraseology always. Reports shelling as traffic information, not drama."
+
+  - id: ground_beridze
+    name: "Sgt. Gocha Beridze"
+    callsign: "Granite"
+    role: airfield loading party and perimeter section leader, Babushara
+    faction: geo_ground
+    real_person: false
+    description: >-
+      Runs the apron at Babushara: who unloads the ammunition, who gets on, how many. He has
+      a list, and the list is always too long.
+    arc: >-
+      From counting crates to counting people. In the last mission he decides who is left
+      behind, and whether he stays with them.
+    voice:
+      eleven_voice_id: null
+      design_prompt: >-
+        Male infantry sergeant in his mid forties from western Georgia, speaking English with a
+        strong, warm Mingrelian-Georgian accent. Deep, rough voice, a little hoarse from
+        shouting over rotor noise. Short practical sentences, slightly breathless as if he is
+        walking fast across an apron. Calm authority without shouting; stress makes him repeat
+        the important number. Speaking on a handheld field radio outdoors.
+      accent: Georgian (Mingrelian)
+      age: 45
+      gender: male
+      cadence: brisk
+      brevity: terse
+      radio_fx: vhf_noisy
+      notes: "Talks in counts and minutes: 'forty people, two minutes'. Never complains about the list."
+
+  - id: wing_dolidze
+    name: "Capt. Levan Dolidze"
+    callsign: "Merani 2-2"
+    role: sister-ship aircraft commander
+    faction: geo_air
+    real_person: false
+    description: >-
+      Younger than the player, quicker, and better at finding fuel nobody has signed for. Flies
+      the second detachment Mi-8 when it is serviceable.
+    arc: >-
+      Goes down near Ochamchire in m02. If the player brings his crew out he flies again in act 2;
+      if not, his absence is felt on the net for the rest of the campaign.
+    voice:
+      eleven_voice_id: null
+      design_prompt: >-
+        Male helicopter pilot in his late twenties, Georgian, speaking fluent English with a
+        light urban Tbilisi accent. Bright, slightly higher tenor voice, relaxed and quick, with a
+        hint of dry humour he keeps out of the actual calls. Rapid clipped delivery; under stress
+        the words get fewer and faster but never shrill. Speaking from a vibrating helicopter
+        cockpit on a headset microphone.
+      accent: Georgian (Tbilisi)
+      age: 28
+      gender: male
+      cadence: rapid
+      brevity: terse
+      radio_fx: uhf_clean
+      notes: "Fuel numbers and positions. The humour lives in what he chooses to report."
+
+  - id: crew_tsiklauri
+    name: "Sr. Lt. Zurab Tsiklauri"
+    callsign: "Bort"
+    role: flight engineer (bortmekhanik), Merani 2-1 crew, intercom
+    faction: geo_air
+    real_person: false
+    description: >-
+      The oldest man in the detachment, who has kept this particular airframe flying since 1984.
+      Watches the fuel gauges the way other people watch the sky.
+    arc: "Static. His fuel calls are the campaign's clock."
+    voice:
+      eleven_voice_id: null
+      design_prompt: >-
+        Older male flight engineer around sixty, Georgian, speaking English with a thick rural
+        Kakhetian Georgian accent. Low, slow, even voice with a slight rasp, very patient. He
+        reads numbers off gauges like a man reading a ledger, with no hurry and no alarm, even
+        when the numbers are bad. Speaking on a helicopter intercom with engine noise close
+        behind him.
+      accent: Georgian (Kakhetian)
+      age: 60
+      gender: male
+      cadence: slow
+      brevity: terse
+      radio_fx: intercom
+      notes: "Fuel in kilograms, load in people. Never addresses anyone but the commander."
+
+timeline:
+  - date: "1992-08-14"
+    event: "War in Abkhazia begins when Georgian forces enter Abkhazia."
+    fictional: false
+    source: {claim: "The war in Abkhazia began on 14 August 1992.", source_url: "https://en.wikipedia.org/wiki/War_in_Abkhazia_(1992%E2%80%931993)", confidence: high}
+  - date: "1993-07-27"
+    event: "Sochi ceasefire agreement signed; Georgia withdraws heavy weapons from the Sukhumi area."
+    fictional: false
+    source: {claim: "A ceasefire agreement was signed in Sochi on 27 July 1993.", source_url: "https://en.wikipedia.org/wiki/War_in_Abkhazia_(1992%E2%80%931993)", confidence: high}
+  - date: "1993-09-16"
+    event: "Abkhaz and allied forces launch the offensive on Sukhumi, breaking the ceasefire."
+    fictional: false
+    source: {claim: "The final Abkhaz offensive on Sukhumi began on 16 September 1993.", source_url: "https://en.wikipedia.org/wiki/Fall_of_Sukhumi", confidence: high}
+  - date: "1993-09-17"
+    event: "The detachment begins the Senaki-Babushara air bridge (m01)."
+    fictional: true
+  - date: "1993-09-21"
+    event: "A Transair Georgia Tu-134 is shot down over the sea on approach to Babushara by a MANPADS fired from a boat; on 22 September an Orbi Tu-154 is hit on approach and burns on the runway; on 23 September Grad rockets destroy a Tu-134 while refugees board. Evacuation by airliner stops."
+    fictional: false
+    source: {claim: "Airliners were attacked at Sukhumi-Babushara on 20-23 September 1993, including the 21 Sept Tu-134A shoot-down (27 killed) and the 22 Sept Tu-154B (108 killed).", source_url: "https://en.wikipedia.org/wiki/1993_Sukhumi_airliner_attacks", confidence: high}
+  - date: "1993-09-25"
+    event: "Russian ships begin evacuating civilians by sea from Gulripshi to Poti; thousands are left waiting."
+    fictional: false
+    source: {claim: "Sea evacuation from Gulripshi to Poti began on 25 September 1993 (about 3,300 evacuated, about 6,000 waiting).", source_url: "https://en.wikipedia.org/wiki/Fall_of_Sukhumi", confidence: medium, note: "Not cross-checked."}
+  - date: "1993-09-27"
+    event: "Sukhumi falls to Abkhaz forces. Georgian troops abandon the airport on the night of 29 September."
+    fictional: false
+    source: {claim: "Sukhumi was captured on 27 September 1993 and the airport was abandoned on the night of 29 September.", source_url: "https://en.wikipedia.org/wiki/Fall_of_Sukhumi", confidence: high}
+
+sources:
+  - claim: "Sukhumi-Babushara airport lies on the coast south-east of Sukhumi, near Babushara."
+    source_url: "https://en.wikipedia.org/wiki/Sukhumi_Babushara_Airport"
+    confidence: high
+    note: "Also an airbase on the DCS Caucasus map (Sukhumi-Babushara)."
+  - claim: "In autumn 1993 supporters of Zviad Gamsakhurdia rose against the Shevardnadze government in western Georgia (Mingrelia)."
+    source_url: "https://en.wikipedia.org/wiki/Georgian_Civil_War"
+    confidence: high
+    note: "The revolt peaked late Sept-Oct 1993; the campaign brings it forward a few days (canon_rules)."
+  - claim: "Before the offensive Georgia had withdrawn its heavy artillery under the ceasefire; the Abkhaz side had artillery, multiple rocket launchers, heat-seeking SAMs and heavy machine guns."
+    source_url: "https://en.wikipedia.org/wiki/Fall_of_Sukhumi"
+    confidence: medium
+    note: "Wikipedia, relying on HRW 1995."
+  - claim: "About 40,000 people fled Sukhumi on foot through the Kodori valley over the passes into Svaneti."
+    source_url: "https://en.wikipedia.org/wiki/Fall_of_Sukhumi"
+    confidence: medium
+    note: "Georgian government figure."
+  - claim: "Russian military Mi-8s flew a humanitarian air bridge into besieged Tkvarcheli; one carrying evacuees was shot down near Lata on 14 December 1992."
+    source_url: "https://en.wikipedia.org/wiki/1992_Russian_Air_Force_Mil_Mi-8_shootdown"
+    confidence: high
+    note: "Context for how dangerous helicopter air bridges were in this war; death toll disputed."
+  - claim: "Sukhumi in September averages a 24 C high, a 15 C low and about 10 rainy days."
+    source_url: "https://en.wikipedia.org/wiki/Sukhumi"
+    confidence: high
+    note: "Climate averages only; no 1993 weather record found."
+  - claim: "The Mi-8MTV is a Soviet medium transport helicopter with a three-person crew: two pilots and a flight engineer."
+    source_url: "https://en.wikipedia.org/wiki/Mil_Mi-8"
+    confidence: high
+    note: null
+
+canon_rules:
+  - "Mode adapted: the war, the siege and fall of Sukhumi, the Babushara shoot-downs and the Zviadist revolt are real; the detachment, the crews and every sortie are invented."
+  - "Invented, not sourced: no source was found for Georgian helicopter flights into Babushara in September 1993 or for Senaki/Kutaisi supporting them. The detachment and its Senaki-Babushara bridge are the campaign's central invention."
+  - "SA-18 Igla stands in for the Strela-2 class MANPADS of the real shoot-downs."
+  - "Real people (heads of state, commanders) are referred to by office only and are never voiced or quoted."
+  - "Timeline compression: the Zviadist roadblocks along the Zugdidi corridor appear from 17 September; in reality the revolt escalated from late September. Say so if a briefing dates it."
+  - "The player is always Merani 2-1, a single Mi-8MT (DCS Mi-8MTV2), callsign spoken 'Merani Two-One'. The sister ship is Merani 2-2."
+  - "DCS coalition red = Georgian government side; blue = Abkhaz forces and, separately in the story, the Zviadists. The colours carry no meaning in any text the player reads."
+  - "Fuel is a story resource: Senaki rations it, Babushara may have none. Missions never require refuelling at Babushara to be winnable."
+  - "Civilians are never targets. The neutral refugee faction is unarmed vehicles and people only."
+  - "No radar SAMs in this campaign. Threats are guns, MANPADS, mortars, Grad and small arms."
+  - "Radio is in English for the player's benefit; the fiction is that it is Georgian and Russian aviation talk."

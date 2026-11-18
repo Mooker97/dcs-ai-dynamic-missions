@@ -1,0 +1,28 @@
+# Eval premise p06-red-flag-85. Schema: evals/run.py Premise. Give `prompt` to the story-writer skill verbatim,
+# then score: uv run python evals/run.py --score campaigns/<slug> --premise p06-red-flag-85
+id: p06-red-flag-85
+title: Aggressor Week
+genre: historical
+prompt: '1985, Nellis ranges, Nevada. A Red Flag exercise rotation seen through an F-15C pilot new to
+  the squadron: dissimilar air combat against the aggressor squadron, range rules, and the debriefs that
+  decide who flies the final large-force sortie. Real exercise structure, invented people.'
+expect:
+  theater: Nevada
+  era: [1985, 1985]
+  mode: historical
+  player_coalition: blue
+  airframes: [F-15C]
+  airframe_role: fighter
+  missions: [3, 5]
+  mission_types: [CAP, ESCORT]
+  story_elements:
+  - id: aggressors
+    description: The aggressor squadron
+    any_of: [aggressor]
+  - id: debrief
+    description: Debriefs as drama
+    any_of: [debrief]
+  - id: range_rules
+    description: Training rules and range safety
+    any_of: [training rules, range control, range safety, knock it off]
+notes: Historical training setting, no lethal war; tests tone and non-combat stakes.

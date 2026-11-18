@@ -1,0 +1,683 @@
+<title>Warthog Bindings</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a two-card kneeboard (stick | throttle), each card = schematic with placard tags + legend keyed by tag; reference tables below. */
+:root {
+  --bg: #e3e7e5;
+  --card: #f6f8f7;
+  --ink: #161b1d;
+  --muted: #56625e;
+  --line: #b7c1bd;
+  --accent: #e2a900;
+  --accent-ink: #1b1500;
+  --hl: #0d6b4d;
+  --shape: #d3d9d6;
+  --shape-2: #c3cbc7;
+  --warn: #b3261e;
+  --art-filter: drop-shadow(0 8px 12px rgba(20, 27, 29, 0.22));
+  --f-display: "Saira Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --f-body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15181a; --card: #1e2326; --ink: #e6ebe8; --muted: #95a19d; --line: #394245;
+    --accent: #f2c232; --accent-ink: #1b1500; --hl: #6fd3a5; --shape: #2a3033; --shape-2: #343b3f; --warn: #ff8a7a;
+    --art-filter: drop-shadow(0 0 1px rgba(230, 235, 232, 0.55)) drop-shadow(0 0 14px rgba(230, 235, 232, 0.10));
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15181a; --card: #1e2326; --ink: #e6ebe8; --muted: #95a19d; --line: #394245;
+  --accent: #f2c232; --accent-ink: #1b1500; --hl: #6fd3a5; --shape: #2a3033; --shape-2: #343b3f; --warn: #ff8a7a;
+    --art-filter: drop-shadow(0 0 1px rgba(230, 235, 232, 0.55)) drop-shadow(0 0 14px rgba(230, 235, 232, 0.10));
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 15px;
+  line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 48px;
+}
+.wrap { max-width: 1320px; margin: 0 auto; display: grid; gap: 20px; }
+
+/* ---------- header ---------- */
+header.top { display: grid; gap: 12px; }
+.titlebar { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; border-bottom: 3px solid var(--ink); padding-bottom: 8px; }
+h1 {
+  font-family: var(--f-display); font-weight: 700; font-size: clamp(28px, 4vw, 40px);
+  letter-spacing: 0.04em; text-transform: uppercase; margin: 0; line-height: 1; text-wrap: balance;
+}
+.meta { font-family: var(--f-mono); font-size: 12px; color: var(--muted); min-width: 0; overflow-wrap: anywhere; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.tabs { display: flex; flex-wrap: wrap; gap: 0; border: 1.5px solid var(--ink); border-radius: 4px; overflow: hidden; }
+.tabs button {
+  font-family: var(--f-display); font-weight: 600; font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase;
+  background: var(--card); color: var(--ink); border: 0; border-right: 1.5px solid var(--ink);
+  padding: 7px 14px; cursor: pointer;
+}
+.tabs button:last-child { border-right: 0; }
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--bg); }
+.tabs button:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
+.search { display: flex; align-items: center; gap: 8px; flex: 1 1 220px; max-width: 360px; }
+.search label { font-family: var(--f-display); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; font-size: 13px; color: var(--muted); }
+.search input {
+  flex: 1; min-width: 0; font: inherit; color: var(--ink); background: var(--card);
+  border: 1.5px solid var(--line); border-radius: 4px; padding: 6px 10px;
+}
+.search input:focus-visible { outline: 3px solid var(--accent); outline-offset: 0; border-color: var(--ink); }
+.key { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); }
+.key span { display: inline-flex; align-items: center; gap: 6px; }
+
+/* ---------- cards ---------- */
+.board { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
+/* stage: callouts | realistic art | callouts, leader lines drawn on an overlay */
+.stage { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, var(--art-w)) minmax(0, 1fr); gap: 0 34px; padding: 14px 14px 18px; align-items: center; }
+.stage[data-dev="stick"] { --art-w: 330px; }
+.stage[data-dev="throttle"] { --art-w: 540px; }
+.stage .art { grid-column: 2; grid-row: 1; min-width: 0; }
+.stage .art svg { display: block; width: 100%; height: auto; }
+.stage .art .photo { filter: var(--art-filter); }
+.col { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; align-content: center; min-width: 0; grid-row: 1; }
+.col.left { grid-column: 1; }
+.col.right { grid-column: 3; }
+.leaders { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.leaders .ln { fill: none; stroke: var(--muted); stroke-width: 1.1; opacity: 0.75; }
+.leaders .ln.hl { stroke: var(--hl); stroke-width: 2.4; opacity: 1; }
+.leaders .dot { fill: var(--card); stroke: var(--ink); stroke-width: 1.6; }
+.leaders .dot.yours { fill: var(--accent); }
+.leaders .dot.unbound { fill: none; stroke: var(--line); stroke-dasharray: 2 2; }
+.leaders .dot.conflict { stroke: var(--warn); stroke-width: 2.6; }
+.leaders .dot.hl { stroke: var(--hl); stroke-width: 3; }
+.leaders .dot.miss, .leaders .ln.miss { opacity: 0.15; }
+.leaders .pintag rect { fill: var(--card); stroke: var(--ink); stroke-width: 1.2; }
+.leaders .pintag.yours rect { fill: var(--accent); }
+.leaders .pintag text { fill: var(--ink); font-family: var(--f-display); font-weight: 700; font-size: 11px; letter-spacing: 0.04em; }
+.leaders .pintag.yours text { fill: var(--accent-ink); }
+.stage.narrow { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+.stage.narrow .art { grid-column: 1; grid-row: 1; width: 100%; max-width: 520px; justify-self: center; margin-bottom: 10px; }
+.stage.narrow .col { grid-column: 1; grid-row: auto; }
+.stage .ctl { background: var(--card); padding-block: 5px; }
+.stage .pos .empty { display: none; }
+.stage .ctl.unbound .pos { display: none; }
+.stage .ctl.unbound { grid-template-rows: auto; }
+.stage .ctl.unbound .tag { grid-row: auto; }
+.card { background: var(--card); border: 1.5px solid var(--line); border-radius: 6px; min-width: 0; display: grid; }
+.card-head {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  padding: 10px 14px; border-bottom: 1.5px solid var(--line);
+}
+.card-head h2 { margin: 0; font-family: var(--f-display); font-weight: 700; font-size: 22px; letter-spacing: 0.08em; text-transform: uppercase; }
+.card-head .dev { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+
+/* SVG */
+.sh { fill: var(--shape); stroke: var(--ink); stroke-width: 1.6; }
+.sh2 { fill: var(--shape-2); stroke: var(--ink); stroke-width: 1.4; }
+.sl { fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round; }
+.slot { fill: var(--bg); stroke: var(--line); stroke-width: 1.2; }
+.svg-label { fill: var(--muted); font-family: var(--f-display); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; }
+.leaders .dot, .leaders .pintag { pointer-events: auto; cursor: pointer; }
+
+/* legend */
+.legend { list-style: none; margin: 0; padding: 10px 14px 14px; display: grid; gap: 2px; }
+.ctl { display: grid; grid-template-columns: 58px 1fr; gap: 2px 10px; padding: 7px 6px; border-radius: 4px; border-left: 3px solid transparent; cursor: default; }
+.ctl:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.ctl.hl { background: var(--bg); border-left-color: var(--hl); }
+.ctl.unbound { opacity: 0.5; }
+.ctl.miss { display: none; }
+.ctl .tag {
+  grid-row: span 2; align-self: start; justify-self: start;
+  font-family: var(--f-display); font-weight: 700; font-size: 13px; letter-spacing: 0.05em;
+  border: 1.5px solid var(--ink); border-radius: 3px; padding: 1px 6px; white-space: nowrap; background: var(--card);
+}
+.ctl.yours .tag { background: var(--accent); color: var(--accent-ink); }
+.ctl.unbound .tag { border-style: dashed; border-color: var(--line); color: var(--muted); }
+.ctl-name { font-family: var(--f-display); font-weight: 600; font-size: 14px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.pos { display: grid; grid-template-columns: minmax(64px, max-content) 1fr; gap: 1px 10px; margin: 0; min-width: 0; }
+.pos dt { font-family: var(--f-mono); font-size: 12px; color: var(--muted); padding-top: 2px; white-space: nowrap; }
+.pos dt.nobtn { opacity: 0.7; }
+.pos dd { margin: 0; min-width: 0; display: grid; gap: 1px; }
+.b { overflow-wrap: anywhere; }
+.b.hit { background: color-mix(in srgb, var(--accent) 35%, transparent); border-radius: 2px; }
+.mod {
+  font-family: var(--f-display); font-weight: 700; font-size: 12px; letter-spacing: 0.05em;
+  border: 1px solid var(--ink); border-radius: 3px; padding: 0 4px; margin-right: 5px; white-space: nowrap;
+}
+.mine { color: var(--accent); font-size: 11px; margin-left: 4px; text-shadow: 0 0 0.5px var(--ink); }
+.none { color: var(--muted); }
+.warn { display: inline-block; font-family: var(--f-display); font-weight: 700; font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--warn); border: 1px solid var(--warn); border-radius: 3px; padding: 0 4px; margin-left: 6px; white-space: nowrap; }
+.b.clash { box-shadow: inset 2px 0 0 var(--warn); padding-left: 6px; }
+.offh { font-family: var(--f-mono); font-size: 11px; color: var(--muted); margin-left: 6px; white-space: nowrap; }
+.tabs .cnt { display: inline-block; min-width: 18px; margin-left: 6px; padding: 0 5px; border-radius: 9px; background: var(--warn); color: var(--card); font-size: 12px; letter-spacing: 0; text-align: center; }
+.tabs button[aria-selected="true"] .cnt { color: var(--ink); background: var(--warn); }
+.status { font-size: 13px; color: var(--muted); }
+.status b { color: var(--warn); }
+.axisf { font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); margin-left: 6px; white-space: nowrap; }
+.other-head { font-family: var(--f-display); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; font-size: 13px; color: var(--muted); padding: 8px 6px 0; border-top: 1px dashed var(--line); margin-top: 6px; }
+
+/* ---------- tables ---------- */
+section.ref { display: grid; gap: 14px; }
+section.ref h2 { margin: 6px 0 0; font-family: var(--f-display); font-weight: 700; font-size: 22px; letter-spacing: 0.08em; text-transform: uppercase; border-bottom: 3px solid var(--ink); padding-bottom: 4px; }
+.tables { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 540px), 1fr)); gap: 20px; align-items: start; }
+.tbox { overflow-x: auto; background: var(--card); border: 1.5px solid var(--line); border-radius: 6px; min-width: 0; }
+.tbox h3 { margin: 0; padding: 8px 12px; font-family: var(--f-display); font-weight: 700; font-size: 16px; letter-spacing: 0.08em; text-transform: uppercase; border-bottom: 1.5px solid var(--line); }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+th { text-align: left; font-family: var(--f-display); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; font-size: 12px; color: var(--muted); padding: 6px 10px; border-bottom: 1.5px solid var(--line); white-space: nowrap; }
+td { padding: 4px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+td.k { font-family: var(--f-mono); font-size: 12px; white-space: nowrap; color: var(--muted); }
+td:last-child { white-space: nowrap; }
+td.c { font-family: var(--f-display); font-weight: 600; letter-spacing: 0.04em; white-space: nowrap; }
+tr.unb td { color: var(--muted); }
+tr.hl td { background: var(--bg); }
+.empty { padding: 24px; text-align: center; color: var(--muted); }
+footer { font-size: 12.5px; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="titlebar">
+      <h1>Warthog Bindings</h1>
+      <div class="meta" id="meta"></div>
+    </div>
+    <div class="controls">
+      <div class="tabs" role="tablist" id="tabs" aria-label="Aircraft"></div>
+      <div class="status" id="status" aria-live="polite"></div>
+      <div class="search">
+        <label for="q">Find</label>
+        <input id="q" type="search" placeholder="Function, e.g. trim, gear, TMS" autocomplete="off">
+      </div>
+    </div>
+    <div class="key" aria-label="Legend">
+      <span><svg width="26" height="16" aria-hidden="true"><rect x="1" y="1" width="24" height="14" rx="2" fill="var(--card)" stroke="var(--ink)" stroke-width="1.5"/></svg>DCS default</span>
+      <span><svg width="26" height="16" aria-hidden="true"><rect x="1" y="1" width="24" height="14" rx="2" fill="var(--accent)" stroke="var(--ink)" stroke-width="1.5"/></svg>has your change <span class="mine" aria-hidden="true">&#9670;</span></span>
+      <span><svg width="26" height="16" aria-hidden="true"><rect x="1" y="1" width="24" height="14" rx="2" fill="var(--bg)" stroke="var(--line)" stroke-width="1.5" stroke-dasharray="3 2"/></svg>unbound</span>
+      <span><span class="mod">S4 +</span>held with a modifier</span>
+      <span><span class="warn" style="margin-left:0">clash</span>two functions fire from one press</span>
+    </div>
+  </header>
+
+  <div class="board" id="board"></div>
+
+  <section class="ref">
+    <h2>Reference</h2>
+    <div class="tables" id="tables"></div>
+  </section>
+
+  <footer id="foot"></footer>
+</div>
+
+<script id="bindings" type="application/json">__BINDINGS_JSON__</script>
+<script id="art-stick" type="text/plain">__STICK_SVG__</script>
+<script id="art-throttle" type="text/plain">__THROTTLE_SVG__</script>
+<script>
+(function () {
+  "use strict";
+
+  // ------------------------------------------------------------ physical map
+  // Each control: id (placard tag), name, at (tag position in the SVG), keys [[position, key|null]], axes [[label, key]].
+  var POV = function (n) {
+    return [["Up", "JOY_BTN_POV" + n + "_U"], ["Up-right", "JOY_BTN_POV" + n + "_UR"], ["Right", "JOY_BTN_POV" + n + "_R"],
+      ["Down-right", "JOY_BTN_POV" + n + "_DR"], ["Down", "JOY_BTN_POV" + n + "_D"], ["Down-left", "JOY_BTN_POV" + n + "_DL"],
+      ["Left", "JOY_BTN_POV" + n + "_L"], ["Up-left", "JOY_BTN_POV" + n + "_UL"]];
+  };
+  var B = function (n) { return "JOY_BTN" + n; };
+  var HAT4 = function (u) { return [["Up", B(u)], ["Right", B(u + 1)], ["Down", B(u + 2)], ["Left", B(u + 3)]]; };
+
+  var DEVICES = [
+    {
+      id: "stick", title: "Stick", dev: "Joystick - HOTAS Warthog",
+      controls: [
+        { id: "H1", name: "Trim hat", at: [152, 54], keys: POV(1) },
+        { id: "S2", name: "Weapon release", at: [110, 72], keys: [["Press", B(2)]] },
+        { id: "H2", name: "TMS hat, upper thumb", at: [186, 92], keys: HAT4(7) },
+        { id: "H3", name: "DMS hat, side", at: [118, 120], keys: HAT4(11) },
+        { id: "H4", name: "CMS hat, lower thumb", at: [172, 140], keys: HAT4(15).concat([["Push", B(19)]]) },
+        { id: "S1", name: "Index button", at: [236, 162], keys: [["Press", B(5)]] },
+        { id: "TG", name: "Trigger", at: [252, 214], keys: [["1st stage", B(1)], ["2nd stage", B(6)]] },
+        { id: "S3", name: "Pinky button", at: [236, 266], keys: [["Press", B(3)]] },
+        { id: "S4", name: "Paddle lever", at: [252, 314], keys: [["Press", B(4)]] },
+        { id: "XY", name: "Stick axes", at: [150, 398], keys: [], axes: [["Roll", "JOY_X"], ["Pitch", "JOY_Y"]] }
+      ]
+    },
+    {
+      id: "throttle", title: "Throttle", dev: "Throttle - HOTAS Warthog",
+      controls: [
+        { id: "MS", name: "Mic switch", at: [92, 62], keys: [["Push", B(2)], ["Up", B(3)], ["Right", B(4)], ["Down", B(5)], ["Left", B(6)]] },
+        { id: "SB", name: "Speedbrake", at: [152, 76], keys: [["Forward", B(7)], ["Center", null], ["Aft", B(8)]] },
+        { id: "CH", name: "China hat", at: [98, 104], keys: [["Forward", B(11)], ["Aft", B(12)]] },
+        { id: "BS", name: "Boat switch", at: [152, 128], keys: [["Forward", B(9)], ["Center", null], ["Aft", B(10)]] },
+        { id: "PS", name: "Pinky switch", at: [96, 154], keys: [["Forward", B(13)], ["Center", null], ["Aft", B(14)]] },
+        { id: "LTB", name: "Left throttle button", at: [152, 176], keys: [["Press", B(15)]] },
+        { id: "SC", name: "Slew control", at: [232, 86], keys: [["Push", B(1)]], axes: [["Slew X", "JOY_X"], ["Slew Y", "JOY_Y"]] },
+        { id: "CS", name: "Coolie hat", at: [290, 108], keys: POV(1) },
+        { id: "THR", name: "Throttle levers", at: [190, 222], keys: [], axes: [["Left", "JOY_RZ"], ["Right", "JOY_Z"]] },
+        { id: "L IDLE", name: "Left idle detent", at: [119, 268], keys: [["At idle", B(30)]] },
+        { id: "R IDLE", name: "Right idle detent", at: [257, 268], keys: [["At idle", B(29)]] },
+        { id: "FRIC", name: "Friction slider", at: [366, 268], keys: [], axes: [["Slider", "JOY_SLIDER1"]] },
+        { id: "EFL", name: "Fuel flow, left", at: [52, 324], keys: [["NORM", B(16)], ["OVERRIDE", null]] },
+        { id: "EFR", name: "Fuel flow, right", at: [112, 324], keys: [["NORM", B(17)], ["OVERRIDE", null]] },
+        { id: "EOL", name: "Engine operate, left", at: [172, 324], keys: [["IGN", B(31)], ["NORM", null], ["MOTOR", B(18)]] },
+        { id: "EOR", name: "Engine operate, right", at: [232, 324], keys: [["IGN", B(32)], ["NORM", null], ["MOTOR", B(19)]] },
+        { id: "APU", name: "APU start", at: [292, 324], keys: [["ON", B(20)], ["OFF", null]] },
+        { id: "L/G", name: "Gear warning silence", at: [356, 324], keys: [["Press", B(21)]] },
+        { id: "FLAPS", name: "Flaps", at: [62, 380], keys: [["UP", B(22)], ["MVR", null], ["DN", B(23)]] },
+        { id: "EAC", name: "EAC", at: [130, 380], keys: [["ON", B(24)], ["ARM", null]] },
+        { id: "RDR", name: "Radar altimeter", at: [192, 380], keys: [["NRM", B(25)], ["DIS", null]] },
+        { id: "AP", name: "Autopilot engage", at: [250, 380], keys: [["Press", B(26)]] },
+        { id: "AP SEL", name: "Autopilot mode", at: [330, 380], keys: [["PATH", B(27)], ["ALT/HDG", null], ["ALT", B(28)]] }
+      ]
+    }
+  ];
+
+  // ------------------------------------------------------------ data
+  var raw = document.getElementById("bindings").textContent;
+  var DATA = { aircraft: [] };
+  try { DATA = JSON.parse(raw); } catch (e) { DATA = { aircraft: [], error: String(e) }; }
+  var AIRCRAFT = Array.isArray(DATA.aircraft) ? DATA.aircraft : [];
+
+  var slug = function (s) { return String(s).replace(/[^A-Za-z0-9]+/g, "-").replace(/^-+|-+$/g, ""); };
+  var esc = function (s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  };
+
+  // key -> physical short label, per device ("S4", "H2 Up", "CS Left")
+  var KEYLABEL = {};
+  var MAPPED = {};
+  DEVICES.forEach(function (d) {
+    KEYLABEL[d.id] = {}; MAPPED[d.id] = {};
+    d.controls.forEach(function (c) {
+      (c.keys || []).forEach(function (k) {
+        if (!k[1]) return;
+        KEYLABEL[d.id][k[1]] = c.id + (c.keys.length > 1 ? " " + k[0] : "");
+        MAPPED[d.id][k[1]] = true;
+        MAPPED[d.id][k[1] + "_OFF"] = true;
+        KEYLABEL[d.id][k[1] + "_OFF"] = c.id + " " + k[0] + " off";
+      });
+      (c.axes || []).forEach(function (a) { MAPPED[d.id][a[1]] = true; });
+    });
+  });
+  function modLabel(mod, devId) {
+    if (KEYLABEL[devId][mod]) return KEYLABEL[devId][mod];
+    var other = devId === "stick" ? "throttle" : "stick";
+    if (KEYLABEL[other][mod]) return (other === "stick" ? "Stick " : "Thr ") + KEYLABEL[other][mod];
+    return String(mod).replace(/^JOY_/, "");
+  }
+
+  var state = { ac: null, q: "", pinned: null };
+
+  function devData(devId) {
+    var ac = state.ac;
+    var d = ac && ac.devices && ac.devices[devId];
+    return { buttons: (d && d.buttons) || {}, axes: (d && d.axes) || {} };
+  }
+  function matches(name) { return state.q && String(name || "").toLowerCase().indexOf(state.q) !== -1; }
+
+  function controlStatus(devId, c) {
+    var dd = devData(devId), bound = false, yours = false, hit = false, conflict = false;
+    ctlKeys(c).forEach(function (k) {
+      if (clashes(dd.buttons[k]).length) conflict = true;
+      (dd.buttons[k] || []).forEach(function (b) {
+        bound = true; if (b.source === "yours") yours = true; if (matches(b.name)) hit = true;
+      });
+    });
+    (c.axes || []).forEach(function (a) {
+      (dd.axes[a[1]] || []).forEach(function (b) {
+        bound = true; if (b.source === "yours") yours = true; if (matches(b.name)) hit = true;
+      });
+    });
+    return { bound: bound, yours: yours, conflict: conflict, miss: !!state.q && !hit };
+  }
+
+  function bindingHTML(b, devId, clashList, offHint) {
+    var mods = (b.modifiers || []).map(function (m) { return '<span class="mod">' + esc(modLabel(m, devId)) + ' +</span>'; }).join("");
+    var mine = b.source === "yours" ? '<span class="mine" title="Your change" aria-label="your change">&#9670;</span>' : "";
+    var clash = clashList && clashList.indexOf(b) !== -1;
+    return '<div class="b' + (matches(b.name) ? " hit" : "") + (clash ? " clash" : "") + '"' + (clash ? ' title="Fires together with another function on this button"' : "") + '>' +
+      mods + esc(b.name) + mine + (offHint ? '<span class="offh">' + esc(offHint) + "</span>" : "") + "</div>";
+  }
+  function sortBindings(list) {
+    return list.slice().sort(function (a, b) { return (a.modifiers || []).length - (b.modifiers || []).length; });
+  }
+  // Bindings on one key with the same modifier set all fire together: a clash. Returns the clashing bindings.
+  function clashes(list) {
+    var groups = {}, out = [];
+    (list || []).forEach(function (b) {
+      var k = (b.modifiers || []).slice().sort().join("+");
+      (groups[k] = groups[k] || []).push(b);
+    });
+    Object.keys(groups).forEach(function (k) { if (groups[k].length > 1) out = out.concat(groups[k]); });
+    return out;
+  }
+  function clashCount(ac) {
+    var n = 0;
+    DEVICES.forEach(function (d) {
+      var btns = (ac && ac.devices && ac.devices[d.id] && ac.devices[d.id].buttons) || {};
+      Object.keys(btns).forEach(function (k) {
+        var groups = {};
+        (btns[k] || []).forEach(function (b) { var g = (b.modifiers || []).slice().sort().join("+"); groups[g] = (groups[g] || 0) + 1; });
+        Object.keys(groups).forEach(function (g) { if (groups[g] > 1) n++; });
+      });
+    });
+    return n;
+  }
+  // keys shown on a control: its own keys plus each key's _OFF twin
+  function ctlKeys(c) {
+    var out = [];
+    (c.keys || []).forEach(function (k) { if (k[1]) { out.push(k[1]); out.push(k[1] + "_OFF"); } });
+    return out;
+  }
+  function axisFlags(b) {
+    var f = [];
+    if (b.invert) f.push("inv");
+    if (b.deadzone != null && b.deadzone !== 0) f.push("dz " + b.deadzone);
+    if (b.curvature != null && b.curvature !== 0) f.push("curve " + b.curvature);
+    return f.length ? '<span class="axisf">' + esc(f.join(", ")) + "</span>" : "";
+  }
+
+  // ------------------------------------------------------------ render
+  function legendItem(devId, c, st) {
+    var dd = devData(devId), rows = "";
+    var nulls = (c.keys || []).filter(function (k) { return !k[1]; });
+    var offs = []; // [posName, key] for keys with _OFF bindings
+    (c.keys || []).forEach(function (k) { if (k[1] && (dd.buttons[k[1] + "_OFF"] || []).length) offs.push(k); });
+    var offRow = function (k) {
+      var list = sortBindings(dd.buttons[k[1] + "_OFF"]), cl = clashes(list);
+      return list.map(function (b) { return bindingHTML(b, devId, cl, "when " + k[0] + " released"); }).join("");
+    };
+    (c.keys || []).forEach(function (k) {
+      if (!k[1]) {
+        // The unnumbered position: show what fires when the switch leaves a numbered position.
+        var here = nulls.length === 1 ? offs.map(offRow).join("") : "";
+        var e0 = here ? "" : " empty";
+        rows += '<dt class="nobtn' + e0 + '">' + esc(k[0]) + '</dt><dd class="' + e0 + '">' + (here || '<span class="none">no button</span>') + "</dd>";
+        return;
+      }
+      var list = sortBindings(dd.buttons[k[1]] || []), cl = clashes(list);
+      if (!list.length && /_(UR|DR|DL|UL)$/.test(k[1])) return; // unbound hat diagonals are noise
+      var e1 = list.length ? "" : ' class="empty"';
+      rows += '<dt title="' + esc(k[1]) + '"' + e1 + ">" + esc(k[0]) + "</dt><dd" + e1 + ">" +
+        (list.length ? list.map(function (b) { return bindingHTML(b, devId, cl); }).join("") : '<span class="none">&mdash;</span>') + "</dd>";
+    });
+    if (nulls.length !== 1) {
+      offs.forEach(function (k) {
+        rows += '<dt title="' + esc(k[1]) + '_OFF">' + esc(k[0]) + " off</dt><dd>" + offRow(k) + "</dd>";
+      });
+    }
+    (c.axes || []).forEach(function (a) {
+      var list = dd.axes[a[1]] || [];
+      rows += '<dt title="' + esc(a[1]) + '">' + esc(a[0]) + "</dt><dd>" +
+        (list.length ? list.map(function (b) {
+          return '<div class="b' + (matches(b.name) ? " hit" : "") + '">' + esc(b.name) + axisFlags(b) +
+            (b.source === "yours" ? '<span class="mine" title="Your change">&#9670;</span>' : "") + "</div>";
+        }).join("") : '<span class="none">&mdash;</span>') + "</dd>";
+    });
+    var cls = "ctl" + (st.bound ? "" : " unbound") + (st.yours ? " yours" : "") + (st.conflict ? " conflict" : "") + (st.miss ? " miss" : "");
+    return '<li class="' + cls + '" data-ctl="' + esc(devId + ":" + c.id) + '" tabindex="0">' +
+      '<span class="tag">' + esc(c.id) + '</span><span class="ctl-name">' + esc(c.name) + (st.conflict ? '<span class="warn">clash</span>' : "") + "</span>" +
+      '<dl class="pos">' + rows + "</dl></li>";
+  }
+
+  function unknownKeys(devId) {
+    var dd = devData(devId), out = [];
+    Object.keys(dd.buttons).forEach(function (k) { if (!MAPPED[devId][k] && (dd.buttons[k] || []).length) out.push(["button", k]); });
+    Object.keys(dd.axes).forEach(function (k) { if (!MAPPED[devId][k] && (dd.axes[k] || []).length) out.push(["axis", k]); });
+    return out.sort(function (a, b) { return a[1].localeCompare(b[1], undefined, { numeric: true }); });
+  }
+
+  function renderBoard() {
+    var board = document.getElementById("board");
+    if (!state.ac) {
+      board.innerHTML = '<div class="card"><div class="empty">No aircraft profiles with Warthog bindings were found.</div></div>';
+      return;
+    }
+    board.innerHTML = DEVICES.map(function (d) {
+      var perItem = {}, items = "";
+      d.controls.forEach(function (c) {
+        perItem[c.id] = legendItem(d.id, c, controlStatus(d.id, c));
+      });
+      var unk = unknownKeys(d.id);
+      if (unk.length) {
+        var dd = devData(d.id), rows = "";
+        unk.forEach(function (u) {
+          var list = u[0] === "button" ? sortBindings(dd.buttons[u[1]]) : dd.axes[u[1]];
+          var hit = !state.q || list.some(function (b) { return matches(b.name); });
+          if (!hit) return;
+          rows += '<dt>' + esc(u[1].replace(/^JOY_/, "")) + "</dt><dd>" + list.map(function (b) {
+            return u[0] === "button" ? bindingHTML(b, d.id, clashes(list)) : '<div class="b">' + esc(b.name) + axisFlags(b) + "</div>";
+          }).join("") + "</dd>";
+        });
+        if (rows) {
+          items += '<li class="other-head">Other inputs</li><li class="ctl" data-ctl="' + d.id + ':other"><span class="tag">?</span>' +
+            '<span class="ctl-name">Keys outside the Warthog map</span><dl class="pos">' + rows + "</dl></li>";
+        }
+      }
+      var otherItems = items;
+      // Split callouts left/right by the art's anchor hints, ordered top to bottom.
+      var anchors = ART_ANCHORS[d.id] || {};
+      var left = [], right = [];
+      d.controls.forEach(function (c, i) {
+        var a = anchors[c.id];
+        (a && a.side === "left" ? left : right).push({ y: a ? a.y : 1e6 + i, html: perItem[c.id] });
+      });
+      var byY = function (p, q) { return p.y - q.y; };
+      var colHTML = function (list) { return list.sort(byY).map(function (x) { return x.html; }).join(""); };
+      var other = otherItems ? '<ul class="legend">' + otherItems + "</ul>" : "";
+      return '<article class="card"><div class="card-head"><h2>' + esc(d.title) + '</h2><span class="dev">' + esc(d.dev) + "</span></div>" +
+        '<div class="stage" data-dev="' + d.id + '"><ul class="col left">' + colHTML(left) + '</ul><div class="art">' + (ART[d.id] || "") +
+        '</div><ul class="col right">' + colHTML(right) + '</ul><svg class="leaders" aria-hidden="true"></svg></div>' + other + "</article>";
+    }).join("");
+    layoutStages();
+  }
+
+  // ------------------------------------------------------------ realistic art + leader lines
+  var ART = {}, ART_ANCHORS = {};
+  ["stick", "throttle"].forEach(function (id) {
+    var el = document.getElementById("art-" + id);
+    var txt = el ? el.textContent.replace(/^\s*<\?xml[^>]*\?>/, "") : "";
+    if (!/<svg/i.test(txt)) { ART[id] = ""; ART_ANCHORS[id] = {}; return; }
+    ART[id] = txt;
+    var doc = new DOMParser().parseFromString(txt, "image/svg+xml");
+    var map = {};
+    Array.prototype.forEach.call(doc.querySelectorAll("[data-anchor]"), function (a) {
+      map[a.getAttribute("data-anchor")] = { side: a.getAttribute("data-side") === "left" ? "left" : "right", y: parseFloat(a.getAttribute("cy")) || 0 };
+    });
+    ART_ANCHORS[id] = map;
+  });
+
+  var SVGNS = "http://www.w3.org/2000/svg";
+  function layoutStages() {
+    document.querySelectorAll(".stage").forEach(function (stage) {
+      var narrow = stage.clientWidth < 820;
+      stage.classList.toggle("narrow", narrow);
+      var overlay = stage.querySelector(".leaders");
+      while (overlay.firstChild) overlay.removeChild(overlay.firstChild);
+      var sr = stage.getBoundingClientRect();
+      var devId = stage.getAttribute("data-dev");
+      var artBox = stage.querySelector(".art").getBoundingClientRect();
+      stage.querySelectorAll(".col .ctl").forEach(function (li) {
+        var ctl = li.getAttribute("data-ctl"), id = ctl.split(":")[1];
+        var anchor = stage.querySelector('.art [data-anchor="' + id.replace(/"/g, '\\"') + '"]');
+        if (!anchor || !anchor.getScreenCTM) return;
+        var m = anchor.getScreenCTM(); if (!m) return;
+        var p = anchor.ownerSVGElement.createSVGPoint();
+        p.x = parseFloat(anchor.getAttribute("cx")) || 0; p.y = parseFloat(anchor.getAttribute("cy")) || 0;
+        var q = p.matrixTransform(m), ax = q.x - sr.left, ay = q.y - sr.top;
+        var st = li.className;
+        var flags = (/\byours\b/.test(st) ? " yours" : "") + (/\bunbound\b/.test(st) ? " unbound" : "") + (/\bconflict\b/.test(st) ? " conflict" : "") + (/\bmiss\b/.test(st) ? " miss" : "");
+        if (!narrow) {
+          var r = li.getBoundingClientRect(), isLeft = li.parentNode.classList.contains("left");
+          var x0 = (isLeft ? r.right : r.left) - sr.left, y0 = r.top - sr.top + 15;
+          var x1 = isLeft ? Math.max(x0 + 10, artBox.left - sr.left - 8) : Math.min(x0 - 10, artBox.right - sr.left + 8);
+          var ln = document.createElementNS(SVGNS, "polyline");
+          ln.setAttribute("points", x0 + "," + y0 + " " + x1 + "," + y0 + " " + ax + "," + ay);
+          ln.setAttribute("class", "ln" + flags); ln.setAttribute("data-ctl", ctl);
+          overlay.appendChild(ln);
+          var dot = document.createElementNS(SVGNS, "circle");
+          dot.setAttribute("cx", ax); dot.setAttribute("cy", ay); dot.setAttribute("r", 4.5);
+          dot.setAttribute("class", "dot" + flags); dot.setAttribute("data-ctl", ctl);
+          overlay.appendChild(dot);
+        } else {
+          var w = Math.max(24, id.length * 7 + 10), h = 17;
+          var g = document.createElementNS(SVGNS, "g");
+          g.setAttribute("class", "pintag" + flags); g.setAttribute("data-ctl", ctl);
+          g.innerHTML = '<rect x="' + (ax - w / 2) + '" y="' + (ay - h / 2) + '" width="' + w + '" height="' + h + '" rx="3"/>' +
+            '<text x="' + ax + '" y="' + (ay + 4) + '" text-anchor="middle">' + esc(id) + "</text>";
+          overlay.appendChild(g);
+        }
+      });
+    });
+    applyHighlight();
+  }
+  var relayoutTimer = null;
+  function scheduleLayout() { clearTimeout(relayoutTimer); relayoutTimer = setTimeout(layoutStages, 60); }
+  window.addEventListener("resize", scheduleLayout);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(scheduleLayout);
+  if (window.ResizeObserver) new ResizeObserver(scheduleLayout).observe(document.body);
+
+  function renderTables() {
+    var host = document.getElementById("tables");
+    if (!state.ac) { host.innerHTML = ""; return; }
+    var html = "";
+    var axisRows = "";
+    DEVICES.forEach(function (d) {
+      var dd = devData(d.id), rows = "";
+      var addRows = function (ctlId, keyName, list, pinId) {
+        if (!list.length) {
+          if (!state.q) rows += '<tr class="unb" data-ctl="' + esc(d.id + ":" + (pinId || ctlId)) + '"><td class="c">' + esc(ctlId) + '</td><td class="k">' + esc(keyName) + "</td><td>&mdash;</td><td></td><td></td></tr>";
+          return;
+        }
+        var cl = clashes(list);
+        sortBindings(list).forEach(function (b) {
+          if (state.q && !matches(b.name)) return;
+          rows += '<tr data-ctl="' + esc(d.id + ":" + (pinId || ctlId)) + '"><td class="c">' + esc(ctlId) + '</td><td class="k">' + esc(keyName) + "</td><td>" + esc(b.name) +
+            (cl.indexOf(b) !== -1 ? '<span class="warn">clash</span>' : "") +
+            "</td><td>" + (b.modifiers || []).map(function (m) { return '<span class="mod">' + esc(modLabel(m, d.id)) + " +</span>"; }).join("") +
+            "</td><td>" + (b.source === "yours" ? 'yours <span class="mine">&#9670;</span>' : "default") + "</td></tr>";
+        });
+      };
+      d.controls.forEach(function (c) {
+        (c.keys || []).forEach(function (k) {
+          if (!k[1]) return;
+          addRows(c.id + (c.keys.length > 1 ? " " + k[0] : ""), k[1], dd.buttons[k[1]] || [], c.id);
+          if ((dd.buttons[k[1] + "_OFF"] || []).length) addRows(c.id + " " + k[0] + " off", k[1] + "_OFF", dd.buttons[k[1] + "_OFF"], c.id);
+        });
+      });
+      unknownKeys(d.id).forEach(function (u) { if (u[0] === "button") addRows("Other", u[1], dd.buttons[u[1]], "other"); });
+      Object.keys(dd.axes).sort().forEach(function (k) {
+        (dd.axes[k] || []).forEach(function (b) {
+          if (state.q && !matches(b.name)) return;
+          axisRows += "<tr><td class=\"c\">" + esc(d.title) + '</td><td class="k">' + esc(k) + "</td><td>" + esc(b.name) + "</td><td>" +
+            (b.invert ? "yes" : b.invert === false ? "no" : "&mdash;") + "</td><td>" + (b.deadzone != null ? esc(b.deadzone) : "&mdash;") +
+            "</td><td>" + (b.curvature != null ? esc(b.curvature) : "&mdash;") + "</td><td>" + (b.source === "yours" ? 'yours <span class="mine">&#9670;</span>' : "default") + "</td></tr>";
+        });
+      });
+      html += '<div class="tbox"><h3>' + esc(d.title) + ' buttons</h3><table><thead><tr><th>Control</th><th>Key</th><th>Function</th><th>Modifier</th><th>Source</th></tr></thead><tbody>' +
+        (rows || '<tr><td colspan="5" class="none">No matches.</td></tr>') + "</tbody></table></div>";
+    });
+    html += '<div class="tbox"><h3>Axes</h3><table><thead><tr><th>Device</th><th>Axis</th><th>Function</th><th>Invert</th><th>Deadzone</th><th>Curve</th><th>Source</th></tr></thead><tbody>' +
+      (axisRows || '<tr><td colspan="7" class="none">No axes bound.</td></tr>') + "</tbody></table></div>";
+    host.innerHTML = html;
+  }
+
+  function renderTabs() {
+    var tabs = document.getElementById("tabs");
+    tabs.innerHTML = AIRCRAFT.map(function (a) {
+      var sel = state.ac === a;
+      var n = clashCount(a);
+      return '<button role="tab" type="button" id="tab-' + esc(slug(a.id)) + '" aria-selected="' + sel + '" tabindex="' + (sel ? 0 : -1) + '" data-ac="' + esc(a.id) + '">' + esc(a.label || a.id) +
+        (n ? '<span class="cnt" title="' + n + ' clash' + (n > 1 ? "es" : "") + '">' + n + "</span>" : "") + "</button>";
+    }).join("");
+    var st = document.getElementById("status"), n = clashCount(state.ac);
+    st.innerHTML = !state.ac ? "" : n ? "<b>" + n + " clash" + (n > 1 ? "es" : "") + "</b> in " + esc(state.ac.label || state.ac.id) + ": one press fires two functions." : "No clashes in " + esc(state.ac.label || state.ac.id) + ".";
+  }
+
+  function renderMeta() {
+    var m = [];
+    if (DATA.generated) m.push("Read " + DATA.generated.replace("T", " ").replace(/:\d\dZ?$/, "").replace(/Z$/, "") + " UTC");
+    if (DATA.source) m.push(DATA.source);
+    if (DATA.error) m.push("Could not read the binding data: " + DATA.error);
+    document.getElementById("meta").textContent = m.join(" · ");
+    document.getElementById("foot").textContent = "Unmarked bindings are the module's default Warthog profile; ◆ marks a binding you changed in DCS. Switch positions marked \"no button\" send nothing, so DCS can only bind the other positions.";
+  }
+
+  function render() {
+    renderTabs(); renderBoard(); renderTables(); applyHighlight();
+  }
+
+  // ------------------------------------------------------------ highlight
+  var hover = null;
+  function applyHighlight() {
+    var target = hover || state.pinned;
+    document.querySelectorAll(".hl").forEach(function (el) { el.classList.remove("hl"); });
+    if (!target) return;
+    document.querySelectorAll('[data-ctl="' + target.replace(/"/g, '\\"') + '"]').forEach(function (el) { el.classList.add("hl"); });
+  }
+  function ctlOf(ev) { var el = ev.target.closest && ev.target.closest("[data-ctl]"); return el ? el.getAttribute("data-ctl") : null; }
+  document.addEventListener("mouseover", function (ev) { var c = ctlOf(ev); if (c !== hover) { hover = c; applyHighlight(); } });
+  document.addEventListener("focusin", function (ev) { hover = ctlOf(ev); applyHighlight(); });
+  document.addEventListener("focusout", function () { hover = null; applyHighlight(); });
+  document.addEventListener("click", function (ev) {
+    var pin = ev.target.closest && ev.target.closest(".dot, .pintag");
+    var c = ctlOf(ev);
+    state.pinned = c && c !== state.pinned ? c : null;
+    applyHighlight();
+    if (pin && c) {
+      var li = document.querySelector('.ctl[data-ctl="' + c.replace(/"/g, '\\"') + '"]');
+      if (li && li.scrollIntoView) li.scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    }
+  });
+  document.addEventListener("keydown", function (ev) {
+    if ((ev.key === "Enter" || ev.key === " ") && ev.target.classList && ev.target.classList.contains("pin")) {
+      ev.preventDefault(); ev.target.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    }
+  });
+
+  // ------------------------------------------------------------ aircraft selection
+  function store(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* storage unavailable */ } }
+  function load(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function findBySlug(s) { for (var i = 0; i < AIRCRAFT.length; i++) if (slug(AIRCRAFT[i].id) === s) return AIRCRAFT[i]; return null; }
+  function select(ac, updateHash) {
+    state.ac = ac; state.pinned = null;
+    if (ac) {
+      store("warthog-bindings.aircraft", ac.id);
+      if (updateHash && location.hash !== "#" + slug(ac.id)) { try { location.replace("#" + slug(ac.id)); } catch (e) { /* ignore */ } }
+    }
+    render();
+  }
+  document.getElementById("tabs").addEventListener("click", function (ev) {
+    var b = ev.target.closest("button[data-ac]"); if (!b) return;
+    for (var i = 0; i < AIRCRAFT.length; i++) if (AIRCRAFT[i].id === b.getAttribute("data-ac")) select(AIRCRAFT[i], true);
+  });
+  document.getElementById("tabs").addEventListener("keydown", function (ev) {
+    if (ev.key !== "ArrowRight" && ev.key !== "ArrowLeft") return;
+    var i = AIRCRAFT.indexOf(state.ac); if (i < 0) return;
+    i = (i + (ev.key === "ArrowRight" ? 1 : AIRCRAFT.length - 1)) % AIRCRAFT.length;
+    select(AIRCRAFT[i], true);
+    var t = document.getElementById("tab-" + slug(AIRCRAFT[i].id)); if (t) t.focus();
+  });
+  window.addEventListener("hashchange", function () {
+    var a = findBySlug(location.hash.slice(1)); if (a && a !== state.ac) select(a, false);
+  });
+  document.getElementById("q").addEventListener("input", function (ev) {
+    state.q = ev.target.value.trim().toLowerCase(); renderBoard(); renderTables(); applyHighlight();
+  });
+
+  renderMeta();
+  var initial = findBySlug(location.hash.slice(1));
+  if (!initial) { var saved = load("warthog-bindings.aircraft"); AIRCRAFT.forEach(function (a) { if (a.id === saved) initial = a; }); }
+  select(initial || AIRCRAFT[0] || null, false);
+})();
+</script>

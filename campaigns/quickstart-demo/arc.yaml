@@ -1,0 +1,42 @@
+# arc.yaml — single-mission campaign (dms-quickstart fast path). Schema: CampaignArc.
+schema_version: 1
+title: "Hog Down Low"
+logline: "One A-10C II sortie: stop an armoured column short of a partner checkpoint east of Zugdidi."
+
+qualities:
+  - id: trust
+    description: "How much the partner company trusts coalition air after this sortie."
+    initial: 0
+    min: -3
+    max: 3
+
+acts:
+  - id: act1
+    title: "The checkpoint"
+    summary: "HAWG stops the column, or the checkpoint falls back."
+    missions:
+      - id: m01-hog-down-low
+        title: "Hog Down Low"
+        mission_type: CAS
+        status: built
+        player_aircraft: A-10C_2
+        dramatic_question: "Can HAWG stop the column before it reaches the checkpoint without hitting the farms?"
+        synopsis: >-
+          HAWG 1-1 and 1-2 launch from Senaki-Kolkhi (or air-start at the IP), check in with
+          Darkstar and Bulldog One-Two, and work a 9-line on the lead armour group east of
+          Zugdidi, then a Shilka covering it. Outcome keys: column_destroyed (bool), aaa_destroyed
+          (bool), player_lost (bool). The runtime re-rolls the column mix, the MANPADS positions
+          and the follow-on reinforcement waves each play.
+        characters: [ops_reyes, jtac_cole, awacs_darkstar, tower_senaki]
+        key_beats:
+          - "Sabre Ops scrambles HAWG"
+          - "Darkstar hands HAWG to Bulldog"
+          - "9-line on the column"
+          - "Bulldog checks HAWG out"
+          - "Sabre Ops calls RTB"
+        quality_effects:
+          trust: "+1 if column_destroyed; -1 if not column_destroyed"
+        branches: []
+        optional: false
+
+ending_notes: "Single sortie. Fly it again for a new seed; trust carries only if more missions are added."

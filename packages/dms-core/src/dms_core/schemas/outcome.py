@@ -1,0 +1,189 @@
+"""MissionOutcome: facts the Lua runtime reports via ``[DMS.OUTCOME] {json}`` lines in dcs.log."""
+
+from __future__ import annotations
+
+import json
+import re
+from typing import Any
+
+from pydantic import Field, field_validator, model_validator
+
+from ._common import DMSModel, OutcomeValue
+
+OUTCOME_MARKER = "[DMS.OUTCOME]"
+_LINE_RE = re.compile(r"\[DMS\.OUTCOME\]\s*(\{.*\})\s*$")
+_TS_RE = re.compile(r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?)")
+_CAMEL_RE = re.compile(r"(?<!^)(?=[A-Z])")
+_ALIASES = {"outcome": "outcomes", "t": "time", "mission": "mission_id", "event": "kind"}
+
+
+def camel_to_snake(name: str) -> str:
+    """'missionId' -> 'mission_id'."""
+    return _CAMEL_RE.sub("_", name).lower()
+
+
+class PlayerOutcome(DMSModel):
+    """Per-player facts in an outcome (contract v0.9 `players[]`; runtime not implemented yet).
+
+    A bare string (the pre-v0.9 shape, a player name) is accepted and becomes ``{name}``. Facts
+    are counted per player name, so multicrew (two players in one unit) gives two entries.
+    """
+
+    name: str = Field(description="DCS player name (multiplayer callsign).")
+    flight: str | None = Field(
+        default=None, description="Player group name the player flew in (dynamic slots included)."
+    )
+    unit: str | None = Field(default=None, description="Unit name of the player's aircraft.")
+    type_name: str | None = Field(default=None, description="Aircraft type, e.g. 'F-16C_50'.")
+    kills: dict[str, int] = Field(
+        default_factory=dict, description="Kills credited to this player by category or type."
+    )
+    dead: bool = Field(default=False, description="The player was killed (PILOT_DEAD).")
+    ejected: bool = Field(default=False, description="The player ejected.")
+    late: bool = Field(
+        default=False, description="Joined after mission start (player.joined_late fired)."
+    )
+    joined_sec: float | None = Field(
+        default=None, ge=0, description="Mission time (s) the player first spawned."
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _from_name(cls, data: Any) -> Any:
+        if isinstance(data, str):
+            return {"name": data}
+        if isinstance(data, dict):
+            out = {camel_to_snake(str(k)): v for k, v in data.items()}
+            if out.get("kills") == []:
+                out["kills"] = {}
+            return out
+        return data
+
+
+class MissionOutcome(DMSModel):
+    """One outcome report. A mission usually emits several (per beat, plus a final summary)."""
+
+    mission_id: str | None = Field(default=None, description="Mission id from DMS_CONFIG.")
+    time: float | None = Field(default=None, ge=0, description="Mission time (s) when emitted.")
+    kind: str | None = Field(
+        default=None, description="Report kind, e.g. 'beat', 'objective', 'summary', 'end'."
+    )
+    beat: str | None = Field(default=None, description="Beat id that emitted it, if any.")
+    result: str | None = Field(default=None, description="'success' / 'failure' for end reports.")
+    flags: dict[str, bool] = Field(default_factory=dict, description="Flag states.")
+    outcomes: dict[str, OutcomeValue] = Field(
+        default_factory=dict, description="Outcome facts, e.g. {hvt_killed: true}."
+    )
+    kills: dict[str, int] = Field(
+        default_factory=dict, description="Enemy kills by category or type, e.g. {ground: 7}."
+    )
+    losses: dict[str, int] = Field(
+        default_factory=dict, description="Friendly losses by category or type."
+    )
+    players: list[PlayerOutcome] = Field(
+        default_factory=list,
+        description=(
+            "Players involved. Pre-v0.9 lines carry bare names (accepted as {name}); v0.9 adds "
+            "per-player facts (flight, kills, dead/ejected, late)."
+        ),
+    )
+    quality_deltas: dict[str, float] = Field(
+        default_factory=dict,
+        description="Cumulative quality changes from beat effects (the debriefer applies them).",
+    )
+    qualities: dict[str, float] = Field(
+        default_factory=dict, description="Live quality values in the mission (seed + deltas)."
+    )
+    beats: list[str] = Field(default_factory=list, description="Beat ids fired so far, in order.")
+    log_timestamp: str | None = Field(default=None, description="dcs.log wall-clock timestamp.")
+    extra: dict[str, Any] = Field(default_factory=dict, description="Unrecognised keys, verbatim.")
+
+    @field_validator(
+        "flags",
+        "outcomes",
+        "kills",
+        "losses",
+        "extra",
+        "quality_deltas",
+        "qualities",
+        mode="before",
+    )
+    @classmethod
+    def _empty_lua_table(cls, v: Any) -> Any:
+        # A tiny Lua JSON encoder cannot tell {} from [] and may emit [] for an empty table.
+        return {} if v == [] else v
+
+    @classmethod
+    def from_payload(
+        cls, payload: dict[str, Any], log_timestamp: str | None = None
+    ) -> MissionOutcome:
+        """Build from a decoded JSON payload (camelCase or snake_case keys)."""
+        known = set(cls.model_fields) - {"extra", "log_timestamp"}
+        data: dict[str, Any] = {"extra": {}, "log_timestamp": log_timestamp}
+        for key, value in payload.items():
+            snake = camel_to_snake(key)
+            snake = _ALIASES.get(snake, snake)
+            if snake in known:
+                data[snake] = value
+            else:
+                data["extra"][key] = value
+        return cls.model_validate(data)
+
+    def merge(self, other: MissionOutcome) -> MissionOutcome:
+        """Combine two reports; values in `other` win, counters take the max."""
+
+        def _max(a: dict[str, int], b: dict[str, int]) -> dict[str, int]:
+            return {k: max(a.get(k, 0), b.get(k, 0)) for k in {*a, *b}}
+
+        return MissionOutcome(
+            mission_id=other.mission_id or self.mission_id,
+            time=max(t for t in (self.time, other.time, 0.0) if t is not None),
+            kind=other.kind or self.kind,
+            beat=other.beat or self.beat,
+            result=other.result or self.result,
+            flags={**self.flags, **other.flags},
+            outcomes={**self.outcomes, **other.outcomes},
+            kills=_max(self.kills, other.kills),
+            losses=_max(self.losses, other.losses),
+            players=list({p.name: p for p in [*self.players, *other.players]}.values()),
+            quality_deltas={**self.quality_deltas, **other.quality_deltas},
+            qualities={**self.qualities, **other.qualities},
+            beats=list(dict.fromkeys([*self.beats, *other.beats])),
+            log_timestamp=other.log_timestamp or self.log_timestamp,
+            extra={**self.extra, **other.extra},
+        )
+
+
+def parse_dcs_log(text: str) -> list[MissionOutcome]:
+    """Extract every well-formed ``[DMS.OUTCOME] {json}`` line from dcs.log text, in order.
+
+    Malformed JSON or non-object payloads are skipped silently.
+    """
+    results: list[MissionOutcome] = []
+    for line in text.splitlines():
+        if OUTCOME_MARKER not in line:
+            continue
+        m = _LINE_RE.search(line)
+        if not m:
+            continue
+        try:
+            payload = json.loads(m.group(1))
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(payload, dict):
+            continue
+        ts = _TS_RE.match(line)
+        try:
+            results.append(MissionOutcome.from_payload(payload, ts.group(1) if ts else None))
+        except ValueError:
+            continue
+    return results
+
+
+def summarize_outcomes(outcomes: list[MissionOutcome]) -> dict[str, MissionOutcome]:
+    """Merge reports per mission id (None key becomes '')."""
+    merged: dict[str, MissionOutcome] = {}
+    for o in outcomes:
+        key = o.mission_id or ""
+        merged[key] = merged[key].merge(o) if key in merged else o
+    return merged

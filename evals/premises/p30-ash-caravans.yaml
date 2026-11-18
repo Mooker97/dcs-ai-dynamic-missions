@@ -1,0 +1,28 @@
+# Eval premise p30-ash-caravans. Schema: evals/run.py Premise. Give `prompt` to the story-writer skill verbatim,
+# then score: uv run python evals/run.py --score campaigns/<slug> --premise p30-ash-caravans
+id: p30-ash-caravans
+title: Ash Caravans
+genre: fantasy
+prompt: 'A post-apocalyptic Afghanistan map after the ash winter: armoured caravans carry seed and water
+  between walled towns, and a Chinook crew of the Caravan Guild flies resupply and evacuation while raiders
+  and a cult of the ash hunt them.'
+expect:
+  theater: Afghanistan
+  era: [2026, 2030]
+  mode: fictional
+  player_coalition: blue
+  airframes: [CH-47Fbl1]
+  airframe_role: transport_helo
+  missions: [3, 6]
+  mission_types: [TRANSPORT, CONVOY_ESCORT]
+  story_elements:
+  - id: caravans
+    description: Armoured caravans
+    any_of: [caravan]
+  - id: ash
+    description: The ash winter
+    any_of: [ash winter, ashfall, ash-]
+  - id: cult
+    description: A raider cult
+    any_of: [cult, raider]
+notes: Fantasy post-apocalypse logistics; near-future era so modern kit fits.

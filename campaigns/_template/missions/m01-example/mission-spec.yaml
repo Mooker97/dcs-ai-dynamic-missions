@@ -1,0 +1,89 @@
+# mission-spec.yaml — declarative, LLM-facing mission description. Written by mission-designer.
+# Schema: schemas/mission-spec.schema.json (dms_core.schemas.mission.MissionSpec). Unknown keys rejected.
+# Validate: uv run dms validate <this file>. Describe AREAS by reference and FORCES by role;
+# `dms plan` chooses exact coordinates, unit types, CLSIDs, frequencies and IDs.
+
+schema_version: 1
+id: m01-example                    # = folder name, mNN-slug
+title: "Mission Title"
+campaign: my-campaign
+content_mode: fictional            # copy from bible.mode
+theater: Syria
+era: 2010
+date: 2010-03-14
+start_time: "06:15"                # local HH:MM
+weather_preset: clear              # clear | scattered | broken | overcast | rain | storm | dust | fog | night_clear
+mission_type: RECON                # CAS | SEAD | DEAD | CAP | STRIKE | ESCORT | CSAR | RECON | TRANSPORT | CONVOY_ESCORT
+duration_min: 45
+blue_countries: [USA]
+red_countries: [Insurgents]
+cast: [ops_main]                   # every beat/line speaker must be listed (bible character ids)
+
+areas:                             # where: near_airbase | near_named_place | latlon | zone (polygon)
+  - id: home
+    description: "Home airfield."
+    where: {kind: near_airbase, airbase: Hatay, radius_nm: 1}
+  - id: patrol_area
+    description: "What this place is in the story."
+    where: {kind: near_named_place, place: Reyhanli, radius_nm: 3, bearing_deg: 90, distance_nm: 10}
+    terrain: open                  # any | road | open | urban | high_ground | water
+
+player_flights:
+  - callsign: Dusty
+    aircraft: AH-64D_BLK_II
+    count: 1
+    coalition: blue
+    country: USA
+    start_area: home
+    start_type: parking_cold       # runway | parking_hot | parking_cold | air
+    loadout: "8x AGM-114K, FCR"    # intent; the planner resolves pylons
+    tasking: "Route and task in one or two sentences."
+
+objectives:
+  - id: patrol
+    kind: recon                    # destroy | protect | escort | reach | recon | rescue | survive | land
+    description: "Briefing text."
+    primary: true
+    area: patrol_area
+    success_flag: patrol_complete  # a beat sets this flag
+  - id: rtb
+    kind: land
+    description: "Recover home."
+    area: home
+    success_flag: landed
+
+threats:                           # roles: sam_short|sam_medium|sam_long|aaa|manpads|armor|ifv|technicals|infantry|artillery|fighters|attack_helicopters|ship|hvt
+  - id: aaa_known
+    role: aaa
+    area: patrol_area
+    strength: light                # light | medium | heavy
+    faction: red_main
+    skill: Average
+    hidden_on_map: false           # false = briefed/known; true = fog of war until detected
+
+support:                           # roles: convoy|friendly_ground|jtac|awacs|tanker|escort|cap|cas|medevac|farp
+  - id: observers
+    role: friendly_ground
+    callsign: "Kestrel Two-Two"
+    area: patrol_area
+    speaker: null                  # bible character who talks for it
+
+dynamic:
+  pools:
+    - id: patrols
+      roles: [technicals, infantry]
+      areas: [patrol_area]
+      pick: [2, 4]
+      faction: red_main
+  encounters:
+    - id: popup_aa
+      kind: ambush_sam             # ambush_sam | waves | hunt | convoy | cap | pool
+      pool: patrols
+      trigger: {type: proximity, area: patrol_area, radius_nm: 4}   # proximity | beat | director | time(after_min)
+      chance: 50
+      telegraph_beat: null         # beat id that warns 30-60 s before; strongly recommended
+  director: {enabled: true, intensity: moderate, adaptive: true}    # calm | moderate | intense
+  fog_of_war: {enabled: true, reveal_radius_km: 5, mark_refresh_sec: 15}
+
+seed: null
+notes: "Director intent and list of GUARANTEED beats (prose; not compiled)."

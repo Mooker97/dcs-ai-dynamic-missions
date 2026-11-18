@@ -1,0 +1,195 @@
+# m02 Sister Ship — CSAR for Merani 2-2's crew near Ochamchire.
+# Schema: schemas/mission-spec.schema.json (MissionSpec). Validate: uv run dms validate <this file>
+# State read at design time: state/qualities.yaml has initial values only (m01 not yet flown).
+# The briefing reads m01_* flags through conditional blocks, so it adapts once m01 is debriefed.
+schema_version: 1
+id: m02-sister-ship
+title: "Sister Ship"
+campaign: eval-p09-sukhumi-air-bridge
+content_mode: adapted
+theater: Caucasus
+era: 1993
+date: 1993-09-19
+start_time: "14:10"
+weather_preset: broken
+mission_type: CSAR
+duration_min: 60
+blue_countries: [Abkhazia, Insurgents]
+red_countries: [Georgia]
+cast: [ops_gelashvili, wing_dolidze, crew_tsiklauri]
+
+areas:
+  - id: senaki
+    description: "Senaki-Kolkhi, home base."
+    where: {kind: near_airbase, airbase: Senaki-Kolkhi, radius_nm: 1}
+  - id: senaki_approach
+    description: "Return circle around Senaki."
+    where: {kind: near_airbase, airbase: Senaki-Kolkhi, radius_nm: 6}
+  - id: ip_inguri
+    description: "Coast-in point at the Inguri mouth near Anaklia."
+    where: {kind: latlon, lat: 42.40, lon: 41.57, radius_nm: 1.5}
+    terrain: open
+  - id: crash_site
+    description: "Where Merani 2-2 put down: farmland between the coast road and the Kodori mouth, north-west of Ochamchire. The crew hides near the wreck."
+    where: {kind: near_named_place, place: Ochamchire, radius_nm: 1, bearing_deg: 315, distance_nm: 6}
+    terrain: open
+  - id: search_box
+    description: "Last-known-position circle Kolkhi relays; entering it brings Dolidze up on the radio."
+    where: {kind: near_named_place, place: Ochamchire, radius_nm: 4, bearing_deg: 315, distance_nm: 6}
+  - id: egress_coast
+    description: "Egress over the sea off Ochamchire after the pick-up."
+    where: {kind: near_named_place, place: Ochamchire, radius_nm: 2, bearing_deg: 220, distance_nm: 4}
+    terrain: water
+  - id: tkvarcheli_hills
+    description: "Known Abkhaz gun on the hills toward the Tkvarcheli pocket, the one that hit Merani 2-2 (briefed)."
+    where: {kind: near_named_place, place: Ochamchire, radius_nm: 1, bearing_deg: 40, distance_nm: 8}
+    terrain: high_ground
+  - id: patrol_north
+    description: "Candidate A for the patrol hunting the crew: the Kodori road north of the crash site."
+    where: {kind: near_named_place, place: Ochamchire, radius_nm: 1.5, bearing_deg: 340, distance_nm: 11}
+    terrain: road
+  - id: patrol_east
+    description: "Candidate B for the patrol: the hills east of the crash site, toward Tkvarcheli."
+    where: {kind: near_named_place, place: Ochamchire, radius_nm: 1.5, bearing_deg: 10, distance_nm: 9}
+    terrain: high_ground
+  - id: ochamchire_road
+    description: "Coast road through Ochamchire, busy with refugees heading south."
+    where: {kind: near_named_place, place: Ochamchire, radius_nm: 1.5}
+    terrain: road
+  - id: inguri_crossing
+    description: "Candidate A for a Zviadist roadblock on the way home."
+    where: {kind: near_named_place, place: Zugdidi, radius_nm: 1, bearing_deg: 250, distance_nm: 6}
+    terrain: road
+  - id: khobi_road
+    description: "Candidate B for a Zviadist roadblock on the way home."
+    where: {kind: near_named_place, place: Senaki, radius_nm: 1, bearing_deg: 300, distance_nm: 10}
+    terrain: road
+
+player_flights:
+  - callsign: Merani
+    aircraft: Mi-8MT
+    count: 1
+    coalition: red
+    country: Georgia
+    start_area: senaki
+    start_type: parking_cold
+    variant: ramp
+    slot: player
+    loadout: "CSAR: empty cabin, medic aboard, no rocket pods, full internal fuel, flares"
+    tasking: >-
+      RAMP START. Senaki → IP INGURI → coast north-west → search box north-west of Ochamchire →
+      find Merani 2-2's crew, land, pick up → EGRESS over the sea → Senaki.
+  - callsign: Merani
+    aircraft: Mi-8MT
+    count: 1
+    coalition: red
+    country: Georgia
+    start_area: senaki
+    start_type: air
+    variant: air
+    slot: player
+    loadout: "CSAR: empty cabin, medic aboard, no rocket pods, full internal fuel, flares"
+    tasking: >-
+      AIR START. Airborne low over Mingrelia short of IP INGURI. Then as the ramp variant.
+
+objectives:
+  - id: rescue_crew
+    kind: rescue
+    description: "Find Merani 2-2's crew near the crash site, land and bring all four aboard."
+    primary: true
+    area: crash_site
+    success_flag: crew_rescued
+  - id: rtb
+    kind: land
+    description: "Recover to Senaki-Kolkhi with the crew."
+    primary: true
+    area: senaki
+    success_flag: landed
+  - id: survive
+    kind: survive
+    description: "Bring the aircraft back. After today the detachment may have only one."
+    primary: true
+    failure_flag: player_lost
+
+threats:
+  - id: gun_tkvarcheli
+    role: aaa
+    area: tkvarcheli_hills
+    strength: light
+    faction: abkhaz
+    skill: Average
+    hidden_on_map: false
+    templates: [zu23_emplacement, zu23_truck]
+    notes: "The ZU-23 that hit Merani 2-2 (briefed). Stays more than 2 NM from the crash site."
+
+support:
+  - id: dolidze_crew
+    role: friendly_ground
+    callsign: "Merani 2-2"
+    area: crash_site
+    composition: "4x Soldier AK"
+    faction: geo_air
+    speaker: wing_dolidze
+
+dynamic:
+  pools:
+    - id: patrol
+      roles: [infantry, ifv]
+      areas: [patrol_north, patrol_east]
+      pick: [1, 2]
+      faction: abkhaz
+      notes: "A rifle section and possibly a BMP/BRDM moving toward the wreck."
+    - id: roadblock
+      roles: [technicals, infantry]
+      areas: [inguri_crossing, khobi_road]
+      pick: [1, 1]
+      faction: zviadists
+      notes: "One DShK technical or HMG team at a roadblock on the way home."
+    - id: refugees_road
+      roles: [civilian]
+      areas: [ochamchire_road]
+      pick: [2, 3]
+      faction: refugees
+      notes: "Civilian traffic through Ochamchire. Unarmed."
+  encounters:
+    - id: patrol_hunt
+      kind: hunt
+      pool: patrol
+      trigger: {type: beat, beat: dolidze_contact}
+      chance: 70
+      telegraph_beat: dolidze_patrol_warning
+      hunt: true
+      notes: "Woken when Dolidze checks in; the patrol walks toward the crash site. Starts at least 3 NM away."
+    - id: zviadist_roadblock
+      kind: pool
+      pool: roadblock
+      trigger: {type: beat, beat: crew_aboard}
+      chance: 40
+      telegraph_beat: roadblock_warning
+      notes: "In place for the homeward leg; Kolkhi warns."
+    - id: refugee_traffic
+      kind: convoy
+      pool: refugees_road
+      trigger: {type: time, after_min: 1}
+      chance: 100
+      notes: "Civilians drive south through Ochamchire."
+  director:
+    enabled: true
+    intensity: moderate
+    adaptive: true
+  fog_of_war:
+    enabled: true
+    reveal_radius_km: 4
+    mark_refresh_sec: 15
+
+seed: null
+
+notes: >-
+  Director intent: urgency from the first call, but a quiet transit; the tension is the clock and
+  the unknown. Dolidze's voice on the radio when Merani enters the search box is the first relief.
+  The peak is the landing at the crash site while a patrol may be closing (always warned by
+  Dolidze first, never inside 3 NM at spawn). The known gun toward Tkvarcheli punishes a careless
+  inland approach. Long relax over the sea; a possible roadblock near Zugdidi is the last sting.
+  The crew goes quiet after 50 minutes if nobody comes (the m02b branch). Guaranteed beats:
+  mission_start, dolidze_contact, at_crash, pickup_landed, crew_aboard, fuel_homeward,
+  kolkhi_inbound, on_deck, crew_lost, kolkhi_inbound_alone, on_deck_alone, player_lost.

@@ -1,0 +1,23 @@
+# lines.yaml — voice lines. Written by mission-designer, refined by voice-director.
+# Schema: schemas/voice-lines.schema.json (dms_core.schemas.voice.VoiceLineSet).
+# Render: uv run dms voice <this file> (--dry-run first for the cost estimate).
+# One entry PER VARIANT (<line>_v1.._v5); write 3-5 per beat. Callsign-first, terse.
+# Eleven v3 audio tags ([calm], [shouts]) may go inline in `text`, sparingly; `subtitle` then
+# holds the clean on-screen text. Exchanges = two beats chained with beat.fired + delay_sec.
+mission_id: m01-example
+model: eleven_v3                   # eleven_v3 | eleven_flash_v2_5 (cheap drafts) | eleven_multilingual_v2
+lines:
+  - id: ops_cleared_v1
+    speaker: ops_main
+    beat: mission_start
+    delivery: "Routine, unhurried."
+    text: "Dusty, Hatay Ops. Cleared for patrol. Report contacts."
+  - id: ops_cleared_v2
+    speaker: ops_main
+    beat: mission_start
+    text: "Dusty, Ops. You're cleared out. Call your contacts as you get them."
+  - id: ops_cleared_v3
+    speaker: ops_main
+    beat: mission_start
+    text: "Dusty, Hatay Ops, cleared for patrol. Picture is light. Keep it that way."
+    radio_fx: null                 # override speaker preset: uhf_clean | vhf_noisy | intercom | none

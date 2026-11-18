@@ -1,0 +1,15 @@
+mission_id: g07-marianas-f14-cap
+model: eleven_v3
+lines:
+  - {id: gci_start_v1, speaker: gci_guam, beat: mission_start, text: "Bullet, Overlord. Proceed North Station, angels two-five."}
+  - {id: gci_start_v2, speaker: gci_guam, beat: mission_start, text: "Bullet, Overlord, radar contact. North Station, climb angels two-five."}
+  - {id: wing_station_v1, speaker: wingman, beat: on_station, text: "Bullet One-Two, on station, left orbit."}
+  - {id: wing_station_v2, speaker: wingman, beat: on_station, text: "Two's on station. Taking the low side."}
+  - {id: gci_picture_v1, speaker: gci_guam, beat: gci_picture, text: "Bullet, Overlord. Picture, single group, bullseye zero-one-zero, sixty, hot."}
+  - {id: gci_picture_v2, speaker: gci_guam, beat: gci_picture, text: "Bullet, Overlord. New group north, sixty miles, hot, fast. Commit."}
+  - {id: gci_relief_v1, speaker: gci_guam, beat: station_timer, text: "Bullet, Overlord. Relief on station. You're released, RTB."}
+  - {id: gci_relief_v2, speaker: gci_guam, beat: station_timer, text: "Bullet, Overlord. Your relief is up. Cleared home."}
+  - {id: wing_splash_v1, speaker: wingman, beat: raid_dead, text: "Splash one! Bullet One-Two, scope's clean."}
+  - {id: wing_splash_v2, speaker: wingman, beat: raid_dead, text: "Two, splash! Group's gone."}
+  - {id: gci_end_v1, speaker: gci_guam, beat: mission_end, text: "Bullet, Overlord. Good watch. Overlord out."}
+  - {id: gci_end_v2, speaker: gci_guam, beat: mission_end, text: "Bullet, Overlord. Copy down. Quiet night, thanks to you."}

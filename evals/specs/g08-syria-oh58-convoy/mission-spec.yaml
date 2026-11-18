@@ -1,0 +1,86 @@
+# Golden g08: OH-58D scouts ahead of a supply convoy (CONVOY_ESCORT).
+schema_version: 1
+id: g08-syria-oh58-convoy
+title: "Orchard Run"
+campaign: evals
+content_mode: fictional
+theater: Syria
+era: 2014
+date: 2014-05-02
+start_time: "07:15"
+weather_preset: clear
+mission_type: CONVOY_ESCORT
+duration_min: 45
+blue_countries: [USA]
+red_countries: [Insurgents]
+cast: [convoy_lead, ops_hatay]
+areas:
+  - id: hatay
+    description: "Home base."
+    where: {kind: near_airbase, airbase: Hatay, radius_nm: 1}
+  - id: antakya_road
+    description: "Convoy start on the road north of Antakya."
+    where: {kind: near_named_place, place: Antakya, radius_nm: 1, bearing_deg: 20, distance_nm: 4}
+    terrain: road
+  - id: orchards
+    description: "Orchards along the road where the ambushes happen."
+    where: {kind: near_named_place, place: Kirikhan, radius_nm: 2, bearing_deg: 200, distance_nm: 8}
+    terrain: road
+  - id: kirikhan_gate
+    description: "Outpost gate south of Kirikhan, the convoy's destination."
+    where: {kind: near_named_place, place: Kirikhan, radius_nm: 1, bearing_deg: 180, distance_nm: 2}
+    terrain: road
+player_flights:
+  - callsign: Scout
+    aircraft: OH58D
+    count: 1
+    country: USA
+    start_area: hatay
+    start_type: parking_hot
+    loadout: auto
+    tasking: "Scout the road ahead of Wagon and suppress any ambush."
+objectives:
+  - id: escort_convoy
+    kind: escort
+    description: "Get Wagon to the Kirikhan gate."
+    target: convoy_main
+    area: kirikhan_gate
+    success_flag: convoy_arrived
+  - id: clear_orchards
+    kind: destroy
+    description: "Destroy the ambush team in the orchards."
+    area: orchards
+    target: orchard_team
+    primary: false
+    success_flag: orchards_clear
+threats:
+  - id: orchard_team
+    role: technicals
+    area: orchards
+    strength: light
+    faction: orchard_cells
+    skill: Average
+support:
+  - id: convoy_main
+    role: convoy
+    callsign: "Wagon"
+    route: [antakya_road, orchards, kirikhan_gate]
+    composition: "2x M1126 Stryker ICV, 2x M 818"
+    speaker: convoy_lead
+dynamic:
+  pools:
+    - id: ambushers
+      roles: [technicals, infantry]
+      areas: [orchards]
+      pick: [1, 2]
+      faction: orchard_cells
+  encounters:
+    - id: orchard_ambush
+      kind: pool
+      pool: ambushers
+      trigger: {type: proximity, area: orchards, radius_nm: 2}
+      chance: 70
+      telegraph_beat: glint_call
+  director: {enabled: true, intensity: moderate, adaptive: true}
+  fog_of_war: {enabled: true, reveal_radius_km: 4, mark_refresh_sec: 15}
+seed: 80214

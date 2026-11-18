@@ -1,0 +1,59 @@
+mission_id: g06-sinai-f4-strike
+beats:
+  - id: mission_start
+    guaranteed: true
+    when: {event: player.spawned, players_only: true}
+    priority: 90
+    delay_sec: 8
+    speaker: ops_ramon
+    lines: [ops_start_v1, ops_start_v2]
+    text: "Anvil, Ops. Target is the depot on the coast road. Push when ready."
+    mark: {type: circle, at: "zone:depot", text: "DEPOT"}
+    effects: {set_flag: started}
+  - id: at_ip
+    when: {event: zone.entered, zone: ip_south, players_only: true}
+    priority: 70
+    speaker: wizzo
+    lines: [wso_ip_v1, wso_ip_v2]
+    text: "IP. Heading three-three-zero. Ninety seconds."
+    effects: {set_flag: past_ip}
+  - id: rwr_spike
+    when: {event: zone.entered, zone: depot, players_only: true}
+    requires: {flags: [past_ip]}
+    priority: 80
+    speaker: wizzo
+    lines: [wso_spike_v1, wso_spike_v2]
+    text: "Spike, twelve o'clock! Something's up near the target."
+  - id: depot_dead
+    guaranteed: true
+    when: {event: group.dead, group_prefix: depot_hvt}
+    priority: 85
+    speaker: wizzo
+    lines: [wso_hit_v1, wso_hit_v2]
+    text: "Good hits! Depot's burning."
+    effects: {set_flag: depot_destroyed, outcome: {depot_destroyed: true}, quality_deltas: {pressure: 1}}
+  - id: egress_call
+    when: {event: beat.fired, beat: depot_dead}
+    priority: 70
+    delay_sec: 20
+    speaker: ops_ramon
+    lines: [ops_egress_v1, ops_egress_v2]
+    text: "Anvil, Ops. Copy hits. Come home."
+  - id: rtb_inbound
+    when: {event: zone.entered, zone: ramon_approach, players_only: true}
+    requires: {flags: [depot_destroyed]}
+    priority: 60
+    effects: {set_flag: rtb_inbound}
+  - id: home_landed
+    when: {event: unit.landed, players_only: true}
+    requires: {flags: [rtb_inbound]}
+    priority: 90
+    effects: {set_flag: landed_home, outcome: {landed: true}}
+  - id: mission_end
+    when: {event: beat.fired, beat: home_landed}
+    priority: 90
+    delay_sec: 5
+    speaker: ops_ramon
+    lines: [ops_end_v1, ops_end_v2]
+    text: "Anvil, Ops. Nice work. Debrief in thirty."
+    effects: {end_mission: success}

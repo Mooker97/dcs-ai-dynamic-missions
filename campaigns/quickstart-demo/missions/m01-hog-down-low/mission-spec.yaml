@@ -1,0 +1,200 @@
+# m01 Hog Down Low — A-10C II CAS east of Zugdidi. Schema: MissionSpec.
+# Quickstart dry run: one-line premise, defaults accepted, ramp + air start variants.
+schema_version: 1
+id: m01-hog-down-low
+title: "Hog Down Low"
+campaign: quickstart-demo
+content_mode: fictional
+theater: Caucasus
+era: 2016
+date: 2016-05-14
+start_time: "09:30"
+weather_preset: scattered
+mission_type: CAS
+duration_min: 45
+blue_countries: [USA, Combined Joint Task Forces Blue]
+red_countries: [Combined Joint Task Forces Red]
+cast: [ops_reyes, jtac_cole, awacs_darkstar, tower_senaki]
+
+areas:
+  - id: senaki
+    description: "Senaki-Kolkhi, home base. The ramp variant parks here."
+    where: {kind: near_airbase, airbase: Senaki-Kolkhi, radius_nm: 1}
+  - id: senaki_approach
+    description: "10 NM circle around Senaki; entering it after the fight triggers the tower call."
+    where: {kind: near_airbase, airbase: Senaki-Kolkhi, radius_nm: 10}
+  - id: ip_mule
+    description: "IP MULE, 10 NM south-west of the checkpoint over friendly ground. Check-in point."
+    where: {kind: latlon, lat: 42.380, lon: 41.860, radius_nm: 4}
+  - id: checkpoint
+    description: "Partner checkpoint on the road east of Zugdidi. No-fire area."
+    where: {kind: latlon, lat: 42.515, lon: 41.985, radius_nm: 0.15}
+    terrain: road
+  - id: fight_box
+    description: "The valley road east of the checkpoint where the column moves."
+    where: {kind: latlon, lat: 42.530, lon: 42.040, radius_nm: 4}
+  - id: column_road
+    description: "The valley road 4 km east of the checkpoint: the lead armour group."
+    where: {kind: latlon, lat: 42.525, lon: 42.035, radius_nm: 0.3}
+    terrain: road
+  - id: shilka_hill
+    description: "Low hill north of the road covering the column."
+    where: {kind: latlon, lat: 42.545, lon: 42.050, radius_nm: 0.3}
+    terrain: open
+  - id: reinf_east
+    description: "Road staging 9 km east of the checkpoint where follow-on vehicles appear."
+    where: {kind: latlon, lat: 42.535, lon: 42.095, radius_nm: 0.5}
+    terrain: road
+  - id: manpads_farms
+    description: "Farms either side of the valley road."
+    where: {kind: latlon, lat: 42.520, lon: 42.060, radius_nm: 1.0}
+    terrain: open
+  - id: awacs_orbit
+    description: "Darkstar's orbit over the coast west of Senaki."
+    where: {kind: near_airbase, airbase: Senaki-Kolkhi, radius_nm: 10, bearing_deg: 250, distance_nm: 30}
+
+player_flights:
+  - callsign: Hawg
+    aircraft: A-10C_2
+    count: 2
+    coalition: blue
+    country: USA
+    start_area: senaki
+    start_type: parking_cold
+    variant: ramp
+    slot: player
+    loadout: auto
+    frequency_mhz: 251.0
+    tasking: "RAMP START. Cold start Senaki, depart north, IP MULE, check in with Darkstar then Bulldog One-Two. Type 2 CAS east of Zugdidi. RTB Senaki."
+  - callsign: Hawg
+    aircraft: A-10C_2
+    count: 2
+    coalition: blue
+    country: USA
+    start_area: senaki
+    start_type: air
+    variant: air
+    slot: player
+    air_start:
+      altitude_ft: 12000
+      speed_kts: 280
+      distance_nm_before_first_wp: 12
+      toward: ip_mule
+    loadout: auto
+    frequency_mhz: 251.0
+    tasking: "AIR START 12,000 ft, 280 kt, 12 NM short of IP MULE. Check in with Darkstar then Bulldog One-Two. Type 2 CAS east of Zugdidi. RTB Senaki."
+
+objectives:
+  - id: column
+    kind: destroy
+    description: "Destroy the lead armour group on the valley road."
+    primary: true
+    area: column_road
+    target: column
+    success_flag: column_destroyed
+  - id: shilka
+    kind: destroy
+    description: "Destroy the Shilka covering the column."
+    primary: false
+    area: shilka_hill
+    target: shilka
+    success_flag: aaa_destroyed
+  - id: survive
+    kind: survive
+    description: "Bring both jets back."
+    primary: true
+    failure_flag: player_lost
+  - id: rtb
+    kind: land
+    description: "Recover to Senaki."
+    primary: false
+    area: senaki
+    success_flag: landed
+
+threats:
+  - id: column
+    role: armor
+    area: column_road
+    strength: medium
+    faction: militia
+    skill: Average
+    hidden_on_map: true
+    templates: [t72_platoon, btr_squad]
+    notes: "Lead armour group; Bulldog passes it by 9-line."
+  - id: shilka
+    role: aaa
+    area: shilka_hill
+    strength: light
+    faction: militia
+    skill: Good
+    hidden_on_map: true
+    notes: "ZSU-23-4 covering the column. Stay above 8,000 ft AGL until it is dead."
+
+support:
+  - id: partner_coy
+    role: friendly_ground
+    callsign: "Anvil"
+    area: checkpoint
+    composition: "4x Soldier M4, 1x M1043 HMMWV Armament"
+    faction: partner_coy
+  - id: bulldog
+    role: jtac
+    callsign: "Bulldog One-Two"
+    area: checkpoint
+    composition: "1x Hummer"
+    speaker: jtac_cole
+    frequency_mhz: 40.5
+  - id: darkstar
+    role: awacs
+    callsign: "Darkstar"
+    area: awacs_orbit
+    speaker: awacs_darkstar
+    frequency_mhz: 262.0
+
+dynamic:
+  pools:
+    - id: reinf
+      roles: [armor, ifv]
+      areas: [reinf_east]
+      pick: [1, 2]
+      faction: militia
+      notes: "Follow-on BTRs/BMPs; mix and count re-roll each play."
+    - id: manpads
+      roles: [manpads]
+      areas: [manpads_farms]
+      pick: [1, 2]
+      faction: militia
+      notes: "Igla teams on the farms either side of the road."
+  encounters:
+    - id: manpads_teams
+      kind: pool
+      pool: manpads
+      trigger: {type: time, after_min: 0.5}
+      chance: 100
+      notes: "Placed at start, long before the flight is within 5 km."
+    - id: reinforcements
+      kind: waves
+      pool: reinf
+      trigger: {type: beat, beat: cleared_hot_1}
+      chance: 80
+      waves: 2
+      gap_min: [5, 8]
+      hunt: false
+      telegraph_beat: reinf_warning
+      notes: "Follow-on vehicles 9 km east; Bulldog calls them out first."
+  director:
+    enabled: true
+    intensity: moderate
+    adaptive: true
+  fog_of_war:
+    enabled: true
+    reveal_radius_km: 4
+    mark_refresh_sec: 15
+
+seed: null
+
+notes: >-
+  Calm departure, tension from the Bulldog check-in through the column attack, a second peak on
+  the Shilka, then a quiet RTB. Guaranteed spine: mission_start, darkstar_handoff, jtac_checkin,
+  nine_line_1, jtac_checkout, ops_rtb. The column 9-line retasks after 10 minutes so the spine
+  always completes. Replays differ in column mix, MANPADS positions and reinforcement waves.

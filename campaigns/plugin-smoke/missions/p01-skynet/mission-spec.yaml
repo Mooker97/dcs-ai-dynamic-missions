@@ -1,0 +1,316 @@
+# PLUGIN SMOKE p01-skynet: copy of viper-detachment m01 + plugins: [skynet] (docs/rebuild/PLAN.md A6).
+# Changes vs m01: id/campaign; plugins: [skynet]; the SA-6 is a static (planned) threat `sa6_site`
+# (group sa6_site_1, registered by the Skynet adapter via the generated DMS_SKYNET prefixes); the
+# ambush SA-6 pool is renamed sa6_ambush (its encounter sa6_battery is ambush_sam, so the adapter skips
+# DMS_sa6_ambush_1, as it does the SA-8 pop-up). Subtitles only: no voice/ folder, no ElevenLabs.
+# Skynet pass (dcs.log): adapter "started", "SAM site sa6_site_1 added", "skip DMS_sa6_ambush_1",
+# "IADS activated (N existing ...)" with N >= 1.
+# m01 Broken Umbrella — SEAD/DEAD for an ISR window over Al Bab.
+# Schema: schemas/mission-spec.schema.json (MissionSpec). Validate: uv run dms validate <this file>
+# State read at design time (state/qualities.yaml, campaign start): sam_threat 2, intel 1,
+# insurgent_supply 2, partner_morale 0, collateral 0. No outcomes yet.
+#   sam_threat 2 -> SA-8 pop-up chance 40 + 20*2 = 80 %; SA-6 battery present (radar + 3 launchers).
+#   intel 1      -> SA-6 position known only as three candidate sites; SA-8 positions unknown.
+#   insurgent_supply 2 -> 1-3 MANPADS teams and 2-4 technicals around Al Bab.
+# START CHOICE: two start variants of the same flight, built as separate .miz files.
+#   variant ramp -> out/m01-broken-umbrella-ramp.miz (group "Python 1"): cold start at Incirlik.
+#   variant air  -> out/m01-broken-umbrella-air.miz  (group "Python 2"): airborne 20 NM short of IP
+#   ARROW on the Incirlik-ARROW axis, 20,000 ft, 420 kts.
+#   slot player: lead = Player, #2 = AI wingman (Pike). Both variants are "Python 1-1" in the cockpit.
+#   Beats never filter on a group or unit name (they differ per variant).
+schema_version: 1
+id: p01-skynet
+title: "Broken Umbrella"
+campaign: plugin-smoke
+plugins: [skynet]
+content_mode: fictional
+theater: Syria
+era: 2016
+date: 2016-11-03
+start_time: "07:00"
+weather_preset: clear
+mission_type: SEAD
+duration_min: 75
+blue_countries: [USA, Combined Joint Task Forces Blue]
+red_countries: [Combined Joint Task Forces Red, Insurgents]
+cast: [ops_lindqvist, wingman_pike, awacs_magic, tower_incirlik]
+
+areas:
+  # ---- home, start and recovery --------------------------------------------------------------
+  - id: incirlik
+    description: "Incirlik air base, Rook's home. Ramp start (ramp variant), origin of the air-start axis, recovery for both variants."
+    where: {kind: near_airbase, airbase: Incirlik, radius_nm: 1}
+  - id: incirlik_approach
+    description: "10 NM circle around Incirlik; entering it on the way home brings the tower call."
+    where: {kind: near_airbase, airbase: Incirlik, radius_nm: 10}
+  # ---- push and the area of operations -------------------------------------------------------
+  - id: ip_arrow
+    description: "IP ARROW: 5 NM circle around Kilis on the Turkish side of the border. Check-in with Magic and push point for both start options."
+    where: {kind: near_named_place, place: Kilis, radius_nm: 5}
+    terrain: open
+  - id: fence_ring
+    description: "16 NM ring around Al Bab: inside it PYTHON is in the SAM threat. Entering it is 'fence in'."
+    where: {kind: near_named_place, place: Al-Bab, radius_nm: 16}
+  - id: al_bab
+    description: "Al Bab and its outskirts: NPF-held town, ZU-23s, MANPADS, technicals and civilian traffic. The MQ-9 orbit centre."
+    where: {kind: near_named_place, place: Al-Bab, radius_nm: 3}
+    terrain: urban
+  - id: al_bab_aaa
+    description: "Known ZU-23 positions on the north-west edge of Al Bab (briefed, on the F10 map)."
+    where: {kind: near_named_place, place: Al-Bab, radius_nm: 0.8, bearing_deg: 315, distance_nm: 1.5}
+    terrain: open
+  - id: al_bab_edges
+    description: "Farmland ring around Al Bab where MANPADS teams and technicals sit."
+    where: {kind: near_named_place, place: Al-Bab, radius_nm: 4}
+    terrain: open
+  - id: al_bab_road
+    description: "The road west out of Al Bab toward Aleppo; civilian pickups, buses and farm trucks."
+    where: {kind: near_named_place, place: Al-Bab, radius_nm: 2, bearing_deg: 250, distance_nm: 5}
+    terrain: road
+  # ---- SA-6 candidate sites (intel 1: all three briefed, none confirmed) -----------------------
+  - id: sa6_site_a
+    description: "SA-6 candidate A: farm tracks 5 NM south-east of Al Bab."
+    where: {kind: near_named_place, place: Al-Bab, radius_nm: 1, bearing_deg: 140, distance_nm: 5}
+    terrain: open
+  - id: sa6_site_b
+    description: "SA-6 candidate B: open ground 8 NM south of Al Bab, toward Kuweires."
+    where: {kind: near_named_place, place: Al-Bab, radius_nm: 1, bearing_deg: 165, distance_nm: 8}
+    terrain: open
+  - id: sa6_site_c
+    description: "SA-6 candidate C: the dispersal area north-west of Kuweires (the Garrison)."
+    where: {kind: near_airbase, airbase: Kuweires, radius_nm: 1, bearing_deg: 330, distance_nm: 3}
+    terrain: open
+  # ---- SA-8 pop-up candidates (not briefed by position) ---------------------------------------
+  - id: sa8_west
+    description: "SA-8 pop-up candidate: west of Al Bab, under the likely attack heading."
+    where: {kind: near_named_place, place: Al-Bab, radius_nm: 1, bearing_deg: 260, distance_nm: 4}
+    terrain: open
+  - id: sa8_south
+    description: "SA-8 pop-up candidate: south-west of Al Bab, between the town and the SA-6 sites."
+    where: {kind: near_named_place, place: Al-Bab, radius_nm: 1, bearing_deg: 205, distance_nm: 5}
+    terrain: open
+  - id: sa8_north
+    description: "SA-8 pop-up candidate: north of Al Bab, on the road toward the border."
+    where: {kind: near_named_place, place: Al-Bab, radius_nm: 1, bearing_deg: 20, distance_nm: 4}
+    terrain: open
+  # ---- SA-6 search box (route TGT2 for the SA-6 hunt) ----------------------------------------
+  - id: sa6_search
+    description: "SA-6 search box: the farmland between Al Bab and Kuweires that holds all three candidate sites. Route TGT2."
+    where: {kind: near_named_place, place: Al-Bab, radius_nm: 4, bearing_deg: 150, distance_nm: 6}
+    terrain: open
+  # ---- egress ----------------------------------------------------------------------------------
+  - id: egress_north
+    description: "EGRESS: 20 NM north of Al Bab at the Turkish border, on the planned egress line north toward ARROW and home."
+    where: {kind: near_named_place, place: Al-Bab, radius_nm: 3, bearing_deg: 350, distance_nm: 20}
+    terrain: open
+  # ---- support orbits ---------------------------------------------------------------------------
+  - id: magic_orbit
+    description: "E-3 orbit over southern Turkey, north of Gaziantep."
+    where: {kind: near_airbase, airbase: Gaziantep, radius_nm: 10, bearing_deg: 0, distance_nm: 25}
+  - id: shell_track
+    description: "AR track for tanker Shell, between Incirlik and Gaziantep."
+    where: {kind: near_named_place, place: Gaziantep, radius_nm: 10, bearing_deg: 275, distance_nm: 45}
+
+player_flights:
+  - callsign: Python
+    aircraft: F-16C_50
+    count: 2
+    coalition: blue
+    country: USA
+    start_area: incirlik
+    start_type: parking_cold
+    variant: ramp
+    slot: player
+    loadout: auto
+    tasking: >-
+      RAMP START. Cold start at Incirlik, depart runway 05, climb on the ingress axis to IP ARROW
+      (Kilis). Tank on Shell if needed. Check in with Magic at ARROW, push on Rook Ops' call,
+      provide SEAD over Al Bab for the 10-minute ISR window, then hunt what emitted (HARM, GBU-12
+      self-lase) until vul end. RTB Incirlik.
+  - callsign: Python
+    aircraft: F-16C_50
+    count: 2
+    coalition: blue
+    country: USA
+    start_area: incirlik
+    start_type: air
+    variant: air
+    slot: player
+    air_start:
+      altitude_ft: 20000
+      speed_kts: 420
+      distance_nm_before_first_wp: 20
+      toward: ip_arrow
+    loadout: auto
+    tasking: >-
+      AIR START. Airborne 20 NM short of IP ARROW on the Incirlik-ARROW axis, 20,000 ft, 420 kts.
+      Continue to ARROW (Kilis), check in with Magic, push on Rook Ops' call, provide SEAD over Al
+      Bab for the 10-minute ISR window, then hunt what emitted until vul end. RTB Incirlik (or
+      divert Gaziantep).
+
+objectives:
+  - id: hold_window
+    kind: protect
+    description: "Keep the captured SAMs from engaging the MQ-9 (Cyclops Two) during the 10-minute ISR window over Al Bab."
+    primary: true
+    area: al_bab
+    success_flag: window_held
+    failure_flag: mq9_lost
+  - id: kill_sa6_radar
+    kind: destroy
+    description: "Destroy the SA-6 battery's Straight Flush radar (HARM, then GBU-12 on what is left)."
+    primary: false
+    area: sa6_search
+    target: sa6_site
+    success_flag: sa6_radar_dead
+  - id: kill_sa8
+    kind: destroy
+    description: "Destroy the SA-8 if it reveals itself."
+    primary: false
+    area: al_bab
+    target: sa8_popup
+    success_flag: sa8_dead
+  - id: rtb
+    kind: land
+    description: "Recover to Incirlik (diverts Gaziantep, Adana Sakirpasa, Hatay)."
+    primary: true
+    area: incirlik
+    success_flag: landed
+  - id: survive
+    kind: survive
+    description: "Bring both jets back. The detachment has four serviceable on a good day."
+    primary: true
+    failure_flag: player_lost
+
+threats:
+  - id: aaa_albab
+    role: aaa
+    area: al_bab_aaa
+    strength: light
+    faction: npf
+    skill: Average
+    hidden_on_map: false             # known and briefed
+    notes: "ZU-23 emplacements on the north-west edge of Al Bab. Effective below about 8,000 ft AGL."
+  - id: sa6_site
+    role: sam_medium
+    area: sa6_site_a
+    strength: medium
+    faction: npf_heavy
+    skill: Good
+    hidden_on_map: true
+    notes: "PLUGIN SMOKE: planned SA-6 battery (group sa6_site_1) so Skynet has a site from the ME at load."
+
+support:
+  - id: magic
+    role: awacs
+    callsign: "Magic"
+    area: magic_orbit
+    composition: "1x E-3A"
+    faction: usaf_rook
+    speaker: awacs_magic
+    frequency_mhz: 251.0
+    modulation: AM
+  - id: shell
+    role: tanker
+    callsign: "Shell"
+    area: shell_track
+    composition: "1x KC-135 (boom)"
+    faction: usaf_rook
+    frequency_mhz: 276.1
+    modulation: AM
+    tacan: "51Y"
+
+dynamic:
+  pools:
+    - id: sa6_ambush
+      roles: [sam_medium]
+      areas: [sa6_site_a, sa6_site_b, sa6_site_c]
+      pick: [1, 1]
+      faction: npf_heavy
+      notes: "One SA-6 battery: 1S91 Straight Flush radar + 2P25 launchers. Lua picks one of the three candidate sites each play."
+    - id: sa8_popup
+      roles: [sam_short]
+      areas: [sa8_west, sa8_south, sa8_north]
+      pick: [1, 1]
+      faction: npf_heavy
+      templates: [sa8, sa8_section]
+      notes: "One SA-8 Gecko vehicle or a pair (HARM-able Land Roll radar). Pinned to the SA-8 templates. Outcome key stays sa8_destroyed (arc)."
+    - id: manpads_teams
+      roles: [manpads]
+      areas: [al_bab_edges]
+      pick: [1, 3]
+      faction: npf
+      notes: "Igla teams on the attack headings into Al Bab. insurgent_supply 2."
+    - id: technicals
+      roles: [technicals]
+      areas: [al_bab_edges]
+      pick: [2, 4]
+      faction: npf
+      notes: "DShK / ZU-23 technicals. Targets of opportunity only with PID; not the task."
+    - id: civilians
+      roles: [civilian]
+      areas: [al_bab_road]
+      pick: [2, 4]
+      faction: plain_civilians
+      notes: "Unarmed pickups, cars and a bus on the Al Bab road. Look like technicals from 15,000 ft on purpose."
+  encounters:
+    - id: sa6_battery
+      kind: ambush_sam
+      pool: sa6_ambush
+      trigger: {type: time, after_min: 0.5}
+      chance: 100
+      telegraph_beat: sa6_emitting
+      notes: "Always present (the objective always exists). Spawns dark at one of three sites; emits only when PYTHON is inside about 8 NM, after an ELINT telegraph 30-60 s ahead. Emits late and briefly."
+    - id: sa8_popup_site
+      kind: ambush_sam
+      pool: sa8_popup
+      trigger: {type: proximity, area: al_bab, radius_nm: 15}
+      chance: 80
+      telegraph_beat: sa8_warning
+      notes: "Chance 40 + 20*sam_threat (= 80 at sam_threat 2). Spawns dark when PYTHON closes within 15 NM of Al Bab (so >= 11 NM from any candidate), goes hot inside about 8 km after a telegraph."
+    - id: manpads_ring
+      kind: pool
+      pool: manpads_teams
+      trigger: {type: proximity, area: al_bab, radius_nm: 20}
+      chance: 100
+      notes: "MANPADS teams appear when PYTHON nears the town. Briefed as 'assessed present'; stay above 15,000 ft."
+    - id: technical_patrols
+      kind: pool
+      pool: technicals
+      trigger: {type: time, after_min: 1}
+      chance: 100
+    - id: civ_traffic
+      kind: convoy
+      pool: civilians
+      trigger: {type: time, after_min: 2}
+      chance: 100
+      notes: "Civilians drive the Al Bab road. PID matters; hits raise collateral."
+  director:
+    enabled: true
+    intensity: moderate
+    adaptive: true
+  fog_of_war:
+    enabled: true
+    reveal_radius_km: 5
+    mark_refresh_sec: 15
+
+ambient:
+  enabled: true
+  density: low
+
+seed: null
+
+notes: >-
+  Director intent: departure and transit are quiet and procedural (ramp option: Ground, Tower, a
+  long climb; air option: starts on the axis). ARROW is the real start for both: Magic check-in,
+  then Rook Ops opens the window 20 s later. Tension builds through the fence; the SA-6 is always
+  there but emits late (ELINT telegraph, then hot inside ~8 NM), the SA-8 pops up 4 plays in 5,
+  MANPADS and ZU-23s punish anyone below 15,000 ft over the town. Peak = SA-6 hot plus possible SA-8
+  spike. The MQ-9 is narrative (no ISR support role in the generator): if the SA-6 launches during
+  the window, Magic reports Cyclops defending, and the player has 45 s to kill the radar (HARM in
+  flight counts) before Cyclops is lost. Window closes 10 min after push; 5 min hunting time; then
+  Rook Ops calls vul end and RTB on a timer, so the spine never depends on takeoff or on a zone
+  only one start option crosses. Long relax on egress. Varies per play: SA-6 site (3), SA-8
+  yes/no and site (3), MANPADS count and positions, technicals, civilian traffic, telegraph timing.
+  Guaranteed spine: mission_start, magic_checkin, window_open, fence_in, window_closed, rtb_call,
+  on_deck.

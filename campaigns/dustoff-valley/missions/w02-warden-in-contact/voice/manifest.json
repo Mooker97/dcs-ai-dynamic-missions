@@ -1,0 +1,310 @@
+{
+  "ops_start_v1": {
+    "file": "ops_start_v1.ogg",
+    "dur_sec": 6.09,
+    "text": "Dusty, Dustoff, Hatay Ops. Warden in contact east of Binnish. Cleared in.",
+    "speaker": "ops_walsh",
+    "model": "eleven_v3"
+  },
+  "warden_contact_v1": {
+    "file": "warden_contact_v1.ogg",
+    "dur_sec": 5.93,
+    "text": "[shouting] Dusty, Warden Three-One. Troops in contact. Militia five hundred metres east. Two wounded.",
+    "speaker": "warden_booker",
+    "model": "eleven_v3"
+  },
+  "ops_qrf_v1": {
+    "file": "ops_qrf_v1.ogg",
+    "dur_sec": 5.62,
+    "text": "Dusty, Ops. Reaper has a column leaving Taftanaz. Armour and a gun.",
+    "speaker": "ops_walsh",
+    "model": "eleven_v3"
+  },
+  "ops_strike_v1": {
+    "file": "ops_strike_v1.ogg",
+    "dur_sec": 5.46,
+    "text": "Venom One-One, Hatay Ops. Column on the Taftanaz road. Cleared hot.",
+    "speaker": "ops_walsh",
+    "model": "eleven_v3"
+  },
+  "warden_moving_v1": {
+    "file": "warden_moving_v1.ogg",
+    "dur_sec": 5.12,
+    "text": "[breathing heavily] Dusty, Warden. Breaking contact. Moving west to the PZ. Cover us.",
+    "speaker": "warden_booker",
+    "model": "eleven_v3"
+  },
+  "warden_at_pz_v1": {
+    "file": "warden_at_pz_v1.ogg",
+    "dur_sec": 4.72,
+    "text": "Dustoff, Warden. At the PZ. Eight pax, two litter. PZ is secure.",
+    "speaker": "warden_booker",
+    "model": "eleven_v3"
+  },
+  "dustoff_inbound_v1": {
+    "file": "dustoff_inbound_v1.ogg",
+    "dur_sec": 3.92,
+    "text": "Warden, Dustoff Three-One. Inbound from the west. One minute.",
+    "speaker": "dustoff_whitfield",
+    "model": "eleven_v3"
+  },
+  "dustoff_lifting_v1": {
+    "file": "dustoff_lifting_v1.ogg",
+    "dur_sec": 5.12,
+    "text": "Dustoff Three-One lifting. Eight aboard. Low level, westbound.",
+    "speaker": "dustoff_whitfield",
+    "model": "eleven_v3"
+  },
+  "ops_clear_v1": {
+    "file": "ops_clear_v1.ogg",
+    "dur_sec": 5.28,
+    "text": "Dustoff, Hatay Ops. Copy clear. Surgical team on the pad.",
+    "speaker": "ops_walsh",
+    "model": "eleven_v3"
+  },
+  "dusty_check_in_v1": {
+    "file": "dusty_check_in_v1.ogg",
+    "dur_sec": 3.45,
+    "text": "Warden, Dusty One-One, two Apaches. Three minutes. Hold on.",
+    "speaker": "dusty_brennan",
+    "model": "eleven_v3"
+  },
+  "warden_cleared_hot_v1": {
+    "file": "warden_cleared_hot_v1.ogg",
+    "dur_sec": 4.65,
+    "text": "[urgent] Dusty, Warden. Farm wall, five hundred east. Cleared hot. Danger close.",
+    "speaker": "warden_booker",
+    "model": "eleven_v3"
+  },
+  "dusty_launch_v1": {
+    "file": "dusty_launch_v1.ogg",
+    "dur_sec": 3.84,
+    "text": "[urgent] Dusty One-Two, missile launch south. Flares, break left.",
+    "speaker": "dusty_brennan",
+    "model": "eleven_v3"
+  },
+  "venom_bombs_v1": {
+    "file": "venom_bombs_v1.ogg",
+    "dur_sec": 2.83,
+    "text": "Venom One-One, bombs away. Thirty seconds.",
+    "speaker": "venom_lindqvist",
+    "model": "eleven_v3"
+  },
+  "dusty_qrf_v1": {
+    "file": "dusty_qrf_v1.ogg",
+    "dur_sec": 3.22,
+    "text": "Ops, Dusty. Copy the column. Taking the gun first.",
+    "speaker": "dusty_brennan",
+    "model": "eleven_v3"
+  },
+  "venom_copy_v1": {
+    "file": "venom_copy_v1.ogg",
+    "dur_sec": 2.49,
+    "text": "Venom One-One, cleared hot. Three minutes.",
+    "speaker": "venom_lindqvist",
+    "model": "eleven_v3"
+  },
+  "warden_manpads_v1": {
+    "file": "warden_manpads_v1.ogg",
+    "dur_sec": 3.99,
+    "text": "Dusty, Warden. Missile team, farm buildings north of the road.",
+    "speaker": "warden_booker",
+    "model": "eleven_v3"
+  },
+  "ops_ambush_v1": {
+    "file": "ops_ambush_v1.ogg",
+    "dur_sec": 4.89,
+    "text": "Dusty, Ops. Reaper sees a missile tube, south of the road.",
+    "speaker": "ops_walsh",
+    "model": "eleven_v3"
+  },
+  "dusty_covering_v1": {
+    "file": "dusty_covering_v1.ogg",
+    "dur_sec": 2.56,
+    "text": "Warden, Dusty. Covering. Go now.",
+    "speaker": "dusty_brennan",
+    "model": "eleven_v3"
+  },
+  "dustoff_down_v1": {
+    "file": "dustoff_down_v1.ogg",
+    "dur_sec": 2.33,
+    "text": "Dustoff on the ground. Load them up.",
+    "speaker": "dustoff_whitfield",
+    "model": "eleven_v3"
+  },
+  "dusty_bda_v1": {
+    "file": "dusty_bda_v1.ogg",
+    "dur_sec": 3.14,
+    "text": "Venom, Dusty. Good hits on the column. Nothing moving.",
+    "speaker": "dusty_brennan",
+    "model": "eleven_v3"
+  },
+  "dusty_aa_dead_v1": {
+    "file": "dusty_aa_dead_v1.ogg",
+    "dur_sec": 3.37,
+    "text": "Ops, Dusty. Gun's destroyed. Moving to the lead vehicle.",
+    "speaker": "dusty_brennan",
+    "model": "eleven_v3"
+  },
+  "dusty_on_station_v1": {
+    "file": "dusty_on_station_v1.ogg",
+    "dur_sec": 4.11,
+    "text": "Warden, Dusty. On station west of you. Tally the farm wall.",
+    "speaker": "dusty_brennan",
+    "model": "eleven_v3"
+  },
+  "dusty_aa_fire_v1": {
+    "file": "dusty_aa_fire_v1.ogg",
+    "dur_sec": 3.14,
+    "text": "Dusty One-Two, gun's firing. Drop behind the tree line.",
+    "speaker": "dusty_brennan",
+    "model": "eleven_v3"
+  },
+  "dusty_qrf_hit_v1": {
+    "file": "dusty_qrf_hit_v1.ogg",
+    "dur_sec": 3.45,
+    "text": "Ops, Dusty. Lead vehicle's burning. Column's stopped.",
+    "speaker": "dusty_brennan",
+    "model": "eleven_v3"
+  },
+  "warden_vehicle_lost_v1": {
+    "file": "warden_vehicle_lost_v1.ogg",
+    "dur_sec": 4.18,
+    "text": "Dusty, Warden. Three-Two lost a truck. RPG from the orchard.",
+    "speaker": "warden_booker",
+    "model": "eleven_v3"
+  },
+  "dustoff_check_in_v1": {
+    "file": "dustoff_check_in_v1.ogg",
+    "dur_sec": 4.42,
+    "text": "Warden, Dustoff Three-One. Holding west. Call me at the PZ.",
+    "speaker": "dustoff_whitfield",
+    "model": "eleven_v3"
+  },
+  "dusty_escort_v1": {
+    "file": "dusty_escort_v1.ogg",
+    "dur_sec": 2.72,
+    "text": "Dustoff, Dusty. On your left. Keep it low.",
+    "speaker": "dusty_brennan",
+    "model": "eleven_v3"
+  },
+  "warden_good_hits_v1": {
+    "file": "warden_good_hits_v1.ogg",
+    "dur_sec": 3.21,
+    "text": "Dusty, Warden. Good hits. Fire's slackening.",
+    "speaker": "warden_booker",
+    "model": "eleven_v3"
+  },
+  "warden_qrf_close_v1": {
+    "file": "warden_qrf_close_v1.ogg",
+    "dur_sec": 4.33,
+    "text": "Dusty, Warden. Armour on the road, a click east. They're dismounting.",
+    "speaker": "warden_booker",
+    "model": "eleven_v3"
+  },
+  "dusty_hit_v1": {
+    "file": "dusty_hit_v1.ogg",
+    "dur_sec": 2.41,
+    "text": "Dusty, taking fire. Still in the fight.",
+    "speaker": "dusty_brennan",
+    "model": "eleven_v3"
+  },
+  "warden_pz_late_v1": {
+    "file": "warden_pz_late_v1.ogg",
+    "dur_sec": 2.9,
+    "text": "Dustoff, Warden. Nearly at the PZ. Come now.",
+    "speaker": "warden_booker",
+    "model": "eleven_v3"
+  },
+  "ops_qrf_timeout_v1": {
+    "file": "ops_qrf_timeout_v1.ogg",
+    "dur_sec": 5.2,
+    "text": "Dusty, Ops. Vehicles moving at Taftanaz. Expect a QRF.",
+    "speaker": "ops_walsh",
+    "model": "eleven_v3"
+  },
+  "ops_status_v1": {
+    "file": "ops_status_v1.ogg",
+    "dur_sec": 4.11,
+    "text": "Warden, Hatay Ops. Say status. Can you move?",
+    "speaker": "ops_walsh",
+    "model": "eleven_v3"
+  },
+  "warden_status_v1": {
+    "file": "warden_status_v1.ogg",
+    "dur_sec": 3.37,
+    "text": "Ops, Warden. Still pinned. Moving once the jets hit.",
+    "speaker": "warden_booker",
+    "model": "eleven_v3"
+  },
+  "dusty_dustoff_down_v1": {
+    "file": "dusty_dustoff_down_v1.ogg",
+    "dur_sec": 3.22,
+    "text": "Ops, Dusty. Dustoff is down. Marking the site.",
+    "speaker": "dusty_brennan",
+    "model": "eleven_v3"
+  },
+  "ops_dustoff_down_v1": {
+    "file": "ops_dustoff_down_v1.ogg",
+    "dur_sec": 5.86,
+    "text": "Dusty, Hatay Ops. Copy. CSAR is launching. Hold overhead.",
+    "speaker": "ops_walsh",
+    "model": "eleven_v3"
+  },
+  "ops_timeout_ok_v1": {
+    "file": "ops_timeout_ok_v1.ogg",
+    "dur_sec": 5.28,
+    "text": "Dustoff, Hatay Ops. Copy Warden aboard. Surgical team standing by.",
+    "speaker": "ops_walsh",
+    "model": "eleven_v3"
+  },
+  "ops_timeout_fail_v1": {
+    "file": "ops_timeout_fail_v1.ogg",
+    "dur_sec": 4.89,
+    "text": "Warden, Hatay Ops. Ground QRF is coming to you. Hold the PZ.",
+    "speaker": "ops_walsh",
+    "model": "eleven_v3"
+  },
+  "warden_dusty_down_v1": {
+    "file": "warden_dusty_down_v1.ogg",
+    "dur_sec": 3.37,
+    "text": "Ops, Warden. Apaches are down. We need the jets.",
+    "speaker": "warden_booker",
+    "model": "eleven_v3"
+  },
+  "dusty_launch_v2": {
+    "file": "dusty_launch_v2.ogg",
+    "dur_sec": 3.37,
+    "text": "Dusty One-One, launch north. Flares, breaking right.",
+    "speaker": "dusty_brennan",
+    "model": "eleven_v3"
+  },
+  "dusty_launch_v3": {
+    "file": "dusty_launch_v3.ogg",
+    "dur_sec": 2.83,
+    "text": "Dusty, missile in the air. Flares, flares.",
+    "speaker": "dusty_brennan",
+    "model": "eleven_v3"
+  },
+  "dusty_hit_v2": {
+    "file": "dusty_hit_v2.ogg",
+    "dur_sec": 2.9,
+    "text": "Dusty One-Two, hit. Systems good. Staying.",
+    "speaker": "dusty_brennan",
+    "model": "eleven_v3"
+  },
+  "warden_more_hits_v1": {
+    "file": "warden_more_hits_v1.ogg",
+    "dur_sec": 2.71,
+    "text": "Warden. Another one down on the wall.",
+    "speaker": "warden_booker",
+    "model": "eleven_v3"
+  },
+  "dusty_qrf_more_v1": {
+    "file": "dusty_qrf_more_v1.ogg",
+    "dur_sec": 2.83,
+    "text": "Dusty. Another one stopped on the road.",
+    "speaker": "dusty_brennan",
+    "model": "eleven_v3"
+  }
+}

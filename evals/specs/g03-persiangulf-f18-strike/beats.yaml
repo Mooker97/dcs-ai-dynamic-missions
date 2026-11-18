@@ -1,0 +1,65 @@
+# Golden g03 beats.
+mission_id: g03-persiangulf-f18-strike
+beats:
+  - id: mission_start
+    guaranteed: true
+    when: {event: player.spawned, players_only: true}
+    priority: 90
+    delay_sec: 10
+    speaker: ops_navarro
+    lines: [ops_start_v1, ops_start_v2]
+    text: "Ranger, Bastion. Launchers confirmed east of Bandar Abbas. Cleared to proceed."
+    mark: {type: circle, at: "zone:launch_site", text: "TARGET"}
+    effects: {set_flag: started}
+  - id: feet_wet
+    when: {event: zone.entered, zone: ingress, players_only: true}
+    priority: 70
+    speaker: awacs_kim
+    lines: [awacs_wet_v1, awacs_wet_v2]
+    text: "Ranger, Magic. Picture clean. Feet wet, push."
+    effects: {set_flag: ingressing}
+  - id: sam_warning
+    when: {event: beat.fired, beat: feet_wet}
+    priority: 75
+    delay_sec: 40
+    speaker: awacs_kim
+    lines: [awacs_sam_v1, awacs_sam_v2]
+    text: "Ranger, Magic. Possible pop-up SAM near the target. Heads up."
+  - id: launchers_destroyed
+    guaranteed: true
+    when: {event: group.dead, group_prefix: launchers}
+    priority: 85
+    speaker: ops_navarro
+    lines: [ops_splash_v1, ops_splash_v2]
+    text: "Ranger, Bastion. Launchers destroyed. Strait is open."
+    effects:
+      set_flag: launchers_destroyed
+      outcome: {launchers_destroyed: true}
+      quality_deltas: {resolve: 1}
+  - id: defences_down
+    when: {event: group.dead, group_prefix: point_sam}
+    priority: 60
+    speaker: awacs_kim
+    lines: [awacs_sam_down_v1, awacs_sam_down_v2]
+    text: "Ranger, Magic. Point defence SAM is down."
+    effects:
+      outcome: {sam_down: true}
+  - id: rtb_call
+    when: {event: beat.fired, beat: launchers_destroyed}
+    priority: 70
+    delay_sec: 20
+    speaker: ops_navarro
+    lines: [ops_rtb_v1, ops_rtb_v2]
+    text: "Ranger, Bastion. Good work. Egress south and RTB."
+  - id: landed
+    guaranteed: true
+    when: {event: unit.landed, players_only: true}
+    requires: {flags: [launchers_destroyed]}
+    priority: 95
+    speaker: ops_navarro
+    lines: [ops_landed_v1, ops_landed_v2]
+    text: "Ranger, Bastion. Wheels down. Mission complete."
+    effects:
+      set_flag: landed
+      outcome: {landed: true}
+      end_mission: success

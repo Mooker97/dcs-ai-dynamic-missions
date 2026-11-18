@@ -1,0 +1,18 @@
+# Golden g02 voice lines.
+mission_id: g02-caucasus-ka50-red
+model: eleven_v3
+lines:
+  - {id: ops_start_v1, speaker: ops_volkov, beat: mission_start, text: "Akula, Granit. Column moving north toward the bridge. Go now."}
+  - {id: ops_start_v2, speaker: ops_volkov, beat: mission_start, text: "Akula, Granit. Armour on the valley road, heading for the bridge. Launch."}
+  - {id: fac_checkin_v1, speaker: fac_orlova, beat: fac_checkin, text: "Akula, Vershina. Armour on the road below you. Weapons free."}
+  - {id: fac_checkin_v2, speaker: fac_orlova, beat: fac_checkin, text: "Akula, Vershina. I see you. Tanks on the road, south of me. Engage."}
+  - {id: fac_stopped_v1, speaker: fac_orlova, beat: column_stopped, text: "Akula, Vershina. Column is burning. Road is blocked."}
+  - {id: fac_stopped_v2, speaker: fac_orlova, beat: column_stopped, text: "Akula, Vershina. Lead vehicles destroyed. They're not getting through."}
+  - {id: fac_echelon_v1, speaker: fac_orlova, beat: echelon_warning, text: "Akula, Vershina. More vehicles coming up behind. Stay on station."}
+  - {id: fac_echelon_v2, speaker: fac_orlova, beat: echelon_warning, text: "Akula, Vershina. Second group on the road. Watch the south."}
+  - {id: fac_sam_v1, speaker: fac_orlova, beat: sam_down, text: "Akula, Vershina. The launcher on the spur is down."}
+  - {id: fac_sam_v2, speaker: fac_orlova, beat: sam_down, text: "Akula, Vershina. Spur SAM destroyed. Sky is yours."}
+  - {id: ops_rtb_v1, speaker: ops_volkov, beat: rtb_call, text: "Akula, Granit. Bridge holds. Come home."}
+  - {id: ops_rtb_v2, speaker: ops_volkov, beat: rtb_call, text: "Akula, Granit. Good work. Return to Beslan."}
+  - {id: ops_landed_v1, speaker: ops_volkov, beat: landed, text: "Akula, Granit. On the ground. Well done."}
+  - {id: ops_landed_v2, speaker: ops_volkov, beat: landed, text: "Akula, Granit. Wheels down. The bridge is ours."}

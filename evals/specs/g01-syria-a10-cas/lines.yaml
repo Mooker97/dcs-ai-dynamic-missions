@@ -1,0 +1,18 @@
+# Golden g01 voice lines.
+mission_id: g01-syria-a10-cas
+model: eleven_v3
+lines:
+  - {id: ops_start_v1, speaker: ops_hale, beat: mission_start, text: "Hawg, Lantern Ops. Outpost is under attack north of Saraqib. Contact Lantern Two-One."}
+  - {id: ops_start_v2, speaker: ops_hale, beat: mission_start, text: "Hawg, Ops. Troops in contact at Saraqib. Push to Lantern Two-One."}
+  - {id: jtac_checkin_v1, speaker: jtac_reed, beat: jtac_checkin, text: "Hawg, Lantern Two-One. Technicals north of the outpost. Cleared hot."}
+  - {id: jtac_checkin_v2, speaker: jtac_reed, beat: jtac_checkin, text: "Hawg, Two-One. Trucks with guns, north side, moving on us. You're cleared hot."}
+  - {id: jtac_manpads_v1, speaker: jtac_reed, beat: manpads_warning, text: "Hawg, Two-One. Possible MANPADS team in the orchards. Keep your speed up."}
+  - {id: jtac_manpads_v2, speaker: jtac_reed, beat: manpads_warning, text: "Hawg, Two-One. Shoulder-fired threat likely. Stay high and fast."}
+  - {id: jtac_broken_v1, speaker: jtac_reed, beat: attack_broken, text: "Hawg, Two-One. Good hits. The attack is broken."}
+  - {id: jtac_broken_v2, speaker: jtac_reed, beat: attack_broken, text: "Hawg, Two-One. They're running. Attack's broken. Thanks."}
+  - {id: jtac_guns_v1, speaker: jtac_reed, beat: guns_silenced, text: "Hawg, Two-One. Guns east of town are down."}
+  - {id: jtac_guns_v2, speaker: jtac_reed, beat: guns_silenced, text: "Hawg, Two-One. Gun line is silent. Nice shooting."}
+  - {id: ops_rtb_v1, speaker: ops_hale, beat: rtb_call, text: "Hawg, Lantern Ops. Outpost reports clear. RTB."}
+  - {id: ops_rtb_v2, speaker: ops_hale, beat: rtb_call, text: "Hawg, Ops. Good work. Return to base."}
+  - {id: ops_landed_v1, speaker: ops_hale, beat: landed, text: "Hawg, Ops. Welcome back. Good work today."}
+  - {id: ops_landed_v2, speaker: ops_hale, beat: landed, text: "Hawg, Ops. Wheels down. Outpost sends its thanks."}

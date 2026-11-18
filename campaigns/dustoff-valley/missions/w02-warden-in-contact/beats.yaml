@@ -1,0 +1,537 @@
+# w02 Warden in Contact — beats (WATCH mission). Schema: schemas/beats.schema.json (BeatSheet).
+# Flight ids (dusty, dustoff, venom) are spec `flights[].id`; flight.* events carry them as `flight`.
+# group_prefix values are spec ids (support / pool); planned/spawned group names start with them.
+# `move_group` (beat effect) and `ground.arrived` (event) are CONTRACTS v0.9.1.
+# `cue` = camera hint shown as "CAMERA: <text>" (watch.cues). Times are from mission start.
+#
+# Guaranteed spine:
+#   mission_start (0:08) -> warden_contact (0:14) -> qrf_spotted (QRF launch +60 s: ~1:45 or ~4:00)
+#   -> strike_cleared (+45 s) -> warden_moving (bombs away +45 s, else 9:30) -> [ground.arrived at the PZ,
+#   else +6 min] dustoff_inbound -> [land ~1.5-2 min, pickup, lift] -> dustoff_clear (~15-17 min)
+#   -> mission_end (+20 s). Fallbacks: qrf_spotted_timeout 5:30, withdraw_timeout 9:30,
+#   pz_ready_timeout move +6 min, timeout_end_ok / timeout_end_fail 20:00, dustoff_lost -> failure.
+mission_id: w02-warden-in-contact
+beats:
+  # ---- Guaranteed spine ---------------------------------------------------------------------
+  - id: mission_start
+    when: {event: mission.start}
+    delay_sec: 8
+    priority: 90
+    once: true
+    guaranteed: true
+    speaker: ops_walsh
+    lines: [ops_start_v1]
+    text: "Dusty, Dustoff, Hatay Ops. Warden in contact east of Binnish. Cleared in."
+    cue: "F7 to Warden Three-One - troops in contact in the fields east of Binnish"
+    mark: {type: text, at: "zone:patrol_pos", text: "WARDEN 3-1"}
+    effects: {set_flag: started}
+
+  - id: warden_contact
+    when: {event: beat.fired, beat: mission_start}
+    delay_sec: 4
+    priority: 89
+    once: true
+    guaranteed: true
+    speaker: warden_booker
+    lines: [warden_contact_v1]
+    text: "Dusty, Warden Three-One. Troops in contact. Militia five hundred metres east. Two wounded."
+    mark: {type: circle, at: "zone:militia_line", text: "ENEMY - FARM WALL"}
+
+  - id: qrf_spotted
+    when: {event: encounter.spawned, encounter: qrf_column}
+    delay_sec: 60
+    requires: {flags_not: [qrf_inbound]}
+    priority: 88
+    once: true
+    guaranteed: true
+    speaker: ops_walsh
+    lines: [ops_qrf_v1]
+    text: "Dusty, Ops. Reaper has a column leaving Taftanaz. Armour and a gun."
+    cue: "F10 - the QRF column on the Taftanaz road, east of the fight"
+    mark: {type: circle, at: "group:qrf_armor", radius_m: 800, text: "QRF COLUMN"}
+    effects: {set_flag: qrf_inbound, outcome: {qrf_launched: true}}
+
+  - id: strike_cleared
+    when: {event: flag, flag: qrf_inbound}
+    delay_sec: 45
+    priority: 87
+    once: true
+    guaranteed: true
+    speaker: ops_walsh
+    lines: [ops_strike_v1]
+    text: "Venom One-One, Hatay Ops. Column on the Taftanaz road. Cleared hot."
+    cue: "F2 to Venom 1-1 - the F-16s leave their orbit for the column"
+    effects: {set_flag: strike_cleared}
+
+  - id: warden_moving              # the move: dismounts to the PZ, vehicles to the rally point
+    when: {event: flag, flag: withdraw}
+    priority: 89
+    once: true
+    guaranteed: true
+    speaker: warden_booker
+    lines: [warden_moving_v1]
+    text: "Dusty, Warden. Breaking contact. Moving west to the PZ. Cover us."
+    cue: "F7 to Warden Three-One - breaking contact, moving west to the PZ"
+    mark: {type: circle, at: "zone:pz", text: "PZ"}
+    effects:
+      set_flag: warden_moving
+      move_group: {group: patrol, to: pz, speed_kts: 6, off_road: true}
+
+  - id: dustoff_inbound
+    when: {event: flag, flag: pz_ready}
+    delay_sec: 15
+    priority: 86
+    once: true
+    guaranteed: true
+    speaker: dustoff_whitfield
+    lines: [dustoff_inbound_v1]
+    text: "Warden, Dustoff Three-One. Inbound from the west. One minute."
+    cue: "F2 to Dustoff 3-1 - inbound to the PZ"
+
+  - id: dustoff_clear
+    when: {event: flight.arrived, flight: dustoff, zone: egress_west}
+    priority: 90
+    once: true
+    guaranteed: true
+    speaker: ops_walsh
+    lines: [ops_clear_v1]
+    text: "Dustoff, Hatay Ops. Copy clear. Surgical team on the pad."
+    cue: "F2 to Dustoff 3-1 - clear of the plain, westbound"
+    effects: {set_flag: dustoff_clear, outcome: {dustoff_clear: true}}
+
+  - id: mission_end                # silent: lets Ops' line play out, then ends
+    when: {event: beat.fired, beat: dustoff_clear}
+    delay_sec: 20
+    priority: 95
+    once: true
+    guaranteed: true
+    effects:
+      end_mission: success
+      outcome: {warden_extracted: true}
+
+  # ---- Fallbacks and failure ----------------------------------------------------------------
+  - id: qrf_spotted_timeout        # the column never spawned (or was slow): Ops clears Venom on what Reaper has
+    when: {event: timer, after_sec: 330}
+    requires: {flags_not: [qrf_inbound]}
+    priority: 88
+    once: true
+    speaker: ops_walsh
+    lines: [ops_qrf_timeout_v1, ops_qrf_timeout_v2, ops_qrf_timeout_v3]
+    text: "Dusty, Ops. Vehicles moving at Taftanaz. Expect a QRF."
+    effects: {set_flag: qrf_inbound, outcome: {qrf_launched: false}}
+
+  - id: withdraw_after_strike      # silent: the bombs buy the time to move
+    when: {event: beat.fired, beat: bombs_away}
+    delay_sec: 45
+    requires: {flags_not: [withdraw]}
+    priority: 60
+    once: true
+    effects: {set_flag: withdraw, outcome: {withdrew_after_strike: true}}
+
+  - id: withdraw_timeout           # silent: 9:30, Warden goes anyway
+    when: {event: timer, after_sec: 570}
+    requires: {flags_not: [withdraw]}
+    priority: 60
+    once: true
+    effects: {set_flag: withdraw, outcome: {withdrew_after_strike: false}}
+
+  - id: warden_vehicles_move       # silent: Three-Two drives out overland
+    when: {event: beat.fired, beat: warden_moving}
+    delay_sec: 5
+    priority: 50
+    once: true
+    effects:
+      move_group: {group: gunvees, to: rally_west, speed_kts: 20, off_road: true}
+
+  - id: pz_ready_timeout           # the dismounts are slow: Dustoff comes anyway, they run the last stretch
+    when: {event: beat.fired, beat: warden_moving}
+    delay_sec: 360
+    requires: {flags_not: [pz_ready]}
+    priority: 86
+    once: true
+    speaker: warden_booker
+    lines: [warden_pz_late_v1, warden_pz_late_v2, warden_pz_late_v3]
+    text: "Dustoff, Warden. Nearly at the PZ. Come now."
+    effects: {set_flag: pz_ready, outcome: {warden_at_pz_on_time: false}}
+
+  - id: timeout_end_ok             # 20:00 hard stop: Warden aboard but Dustoff not yet at the egress point
+    when: {event: timer, after_sec: 1200}
+    requires: {flags: [patrol_aboard], beats_not_fired: [dustoff_clear, dustoff_lost]}
+    priority: 95
+    once: true
+    speaker: ops_walsh
+    lines: [ops_timeout_ok_v1, ops_timeout_ok_v2, ops_timeout_ok_v3]
+    text: "Dustoff, Hatay Ops. Copy Warden aboard. Surgical team standing by."
+    effects: {end_mission: success, outcome: {warden_extracted: true, dustoff_clear: false}}
+
+  - id: timeout_end_fail           # 20:00 hard stop: Warden never got aboard
+    when: {event: timer, after_sec: 1200}
+    requires: {flags_not: [patrol_aboard], beats_not_fired: [dustoff_clear, dustoff_lost]}
+    priority: 95
+    once: true
+    speaker: ops_walsh
+    lines: [ops_timeout_fail_v1, ops_timeout_fail_v2, ops_timeout_fail_v3]
+    text: "Warden, Hatay Ops. Ground QRF is coming to you. Hold the PZ."
+    effects: {end_mission: failure, outcome: {warden_extracted: false}}
+
+  - id: dustoff_lost
+    when: {event: flight.lost, flight: dustoff}
+    priority: 92
+    once: true
+    speaker: dusty_brennan
+    lines: [dusty_dustoff_down_v1, dusty_dustoff_down_v2, dusty_dustoff_down_v3]
+    text: "Ops, Dusty. Dustoff is down. Marking the site."
+    cue: "F2 to Dusty 1-1 - Dustoff 3-1 is down"
+    effects: {set_flag: dustoff_lost, outcome: {dustoff_lost: true}}
+
+  - id: dustoff_lost_end
+    when: {event: beat.fired, beat: dustoff_lost}
+    delay_sec: 30
+    priority: 95
+    once: true
+    speaker: ops_walsh
+    lines: [ops_dustoff_down_v1, ops_dustoff_down_v2, ops_dustoff_down_v3]
+    text: "Dusty, Hatay Ops. Copy. CSAR is launching. Hold overhead."
+    effects: {end_mission: failure, outcome: {warden_extracted: false}}
+
+  - id: dusty_lost
+    when: {event: flight.lost, flight: dusty}
+    priority: 90
+    once: true
+    speaker: warden_booker
+    lines: [warden_dusty_down_v1, warden_dusty_down_v2, warden_dusty_down_v3]
+    text: "Ops, Warden. Both Apaches are down. We need the jets."
+    effects: {set_flag: dusty_lost, outcome: {dusty_lost: true}}
+
+  - id: ops_say_status             # nudge at 7:00 if Warden is still pinned
+    when: {event: timer, after_sec: 420}
+    requires: {flags_not: [withdraw]}
+    priority: 60
+    once: true
+    speaker: ops_walsh
+    lines: [ops_status_v1, ops_status_v2, ops_status_v3]
+    text: "Warden, Hatay Ops. Say status. Can you move?"
+
+  - id: warden_status_reply
+    when: {event: beat.fired, beat: ops_say_status}
+    delay_sec: 3
+    priority: 60
+    once: true
+    speaker: warden_booker
+    lines: [warden_status_v1, warden_status_v2, warden_status_v3]
+    text: "Ops, Warden. Still pinned. Moving once the jets hit."
+
+  # ---- Check-in and the firefight -----------------------------------------------------------
+  - id: dusty_check_in
+    when: {event: beat.fired, beat: warden_contact}
+    delay_sec: 4
+    priority: 85
+    once: true
+    speaker: dusty_brennan
+    lines: [dusty_check_in_v1]
+    text: "Warden, Dusty One-One, two Apaches. Three minutes. Hold on."
+    cue: "F2 to Dusty 1-1 - two Apaches inbound from the west"
+
+  - id: dustoff_check_in
+    when: {event: beat.fired, beat: dusty_check_in}
+    delay_sec: 4
+    priority: 84
+    once: true
+    speaker: dustoff_whitfield
+    lines: [dustoff_check_in_v1]
+    text: "Warden, Dustoff Three-One. Holding west. Call me when you're at the PZ."
+
+  - id: dusty_on_station
+    when: {event: flight.arrived, flight: dusty, zone: battle_west}
+    priority: 82
+    once: true
+    speaker: dusty_brennan
+    lines: [dusty_on_station_v1, dusty_on_station_v2, dusty_on_station_v3]
+    text: "Warden, Dusty. On station west of you. Tally the farm wall."
+    cue: "F2 to Dusty 1-1 - on station, rolling in on the farm wall"
+
+  - id: warden_cleared_hot
+    when: {event: beat.fired, beat: dusty_on_station}
+    delay_sec: 4
+    priority: 82
+    once: true
+    speaker: warden_booker
+    lines: [warden_cleared_hot_v1]
+    text: "Dusty, Warden. Farm wall, five hundred east. Cleared hot. Danger close."
+    effects: {set_flag: militia_cleared_hot}
+
+  - id: dustoff_holding
+    when: {event: flight.arrived, flight: dustoff, zone: dustoff_hold}
+    priority: 60
+    once: true
+    speaker: dustoff_whitfield
+    lines: [dustoff_holding_v1, dustoff_holding_v2, dustoff_holding_v3]
+    text: "Dustoff Three-One, holding west. Ready when you are."
+
+  - id: militia_hit
+    when: {event: unit.dead, group_prefix: militia}
+    priority: 75
+    once: true
+    speaker: warden_booker
+    lines: [warden_good_hits_v1, warden_good_hits_v2, warden_good_hits_v3]
+    text: "Dusty, Warden. Good hits. Fire's slackening."
+    cue: "F2 to Dusty 1-1 - gun runs on the farm wall"
+    effects: {set_flag: militia_hit, outcome: {militia_engaged: true}}
+
+  - id: militia_kill_followup
+    when: {event: unit.dead, group_prefix: militia}
+    requires: {flags: [militia_hit], chance: 50}
+    priority: 40
+    once: false
+    cooldown_sec: 45
+    speaker: warden_booker
+    lines: [warden_more_hits_v1, warden_more_hits_v2, warden_more_hits_v3]
+    text: "Warden. Another one down on the wall."
+
+  - id: gunvee_lost
+    when: {event: unit.dead, group_prefix: gunvees}
+    priority: 80
+    once: true
+    speaker: warden_booker
+    lines: [warden_vehicle_lost_v1, warden_vehicle_lost_v2, warden_vehicle_lost_v3]
+    text: "Dusty, Warden. Three-Two lost a truck. RPG from the orchard."
+    cue: "F7 to Warden Three-Two - a HMMWV is burning"
+    effects: {set_flag: gunvee_lost, outcome: {warden_vehicle_lost: true}}
+
+  - id: gunvees_out                # silent: Three-Two reached the rally point
+    when: {event: ground.arrived, group_prefix: gunvees, zone: rally_west}
+    priority: 50
+    once: true
+    effects: {set_flag: gunvees_out, outcome: {warden_vehicles_out: true}}
+
+  - id: dusty_hit                  # generic reaction: an Apache takes rounds
+    when: {event: unit.hit, group_prefix: Dusty}
+    priority: 55
+    once: false
+    cooldown_sec: 60
+    speaker: dusty_brennan
+    lines: [dusty_hit_v1, dusty_hit_v2, dusty_hit_v3]
+    text: "Dusty, taking fire. Still in the fight."
+
+  # ---- The QRF ------------------------------------------------------------------------------
+  - id: qrf_launch_early           # silent: 50% the column rolls almost at once
+    when: {event: timer, after_sec: 45}
+    requires: {chance: 50}
+    priority: 50
+    once: true
+    effects: {set_flag: qrf_go, outcome: {qrf_early: true}}
+
+  - id: qrf_launch_late            # silent: otherwise at 3:00
+    when: {event: timer, after_sec: 180}
+    requires: {beats_not_fired: [qrf_launch_early], flags_not: [qrf_go]}
+    priority: 50
+    once: true
+    effects: {set_flag: qrf_go, outcome: {qrf_early: false}}
+
+  - id: qrf_launch                 # silent: starts encounter qrf_column (armour)
+    when: {event: flag, flag: qrf_go}
+    priority: 50
+    once: true
+
+  - id: qrf_launch_aa              # silent: starts encounter qrf_column_aa
+    when: {event: beat.fired, beat: qrf_launch}
+    delay_sec: 25
+    priority: 50
+    once: true
+
+  - id: qrf_launch_trucks          # silent: starts encounter qrf_column_trucks
+    when: {event: beat.fired, beat: qrf_launch}
+    delay_sec: 50
+    priority: 50
+    once: true
+
+  - id: dusty_qrf_tally
+    when: {event: beat.fired, beat: qrf_spotted}
+    delay_sec: 4
+    priority: 84
+    once: true
+    speaker: dusty_brennan
+    lines: [dusty_qrf_v1]
+    text: "Ops, Dusty. Copy the column. Taking the gun first."
+    cue: "F2 to Dusty 1-1 - Hellfires on the column's air defence"
+
+  - id: venom_copy
+    when: {event: beat.fired, beat: strike_cleared}
+    delay_sec: 4
+    priority: 80
+    once: true
+    speaker: venom_lindqvist
+    lines: [venom_copy_v1]
+    text: "Venom One-One, cleared hot. Three minutes."
+
+  - id: qrf_aa_firing
+    when: {event: unit.shot, group_prefix: qrf_aa}
+    priority: 83
+    once: true
+    speaker: dusty_brennan
+    lines: [dusty_aa_fire_v1]
+    text: "Dusty One-Two, gun's firing. Drop behind the tree line."
+    effects: {set_flag: qrf_aa_fired}
+
+  - id: qrf_aa_dead
+    when: {event: unit.dead, group_prefix: qrf_aa}
+    priority: 80
+    once: true
+    speaker: dusty_brennan
+    lines: [dusty_aa_dead_v1]
+    text: "Ops, Dusty. Gun's destroyed. Moving to the lead vehicle."
+    cue: "F2 to Dusty 1-1 - the column's air defence is burning"
+    effects: {set_flag: qrf_aa_dead, outcome: {qrf_aa_destroyed: true}}
+
+  - id: qrf_hit
+    when: {event: unit.dead, group_prefix: qrf_armor}
+    priority: 78
+    once: true
+    speaker: dusty_brennan
+    lines: [dusty_qrf_hit_v1, dusty_qrf_hit_v2, dusty_qrf_hit_v3]
+    text: "Ops, Dusty. Lead vehicle's burning. Column's stopped."
+    cue: "F10 / F7 - the QRF column on the Taftanaz road"
+    effects: {set_flag: qrf_hit, outcome: {qrf_hit: true}}
+
+  - id: qrf_kill_followup
+    when: {event: unit.dead, group_prefix: qrf}
+    requires: {flags: [qrf_hit], chance: 50}
+    priority: 40
+    once: false
+    cooldown_sec: 40
+    speaker: dusty_brennan
+    lines: [dusty_qrf_more_v1, dusty_qrf_more_v2, dusty_qrf_more_v3]
+    text: "Dusty. Another one stopped on the road."
+
+  - id: qrf_reached_fight          # early column, no bombs and no kill yet by 6:00: it is at the road bend
+    when: {event: timer, after_sec: 360}
+    requires: {beats_fired: [qrf_launch_early], flags_not: [bombs_away, qrf_hit]}
+    priority: 79
+    once: true
+    speaker: warden_booker
+    lines: [warden_qrf_close_v1, warden_qrf_close_v2, warden_qrf_close_v3]
+    text: "Dusty, Warden. Armour on the road, a click east. They're dismounting."
+    effects: {outcome: {qrf_reached_fight: true}}
+
+  - id: bombs_away
+    when: {event: flight.weapon, flight: venom}
+    priority: 87
+    once: true
+    speaker: venom_lindqvist
+    lines: [venom_bombs_v1]
+    text: "Venom One-One, bombs away. Thirty seconds."
+    cue: "F2 to Venom 1-1 - bombs away (F6 follows the bomb)"
+    effects: {set_flag: bombs_away}
+
+  - id: strike_bda
+    when: {event: beat.fired, beat: bombs_away}
+    delay_sec: 35
+    priority: 70
+    once: true
+    speaker: dusty_brennan
+    lines: [dusty_bda_v1]
+    text: "Venom, Dusty. Good hits on the column. Nothing moving."
+    cue: "F10 - the column on the Taftanaz road"
+
+  # ---- MANPADS --------------------------------------------------------------------------------
+  - id: manpads_warning            # telegraph for encounter manpads_ridge_team (60%, 40 s ahead)
+    when: {event: beat.fired, beat: qrf_spotted}
+    delay_sec: 40
+    requires: {chance: 60}
+    priority: 84
+    once: true
+    speaker: warden_booker
+    lines: [warden_manpads_v1]
+    text: "Dusty, Warden. Missile team, farm buildings north of the road."
+    mark: {type: circle, at: "zone:manpads_ridge", text: "MANPADS"}
+    effects: {set_flag: manpads_north, outcome: {manpads_north: true}}
+
+  - id: manpads_ridge_spawn        # silent: starts encounter manpads_ridge_team
+    when: {event: beat.fired, beat: manpads_warning}
+    delay_sec: 40
+    priority: 50
+    once: true
+
+  - id: ambush_warning             # telegraph for encounter manpads_ambush (spawns dark, 30-60 s before hot)
+    when: {event: encounter.spawned, encounter: manpads_ambush}
+    priority: 86
+    once: true
+    speaker: ops_walsh
+    lines: [ops_ambush_v1]
+    text: "Dusty, Ops. Reaper sees a missile tube, south of the road."
+    mark: {type: circle, at: "zone:manpads_hidden", text: "POSSIBLE MANPADS"}
+    effects: {set_flag: manpads_ambush, outcome: {manpads_ambush: true}}
+
+  - id: missile_launch             # generic: any Igla launch at the helicopters
+    when: {event: unit.shot, group_prefix: manpads}
+    priority: 91
+    once: false
+    cooldown_sec: 40
+    speaker: dusty_brennan
+    lines: [dusty_launch_v1, dusty_launch_v2, dusty_launch_v3]
+    text: "Dusty One-Two, missile launch south. Flares, break left."
+    cue: "F2 to Dusty 1-1 - missile launch, flares"
+    effects: {outcome: {manpads_launch: true}}
+
+  - id: manpads_dead               # silent: outcome only
+    when: {event: unit.dead, group_prefix: manpads}
+    priority: 50
+    once: true
+    effects: {outcome: {manpads_destroyed: true}}
+
+  # ---- The move and the pickup ----------------------------------------------------------------
+  - id: dusty_covering
+    when: {event: beat.fired, beat: warden_moving}
+    delay_sec: 4
+    priority: 84
+    once: true
+    speaker: dusty_brennan
+    lines: [dusty_covering_v1]
+    text: "Warden, Dusty. Covering. Go now."
+    cue: "F2 to Dusty 1-1 - covering Warden's move west"
+
+  - id: warden_at_pz
+    when: {event: ground.arrived, group_prefix: patrol, zone: pz}
+    requires: {flags_not: [pz_ready]}
+    priority: 87
+    once: true
+    speaker: warden_booker
+    lines: [warden_at_pz_v1]
+    text: "Dustoff, Warden. At the PZ. Eight pax, two litter. PZ is secure."
+    cue: "F7 to Warden Three-One - at the PZ, waiting for the Black Hawk"
+    effects: {set_flag: pz_ready, outcome: {warden_at_pz_on_time: true}}
+
+  - id: dustoff_down
+    when: {event: flight.landed, flight: dustoff, zone: pz}
+    priority: 85
+    once: true
+    speaker: dustoff_whitfield
+    lines: [dustoff_down_v1]
+    text: "Dustoff on the ground. Load them up."
+    cue: "F2 to Dustoff 3-1 - on the ground at the PZ (F11 for a free camera)"
+    effects: {set_flag: dustoff_landed}
+
+  - id: patrol_boarded             # silent: the pickup group boarded
+    when: {event: flight.pickup, flight: dustoff}
+    priority: 50
+    once: true
+    effects: {set_flag: patrol_aboard, outcome: {warden_aboard: true}}
+
+  - id: dustoff_lifting
+    when: {event: flight.lifted, flight: dustoff, zone: pz}
+    priority: 86
+    once: true
+    speaker: dustoff_whitfield
+    lines: [dustoff_lifting_v1]
+    text: "Dustoff Three-One lifting. Eight aboard. Low level, westbound."
+    cue: "F2 to Dustoff 3-1 - lifting, dropping to 300 ft for the dash west"
+    effects: {set_flag: dustoff_lifted}
+
+  - id: dusty_escort
+    when: {event: beat.fired, beat: dustoff_lifting}
+    delay_sec: 4
+    priority: 80
+    once: true
+    speaker: dusty_brennan
+    lines: [dusty_escort_v1]
+    text: "Dustoff, Dusty. On your left. Keep it low."

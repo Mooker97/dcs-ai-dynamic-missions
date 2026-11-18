@@ -1,0 +1,428 @@
+# m02 The Quarry — voice lines. Schema: schemas/voice-lines.schema.json (VoiceLineSet).
+# One entry per variant (<line>_vN); beats pick one at random without immediate repeats.
+# Subtitles only for now (no ElevenLabs). Style: callsign first, brevity-correct, no cheering.
+# Both player flights are PYTHON 1 on the radio, so no line names the start option.
+# Run-dependent facts (which site, which heading, counts) stay generic.
+mission_id: p02-moose
+model: eleven_v3
+lines:
+  # --- Rook Ops: mission_start (both flights) ---------------------------------------------------
+  - id: ops_start_v1
+    speaker: ops_lindqvist
+    beat: mission_start
+    delivery: "Routine. Even, measured."
+    text: "Python, Rook Ops on squadron. Tasking unchanged. Check in with Magic short of SHALE."
+  - id: ops_start_v2
+    speaker: ops_lindqvist
+    beat: mission_start
+    text: "Python, Rook Ops. Quarry tasking is still good. Magic has the picture. Check in short of the IP."
+  - id: ops_start_v3
+    speaker: ops_lindqvist
+    beat: mission_start
+    text: "Python, Rook Ops. No change to the ATO. Collateral estimate as briefed. Magic before SHALE."
+
+  # --- Incirlik Ground / Tower (ramp flight only) -----------------------------------------------
+  - id: ground_taxi_v1
+    speaker: tower_incirlik
+    beat: ramp_ground
+    delivery: "Flat, practised, slightly bored."
+    text: "Python One, Incirlik Ground. Taxi runway zero-five. Hold short."
+  - id: ground_taxi_v2
+    speaker: tower_incirlik
+    beat: ramp_ground
+    text: "Python One, Ground. Runway zero-five, taxi approved. Hold short."
+  - id: ground_taxi_v3
+    speaker: tower_incirlik
+    beat: ramp_ground
+    text: "Python One, Incirlik Ground. Taxi to zero-five. Report holding short."
+
+  - id: tower_departure_v1
+    speaker: tower_incirlik
+    beat: tower_departure
+    delivery: "Formula."
+    text: "Python One, Incirlik Tower. Airborne. Contact departure."
+  - id: tower_departure_v2
+    speaker: tower_incirlik
+    beat: tower_departure
+    text: "Python One, Tower. Radar contact on departure. Frequency change approved."
+  - id: tower_departure_v3
+    speaker: tower_incirlik
+    beat: tower_departure
+    text: "Python One, Incirlik Tower. Airborne. Switch departure. Good day."
+
+  - id: tower_recovery_v1
+    speaker: tower_incirlik
+    beat: tower_recovery
+    text: "Python One, Incirlik Tower. Runway zero-five. Report five-mile final."
+  - id: tower_recovery_v2
+    speaker: tower_incirlik
+    beat: tower_recovery
+    text: "Python One, Tower. Radar contact. Runway zero-five, report initial."
+  - id: tower_recovery_v3
+    speaker: tower_incirlik
+    beat: tower_recovery
+    text: "Python One, Incirlik Tower. Zero-five in use. Report five miles."
+
+  # --- Magic: check-in (GUARANTEED) -------------------------------------------------------------
+  - id: magic_checkin_v1
+    speaker: awacs_magic
+    beat: checkin_magic
+    delivery: "Cool, measured, exact."
+    text: "Python, Magic. Radar contact. Picture clean. Proceed IP SHALE."
+  - id: magic_checkin_v2
+    speaker: awacs_magic
+    beat: checkin_magic
+    text: "Python, Magic. Contact. No air. Cleared to SHALE."
+  - id: magic_checkin_v3
+    speaker: awacs_magic
+    beat: checkin_magic
+    text: "Python, Magic. Identified. Picture clean. Push SHALE."
+  - id: magic_checkin_v4
+    speaker: awacs_magic
+    beat: checkin_magic
+    text: "Python, Magic. Radar contact, west of SHALE. Picture clean."
+
+  # --- Jackal Two-Three: ground report (GUARANTEED) ---------------------------------------------
+  - id: jackal_report_v1
+    speaker: jtac_ortiz
+    beat: jackal_report
+    delivery: "First time on this net with Python. Crisp, unhurried, wind behind him."
+    text: "Python, Jackal Two-Three. Trucks in and out of the Quarry overnight. Hamlet east of the wall occupied."
+  - id: jackal_report_v2
+    speaker: jtac_ortiz
+    beat: jackal_report
+    text: "Python, Jackal Two-Three. Movement all night, guards in the pit. Families in the hamlet this morning."
+  - id: jackal_report_v3
+    speaker: jtac_ortiz
+    beat: jackal_report
+    text: "Python, Jackal Two-Three. Brigade saw trucks at the Quarry before dawn. Farm houses east are lived in."
+  - id: jackal_report_v4
+    speaker: jtac_ortiz
+    beat: jackal_report
+    text: "Python, Jackal Two-Three. Quarry busy last night, guns on the rim. Kids at the hamlet this morning."
+
+  # --- Rook Ops: acknowledges Jackal ------------------------------------------------------------
+  - id: ops_jackal_ack_v1
+    speaker: ops_lindqvist
+    beat: jackal_report_ack
+    text: "Jackal, Rook Ops. Copy. Python, collateral estimate stands. East wall is the limit."
+  - id: ops_jackal_ack_v2
+    speaker: ops_lindqvist
+    beat: jackal_report_ack
+    text: "Jackal, Rook Ops. Copy all. Python, nothing east of the wall."
+  - id: ops_jackal_ack_v3
+    speaker: ops_lindqvist
+    beat: jackal_report_ack
+    text: "Rook Ops copies, Jackal. Python, hamlet is no-strike. Plan your headings."
+
+  # --- Rook Ops: cleared to engage (GUARANTEED) -------------------------------------------------
+  - id: ops_cleared_v1
+    speaker: ops_lindqvist
+    beat: cleared_engage
+    delivery: "Deliberate. Every word placed."
+    text: "Python, Rook Ops. Cleared to engage the Quarry. PID each aimpoint on the pod. Nothing east of the wall."
+  - id: ops_cleared_v2
+    speaker: ops_lindqvist
+    beat: cleared_engage
+    text: "Python, Rook Ops. You're cleared on the Quarry. Pod PID before every release. Hamlet is no-strike."
+  - id: ops_cleared_v3
+    speaker: ops_lindqvist
+    beat: cleared_engage
+    text: "Python, Rook Ops. Cleared to engage. Active sites only. If you can't see it on the pod, don't drop."
+  - id: ops_cleared_v4
+    speaker: ops_lindqvist
+    beat: cleared_engage
+    text: "Python, Rook Ops. Quarry is cleared. Self-lase, PID required. Check the hamlet before every pickle."
+
+  # --- Rook Ops: intel mark (intel >= 2 only) ---------------------------------------------------
+  - id: ops_intel_mark_v1
+    speaker: ops_lindqvist
+    beat: intel_mark
+    text: "Python, Rook Ops. MQ-9 imagery shows one active storage site. Marked on your map."
+  - id: ops_intel_mark_v2
+    speaker: ops_lindqvist
+    beat: intel_mark
+    text: "Python, Rook Ops. Cyclops picked out one site with trucks. It's marked. The other is yours to find."
+  - id: ops_intel_mark_v3
+    speaker: ops_lindqvist
+    beat: intel_mark
+    text: "Python, Rook Ops. One site confirmed from the orbit yesterday. Check your map."
+
+  # --- Rook Ops: SAM telegraph ------------------------------------------------------------------
+  - id: ops_sam_warning_v1
+    speaker: ops_lindqvist
+    beat: sam_warning
+    delivery: "Shorter sentences than usual."
+    text: "Python, Rook Ops. ELINT has a short-range SAM moving east of Al Bab. Location unconfirmed."
+  - id: ops_sam_warning_v2
+    speaker: ops_lindqvist
+    beat: sam_warning
+    text: "Python, Rook Ops. Possible short-range SAM near the Quarry. Not located. Watch your RWR."
+  - id: ops_sam_warning_v3
+    speaker: ops_lindqvist
+    beat: sam_warning
+    text: "Python, Rook Ops. Short-range SAM activity reported beyond the target. Expect it late."
+
+  # --- Jackal: SAM launch -----------------------------------------------------------------------
+  - id: jackal_sam_launch_v1
+    speaker: jtac_ortiz
+    beat: sam_launch
+    delivery: "Faster, tighter."
+    text: "Python, Jackal. Observers report a missile launch east of the Quarry."
+  - id: jackal_sam_launch_v2
+    speaker: jtac_ortiz
+    beat: sam_launch
+    text: "Python, Jackal. Launch, beyond the target. Smoke trail climbing."
+  - id: jackal_sam_launch_v3
+    speaker: jtac_ortiz
+    beat: sam_launch
+    text: "Python, Jackal. Missile in the air, east side. Not shoulder-fired."
+
+  - id: ops_sam_dead_v1
+    speaker: ops_lindqvist
+    beat: sam_destroyed
+    text: "Python, Rook Ops. Copy SAM destroyed. One less for the Engineer."
+  - id: ops_sam_dead_v2
+    speaker: ops_lindqvist
+    beat: sam_destroyed
+    text: "Python, Rook Ops. Copy the SAM. Logging it."
+  - id: ops_sam_dead_v3
+    speaker: ops_lindqvist
+    beat: sam_destroyed
+    text: "Python, Rook Ops. Copy. That's a launcher off the board."
+
+  # --- Jackal: MANPADS telegraph and launch -----------------------------------------------------
+  - id: jackal_manpads_warning_v1
+    speaker: jtac_ortiz
+    beat: manpads_warning
+    text: "Python, Jackal. Observers report a MANPADS team moving near the Quarry. Vary your attack heading."
+  - id: jackal_manpads_warning_v2
+    speaker: jtac_ortiz
+    beat: manpads_warning
+    text: "Python, Jackal. Two men with a tube, moving on foot near the Quarry. Stay high."
+  - id: jackal_manpads_warning_v3
+    speaker: jtac_ortiz
+    beat: manpads_warning
+    text: "Python, Jackal. Brigade intercepted chatter. Shoulder-fired team setting up under the run-in."
+  - id: jackal_manpads_warning_v4
+    speaker: jtac_ortiz
+    beat: manpads_warning
+    text: "Python, Jackal. Expect MANPADS on your attack heading. Don't repeat a run."
+
+  - id: jackal_manpads_launch_v1
+    speaker: jtac_ortiz
+    beat: manpads_launch
+    delivery: "Clipped."
+    text: "Python, Jackal. Launch near the Quarry. Shoulder-fired."
+  - id: jackal_manpads_launch_v2
+    speaker: jtac_ortiz
+    beat: manpads_launch
+    text: "Python, Jackal. MANPADS launch. Low, from the farms."
+  - id: jackal_manpads_launch_v3
+    speaker: jtac_ortiz
+    beat: manpads_launch
+    text: "Python, Jackal. Missile off the ground near the target."
+
+  - id: jackal_aaa_v1
+    speaker: jtac_ortiz
+    beat: aaa_firing
+    text: "Python, Jackal. Triple-A up from the Quarry rim."
+  - id: jackal_aaa_v2
+    speaker: jtac_ortiz
+    beat: aaa_firing
+    text: "Python, Jackal. Guns firing on the rim. Barrage, not aimed."
+  - id: jackal_aaa_v3
+    speaker: jtac_ortiz
+    beat: aaa_firing
+    text: "Python, Jackal. Tracers over the Quarry. Stay above it."
+
+  # --- Pike: weapons effects --------------------------------------------------------------------
+  - id: pike_no_secondaries_v1
+    speaker: wingman_pike
+    beat: impact_no_secondaries
+    delivery: "Quick, slightly tense."
+    text: "Lead, Two. Impact. No secondaries."
+  - id: pike_no_secondaries_v2
+    speaker: wingman_pike
+    beat: impact_no_secondaries
+    text: "Lead, Two. Good hit. Nothing cooking off."
+  - id: pike_no_secondaries_v3
+    speaker: wingman_pike
+    beat: impact_no_secondaries
+    text: "Two. Impact. Dust only. Looks empty."
+
+  - id: pike_secondaries_v1
+    speaker: wingman_pike
+    beat: secondaries_first
+    delivery: "Fast, then catches himself."
+    text: "Lead, Two. Secondaries. Multiple. That one was full."
+  - id: pike_secondaries_v2
+    speaker: wingman_pike
+    beat: secondaries_first
+    text: "Lead, Two. Secondaries. Still going."
+  - id: pike_secondaries_v3
+    speaker: wingman_pike
+    beat: secondaries_first
+    text: "Two. Big secondary. Fireball off the site."
+  - id: pike_secondaries_v4
+    speaker: wingman_pike
+    beat: secondaries_first
+    text: "Lead, Two. Cook-off on that site. Stocks were there."
+
+  - id: pike_secondaries_two_v1
+    speaker: wingman_pike
+    beat: secondaries_second
+    text: "Lead, Two. Second site destroyed. Still cooking off."
+  - id: pike_secondaries_two_v2
+    speaker: wingman_pike
+    beat: secondaries_second
+    text: "Two. Secondaries again. Second site."
+  - id: pike_secondaries_two_v3
+    speaker: wingman_pike
+    beat: secondaries_second
+    text: "Lead, Two. Another cook-off. That's two."
+
+  - id: ops_stocks_done_v1
+    speaker: ops_lindqvist
+    beat: stocks_done_ops
+    text: "Python, Rook Ops. Copy two sites with secondaries. Nice work, Python."
+  - id: ops_stocks_done_v2
+    speaker: ops_lindqvist
+    beat: stocks_done_ops
+    text: "Python, Rook Ops. Copy. Both sites. Egress when ready."
+  - id: ops_stocks_done_v3
+    speaker: ops_lindqvist
+    beat: stocks_done_ops
+    text: "Python, Rook Ops. Copy secondaries on two. That's the tasking."
+
+  # --- Jackal: command building -----------------------------------------------------------------
+  - id: jackal_command_v1
+    speaker: jtac_ortiz
+    beat: command_destroyed
+    text: "Python, Jackal. Good effects on the command building."
+  - id: jackal_command_v2
+    speaker: jtac_ortiz
+    beat: command_destroyed
+    text: "Python, Jackal. Command building is down. Vehicles burning."
+  - id: jackal_command_v3
+    speaker: jtac_ortiz
+    beat: command_destroyed
+    text: "Python, Jackal. Observers confirm the command compound destroyed."
+
+  # --- Jackal: squirter -------------------------------------------------------------------------
+  - id: jackal_squirter_v1
+    speaker: jtac_ortiz
+    beat: squirter_warning
+    text: "Python, Jackal. One truck leaving the Quarry, south toward Al Bab. Civilian traffic on that road."
+  - id: jackal_squirter_v2
+    speaker: jtac_ortiz
+    beat: squirter_warning
+    text: "Python, Jackal. Squirter. Single truck out the south-west gate. Cars on the same road."
+  - id: jackal_squirter_v3
+    speaker: jtac_ortiz
+    beat: squirter_warning
+    text: "Python, Jackal. Vehicle running from the Quarry toward town. PID it before you touch it."
+
+  - id: jackal_squirter_dead_v1
+    speaker: jtac_ortiz
+    beat: squirter_destroyed
+    text: "Python, Jackal. Truck stopped. Good effects."
+  - id: jackal_squirter_dead_v2
+    speaker: jtac_ortiz
+    beat: squirter_destroyed
+    text: "Python, Jackal. Squirter destroyed. Road is clear of it."
+  - id: jackal_squirter_dead_v3
+    speaker: jtac_ortiz
+    beat: squirter_destroyed
+    text: "Python, Jackal. Good hit on the truck."
+
+  # --- Rook Ops: check fire ---------------------------------------------------------------------
+  - id: ops_check_fire_v1
+    speaker: ops_lindqvist
+    beat: civilian_hit
+    delivery: "Same pace, colder."
+    text: "Python, Rook Ops. Check fire, check fire. Civilian vehicle hit."
+  - id: ops_check_fire_v2
+    speaker: ops_lindqvist
+    beat: civilian_hit
+    text: "Python, Rook Ops. Check fire. Jackal reports a civilian vehicle destroyed."
+  - id: ops_check_fire_v3
+    speaker: ops_lindqvist
+    beat: civilian_hit
+    text: "Check fire, check fire. Python, not a target. Hold all releases."
+  - id: ops_check_fire_v4
+    speaker: ops_lindqvist
+    beat: civilian_hit
+    text: "Python, Rook Ops. Check fire. Civilian casualty reported. Confirm your aimpoint."
+
+  # --- Pike: player hit -------------------------------------------------------------------------
+  - id: pike_player_hit_v1
+    speaker: wingman_pike
+    beat: player_hit
+    text: "Lead, Two. You took hits. Say status."
+  - id: pike_player_hit_v2
+    speaker: wingman_pike
+    beat: player_hit
+    text: "Lead, Two. Flash on your jet. Say status."
+  - id: pike_player_hit_v3
+    speaker: wingman_pike
+    beat: player_hit
+    text: "Lead, Two. Something hit you. You okay?"
+
+  # --- Rook Ops: RTB (GUARANTEED) ---------------------------------------------------------------
+  - id: ops_rtb_v1
+    speaker: ops_lindqvist
+    beat: rtb_call
+    text: "Python, Rook Ops. Copy off target. Say BDA. RTB, check out with Magic."
+  - id: ops_rtb_v2
+    speaker: ops_lindqvist
+    beat: rtb_call
+    text: "Python, Rook Ops. Copy egress. Pass BDA, then RTB."
+  - id: ops_rtb_v3
+    speaker: ops_lindqvist
+    beat: rtb_call
+    text: "Python, Rook Ops. Off target, copy. BDA on the way home. RTB Incirlik."
+  - id: ops_rtb_v4
+    speaker: ops_lindqvist
+    beat: rtb_call
+    text: "Python, Rook Ops. Copy GATE. Say BDA and fuel state. Recover Incirlik."
+
+  # --- Rook Ops: on deck (GUARANTEED, ends the mission) -----------------------------------------
+  - id: ops_on_deck_v1
+    speaker: ops_lindqvist
+    beat: on_deck
+    text: "Python, Rook Ops. Copy on deck. Debrief in the vault after shutdown."
+  - id: ops_on_deck_v2
+    speaker: ops_lindqvist
+    beat: on_deck
+    text: "Python, Rook Ops. Copy on deck. Tapes to intel before the debrief."
+  - id: ops_on_deck_v3
+    speaker: ops_lindqvist
+    beat: on_deck
+    text: "Python, Rook Ops. On deck, copy. Debrief at the top of the hour."
+
+  # --- Magic: ambient picture -------------------------------------------------------------------
+  - id: magic_picture_v1
+    speaker: awacs_magic
+    beat: ambient_picture
+    text: "Python, Magic. Picture clean."
+  - id: magic_picture_v2
+    speaker: awacs_magic
+    beat: ambient_picture
+    text: "Python, Magic. Picture clean. No change."
+  - id: magic_picture_v3
+    speaker: awacs_magic
+    beat: ambient_picture
+    text: "Magic, picture clean, no air in the area."
+  - id: ops_recovery_timeout_v1
+    speaker: ops_lindqvist
+    beat: recovery_timeout
+    text: "Python, Rook Ops. Closing the sortie log. Recover when able."
+  - id: ops_recovery_timeout_v2
+    speaker: ops_lindqvist
+    beat: recovery_timeout
+    text: "Python, Rook Ops. Vul is long over. Logging the sortie, bring it home."
+  - id: ops_recovery_timeout_v3
+    speaker: ops_lindqvist
+    beat: recovery_timeout
+    text: "Python, Rook Ops. Board is closing on this one. Land at your discretion."

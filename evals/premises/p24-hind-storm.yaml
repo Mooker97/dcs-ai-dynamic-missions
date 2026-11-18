@@ -1,0 +1,27 @@
+# Eval premise p24-hind-storm. Schema: evals/run.py Premise. Give `prompt` to the story-writer skill verbatim,
+# then score: uv run python evals/run.py --score campaigns/<slug> --premise p24-hind-storm
+id: p24-hind-storm
+title: Hind Storm
+genre: fictional
+prompt: '1988. The Cold War turns hot in a fictional scenario: Warsaw Pact forces push into West Germany
+  and a Mi-24 regiment leads the air assault, fighting NATO attack helicopters and short-range air defences.'
+expect:
+  theater: GermanyCW
+  era: [1986, 1989]
+  mode: fictional
+  player_coalition: red
+  airframes: [Mi-24P]
+  airframe_role: attack_helo
+  missions: [4, 6]
+  mission_types: [CAS]
+  story_elements:
+  - id: air_assault
+    description: Helicopter air assault
+    any_of: [air assault, assault]
+  - id: nato_helos
+    description: NATO attack helicopters
+    any_of: [apache, cobra, attack helicopter]
+  - id: shorad
+    description: Short-range air defence
+    any_of: [gepard, stinger, chaparral, shorad, air defence, air defense]
+notes: Fictional WW3, red helicopter, GermanyCW map.

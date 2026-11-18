@@ -1,0 +1,75 @@
+# Golden g05: CH-47F resupply to a ridge outpost (TRANSPORT).
+schema_version: 1
+id: g05-afghanistan-ch47-transport
+title: "Pallets for Eyrie"
+campaign: evals
+content_mode: fictional
+theater: Afghanistan
+era: 2011
+date: 2011-06-14
+start_time: "05:40"
+weather_preset: clear
+mission_type: TRANSPORT
+duration_min: 50
+blue_countries: [USA]
+red_countries: [Insurgents]
+cast: [ops_bagram, outpost_lead]
+areas:
+  - id: bagram
+    description: "Home base."
+    where: {kind: near_airbase, airbase: Bagram, radius_nm: 1}
+  - id: bagram_approach
+    description: "Return circle."
+    where: {kind: near_airbase, airbase: Bagram, radius_nm: 5}
+  - id: outpost
+    description: "OP Eyrie landing zone on the ridge."
+    where: {kind: latlon, lat: 35.08, lon: 69.42, radius_nm: 0.5}
+    terrain: high_ground
+  - id: ridge_villages
+    description: "Villages below the ridge where the militia lives."
+    where: {kind: latlon, lat: 35.05, lon: 69.38, radius_nm: 1.5}
+    terrain: urban
+player_flights:
+  - callsign: Hauler
+    aircraft: CH-47Fbl1
+    count: 1
+    country: USA
+    start_area: bagram
+    start_type: parking_cold
+    loadout: auto
+    tasking: "Fly the pallets to OP Eyrie, land, and return to Bagram."
+objectives:
+  - id: deliver
+    kind: land
+    description: "Land at OP Eyrie with the resupply."
+    area: outpost
+    success_flag: cargo_delivered
+  - id: rtb
+    kind: land
+    description: "Recover to Bagram."
+    area: bagram
+    success_flag: landed_home
+threats:
+  - id: ridge_dshk
+    role: technicals
+    area: ridge_villages
+    strength: light
+    faction: ridge_militia
+    skill: Average
+dynamic:
+  pools:
+    - id: lz_watchers
+      roles: [infantry, technicals]
+      areas: [ridge_villages]
+      pick: [1, 2]
+      faction: ridge_militia
+  encounters:
+    - id: lz_ambush
+      kind: pool
+      pool: lz_watchers
+      trigger: {type: proximity, area: outpost, radius_nm: 2}
+      chance: 60
+      telegraph_beat: eyrie_warning
+  director: {enabled: true, intensity: calm, adaptive: true}
+  fog_of_war: {enabled: true, reveal_radius_km: 4, mark_refresh_sec: 15}
+seed: 50511

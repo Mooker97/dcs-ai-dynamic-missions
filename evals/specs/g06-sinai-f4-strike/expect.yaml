@@ -1,0 +1,11 @@
+# Golden expectations checked by evals/run.py --golden
+theater: Sinai
+mission_type: STRIKE
+player_aircraft: [F-4E-45MC]
+max_warnings: 1        # cap on validate warnings (set to the observed count)
+min_groups: 4          # plan.groups lower bound (set to observed)
+runtime:               # exact counts in plan.runtime (set to observed)
+  beats: 8
+  pools: 1
+  encounters: 1
+  voice: 12

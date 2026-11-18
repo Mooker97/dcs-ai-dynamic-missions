@@ -1,0 +1,269 @@
+{
+  "$defs": {
+    "PlayerOutcome": {
+      "additionalProperties": false,
+      "description": "Per-player facts in an outcome (contract v0.9 `players[]`; runtime not implemented yet).\n\nA bare string (the pre-v0.9 shape, a player name) is accepted and becomes ``{name}``. Facts\nare counted per player name, so multicrew (two players in one unit) gives two entries.",
+      "properties": {
+        "name": {
+          "description": "DCS player name (multiplayer callsign).",
+          "title": "Name",
+          "type": "string"
+        },
+        "flight": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Player group name the player flew in (dynamic slots included).",
+          "title": "Flight"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Unit name of the player's aircraft.",
+          "title": "Unit"
+        },
+        "type_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Aircraft type, e.g. 'F-16C_50'.",
+          "title": "Type Name"
+        },
+        "kills": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "Kills credited to this player by category or type.",
+          "title": "Kills",
+          "type": "object"
+        },
+        "dead": {
+          "default": false,
+          "description": "The player was killed (PILOT_DEAD).",
+          "title": "Dead",
+          "type": "boolean"
+        },
+        "ejected": {
+          "default": false,
+          "description": "The player ejected.",
+          "title": "Ejected",
+          "type": "boolean"
+        },
+        "late": {
+          "default": false,
+          "description": "Joined after mission start (player.joined_late fired).",
+          "title": "Late",
+          "type": "boolean"
+        },
+        "joined_sec": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Mission time (s) the player first spawned.",
+          "title": "Joined Sec"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "PlayerOutcome",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "One outcome report. A mission usually emits several (per beat, plus a final summary).",
+  "properties": {
+    "mission_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Mission id from DMS_CONFIG.",
+      "title": "Mission Id"
+    },
+    "time": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Mission time (s) when emitted.",
+      "title": "Time"
+    },
+    "kind": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Report kind, e.g. 'beat', 'objective', 'summary', 'end'.",
+      "title": "Kind"
+    },
+    "beat": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Beat id that emitted it, if any.",
+      "title": "Beat"
+    },
+    "result": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "'success' / 'failure' for end reports.",
+      "title": "Result"
+    },
+    "flags": {
+      "additionalProperties": {
+        "type": "boolean"
+      },
+      "description": "Flag states.",
+      "title": "Flags",
+      "type": "object"
+    },
+    "outcomes": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "string"
+          }
+        ]
+      },
+      "description": "Outcome facts, e.g. {hvt_killed: true}.",
+      "title": "Outcomes",
+      "type": "object"
+    },
+    "kills": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "description": "Enemy kills by category or type, e.g. {ground: 7}.",
+      "title": "Kills",
+      "type": "object"
+    },
+    "losses": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "description": "Friendly losses by category or type.",
+      "title": "Losses",
+      "type": "object"
+    },
+    "players": {
+      "description": "Players involved. Pre-v0.9 lines carry bare names (accepted as {name}); v0.9 adds per-player facts (flight, kills, dead/ejected, late).",
+      "items": {
+        "$ref": "#/$defs/PlayerOutcome"
+      },
+      "title": "Players",
+      "type": "array"
+    },
+    "quality_deltas": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "description": "Cumulative quality changes from beat effects (the debriefer applies them).",
+      "title": "Quality Deltas",
+      "type": "object"
+    },
+    "qualities": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "description": "Live quality values in the mission (seed + deltas).",
+      "title": "Qualities",
+      "type": "object"
+    },
+    "beats": {
+      "description": "Beat ids fired so far, in order.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Beats",
+      "type": "array"
+    },
+    "log_timestamp": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "dcs.log wall-clock timestamp.",
+      "title": "Log Timestamp"
+    },
+    "extra": {
+      "additionalProperties": true,
+      "description": "Unrecognised keys, verbatim.",
+      "title": "Extra",
+      "type": "object"
+    }
+  },
+  "title": "MissionOutcome",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dms.local/schemas/mission-outcome.schema.json"
+}

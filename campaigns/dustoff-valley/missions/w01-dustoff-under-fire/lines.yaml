@@ -1,0 +1,212 @@
+# w01 Dustoff Under Fire — voice lines (WATCH mission). Schema: schemas/voice-lines.schema.json (VoiceLineSet).
+# Budget: only the 12 spine lines are voiced (one variant each, same audio every run); every other
+# line is `voiced: false` (subtitle only, never sent to ElevenLabs). Voiced total must stay <= 1,500 chars.
+# Style: callsign-first, terse, no cheering. Eleven v3 tags only on three voiced Kestrel lines.
+mission_id: w01-dustoff-under-fire
+model: eleven_v3
+lines:
+  # ===== Voiced spine (12) =====================================================================
+  - id: ops_start_v1
+    speaker: ops_walsh
+    beat: mission_start
+    delivery: "Routine tasking, dry, unhurried."
+    text: "Dusty, Dustoff Three-One, Hatay Ops. Kestrel has one urgent surgical. Cleared in."
+  - id: kestrel_casualty_v1
+    speaker: kestrel_ferris
+    beat: kestrel_casualty
+    delivery: "Low, close to the mic, lying in the hide."
+    text: "[whispers] Dustoff, Kestrel Two-Two. One urgent surgical. LZ is the field below us."
+    subtitle: "Dustoff, Kestrel Two-Two. One urgent surgical. LZ is the field below us."
+  - id: kestrel_technicals_v1
+    speaker: kestrel_ferris
+    beat: technicals_spotted
+    delivery: "Quiet, precise, a little faster."
+    text: "Dusty, Kestrel. Technicals on the canal road, northbound toward the LZ."
+  - id: dusty_tally_v1
+    speaker: dusty_brennan
+    beat: dusty_tally
+    delivery: "Flat, working voice."
+    text: "Kestrel, Dusty. Tally the road. Pushing ahead to engage."
+  - id: ops_strike_v1
+    speaker: ops_walsh
+    beat: strike_cleared
+    delivery: "Measured, every word deliberate."
+    text: "Venom One-One, Hatay Ops. Compound south of the ridge. Cleared hot."
+  - id: venom_bombs_v1
+    speaker: venom_lindqvist
+    beat: bombs_away
+    delivery: "Clipped, through the mask."
+    text: "Venom One-One, bombs away. Thirty seconds."
+  - id: dusty_lz_cold_v1
+    speaker: dusty_brennan
+    beat: lz_cleared
+    delivery: "Calm, slight breath after the engagement."
+    text: "Dustoff, Dusty. LZ is cold. Come in from the west."
+  - id: dustoff_inbound_v1
+    speaker: dustoff_whitfield
+    beat: dustoff_inbound
+    delivery: "Businesslike, rotor noise behind."
+    text: "Dusty, Dustoff. Inbound from the west. Short final in one minute."
+  - id: kestrel_lz_hot_v1
+    speaker: kestrel_ferris
+    beat: lz_hot_warning
+    delivery: "Raised a notch, still controlled."
+    text: "[urgent] Dusty, Kestrel. Movement in the treeline east of the LZ."
+    subtitle: "Dusty, Kestrel. Movement in the treeline east of the LZ."
+  - id: dustoff_lifting_v1
+    speaker: dustoff_whitfield
+    beat: dustoff_lifting
+    delivery: "Strained by power demand, still even."
+    text: "Dustoff Three-One lifting. One urgent surgical aboard. Egress west."
+  - id: kestrel_egress_gun_v1
+    speaker: kestrel_ferris
+    beat: egress_gun_warning
+    delivery: "Quick, low."
+    text: "[urgent] Dusty, Kestrel. Gun truck moving south of Dustoff's egress."
+    subtitle: "Dusty, Kestrel. Gun truck moving south of Dustoff's egress."
+  - id: ops_clear_v1
+    speaker: ops_walsh
+    beat: dustoff_clear
+    delivery: "Dry; the faintest relief."
+    text: "Dustoff, Hatay Ops. Copy clear of the valley. Surgical team is waiting."
+
+  # ===== Subtitle only (voiced: false) =========================================================
+  # --- Dusty: LZ fallback call (lz_cleared_timeout)
+  - {id: dusty_lz_timeout_v1, speaker: dusty_brennan, beat: lz_cleared_timeout, voiced: false,
+     text: "Dustoff, Dusty. Column's stopped short. Come in now, from the west."}
+  - {id: dusty_lz_timeout_v2, speaker: dusty_brennan, beat: lz_cleared_timeout, voiced: false,
+     text: "Dustoff, Dusty. Road's quiet enough. Come in, west to east."}
+  - {id: dusty_lz_timeout_v3, speaker: dusty_brennan, beat: lz_cleared_timeout, voiced: false,
+     text: "Dustoff, Dusty. I'm overhead the LZ. Come in now."}
+
+  # --- Ops: hard-stop endings
+  - {id: ops_timeout_ok_v1, speaker: ops_walsh, beat: timeout_end_ok, voiced: false,
+     text: "Dustoff, Hatay Ops. Copy casualty aboard. Surgical team standing by."}
+  - {id: ops_timeout_ok_v2, speaker: ops_walsh, beat: timeout_end_ok, voiced: false,
+     text: "Dustoff, Ops. Copy one aboard. Straight to the pad."}
+  - {id: ops_timeout_ok_v3, speaker: ops_walsh, beat: timeout_end_ok, voiced: false,
+     text: "Dustoff, Hatay Ops. Copy. Surgeons are on the pad."}
+  - {id: ops_timeout_fail_v1, speaker: ops_walsh, beat: timeout_end_fail, voiced: false,
+     text: "Dustoff, Ops. Out of time. Bring it home. Ground evac tonight."}
+  - {id: ops_timeout_fail_v2, speaker: ops_walsh, beat: timeout_end_fail, voiced: false,
+     text: "All stations, Hatay Ops. Evac aborted. Kestrel, hold him till dark."}
+  - {id: ops_timeout_fail_v3, speaker: ops_walsh, beat: timeout_end_fail, voiced: false,
+     text: "Dustoff, Ops. Abort. Kestrel, we'll come for him tonight."}
+
+  # --- Losses
+  - {id: dusty_dustoff_down_v1, speaker: dusty_brennan, beat: dustoff_lost, voiced: false,
+     text: "Ops, Dusty. Dustoff is down. Marking the site."}
+  - {id: dusty_dustoff_down_v2, speaker: dusty_brennan, beat: dustoff_lost, voiced: false,
+     text: "Ops, Dusty. Dustoff's down west of the ridge. Orbiting the wreck."}
+  - {id: dusty_dustoff_down_v3, speaker: dusty_brennan, beat: dustoff_lost, voiced: false,
+     text: "Ops, Dusty. Lost Dustoff. Staying overhead."}
+  - {id: ops_dustoff_down_v1, speaker: ops_walsh, beat: dustoff_lost_end, voiced: false,
+     text: "Dusty, Hatay Ops. Copy. CSAR is launching. Hold overhead."}
+  - {id: ops_dustoff_down_v2, speaker: ops_walsh, beat: dustoff_lost_end, voiced: false,
+     text: "Dusty, Ops. Copy all. Stay overhead till relieved."}
+  - {id: ops_dustoff_down_v3, speaker: ops_walsh, beat: dustoff_lost_end, voiced: false,
+     text: "Dusty, Hatay Ops. Copy. Second aircraft is spinning up."}
+  - {id: kestrel_dusty_down_v1, speaker: kestrel_ferris, beat: dusty_lost, voiced: false,
+     text: "Ops, Kestrel. Dusty is down, west of the LZ."}
+  - {id: kestrel_dusty_down_v2, speaker: kestrel_ferris, beat: dusty_lost, voiced: false,
+     text: "Ops, Kestrel. Apache's gone in. Below the ridge."}
+  - {id: kestrel_dusty_down_v3, speaker: kestrel_ferris, beat: dusty_lost, voiced: false,
+     text: "Ops, Kestrel. Lost sight of Dusty. Smoke near the road."}
+
+  # --- Status nudge and reply
+  - {id: ops_status_v1, speaker: ops_walsh, beat: ops_say_status, voiced: false,
+     text: "Dusty, Hatay Ops. Say status of the LZ."}
+  - {id: ops_status_v2, speaker: ops_walsh, beat: ops_say_status, voiced: false,
+     text: "Dusty, Ops. Status. Dustoff's burning gas at the gate."}
+  - {id: ops_status_v3, speaker: ops_walsh, beat: ops_say_status, voiced: false,
+     text: "Dusty, Hatay Ops. How long on the LZ?"}
+  - {id: dusty_status_v1, speaker: dusty_brennan, beat: dusty_status_reply, voiced: false,
+     text: "Ops, Dusty. Engaging the column. LZ in two minutes."}
+  - {id: dusty_status_v2, speaker: dusty_brennan, beat: dusty_status_reply, voiced: false,
+     text: "Ops, Dusty. Still working the road. Stand by."}
+  - {id: dusty_status_v3, speaker: dusty_brennan, beat: dusty_status_reply, voiced: false,
+     text: "Ops, Dusty. Column's spread out. Couple of minutes."}
+
+  # --- Dustoff holding
+  - {id: dustoff_holding_v1, speaker: dustoff_whitfield, beat: dustoff_holding, voiced: false,
+     text: "Dusty, Dustoff Three-One. Holding at the gate. Call the LZ."}
+  - {id: dustoff_holding_v2, speaker: dustoff_whitfield, beat: dustoff_holding, voiced: false,
+     text: "Dusty, Dustoff. At the gate, orbiting. Your call."}
+  - {id: dustoff_holding_v3, speaker: dustoff_whitfield, beat: dustoff_holding, voiced: false,
+     text: "Dusty, Dustoff Three-One. Gate. Holding for your call."}
+  - {id: kestrel_patient_v1, speaker: kestrel_ferris, beat: kestrel_patient_update, voiced: false,
+     text: "Dustoff, Kestrel. Casualty's conscious. Tourniquet on at oh-six-twenty."}
+  - {id: kestrel_patient_v2, speaker: kestrel_ferris, beat: kestrel_patient_update, voiced: false,
+     text: "Dustoff, Kestrel. He's stable. Lost a fair bit of blood."}
+  - {id: kestrel_patient_v3, speaker: kestrel_ferris, beat: kestrel_patient_update, voiced: false,
+     text: "Dustoff, Kestrel. Casualty's talking. One litter, one walking escort."}
+
+  # --- The column
+  - {id: kestrel_column_hit_v1, speaker: kestrel_ferris, beat: column_hit, voiced: false,
+     text: "Dusty, Kestrel. Good effect. Lead truck's burning."}
+  - {id: kestrel_column_hit_v2, speaker: kestrel_ferris, beat: column_hit, voiced: false,
+     text: "Dusty, Kestrel. Hit. Column's stopped."}
+  - {id: kestrel_column_hit_v3, speaker: kestrel_ferris, beat: column_hit, voiced: false,
+     text: "Dusty, Kestrel. Good effect. They're bailing out on foot."}
+  - {id: kestrel_column_more_v1, speaker: kestrel_ferris, beat: column_kill_followup, voiced: false,
+     text: "Dusty, Kestrel. Another one stopped."}
+  - {id: kestrel_column_more_v2, speaker: kestrel_ferris, beat: column_kill_followup, voiced: false,
+     text: "Dusty, Kestrel. Good effect, second truck."}
+  - {id: kestrel_column_more_v3, speaker: kestrel_ferris, beat: column_kill_followup, voiced: false,
+     text: "Dusty, Kestrel. That one's done."}
+  - {id: dusty_hit_v1, speaker: dusty_brennan, beat: dusty_hit, voiced: false,
+     text: "Dusty, taking fire. Still in the fight."}
+  - {id: dusty_hit_v2, speaker: dusty_brennan, beat: dusty_hit, voiced: false,
+     text: "Dusty, hit. Systems good. Continuing."}
+  - {id: dusty_hit_v3, speaker: dusty_brennan, beat: dusty_hit, voiced: false,
+     text: "Dusty, rounds through the tail. Still flying."}
+
+  # --- Venom strike
+  - {id: kestrel_compound_v1, speaker: kestrel_ferris, beat: kestrel_compound, voiced: false,
+     text: "Ops, Kestrel. More trucks loading at the compound. Second push coming."}
+  - {id: kestrel_compound_v2, speaker: kestrel_ferris, beat: kestrel_compound, voiced: false,
+     text: "Ops, Kestrel. Compound's busy. Trucks forming up to follow."}
+  - {id: kestrel_compound_v3, speaker: kestrel_ferris, beat: kestrel_compound, voiced: false,
+     text: "Ops, Kestrel. Second group at the compound, loading now."}
+  - {id: venom_copy_v1, speaker: venom_lindqvist, beat: venom_copy, voiced: false,
+     text: "Venom One-One, cleared hot. Two minutes."}
+  - {id: venom_copy_v2, speaker: venom_lindqvist, beat: venom_copy, voiced: false,
+     text: "Venom One-One, copy cleared hot. Pushing."}
+  - {id: venom_copy_v3, speaker: venom_lindqvist, beat: venom_copy, voiced: false,
+     text: "Venom, cleared hot. Kestrel, heads down."}
+  - {id: kestrel_bda_v1, speaker: kestrel_ferris, beat: strike_bda, voiced: false,
+     text: "Ops, Kestrel. Good hits on the compound. Nothing moving."}
+  - {id: kestrel_bda_v2, speaker: kestrel_ferris, beat: strike_bda, voiced: false,
+     text: "Ops, Kestrel. Splash. Compound's burning."}
+  - {id: kestrel_bda_v3, speaker: kestrel_ferris, beat: strike_bda, voiced: false,
+     text: "Ops, Kestrel. Impacts in the compound. Trucks are done."}
+
+  # --- Hot LZ
+  - {id: dusty_lz_hot_v1, speaker: dusty_brennan, beat: lz_hot_engage, voiced: false,
+     text: "Dustoff, Dusty. Shooters east of the LZ. Engaging. Keep coming."}
+  - {id: dusty_lz_hot_v2, speaker: dusty_brennan, beat: lz_hot_engage, voiced: false,
+     text: "Dustoff, Dusty. Contact east. I'm on it. Continue."}
+  - {id: dusty_lz_hot_v3, speaker: dusty_brennan, beat: lz_hot_engage, voiced: false,
+     text: "Dustoff, Dusty. Treeline east. Engaging. Land west side."}
+
+  # --- On the ground
+  - {id: dustoff_down_v1, speaker: dustoff_whitfield, beat: dustoff_down, voiced: false,
+     text: "Dustoff on the ground. Loading."}
+  - {id: dustoff_down_v2, speaker: dustoff_whitfield, beat: dustoff_down, voiced: false,
+     text: "Dustoff, down at the LZ. Medic's out."}
+  - {id: dustoff_down_v3, speaker: dustoff_whitfield, beat: dustoff_down, voiced: false,
+     text: "Dustoff on deck. Ninety seconds."}
+
+  # --- Egress gun
+  - {id: dusty_egress_gun_v1, speaker: dusty_brennan, beat: egress_gun_engage, voiced: false,
+     text: "Dustoff, Dusty. Gun truck south. Stay north, I have it."}
+  - {id: dusty_egress_gun_v2, speaker: dusty_brennan, beat: egress_gun_engage, voiced: false,
+     text: "Dustoff, Dusty. Gun south of your track. Go north. Engaging."}
+  - {id: dusty_egress_gun_v3, speaker: dusty_brennan, beat: egress_gun_engage, voiced: false,
+     text: "Dustoff, Dusty. Tally the gun. Keep low, keep north."}
+  - {id: dustoff_taking_fire_v1, speaker: dustoff_whitfield, beat: egress_gun_firing, voiced: false,
+     text: "Dustoff, taking fire from the south. Breaking north."}
+  - {id: dustoff_taking_fire_v2, speaker: dustoff_whitfield, beat: egress_gun_firing, voiced: false,
+     text: "Dustoff, tracers south. Turning away."}
+  - {id: dustoff_taking_fire_v3, speaker: dustoff_whitfield, beat: egress_gun_firing, voiced: false,
+     text: "Dustoff, under fire. Going low, north."}

@@ -1,0 +1,40 @@
+FileType=text/acmi/tacview
+FileVersion=2.2
+// Hand-written DMS fixture (G1 debrief merge): an AI A-10 with a Pilot appears first, so the
+// heuristic would pick it; the player (Pilot=Mooker) is found through MissionOutcome.players.
+// Player takes off, drops two Mk-82 (Parent set) in the target zone: one kills truck 301
+// (Destroyed event), one misses truck 302. Player lands.
+0,ReferenceTime=2026-10-29T06:00:00Z,RecordingTime=2026-10-29T20:00:00Z,Title=m02 Hog CAS fixture
+0,DataSource=DCS 2.9.9,DataRecorder=Tacview 1.9.4,ReferenceLongitude=42,ReferenceLatitude=43
+#0
+201,T=0.2|0.2|30|0|0|90,Type=Air+FixedWing,Name=A-10C_2,Pilot=Hawg 2-1,Group=Hawg 2,Coalition=Allies,Color=Blue,Country=us
+#1
+101,T=0.2|0.201|30|0|0|90,Type=Air+FixedWing,Name=A-10C_2,Pilot=Mooker,Group=Hawg 1,Coalition=Allies,Color=Blue,Country=us
+301,T=0.3|0.1|200,Type=Ground+Vehicle,Name=Ural-375,Group=Column,Coalition=Enemies,Color=Red,Country=ru
+302,T=0.31|0.1|200,Type=Ground+Vehicle,Name=Ural-375,Group=Column,Coalition=Enemies,Color=Red,Country=ru
+#10
+0,Event=TakenOff|101|Mooker has taken off from Senaki
+#60
+101,T=0.25|0.1|600|||
+#120
+101,T=0.29|0.1|150|||
+401,T=0.29|0.1|150|0|-5|90,Type=Weapon+Bomb,Name=Mk-82,Parent=101,Coalition=Allies,Color=Blue
+#125
+101,T=0.305|0.1|140|||
+401,T=0.2995|0.1|205|||
+#126
+-401
+0,Event=Destroyed|301|
+#130
+402,T=0.31|0.1|140|0|-5|90,Type=Weapon+Bomb,Name=Mk-82,Parent=101,Coalition=Allies,Color=Blue
+#135
+402,T=0.318|0.1|190|||
+#136
+-402
+#180
+101,T=0.35|0.15|900|||
+#400
+101,T=0.2|0.2|30|||
+0,Event=Landed|101|Mooker has landed at Senaki
+#410
+201,T=0.2|0.2|30|||

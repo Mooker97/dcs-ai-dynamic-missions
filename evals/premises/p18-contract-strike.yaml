@@ -1,0 +1,28 @@
+# Eval premise p18-contract-strike. Schema: evals/run.py Premise. Give `prompt` to the story-writer skill verbatim,
+# then score: uv run python evals/run.py --score campaigns/<slug> --premise p18-contract-strike
+id: p18-contract-strike
+title: Paper Wings
+genre: fictional
+prompt: 2027. A private military company leases Strike Eagles to a fragile government in a fictional civil
+  war on the Syria map. The player is a contract pilot who learns the target lists come from a client
+  with its own agenda.
+expect:
+  theater: Syria
+  era: [2025, 2029]
+  mode: fictional
+  player_coalition: blue
+  airframes: [F-15ESE]
+  airframe_role: strike
+  missions: [4, 6]
+  mission_types: [STRIKE]
+  story_elements:
+  - id: contractor
+    description: Private military contractors
+    any_of: [contract, pmc, private military]
+  - id: target_lists
+    description: Suspicious target lists
+    any_of: [target list, target package]
+  - id: agenda
+    description: The client's hidden agenda
+    any_of: [agenda]
+notes: Fictional, morally grey strike campaign.

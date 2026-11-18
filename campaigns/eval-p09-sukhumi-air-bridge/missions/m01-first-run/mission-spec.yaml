@@ -1,0 +1,202 @@
+# m01 First Run — Senaki to Babushara with ammunition, back with refugees.
+# Schema: schemas/mission-spec.schema.json (MissionSpec). Validate: uv run dms validate <this file>
+# State read at design time: state/qualities.yaml (campaign start: garrison_supply 1, refugees_saved 0,
+# airframes 2, fuel 1, approach_threat 1). No flags, no outcomes yet.
+schema_version: 1
+id: m01-first-run
+title: "First Run"
+campaign: eval-p09-sukhumi-air-bridge
+content_mode: adapted
+theater: Caucasus
+era: 1993
+date: 1993-09-17
+start_time: "09:30"
+weather_preset: scattered
+mission_type: TRANSPORT
+duration_min: 75
+blue_countries: [Abkhazia, Insurgents]
+red_countries: [Georgia]
+cast: [ops_gelashvili, tower_abashidze, ground_beridze, crew_tsiklauri]
+
+areas:
+  - id: senaki
+    description: "Senaki-Kolkhi, the detachment's home base."
+    where: {kind: near_airbase, airbase: Senaki-Kolkhi, radius_nm: 1}
+  - id: senaki_approach
+    description: "Return circle around Senaki; entering it with the cargo delivered triggers Kolkhi's inbound call."
+    where: {kind: near_airbase, airbase: Senaki-Kolkhi, radius_nm: 6}
+  - id: ip_inguri
+    description: "Coast-in point at the Inguri mouth near Anaklia, where the route turns north-west along the coast."
+    where: {kind: latlon, lat: 42.40, lon: 41.57, radius_nm: 1.5}
+    terrain: open
+  - id: babushara
+    description: "Sukhumi-Babushara apron: land here, unload, load refugees."
+    where: {kind: near_airbase, airbase: Sukhumi-Babushara, radius_nm: 0.7}
+  - id: babushara_approach
+    description: "Approach circle around Babushara; tower contact and the gun-line encounter trigger here."
+    where: {kind: near_airbase, airbase: Sukhumi-Babushara, radius_nm: 7}
+  - id: egress_ochamchire
+    description: "Coastal egress point off Ochamchire on the way home; the flight engineer's fuel call."
+    where: {kind: near_named_place, place: Ochamchire, radius_nm: 2.5, bearing_deg: 240, distance_nm: 2}
+    terrain: water
+  - id: hills_north
+    description: "Known Abkhaz gun position in the hills north of the airfield (briefed)."
+    where: {kind: near_airbase, airbase: Sukhumi-Babushara, radius_nm: 0.8, bearing_deg: 15, distance_nm: 5}
+    terrain: high_ground
+  - id: hills_east
+    description: "Candidate A for the unlisted gun: wooded ridge east of the airfield."
+    where: {kind: near_airbase, airbase: Sukhumi-Babushara, radius_nm: 1, bearing_deg: 75, distance_nm: 5.5}
+    terrain: high_ground
+  - id: gumista_mouth
+    description: "Candidate B for the unlisted gun: the Gumista mouth north-west of the city, covering the sea approach."
+    where: {kind: near_named_place, place: Sukhumi, radius_nm: 1, bearing_deg: 300, distance_nm: 3}
+    terrain: open
+  - id: coast_road
+    description: "The coast road south-east of the airfield, full of refugees walking and driving south."
+    where: {kind: near_airbase, airbase: Sukhumi-Babushara, radius_nm: 1.5, bearing_deg: 120, distance_nm: 3}
+    terrain: road
+  - id: inguri_crossing
+    description: "Candidate A for the Zviadist roadblock: the road west of Zugdidi toward the Inguri."
+    where: {kind: near_named_place, place: Zugdidi, radius_nm: 1, bearing_deg: 250, distance_nm: 6}
+    terrain: road
+  - id: khobi_road
+    description: "Candidate B for the Zviadist roadblock: the Zugdidi-Senaki road west of Senaki."
+    where: {kind: near_named_place, place: Senaki, radius_nm: 1, bearing_deg: 300, distance_nm: 10}
+    terrain: road
+
+player_flights:
+  - callsign: Merani
+    aircraft: Mi-8MT
+    count: 1
+    coalition: red
+    country: Georgia
+    start_area: senaki
+    start_type: parking_cold
+    variant: ramp
+    slot: player
+    loadout: "Transport: 2,000 kg ammunition internal, no rocket pods, full internal fuel, flares"
+    tasking: >-
+      RAMP START. Cold start at Senaki-Kolkhi. Route: Senaki → IP INGURI (coast in) → coast
+      north-west → Babushara apron (land, unload, load refugees on Granite's call) → EGRESS
+      OCHAMCHIRE (off the coast) → Senaki. Stay over the sea north of Ochamchire.
+  - callsign: Merani
+    aircraft: Mi-8MT
+    count: 1
+    coalition: red
+    country: Georgia
+    start_area: senaki
+    start_type: air
+    variant: air
+    slot: player
+    loadout: "Transport: 2,000 kg ammunition internal, no rocket pods, full internal fuel, flares"
+    tasking: >-
+      AIR START. Airborne low over the Mingrelian plain short of IP INGURI (helicopter low air start). Then as the
+      ramp variant: coast north-west, Babushara apron, EGRESS OCHAMCHIRE, Senaki.
+
+objectives:
+  - id: deliver
+    kind: land
+    description: "Land on the Babushara apron and hand the ammunition to the garrison."
+    primary: true
+    area: babushara
+    success_flag: cargo_delivered
+  - id: evacuate
+    kind: land
+    description: "Load the refugees Granite brings out and fly them to Senaki."
+    primary: false
+    area: babushara
+    success_flag: boarded
+  - id: rtb
+    kind: land
+    description: "Recover to Senaki-Kolkhi."
+    primary: true
+    area: senaki
+    success_flag: landed
+  - id: survive
+    kind: survive
+    description: "Bring the aircraft back. The detachment has two."
+    primary: true
+    failure_flag: player_lost
+
+threats:
+  - id: guns_north
+    role: aaa
+    area: hills_north
+    strength: light
+    faction: abkhaz
+    skill: Average
+    hidden_on_map: false
+    templates: [zu23_emplacement, zu23_battery, zu23_truck]
+    notes: "One ZU-23 position in the hills north of the airfield (briefed). Approach from the sea to stay outside it."
+
+support:
+  - id: granite
+    role: friendly_ground
+    callsign: "Granite"
+    area: babushara
+    composition: "4x Soldier AK, 1x Ural-375"
+    faction: geo_ground
+    speaker: ground_beridze
+
+dynamic:
+  pools:
+    - id: approach_guns
+      roles: [aaa]
+      areas: [hills_east, gumista_mouth]
+      pick: [1, 1]
+      faction: abkhaz
+      templates: [zu23_truck, zu23_emplacement]
+      notes: "One ZU-23 (emplacement or Ural) moved up overnight. Never a radar SAM (canon rule)."
+    - id: roadblock
+      roles: [technicals, infantry]
+      areas: [inguri_crossing, khobi_road]
+      pick: [1, 2]
+      faction: zviadists
+      notes: "A DShK technical and a few riflemen at a roadblock. Light, but they shoot at government helicopters."
+    - id: refugees_road
+      roles: [civilian]
+      areas: [coast_road]
+      pick: [2, 3]
+      faction: refugees
+      notes: "Buses, cars and trucks heading south on the coast road. Unarmed."
+  encounters:
+    - id: unlisted_gun
+      kind: ambush_sam
+      pool: approach_guns
+      trigger: {type: proximity, area: babushara_approach, radius_nm: 8}
+      chance: 60
+      telegraph_beat: granite_gun_warning
+      notes: "Spawns dark when the player nears Babushara; Granite warns before it can engage."
+    - id: zviadist_roadblock
+      kind: pool
+      pool: roadblock
+      trigger: {type: beat, beat: apron_landed}
+      chance: 60
+      telegraph_beat: roadblock_warning
+      notes: "Woken when the player lands at Babushara, so it is in place for the homeward leg; Kolkhi warns."
+    - id: refugee_traffic
+      kind: convoy
+      pool: refugees_road
+      trigger: {type: time, after_min: 1}
+      chance: 100
+      notes: "Civilians drive south along the coast road."
+  director:
+    enabled: true
+    intensity: moderate
+    adaptive: true
+  fog_of_war:
+    enabled: true
+    reveal_radius_km: 4
+    mark_refresh_sec: 15
+
+seed: null
+
+notes: >-
+  Director intent: a quiet start and a long, low transit over Mingrelia and the coast; the flight
+  engineer's fuel numbers set the clock. Tension builds on the approach to Babushara (known gun
+  north, possibly a second gun east or at the Gumista mouth, always warned by Granite first), peaks
+  on the apron when the shelling starts and the refugees board, then relaxes over the sea off
+  Ochamchire. A second, smaller spike may come at the Zviadist roadblock near Zugdidi or Senaki,
+  warned by Kolkhi. Winnable every time: the sea approach avoids both gun areas, the roadblock is
+  light and avoidable. Guaranteed beats: mission_start, tower_inbound, apron_landed, boarding_done,
+  fuel_homeward, kolkhi_inbound, on_deck, player_lost.

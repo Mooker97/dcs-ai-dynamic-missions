@@ -1,0 +1,57 @@
+mission_id: g08-syria-oh58-convoy
+beats:
+  - id: mission_start
+    guaranteed: true
+    when: {event: player.spawned, players_only: true}
+    priority: 90
+    delay_sec: 8
+    speaker: ops_hatay
+    lines: [ops_start_v1, ops_start_v2]
+    text: "Scout, Orchard Ops. Wagon is rolling. Get out ahead of them."
+    mark: {type: text, at: "zone:kirikhan_gate", text: "GATE"}
+    effects: {set_flag: started}
+  - id: wagon_checkin
+    when: {event: beat.fired, beat: mission_start}
+    priority: 80
+    delay_sec: 20
+    speaker: convoy_lead
+    lines: [wagon_checkin_v1, wagon_checkin_v2]
+    text: "Scout, Wagon Six. Four vehicles, northbound. Your road."
+    effects: {set_flag: escort_started}
+  - id: glint_call
+    when: {event: zone.entered, zone: orchards, players_only: true}
+    priority: 75
+    speaker: convoy_lead
+    lines: [wagon_glint_v1, wagon_glint_v2]
+    text: "Scout, Wagon. Glint in the trees, left side. Eyes on it?"
+  - id: team_dead
+    when: {event: group.dead, group_prefix: orchard_team}
+    priority: 80
+    speaker: convoy_lead
+    lines: [wagon_clear_v1, wagon_clear_v2]
+    text: "Scout, Wagon. Good kills. Pushing through."
+    effects: {set_flag: orchards_clear, outcome: {orchards_clear: true}}
+  - id: convoy_lost
+    when: {event: group.dead, group_prefix: convoy_main}
+    priority: 95
+    speaker: ops_hatay
+    lines: [ops_lost_v1, ops_lost_v2]
+    text: "Scout, Ops. We've lost Wagon. Come home."
+    effects: {outcome: {convoy_lost: true}, end_mission: failure}
+  - id: gate_reached
+    guaranteed: true
+    when: {event: zone.entered, zone: kirikhan_gate, players_only: true}
+    requires: {flags: [escort_started]}
+    priority: 85
+    speaker: convoy_lead
+    lines: [wagon_gate_v1, wagon_gate_v2]
+    text: "Scout, Wagon Six. At the gate. Thanks for the cover."
+    effects: {set_flag: convoy_arrived, outcome: {convoy_arrived: true}}
+  - id: mission_end
+    when: {event: beat.fired, beat: gate_reached}
+    priority: 90
+    delay_sec: 15
+    speaker: ops_hatay
+    lines: [ops_end_v1, ops_end_v2]
+    text: "Scout, Ops. Wagon's in. You're released. RTB."
+    effects: {end_mission: success}

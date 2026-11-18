@@ -1,0 +1,253 @@
+# m02 Sister Ship — beats. Schema: schemas/beats.schema.json (BeatSheet).
+# Guaranteed spine (rescue): mission_start → dolidze_contact → at_crash → pickup_landed →
+#   crew_aboard → fuel_homeward → kolkhi_inbound → on_deck.
+# Guaranteed spine (too late): crew_lost → kolkhi_inbound_alone → on_deck_alone. player_lost on death.
+# Arc outcome keys set here: crew_rescued, player_lost, player_hit, landed.
+# Continuity: m01_fuel_found and m01_player_lost (campaign flags) colour two optional lines.
+mission_id: m02-sister-ship
+beats:
+  # GUARANTEED
+  - id: mission_start
+    when: {event: player.spawned, players_only: true}
+    delay_sec: 10
+    priority: 90
+    once: true
+    guaranteed: true
+    speaker: ops_gelashvili
+    lines: [kolkhi_launch_v1, kolkhi_launch_v2, kolkhi_launch_v3, kolkhi_launch_v4]
+    text: "Merani Two-One, Kolkhi. Two-Two is down north-west of Ochamchire. Four aboard, all alive. Go."
+    mark: {type: circle, at: "zone:search_box", text: "TWO-TWO LAST POSITION", radius_m: 7400}
+    effects: {set_flag: started}
+
+  # GUARANTEED
+  - id: dolidze_contact
+    when: {event: zone.entered, zone: search_box, players_only: true}
+    requires: {flags_not: [crew_lost]}
+    priority: 88
+    once: true
+    guaranteed: true
+    speaker: wing_dolidze
+    lines: [dolidze_contact_v1, dolidze_contact_v2, dolidze_contact_v3, dolidze_contact_v4]
+    text: "Merani Two-One, Two-Two. Hear your rotors. We are south of the wreck, by the trees. Smoke on request."
+    effects: {set_flag: contact_made}
+
+  # GUARANTEED
+  - id: at_crash                     # silent: player inside the crash-site circle
+    when: {event: zone.entered, zone: crash_site, players_only: true}
+    priority: 80
+    once: true
+    guaranteed: true
+    effects: {set_flag: at_crash}
+
+  # GUARANTEED
+  - id: pickup_landed
+    when: {event: unit.landed, players_only: true}
+    requires: {flags: [at_crash], flags_not: [crew_rescued, crew_lost]}
+    priority: 90
+    once: true
+    guaranteed: true
+    speaker: wing_dolidze
+    lines: [dolidze_coming_v1, dolidze_coming_v2, dolidze_coming_v3, dolidze_coming_v4]
+    text: "Two-One, Two-Two. See you. Coming to you now, four of us, one carried."
+    effects: {set_flag: on_ground_pickup}
+
+  # GUARANTEED
+  - id: crew_aboard
+    when: {event: beat.fired, beat: pickup_landed}
+    delay_sec: 40
+    priority: 90
+    once: true
+    guaranteed: true
+    speaker: crew_tsiklauri
+    lines: [bort_crew_aboard_v1, bort_crew_aboard_v2, bort_crew_aboard_v3, bort_crew_aboard_v4]
+    text: "Commander, four aboard. Doors closed. Go."
+    effects: {set_flag: crew_rescued, outcome: {crew_rescued: true}}
+
+  # GUARANTEED
+  - id: fuel_homeward
+    when: {event: zone.entered, zone: egress_coast, players_only: true}
+    requires: {flags: [crew_rescued]}
+    priority: 80
+    once: true
+    guaranteed: true
+    speaker: crew_tsiklauri
+    lines: [bort_fuel_home_v1, bort_fuel_home_v2, bort_fuel_home_v3]
+    text: "Commander, over the water. Fuel one thousand and fifty. Senaki with margin."
+    effects: {set_flag: homeward}
+
+  # GUARANTEED
+  - id: kolkhi_inbound
+    when: {event: zone.entered, zone: senaki_approach, players_only: true}
+    requires: {flags: [crew_rescued]}
+    priority: 82
+    once: true
+    guaranteed: true
+    speaker: ops_gelashvili
+    lines: [kolkhi_inbound_v1, kolkhi_inbound_v2, kolkhi_inbound_v3]
+    text: "Merani Two-One, Kolkhi. Copy four aboard. Doctor on the pad."
+    effects: {set_flag: rtb}
+
+  # GUARANTEED
+  - id: on_deck
+    when: {event: unit.landed, players_only: true}
+    requires: {flags: [rtb, crew_rescued]}
+    priority: 92
+    once: true
+    guaranteed: true
+    speaker: ops_gelashvili
+    lines: [kolkhi_on_deck_v1, kolkhi_on_deck_v2, kolkhi_on_deck_v3]
+    text: "Merani, Kolkhi. On deck. Four of four. Shut down."
+    effects: {set_flag: landed, outcome: {landed: true}, end_mission: success}
+
+  # GUARANTEED
+  - id: crew_lost                    # the clock: 50 minutes with nobody at the wreck
+    when: {event: timer, after_sec: 3000}
+    requires: {flags_not: [crew_rescued, on_ground_pickup]}
+    priority: 85
+    once: true
+    guaranteed: true
+    speaker: ops_gelashvili
+    lines: [kolkhi_crew_lost_v1, kolkhi_crew_lost_v2, kolkhi_crew_lost_v3]
+    text: "Merani, Kolkhi. Two-Two's radio is silent. They will move inland. Return to Senaki."
+    effects: {set_flag: crew_lost, outcome: {crew_rescued: false}}
+
+  # GUARANTEED
+  - id: kolkhi_inbound_alone
+    when: {event: zone.entered, zone: senaki_approach, players_only: true}
+    requires: {flags: [crew_lost], flags_not: [crew_rescued]}
+    priority: 80
+    once: true
+    guaranteed: true
+    speaker: ops_gelashvili
+    lines: [kolkhi_inbound_alone_v1, kolkhi_inbound_alone_v2, kolkhi_inbound_alone_v3]
+    text: "Merani Two-One, Kolkhi. Copy inbound. We try again when they call."
+    effects: {set_flag: rtb_alone}
+
+  # GUARANTEED
+  - id: on_deck_alone
+    when: {event: unit.landed, players_only: true}
+    requires: {flags: [rtb_alone], flags_not: [crew_rescued]}
+    priority: 92
+    once: true
+    guaranteed: true
+    speaker: ops_gelashvili
+    lines: [kolkhi_on_deck_alone_v1, kolkhi_on_deck_alone_v2, kolkhi_on_deck_alone_v3]
+    text: "Merani, Kolkhi. On deck. Refuel and stand by. They will call again."
+    effects: {set_flag: landed, outcome: {landed: true}, end_mission: failure}
+
+  # GUARANTEED
+  - id: player_lost                  # silent
+    when: {event: unit.dead, players_only: true}
+    priority: 100
+    once: true
+    guaranteed: true
+    effects: {set_flag: player_lost, outcome: {player_lost: true}, end_mission: failure}
+
+  # ---- Optional: transit and continuity -----------------------------------------------------
+  - id: bort_spare_airframe          # continuity: Merani 2-1's own aircraft was lost in m01
+    when: {event: beat.fired, beat: mission_start}
+    delay_sec: 20
+    requires: {flags: [m01_player_lost]}
+    priority: 45
+    once: true
+    speaker: crew_tsiklauri
+    lines: [bort_spare_v1, bort_spare_v2, bort_spare_v3]
+    text: "Commander, this one pulls left. She is the last one. Be gentle."
+
+  - id: bort_fuel_out
+    when: {event: zone.entered, zone: ip_inguri, players_only: true}
+    requires: {flags_not: [crew_rescued]}
+    priority: 50
+    once: true
+    speaker: crew_tsiklauri
+    lines: [bort_fuel_out_v1, bort_fuel_out_v2, bort_fuel_out_v3]
+    text: "Commander, coast in. Fuel one thousand seven hundred. Light today."
+
+  - id: bort_granite_fuel            # continuity: Granite's drums from m01
+    when: {event: zone.entered, zone: ip_inguri, players_only: true}
+    requires: {flags: [m01_fuel_found], chance: 100}
+    priority: 40
+    once: true
+    delay_sec: 15
+    speaker: crew_tsiklauri
+    lines: [bort_granite_fuel_v1, bort_granite_fuel_v2, bort_granite_fuel_v3]
+    text: "Commander, we are flying on Granite's drums today. Two hundred kilos extra."
+
+  # ---- Optional: the pick-up ---------------------------------------------------------------
+  - id: dolidze_smoke
+    when: {event: beat.fired, beat: dolidze_contact}
+    delay_sec: 25
+    priority: 70
+    once: true
+    speaker: wing_dolidze
+    lines: [dolidze_smoke_v1, dolidze_smoke_v2, dolidze_smoke_v3]
+    text: "Two-One, Two-Two. Smoke out. Land on the smoke, field is flat."
+    mark: {type: circle, at: "zone:crash_site", text: "TWO-TWO CREW", radius_m: 1850}
+
+  - id: dolidze_patrol_warning       # telegraph for encounter patrol_hunt
+    when: {event: encounter.spawned, encounter: patrol_hunt}
+    delay_sec: 5
+    priority: 86
+    once: true
+    speaker: wing_dolidze
+    lines: [dolidze_patrol_v1, dolidze_patrol_v2, dolidze_patrol_v3, dolidze_patrol_v4]
+    text: "Two-One, Two-Two. Vehicles on the road north, coming this way. Ten minutes, maybe less."
+    effects: {set_flag: patrol_warned}
+
+  - id: patrol_firing
+    when: {event: unit.shot, group_prefix: patrol}
+    priority: 75
+    once: false
+    cooldown_sec: 120
+    speaker: wing_dolidze
+    lines: [dolidze_patrol_fire_v1, dolidze_patrol_fire_v2, dolidze_patrol_fire_v3]
+    text: "Two-One, Two-Two. They are shooting from the treeline north. Come in from the south."
+
+  - id: gun_firing
+    when: {event: unit.shot, group_prefix: gun_tkvarcheli}
+    priority: 70
+    once: false
+    cooldown_sec: 150
+    speaker: wing_dolidze
+    lines: [dolidze_gun_v1, dolidze_gun_v2, dolidze_gun_v3]
+    text: "Two-One, Two-Two. That is the gun that got us. Hills north-east. Stay low by the sea."
+
+  # ---- Optional: the way home --------------------------------------------------------------
+  - id: roadblock_warning            # telegraph for encounter zviadist_roadblock
+    when: {event: encounter.spawned, encounter: zviadist_roadblock}
+    delay_sec: 5
+    priority: 78
+    once: true
+    speaker: ops_gelashvili
+    lines: [kolkhi_roadblock_v1, kolkhi_roadblock_v2, kolkhi_roadblock_v3]
+    text: "Merani, Kolkhi. Roadblock on the Zugdidi road again. Armed. Route south of it."
+    effects: {set_flag: roadblock_warned}
+
+  - id: player_hit
+    when: {event: unit.hit, players_only: true}
+    priority: 86
+    once: false
+    cooldown_sec: 120
+    speaker: crew_tsiklauri
+    lines: [bort_hit_v1, bort_hit_v2, bort_hit_v3, bort_hit_v4]
+    text: "Commander, hit. Pressures normal. Fuel steady."
+    effects: {outcome: {player_hit: true}}
+
+  - id: dolidze_thanks
+    when: {event: beat.fired, beat: fuel_homeward}
+    delay_sec: 30
+    requires: {chance: 70}
+    priority: 30
+    once: true
+    speaker: wing_dolidze
+    lines: [dolidze_cabin_v1, dolidze_cabin_v2, dolidze_cabin_v3]
+    text: "Two-One, Two-Two on your intercom. Fuel at Senaki is on me. I know where it is."
+
+  - id: civilian_hit
+    when: {event: unit.dead, coalition: 0}
+    priority: 60
+    once: true
+    speaker: ops_gelashvili
+    lines: [kolkhi_civilian_v1, kolkhi_civilian_v2, kolkhi_civilian_v3]
+    text: "Merani, Kolkhi. Report from Ochamchire of a civilian vehicle hit. Explain on deck."
+    effects: {set_flag: civilian_harmed}

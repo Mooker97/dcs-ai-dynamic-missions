@@ -1,0 +1,28 @@
+# Eval premise p07-border-medevac. Schema: evals/run.py Premise. Give `prompt` to the story-writer skill verbatim,
+# then score: uv run python evals/run.py --score campaigns/<slug> --premise p07-border-medevac
+id: p07-border-medevac
+title: Border Lift
+genre: adapted
+prompt: 2013, the Turkish-Syrian border near Reyhanli. A small contracted medevac detachment flies a UH-1H
+  out of Hatay, pulling casualties from border crossings while the war spills over. Invented people and
+  incidents in a real place; the tension is neutrality versus doing the right thing.
+expect:
+  theater: Syria
+  era: [2012, 2014]
+  mode: adapted
+  player_coalition: blue
+  airframes: [UH-1H]
+  airframe_role: utility_helo
+  missions: [3, 5]
+  mission_types: [CSAR, TRANSPORT]
+  story_elements:
+  - id: casualties
+    description: Casualty evacuation
+    any_of: [casualt, wounded, medevac]
+  - id: neutrality
+    description: Neutrality under pressure
+    any_of: [neutral]
+  - id: crossing
+    description: Border crossings
+    any_of: [crossing, border]
+notes: Adapted, unarmed transport role, civilians.

@@ -1,0 +1,29 @@
+# Eval premise p01-mantis-watch. Schema: evals/run.py Premise. Give `prompt` to the story-writer skill verbatim,
+# then score: uv run python evals/run.py --score campaigns/<slug> --premise p01-mantis-watch
+id: p01-mantis-watch
+title: Mantis Watch
+genre: historical
+prompt: 'April 1988, the southern Persian Gulf. Operation Praying Mantis: after a US frigate strikes a
+  mine, US forces retaliate against Iranian oil platforms and naval units. The player flies F-14 combat
+  air patrol over the surface action groups, covering the strikes and watching for Iranian fighters launching
+  from Bandar Abbas. Keep real people silent; invent only the player''s squadron mates and controllers.'
+expect:
+  theater: PersianGulf
+  era: [1988, 1988]
+  mode: historical
+  player_coalition: blue
+  airframes: [F-14B]
+  airframe_role: fighter
+  missions: [3, 5]
+  mission_types: [CAP]
+  story_elements:
+  - id: mine_strike
+    description: The mine strike that triggers the operation
+    any_of: [mine, samuel b. roberts]
+  - id: oil_platforms
+    description: Strikes on Iranian oil platforms
+    any_of: [platform]
+  - id: bandar_abbas
+    description: Iranian air threat from Bandar Abbas
+    any_of: [bandar abbas]
+notes: Historical mode, naval CAP, real-person handling.

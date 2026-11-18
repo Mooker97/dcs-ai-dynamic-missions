@@ -1,0 +1,13 @@
+# state/outcomes/<mNN>.yaml — written by the debriefer (copy to e.g. state/outcomes/m01.yaml).
+# Schema: schemas/mission-outcome.schema.json (MissionOutcome): the merged [DMS.OUTCOME] records.
+# Parse with dms_core.schemas.outcome.parse_dcs_log + summarize_outcomes; questionnaire answers
+# go in `extra` with source: questionnaire.
+mission_id: m01-first-light
+kind: summary
+result: success                    # success | failure
+flags: {patrol_complete: true}
+outcomes: {patrol_complete: true}
+kills: {ground: 0}
+losses: {}
+players: []
+extra: {source: dcs_log, player_notes: ""}

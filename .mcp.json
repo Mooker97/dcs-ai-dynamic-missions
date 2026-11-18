@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "dms": {
+      "type": "stdio",
+      "command": "uv",
+      "args": ["run", "dms-mcp"],
+      "env": {}
+    }
+  }
+}

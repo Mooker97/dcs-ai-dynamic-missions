@@ -1,0 +1,28 @@
+# Eval premise p29-serpent-sea. Schema: evals/run.py Premise. Give `prompt` to the story-writer skill verbatim,
+# then score: uv run python evals/run.py --score campaigns/<slug> --premise p29-serpent-sea
+id: p29-serpent-sea
+title: The Serpent Sea
+genre: fantasy
+prompt: A mythic archipelago on the Mariana Islands map where sea serpents (played by enemy warships)
+  rise each monsoon and sink the island fleets. A Hornet wing of the island compact strikes them before
+  they reach the harbours.
+expect:
+  theater: MarianaIslands
+  era: [2000, 2020]
+  mode: fictional
+  player_coalition: blue
+  airframes: [FA-18C_hornet]
+  airframe_role: multirole
+  missions: [3, 5]
+  mission_types: [STRIKE]
+  story_elements:
+  - id: serpents
+    description: Sea serpents
+    any_of: [serpent]
+  - id: monsoon
+    description: Monsoon season
+    any_of: [monsoon, storm]
+  - id: harbours
+    description: Defending the harbours
+    any_of: [harbour, harbor]
+notes: Fantasy anti-ship strike.

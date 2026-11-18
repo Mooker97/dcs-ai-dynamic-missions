@@ -1,0 +1,10 @@
+# state/qualities.yaml — current story state. Schema: Qualities. Updated only by the debriefer.
+values:
+  garrison_supply: 1
+  refugees_saved: 0
+  airframes: 2
+  fuel: 1
+  approach_threat: 1
+flags: {}
+outcomes: {}
+updated_after: null

@@ -1,0 +1,8 @@
+points:
+  - name: Convoy route
+    lon: 41.66
+    lat: 42.15
+    radius_m: 6000
+  - name: Kutaisi
+    lon: 41.5
+    lat: 42.2

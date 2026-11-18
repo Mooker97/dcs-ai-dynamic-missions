@@ -1,0 +1,57 @@
+# Golden eval bible (fictional). Invented crisis on a real map; no real event is depicted.
+schema_version: 1
+title: "Golden: Salt Wind"
+mode: fictional
+setting:
+  era: 2019
+  theater: PersianGulf
+  region: "Al Minhad AFB and the coast east of Bandar Abbas."
+  premise_summary: >-
+    In an invented Gulf crisis, a coastal missile battery threatens shipping in the Strait.
+    A Hornet division flying from Al Minhad is tasked to destroy the launchers before dawn
+    patrol traffic enters the narrows.
+tone:
+  style: professional-terse
+  themes: [deadline, restraint]
+player_role: "Ranger 1-1: F/A-18C pair, fictional Strike Fighter Detachment Gulf, Al Minhad AFB."
+factions:
+  - id: sfd_gulf
+    name: "Strike Fighter Detachment Gulf"
+    description: "Fictional US Navy detachment operating ashore."
+    dcs: {country: USA, coalition: blue, units: [FA-18C_hornet]}
+  - id: coastal_command
+    name: "Coastal Missile Command"
+    description: "Fictional coastal defence force guarding the launchers."
+    dcs:
+      country: Iran
+      coalition: red
+      units: [Scud_B, ZSU-23-4 Shilka, Osa 9A33 ln, Strela-1 9P31, Ural-375]
+characters:
+  - id: ops_navarro
+    name: "Cdr. Luis Navarro"
+    callsign: "Bastion"
+    role: strike controller
+    faction: sfd_gulf
+    voice:
+      design_prompt: "Male, 40s, General American, crisp naval strike controller on UHF."
+      accent: General American
+      age: 44
+      gender: male
+      cadence: brisk
+      brevity: terse
+      radio_fx: uhf_clean
+  - id: awacs_kim
+    name: "Lt. Dana Kim"
+    callsign: "Magic"
+    role: AWACS controller
+    faction: sfd_gulf
+    voice:
+      design_prompt: "Female, late 20s, General American, flat and fast AWACS controller."
+      accent: General American
+      age: 28
+      gender: female
+      cadence: rapid
+      brevity: terse
+      radio_fx: uhf_clean
+canon_rules:
+  - "Golden eval fixture; keep stable."

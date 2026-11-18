@@ -1,0 +1,12 @@
+# Current story state. Schema: schemas/qualities.schema.json (Qualities).
+# Initialised from arc.yaml qualities[].initial; updated ONLY by the debriefer after each flight.
+# Mission outcomes become campaign flags named <mNN>_<key> (e.g. m01_player_lost) for arc branches.
+values:
+  sam_threat: 2
+  intel: 1
+  insurgent_supply: 2
+  partner_morale: 0
+  collateral: 0
+flags: {}
+outcomes: {}
+updated_after: null

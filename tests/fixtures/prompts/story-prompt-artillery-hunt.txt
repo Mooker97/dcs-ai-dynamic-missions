@@ -1,0 +1,49 @@
+I am working on create a DCS mission in the mission editor, i need fairly specific instructions on what to do to make this happen.
+
+Map: Syria
+Single Player
+Player Vehicle: Apache
+Player Callsign: Hunter
+Mission Type: SEAD / Strike
+Loadout: 8 Hellfires, 38 rockets, FCR equipped
+Starting Location: Hatay (or nearest suitable airbase)
+Route: Search pattern 20NM northwest into contested territory
+
+Win condition:
+- Destroy all enemy rocket artillery positions (3-4 BM-21 Grad launchers)
+- Return to base
+
+Loss condition:
+- Player vehicle destroyed
+- Friendly FOB destroyed (timed - artillery continues shelling)
+
+Wingmen: None
+Friendly Forces: Forward Operating Base under attack
+
+Idea: Time-critical search and destroy mission. A friendly FOB is taking rocket fire from hidden BM-21 Grad launchers. Player must locate and neutralize the artillery before the FOB takes critical damage. Artillery positions are camouflaged and spread across multiple possible locations - player must use recon skills and FCR to find them. Some positions may be decoys (empty revetments, destroyed vehicles).
+
+Other entities:
+- 3-4 BM-21 Grad launchers (the targets) spread across 2-3 firing positions
+- AAA protection at artillery sites (ZU-23 technicals, Shilkas)
+- Enemy infantry teams providing early warning
+- Friendly FOB with visible damage effects (fires, smoke)
+- Occasional artillery impacts at FOB (scripted explosions)
+- 1-2 SA-8 or SA-15 in the area providing air defense umbrella
+
+Voice lines:
+- Urgent distress call from FOB commander at mission start - "Hunter, this is Outpost Bravo! We're taking heavy rocket fire! Multiple Grads somewhere to the northwest! We need those launchers silenced NOW!"
+- Updates from FOB as mission progresses - "Hunter, Outpost Bravo - another barrage incoming! We've got casualties mounting here!"
+- FOB confirmation when artillery destroyed - "Hunter, Outpost Bravo - the shelling has stopped! Outstanding work!"
+- Tower clearance on RTB
+
+Backstory: Coalition forces have established a forward operating base to support the upcoming push toward Aleppo. Enemy forces have responded by positioning mobile rocket artillery in the surrounding hills. The Grads are firing from concealed positions and displacing between salvos. Intelligence suggests 3-4 launchers operating from multiple sites. Your mission is to hunt them down before they destroy the FOB.
+
+Time pressure element:
+- FOB has a health/status that degrades over time
+- Every 2-3 minutes, artillery barrage hits the FOB
+- After 4-5 barrages, FOB is "destroyed" (mission fail)
+- Destroying artillery positions stops the timer
+
+I need specific instructions on placing troops and how to set up the triggers and everything else inside of DCS mission editor.
+
+I will also need a mission title, scripts for any voice lines, a briefing message, prompts for briefing images to be generated with AI.

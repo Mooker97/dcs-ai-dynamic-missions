@@ -1,0 +1,1143 @@
+{
+  "range_open_v1": {
+    "file": "range_open_v1.ogg",
+    "dur_sec": 6.98,
+    "text": "Python One-One, Anvil. Range Seven is hot. Two passes: target one the trucks, target two the tank.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "range_open_v2": {
+    "file": "range_open_v2.ogg",
+    "dur_sec": 7.21,
+    "text": "Python One-One, Anvil, good morning. Range Seven is yours. Trucks first, then the tank. One bomb each.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "range_open_v3": {
+    "file": "range_open_v3.ogg",
+    "dur_sec": 7.29,
+    "text": "Python One-One, Anvil. Radar contact. Range Seven is hot, two targets, one bomb per pass.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "cleared_t1_v1": {
+    "file": "cleared_t1_v1.ogg",
+    "dur_sec": 7.45,
+    "text": "Python One-One, Anvil. Cleared hot target one, the truck line, run in from the north. Code one-six-eight-eight.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "cleared_t1_v2": {
+    "file": "cleared_t1_v2.ogg",
+    "dur_sec": 6.82,
+    "text": "Python One-One, Anvil. Target one, the trucks, west side of the range. From the north, cleared hot.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "cleared_t1_v3": {
+    "file": "cleared_t1_v3.ogg",
+    "dur_sec": 7.06,
+    "text": "Python One-One, Anvil. Cleared hot target one. Run in north to south off ANVIL. One-six-eight-eight.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "cleared_t2_v1": {
+    "file": "cleared_t2_v1.ogg",
+    "dur_sec": 5.39,
+    "text": "Python One-One, Anvil. Cleared hot target two, the tank, one mile east of the trucks.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "cleared_t2_v2": {
+    "file": "cleared_t2_v2.ogg",
+    "dur_sec": 6.01,
+    "text": "Python One-One, Anvil. Target two, the tank hulk, one mile east. From the north, cleared hot.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "cleared_t2_v3": {
+    "file": "cleared_t2_v3.ogg",
+    "dur_sec": 6.56,
+    "text": "Python One-One, Anvil. Reset north. Cleared hot target two, the tank. Same code.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "range_complete_v1": {
+    "file": "range_complete_v1.ogg",
+    "dur_sec": 6.25,
+    "text": "Python One-One, Anvil. Range work complete. Range is cold. Stay this frequency for Rook Ops.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "range_complete_v2": {
+    "file": "range_complete_v2.ogg",
+    "dur_sec": 6.4,
+    "text": "Python One-One, Anvil. That's your passes. Range is cold. Master arm safe, stay with me for Ops.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "range_complete_v3": {
+    "file": "range_complete_v3.ogg",
+    "dur_sec": 6.56,
+    "text": "Python One-One, Anvil. Range closed. Rook Ops wants you on this frequency. Two bombs left.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "retask_v1": {
+    "file": "retask_v1.ogg",
+    "dur_sec": 8.89,
+    "text": "Python, Rook Ops. Retask. Jackal Two-Three in contact near Tell Rifaat. Push CP DUST. Ops out.",
+    "speaker": "ops_lindqvist",
+    "model": "eleven_v3"
+  },
+  "retask_v2": {
+    "file": "retask_v2.ogg",
+    "dur_sec": 8.89,
+    "text": "Python, Rook Ops. Alert tasking is live. Jackal Two-Three, troops in contact. Push CP DUST. Ops out.",
+    "speaker": "ops_lindqvist",
+    "model": "eleven_v3"
+  },
+  "retask_v3": {
+    "file": "retask_v3.ogg",
+    "dur_sec": 9.23,
+    "text": "Python, Rook Ops. Off the range. Jackal Two-Three needs your last two bombs. Push CP DUST. Ops out.",
+    "speaker": "ops_lindqvist",
+    "model": "eleven_v3"
+  },
+  "jackal_checkin_v1": {
+    "file": "jackal_checkin_v1.ogg",
+    "dur_sec": 6.4,
+    "text": "Python, Jackal Two-Three. Copy all. Patrol pinned by a compound south of us. Call fifteen miles out.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "jackal_checkin_v2": {
+    "file": "jackal_checkin_v2.ogg",
+    "dur_sec": 6.63,
+    "text": "Python, Jackal Two-Three. Copy all. Taking fire from a farm compound. Call me fifteen miles out.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "jackal_checkin_v3": {
+    "file": "jackal_checkin_v3.ogg",
+    "dur_sec": 6.08,
+    "text": "Python, Jackal Two-Three, copy all. We're in the village, fire from the south. Call fifteen out.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "rtb_call_v1": {
+    "file": "rtb_call_v1.ogg",
+    "dur_sec": 7.21,
+    "text": "Python, Rook Ops. RTB Incirlik. Tower three-six-zero-point-one. Ops out.",
+    "speaker": "ops_lindqvist",
+    "model": "eleven_v3"
+  },
+  "rtb_call_v2": {
+    "file": "rtb_call_v2.ogg",
+    "dur_sec": 8.42,
+    "text": "Python, Rook Ops. Copy all. Come home. Incirlik Tower on three-six-zero-point-one. Ops out.",
+    "speaker": "ops_lindqvist",
+    "model": "eleven_v3"
+  },
+  "rtb_call_v3": {
+    "file": "rtb_call_v3.ogg",
+    "dur_sec": 8.65,
+    "text": "Python, Rook Ops. Good work today. Bring it home, Incirlik Tower on the usual. Ops out.",
+    "speaker": "ops_lindqvist",
+    "model": "eleven_v3"
+  },
+  "on_deck_v1": {
+    "file": "on_deck_v1.ogg",
+    "dur_sec": 5.78,
+    "text": "Python, Rook Ops. Copy on deck. Debrief in the vault after shutdown.",
+    "speaker": "ops_lindqvist",
+    "model": "eleven_v3"
+  },
+  "on_deck_v2": {
+    "file": "on_deck_v2.ogg",
+    "dur_sec": 5.62,
+    "text": "Python, Rook Ops. On deck, copy. Bring the pod tape to the vault.",
+    "speaker": "ops_lindqvist",
+    "model": "eleven_v3"
+  },
+  "on_deck_v3": {
+    "file": "on_deck_v3.ogg",
+    "dur_sec": 5.86,
+    "text": "Python, Rook Ops. Copy you're down. Anvil's sending the range card over.",
+    "speaker": "ops_lindqvist",
+    "model": "eleven_v3"
+  },
+  "range_open_late_v1": {
+    "file": "range_open_late_v1.ogg",
+    "dur_sec": 5.93,
+    "text": "Python One-One, Anvil. Range time expired. Card stays open. Rook Ops has you.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "range_open_late_v2": {
+    "file": "range_open_late_v2.ogg",
+    "dur_sec": 5.86,
+    "text": "Python One-One, Anvil. Your range slot's gone. We'll re-fly the card. Over to Rook Ops.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "range_open_late_v3": {
+    "file": "range_open_late_v3.ogg",
+    "dur_sec": 5.7,
+    "text": "Python One-One, Anvil. Range is closing. Card stays open. Stay this frequency for Ops.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "recovery_timeout_v1": {
+    "file": "recovery_timeout_v1.ogg",
+    "dur_sec": 4.58,
+    "text": "Python, Rook Ops. Closing the sortie log. Recover when able.",
+    "speaker": "ops_lindqvist",
+    "model": "eleven_v3"
+  },
+  "recovery_timeout_v2": {
+    "file": "recovery_timeout_v2.ogg",
+    "dur_sec": 6.01,
+    "text": "Python, Rook Ops. Logging the sortie complete. Recover when able.",
+    "speaker": "ops_lindqvist",
+    "model": "eleven_v3"
+  },
+  "recovery_timeout_v3": {
+    "file": "recovery_timeout_v3.ogg",
+    "dur_sec": 5.62,
+    "text": "Python, Rook Ops. Sortie log closed. Bring it home when able.",
+    "speaker": "ops_lindqvist",
+    "model": "eleven_v3"
+  },
+  "mission_start_v1": {
+    "file": "mission_start_v1.ogg",
+    "dur_sec": 7.45,
+    "text": "Python, Rook Ops. Range Seven first, then two bombs on alert for Jackal. Ops out.",
+    "speaker": "ops_lindqvist",
+    "model": "eleven_v3"
+  },
+  "mission_start_v2": {
+    "file": "mission_start_v2.ogg",
+    "dur_sec": 6.09,
+    "text": "Python, Rook Ops. Range card first. Keep two bombs for the alert. Ops out.",
+    "speaker": "ops_lindqvist",
+    "model": "eleven_v3"
+  },
+  "mission_start_v3": {
+    "file": "mission_start_v3.ogg",
+    "dur_sec": 8.02,
+    "text": "Python, Rook Ops. Requal on Range Seven, alert CAS after. Anvil's waiting. Ops out.",
+    "speaker": "ops_lindqvist",
+    "model": "eleven_v3"
+  },
+  "ground_taxi_v1": {
+    "file": "ground_taxi_v1.ogg",
+    "dur_sec": 4.89,
+    "text": "Python One-One, Incirlik Ground. Taxi runway zero-five. Hold short.",
+    "speaker": "tower_incirlik",
+    "model": "eleven_v3"
+  },
+  "ground_taxi_v2": {
+    "file": "ground_taxi_v2.ogg",
+    "dur_sec": 4.65,
+    "text": "Python One-One, Ground. Runway zero-five, taxi approved. Hold short.",
+    "speaker": "tower_incirlik",
+    "model": "eleven_v3"
+  },
+  "ground_taxi_v3": {
+    "file": "ground_taxi_v3.ogg",
+    "dur_sec": 4.81,
+    "text": "Python One-One, Incirlik Ground. Taxi to zero-five. Report holding short.",
+    "speaker": "tower_incirlik",
+    "model": "eleven_v3"
+  },
+  "tower_departure_v1": {
+    "file": "tower_departure_v1.ogg",
+    "dur_sec": 6.09,
+    "text": "Python One-One, Incirlik Tower. Airborne. Turn south. Anvil is on one-three-eight-point-zero.",
+    "speaker": "tower_incirlik",
+    "model": "eleven_v3"
+  },
+  "tower_departure_v2": {
+    "file": "tower_departure_v2.ogg",
+    "dur_sec": 5.2,
+    "text": "Python One-One, Tower. Turn south. Anvil on VHF, one-three-eight-point-zero.",
+    "speaker": "tower_incirlik",
+    "model": "eleven_v3"
+  },
+  "tower_departure_v3": {
+    "file": "tower_departure_v3.ogg",
+    "dur_sec": 5.78,
+    "text": "Python One-One, Incirlik Tower. Southbound approved. Anvil, one-three-eight-point-zero.",
+    "speaker": "tower_incirlik",
+    "model": "eleven_v3"
+  },
+  "coach_switches_v1": {
+    "file": "coach_switches_v1.ogg",
+    "dur_sec": 8.26,
+    "text": "Anvil. Fence in. Master arm, arm. Laser arm, arm. A-G on the ICP. And check.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "coach_switches_v2": {
+    "file": "coach_switches_v2.ogg",
+    "dur_sec": 8.49,
+    "text": "Anvil. Let's set up. Master arm to arm. Laser arm to arm. Then A-G on the ICP. And check.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "coach_switches_v3": {
+    "file": "coach_switches_v3.ogg",
+    "dur_sec": 8.57,
+    "text": "Anvil. Fence in checks. Master arm, arm. Laser switch, arm. Air-to-ground mode, A-G button. And check.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "coach_sms_v1": {
+    "file": "coach_sms_v1.ogg",
+    "dur_sec": 7.06,
+    "text": "Anvil. SMS page: GBU-12, PRE mode, code one-six-eight-eight. And check.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "coach_sms_v2": {
+    "file": "coach_sms_v2.ogg",
+    "dur_sec": 8.81,
+    "text": "Anvil. On the SMS: GBU-12 selected, release mode PRE, laser code one-six-eight-eight. And check.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "coach_sms_v3": {
+    "file": "coach_sms_v3.ogg",
+    "dur_sec": 8.34,
+    "text": "Anvil. Left display, SMS. GBU-12, PRE, code one-six-eight-eight. Nose fuse is fine as loaded. And check.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "coach_tgp_v1": {
+    "file": "coach_tgp_v1.ogg",
+    "dur_sec": 5.7,
+    "text": "Anvil. Pod on the right display. DMS down for the pod, TMS up to track. And check.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "coach_tgp_v2": {
+    "file": "coach_tgp_v2.ogg",
+    "dur_sec": 8.42,
+    "text": "Anvil. Targeting pod, right display. DMS down makes it SOI. Slew to the target, TMS up. And check.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "coach_tgp_v3": {
+    "file": "coach_tgp_v3.ogg",
+    "dur_sec": 7.45,
+    "text": "Anvil. TGP page right side. DMS down, slew onto the trucks, TMS up for point track. And check.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "coach_release_v1": {
+    "file": "coach_release_v1.ogg",
+    "dur_sec": 5.05,
+    "text": "Anvil. Fly the steering line. Pickle and hold until it comes off. Laser by ten seconds.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "coach_release_v2": {
+    "file": "coach_release_v2.ogg",
+    "dur_sec": 6.01,
+    "text": "Anvil. Centre the steering line, wings level. Hold the pickle till release. Lase from ten seconds.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "coach_release_v3": {
+    "file": "coach_release_v3.ogg",
+    "dur_sec": 6.25,
+    "text": "Anvil. Steering line centred, pickle and hold. After release, trigger for laser by ten seconds.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "bomb_away_v1": {
+    "file": "bomb_away_v1.ogg",
+    "dur_sec": 3.3,
+    "text": "Anvil. Bomb away. Keep the pod on it, laser on.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "bomb_away_v2": {
+    "file": "bomb_away_v2.ogg",
+    "dur_sec": 3.14,
+    "text": "Anvil. Weapon off. Laser on, keep the cross on it.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "bomb_away_v3": {
+    "file": "bomb_away_v3.ogg",
+    "dur_sec": 3.06,
+    "text": "Anvil. Release. Gentle turn, keep the pod looking.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "t1_shack_v1": {
+    "file": "t1_shack_v1.ogg",
+    "dur_sec": 4.18,
+    "text": "Anvil. Shack. Direct hit, target one. Good hands.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "t1_shack_v2": {
+    "file": "t1_shack_v2.ogg",
+    "dur_sec": 2.98,
+    "text": "Anvil. Shack on target one. Nice and tidy.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "t1_shack_v3": {
+    "file": "t1_shack_v3.ogg",
+    "dur_sec": 2.83,
+    "text": "Anvil. Direct hit, target one. Hands are back.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "t1_miss_tip_v1": {
+    "file": "t1_miss_tip_v1.ogg",
+    "dur_sec": 6.01,
+    "text": "Anvil. No effect. Check laser arm, and code one-six-eight-eight on SMS and pod. Re-attack.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "t1_miss_tip_v2": {
+    "file": "t1_miss_tip_v2.ogg",
+    "dur_sec": 6.74,
+    "text": "Anvil. Long, no effect. Was the laser firing? Check laser arm and the L on the pod. Re-attack.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "t1_miss_tip_v3": {
+    "file": "t1_miss_tip_v3.ogg",
+    "dur_sec": 6.4,
+    "text": "Anvil. No effect on target one. Laser arm, code match, cross on the trucks. Cleared re-attack.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "t1_timeout_v1": {
+    "file": "t1_timeout_v1.ogg",
+    "dur_sec": 5.05,
+    "text": "Python One-One, Anvil. No score on target one. Moving on to target two.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "t1_timeout_v2": {
+    "file": "t1_timeout_v2.ogg",
+    "dur_sec": 4.73,
+    "text": "Python One-One, Anvil. Time's up on target one. Reset for target two.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "t1_timeout_v3": {
+    "file": "t1_timeout_v3.ogg",
+    "dur_sec": 4.73,
+    "text": "Python One-One, Anvil. Leaving target one. We'll set up target two.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "t2_shack_both_v1": {
+    "file": "t2_shack_both_v1.ogg",
+    "dur_sec": 3.45,
+    "text": "Anvil. Shack, target two. Two for two. You're qualified.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "t2_shack_both_v2": {
+    "file": "t2_shack_both_v2.ogg",
+    "dur_sec": 3.77,
+    "text": "Anvil. Direct hit on the tank. Two for two, card's signed.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "t2_shack_both_v3": {
+    "file": "t2_shack_both_v3.ogg",
+    "dur_sec": 2.98,
+    "text": "Anvil. Shack. Two from two. Welcome back.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "t2_shack_one_v1": {
+    "file": "t2_shack_one_v1.ogg",
+    "dur_sec": 4.81,
+    "text": "Anvil. Shack, target two. One for two. That's a qualifying score.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "t2_shack_one_v2": {
+    "file": "t2_shack_one_v2.ogg",
+    "dur_sec": 3.61,
+    "text": "Anvil. Direct hit on the tank. One of two, you're qualified.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "t2_shack_one_v3": {
+    "file": "t2_shack_one_v3.ogg",
+    "dur_sec": 2.98,
+    "text": "Anvil. Shack on the tank. One for two, that'll do.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "t2_miss_tip_v1": {
+    "file": "t2_miss_tip_v1.ogg",
+    "dur_sec": 5.62,
+    "text": "Anvil. No effect. Keep the cross on the tank until impact. Don't bank past the pod.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "t2_miss_tip_v2": {
+    "file": "t2_miss_tip_v2.ogg",
+    "dur_sec": 5.54,
+    "text": "Anvil. No effect. Stay wings level longer, the pod masks in a hard turn.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "t2_miss_tip_v3": {
+    "file": "t2_miss_tip_v3.ogg",
+    "dur_sec": 5.46,
+    "text": "Anvil. No effect on the tank. Laser on by ten seconds, cross steady. Re-attack.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "t2_timeout_v1": {
+    "file": "t2_timeout_v1.ogg",
+    "dur_sec": 5.12,
+    "text": "Python One-One, Anvil. No score on target two. Closing your passes.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "t2_timeout_v2": {
+    "file": "t2_timeout_v2.ogg",
+    "dur_sec": 4.5,
+    "text": "Python One-One, Anvil. Time's up on target two. Closing your passes.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "t2_timeout_v3": {
+    "file": "t2_timeout_v3.ogg",
+    "dur_sec": 4.26,
+    "text": "Python One-One, Anvil. That's the range time. Closing your passes.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "range_score_none_v1": {
+    "file": "range_score_none_v1.ogg",
+    "dur_sec": 6.01,
+    "text": "Anvil. No qualifying hits today. We'll re-fly the card. Switches are the usual culprit.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "range_score_none_v2": {
+    "file": "range_score_none_v2.ogg",
+    "dur_sec": 4.97,
+    "text": "Anvil. No score this time. Happens to everyone after a break. We'll fly it again.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "range_score_none_v3": {
+    "file": "range_score_none_v3.ogg",
+    "dur_sec": 5.62,
+    "text": "Anvil. No hits on the card. Check laser arm and code in the debrief. We'll re-fly it.",
+    "speaker": "rco_anvil",
+    "model": "eleven_v3"
+  },
+  "jackal_9line_v1": {
+    "file": "jackal_9line_v1.ogg",
+    "dur_sec": 7.68,
+    "text": "Python, Jackal. Type two. Target is a compound one mile south of my position. Technicals and a ZU-23.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "jackal_9line_v2": {
+    "file": "jackal_9line_v2.ogg",
+    "dur_sec": 7.13,
+    "text": "Python, Jackal. Type two control. Compound south of the village, about one mile. Technicals, one ZU-23.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "jackal_9line_v3": {
+    "file": "jackal_9line_v3.ogg",
+    "dur_sec": 7.21,
+    "text": "Python, Jackal. Type two. Farm compound one mile south of me. KORD technical and a ZU-23 nearby.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "jackal_9line_2_v1": {
+    "file": "jackal_9line_2_v1.ogg",
+    "dur_sec": 6.81,
+    "text": "Jackal. Laser one-six-eight-eight. Friendlies in the village north, one mile. Attack heading west. Egress west.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "jackal_9line_2_v2": {
+    "file": "jackal_9line_2_v2.ogg",
+    "dur_sec": 6.0,
+    "text": "Jackal. Code one-six-eight-eight. Friendlies one mile north in the village. Run east to west, egress west.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "jackal_9line_2_v3": {
+    "file": "jackal_9line_2_v3.ogg",
+    "dur_sec": 6.32,
+    "text": "Jackal. Laser code one-six-eight-eight. We're the village, one mile north. Heading west, egress west.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "cleared_live_v1": {
+    "file": "cleared_live_v1.ogg",
+    "dur_sec": 5.04,
+    "text": "Python, Jackal. One-six-eight-eight. Cleared hot. Stay above one-two thousand.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "cleared_live_v2": {
+    "file": "cleared_live_v2.ogg",
+    "dur_sec": 5.46,
+    "text": "Python, Jackal. Code one-six-eight-eight. Cleared hot. Keep it above twelve thousand.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "cleared_live_v3": {
+    "file": "cleared_live_v3.ogg",
+    "dur_sec": 5.93,
+    "text": "Python, Jackal. One-six-eight-eight confirmed. Cleared hot. High, above one-two thousand.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "extra_tech_warning_v1": {
+    "file": "extra_tech_warning_v1.ogg",
+    "dur_sec": 3.91,
+    "text": "Python, Jackal. Second technical pulling into the compounds.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "extra_tech_warning_v2": {
+    "file": "extra_tech_warning_v2.ogg",
+    "dur_sec": 3.05,
+    "text": "Python, Jackal. Another technical just drove in.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "extra_tech_warning_v3": {
+    "file": "extra_tech_warning_v3.ogg",
+    "dur_sec": 3.21,
+    "text": "Python, Jackal. New technical in the compounds.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "aaa_shooting_v1": {
+    "file": "aaa_shooting_v1.ogg",
+    "dur_sec": 3.13,
+    "text": "Python, Jackal. Triple-A up from the compounds.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "aaa_shooting_v2": {
+    "file": "aaa_shooting_v2.ogg",
+    "dur_sec": 3.37,
+    "text": "Python, Jackal. ZU-23 is shooting.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "aaa_shooting_v3": {
+    "file": "aaa_shooting_v3.ogg",
+    "dur_sec": 3.76,
+    "text": "Python, Jackal. Triple-A, south of me, firing.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "aaa_down_v1": {
+    "file": "aaa_down_v1.ogg",
+    "dur_sec": 3.29,
+    "text": "Jackal. ZU-23 is down. Good hit.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "aaa_down_v2": {
+    "file": "aaa_down_v2.ogg",
+    "dur_sec": 2.48,
+    "text": "Jackal. Good hit on the triple-A.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "aaa_down_v3": {
+    "file": "aaa_down_v3.ogg",
+    "dur_sec": 2.09,
+    "text": "Jackal. Triple-A destroyed.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "live_hit_partial_v1": {
+    "file": "live_hit_partial_v1.ogg",
+    "dur_sec": 3.6,
+    "text": "Jackal. Good hit. Still taking fire from the same compound.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "live_hit_partial_v2": {
+    "file": "live_hit_partial_v2.ogg",
+    "dur_sec": 3.52,
+    "text": "Jackal. One down. Still fire from that compound.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "live_hit_partial_v3": {
+    "file": "live_hit_partial_v3.ogg",
+    "dur_sec": 3.21,
+    "text": "Jackal. Good hit, not done. Same compound.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "live_good_effect_v1": {
+    "file": "live_good_effect_v1.ogg",
+    "dur_sec": 4.33,
+    "text": "Python, Jackal. Good effect. Fire has stopped. Patrol is moving.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "live_good_effect_v2": {
+    "file": "live_good_effect_v2.ogg",
+    "dur_sec": 3.91,
+    "text": "Python, Jackal. Good effect on the compound. We're moving.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "live_good_effect_v3": {
+    "file": "live_good_effect_v3.ogg",
+    "dur_sec": 3.91,
+    "text": "Python, Jackal. Good effect. Fire stopped. Thanks.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "live_nudge_v1": {
+    "file": "live_nudge_v1.ogg",
+    "dur_sec": 3.14,
+    "text": "Python, Rook Ops. Say status.",
+    "speaker": "ops_lindqvist",
+    "model": "eleven_v3"
+  },
+  "live_nudge_v2": {
+    "file": "live_nudge_v2.ogg",
+    "dur_sec": 3.61,
+    "text": "Python, Rook Ops. Status on the compound?",
+    "speaker": "ops_lindqvist",
+    "model": "eleven_v3"
+  },
+  "live_nudge_v3": {
+    "file": "live_nudge_v3.ogg",
+    "dur_sec": 3.37,
+    "text": "Python, Rook Ops. Say bombs remaining.",
+    "speaker": "ops_lindqvist",
+    "model": "eleven_v3"
+  },
+  "live_timeout_v1": {
+    "file": "live_timeout_v1.ogg",
+    "dur_sec": 5.27,
+    "text": "Python, Jackal. Enemy breaking contact. Cease fire. Patrol pulling back.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "live_timeout_v2": {
+    "file": "live_timeout_v2.ogg",
+    "dur_sec": 4.33,
+    "text": "Python, Jackal. They've gone quiet. Cease fire, we're pulling back.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "live_timeout_v3": {
+    "file": "live_timeout_v3.ogg",
+    "dur_sec": 4.72,
+    "text": "Python, Jackal. Contact broken. Cease fire. Patrol moving north.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "live_no_show_v1": {
+    "file": "live_no_show_v1.ogg",
+    "dur_sec": 5.86,
+    "text": "Python, Rook Ops. Jackal's patrol has pulled back. Tasking cancelled.",
+    "speaker": "ops_lindqvist",
+    "model": "eleven_v3"
+  },
+  "live_no_show_v2": {
+    "file": "live_no_show_v2.ogg",
+    "dur_sec": 5.05,
+    "text": "Python, Rook Ops. Jackal broke contact. Tasking cancelled.",
+    "speaker": "ops_lindqvist",
+    "model": "eleven_v3"
+  },
+  "live_no_show_v3": {
+    "file": "live_no_show_v3.ogg",
+    "dur_sec": 4.58,
+    "text": "Python, Rook Ops. Jackal's out of contact. Cancel the tasking.",
+    "speaker": "ops_lindqvist",
+    "model": "eleven_v3"
+  },
+  "jackal_checkout_v1": {
+    "file": "jackal_checkout_v1.ogg",
+    "dur_sec": 4.49,
+    "text": "Python, Jackal. Copy all. Thanks for the help. Cleared off station.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "jackal_checkout_v2": {
+    "file": "jackal_checkout_v2.ogg",
+    "dur_sec": 4.18,
+    "text": "Python, Jackal. Copy all. BDA to Rook Ops. Cleared off.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "jackal_checkout_v3": {
+    "file": "jackal_checkout_v3.ogg",
+    "dur_sec": 4.41,
+    "text": "Python, Jackal. Copy all. Appreciate it. Cleared off station.",
+    "speaker": "jtac_ortiz",
+    "model": "eleven_v3"
+  },
+  "player_hit_v1": {
+    "file": "player_hit_v1.ogg",
+    "dur_sec": 3.45,
+    "text": "Python, Rook Ops. Say status of your jet.",
+    "speaker": "ops_lindqvist",
+    "model": "eleven_v3"
+  },
+  "player_hit_v2": {
+    "file": "player_hit_v2.ogg",
+    "dur_sec": 3.53,
+    "text": "Python, Rook Ops. You're hit? Say status.",
+    "speaker": "ops_lindqvist",
+    "model": "eleven_v3"
+  },
+  "player_hit_v3": {
+    "file": "player_hit_v3.ogg",
+    "dur_sec": 4.11,
+    "text": "Python, Rook Ops. Say state and status.",
+    "speaker": "ops_lindqvist",
+    "model": "eleven_v3"
+  },
+  "tower_recovery_v1": {
+    "file": "tower_recovery_v1.ogg",
+    "dur_sec": 5.12,
+    "text": "Python One-One, Incirlik Tower. Welcome back. Runway zero-five, cleared to land.",
+    "speaker": "tower_incirlik",
+    "model": "eleven_v3"
+  },
+  "tower_recovery_v2": {
+    "file": "tower_recovery_v2.ogg",
+    "dur_sec": 4.58,
+    "text": "Python One-One, Tower. Number one, report three-mile final, zero-five.",
+    "speaker": "tower_incirlik",
+    "model": "eleven_v3"
+  },
+  "tower_recovery_v3": {
+    "file": "tower_recovery_v3.ogg",
+    "dur_sec": 4.81,
+    "text": "Python One-One, Tower, welcome back. Wind calm. Zero-five, cleared.",
+    "speaker": "tower_incirlik",
+    "model": "eleven_v3"
+  },
+  "venom_cleared_v1": {
+    "file": "venom_cleared_v1.ogg",
+    "dur_sec": 5.46,
+    "text": "Venom Three-One, Incirlik Tower. Runway zero-five, wind calm. Cleared for takeoff.",
+    "speaker": "tower_incirlik",
+    "model": "eleven_v3"
+  },
+  "venom_cleared_v2": {
+    "file": "venom_cleared_v2.ogg",
+    "dur_sec": 3.92,
+    "text": "Venom Three-One, Tower. Hold short no longer required. Line up and go.",
+    "speaker": "tower_incirlik",
+    "model": "eleven_v3"
+  },
+  "venom_cleared_v3": {
+    "file": "venom_cleared_v3.ogg",
+    "dur_sec": 5.86,
+    "text": "Venom Three-One, Incirlik Tower. C-130 departing ahead, caution wake. Cleared for takeoff.",
+    "speaker": "tower_incirlik",
+    "model": "eleven_v3"
+  },
+  "venom_rolling_v1": {
+    "file": "venom_rolling_v1.ogg",
+    "dur_sec": 2.56,
+    "text": "Venom Three-One, cleared for takeoff, zero-five.",
+    "speaker": "venom_lead",
+    "model": "eleven_v3"
+  },
+  "venom_rolling_v2": {
+    "file": "venom_rolling_v2.ogg",
+    "dur_sec": 3.92,
+    "text": "Venom Three-One, cleared for takeoff. Thirty seconds spacing on Two.",
+    "speaker": "venom_lead",
+    "model": "eleven_v3"
+  },
+  "venom_rolling_v3": {
+    "file": "venom_rolling_v3.ogg",
+    "dur_sec": 2.09,
+    "text": "Venom Three-One, rolling, flight of two.",
+    "speaker": "venom_lead",
+    "model": "eleven_v3"
+  },
+  "venom_airborne_v1": {
+    "file": "venom_airborne_v1.ogg",
+    "dur_sec": 4.42,
+    "text": "Venom Three-One, Incirlik Tower. Airborne. Contact Magic. Good day.",
+    "speaker": "tower_incirlik",
+    "model": "eleven_v3"
+  },
+  "venom_airborne_v2": {
+    "file": "venom_airborne_v2.ogg",
+    "dur_sec": 3.45,
+    "text": "Venom Three-One, Tower. Frequency change approved. Good day.",
+    "speaker": "tower_incirlik",
+    "model": "eleven_v3"
+  },
+  "venom_airborne_v3": {
+    "file": "venom_airborne_v3.ogg",
+    "dur_sec": 3.45,
+    "text": "Venom Three-One, Incirlik Tower. Switch Magic. Have a good one.",
+    "speaker": "tower_incirlik",
+    "model": "eleven_v3"
+  },
+  "colt_checkin_v1": {
+    "file": "colt_checkin_v1.ogg",
+    "dur_sec": 3.69,
+    "text": "Magic, Colt One-One, flight of two, on station, angels two-five.",
+    "speaker": "colt_lead",
+    "model": "eleven_v3"
+  },
+  "colt_checkin_v2": {
+    "file": "colt_checkin_v2.ogg",
+    "dur_sec": 4.81,
+    "text": "Magic, Colt One-One, two Eagles, on station CAP north, two-five thousand.",
+    "speaker": "colt_lead",
+    "model": "eleven_v3"
+  },
+  "colt_checkin_v3": {
+    "file": "colt_checkin_v3.ogg",
+    "dur_sec": 4.81,
+    "text": "Magic, Colt One-One, on station, angels two-five, state one-zero point two.",
+    "speaker": "colt_lead",
+    "model": "eleven_v3"
+  },
+  "magic_colt_v1": {
+    "file": "magic_colt_v1.ogg",
+    "dur_sec": 3.53,
+    "text": "Colt One-One, Magic. Radar contact. Picture clean.",
+    "speaker": "awacs_magic",
+    "model": "eleven_v3"
+  },
+  "magic_colt_v2": {
+    "file": "magic_colt_v2.ogg",
+    "dur_sec": 4.5,
+    "text": "Colt One-One, Magic. Radar contact. Cleared to patrol, picture clean.",
+    "speaker": "awacs_magic",
+    "model": "eleven_v3"
+  },
+  "magic_colt_v3": {
+    "file": "magic_colt_v3.ogg",
+    "dur_sec": 3.69,
+    "text": "Magic copies Colt One-One on station. Picture clean.",
+    "speaker": "awacs_magic",
+    "model": "eleven_v3"
+  },
+  "magic_venom_v1": {
+    "file": "magic_venom_v1.ogg",
+    "dur_sec": 4.97,
+    "text": "Venom Three-One, Magic. Radar contact. Cleared to patrol, angels two-two.",
+    "speaker": "awacs_magic",
+    "model": "eleven_v3"
+  },
+  "magic_venom_v2": {
+    "file": "magic_venom_v2.ogg",
+    "dur_sec": 4.73,
+    "text": "Venom Three-One, Magic. Radar contact. Patrol north of Kilis approved.",
+    "speaker": "awacs_magic",
+    "model": "eleven_v3"
+  },
+  "magic_venom_v3": {
+    "file": "magic_venom_v3.ogg",
+    "dur_sec": 4.42,
+    "text": "Venom Three-One, Magic, radar contact. Picture clean, cleared to patrol.",
+    "speaker": "awacs_magic",
+    "model": "eleven_v3"
+  },
+  "magic_python_v1": {
+    "file": "magic_python_v1.ogg",
+    "dur_sec": 5.39,
+    "text": "Python One-One, Magic. Radar contact. Picture clean. Colt is CAP north of Kilis.",
+    "speaker": "awacs_magic",
+    "model": "eleven_v3"
+  },
+  "magic_python_v2": {
+    "file": "magic_python_v2.ogg",
+    "dur_sec": 5.05,
+    "text": "Python One-One, Magic. Radar contact on the climb-out. No factor traffic.",
+    "speaker": "awacs_magic",
+    "model": "eleven_v3"
+  },
+  "magic_python_v3": {
+    "file": "magic_python_v3.ogg",
+    "dur_sec": 5.86,
+    "text": "Python One-One, Magic, radar contact. Picture clean. Two C-130s in the Incirlik pattern.",
+    "speaker": "awacs_magic",
+    "model": "eleven_v3"
+  },
+  "magic_python_dust_v1": {
+    "file": "magic_python_dust_v1.ogg",
+    "dur_sec": 7.14,
+    "text": "Python One-One, Magic. Picture clean on your route to DUST. Venom is north of you.",
+    "speaker": "awacs_magic",
+    "model": "eleven_v3"
+  },
+  "magic_python_dust_v2": {
+    "file": "magic_python_dust_v2.ogg",
+    "dur_sec": 5.39,
+    "text": "Python One-One, Magic. Route to DUST is clean. Friendly Vipers north, angels two-two.",
+    "speaker": "awacs_magic",
+    "model": "eleven_v3"
+  },
+  "magic_python_dust_v3": {
+    "file": "magic_python_dust_v3.ogg",
+    "dur_sec": 5.62,
+    "text": "Python One-One, Magic. Picture clean. Colt holding over the border, Venom north.",
+    "speaker": "awacs_magic",
+    "model": "eleven_v3"
+  },
+  "viper_inbound_v1": {
+    "file": "viper_inbound_v1.ogg",
+    "dur_sec": 5.12,
+    "text": "Incirlik Tower, Viper Two-One, flight of two, twelve miles east, full stop.",
+    "speaker": "viper_lead",
+    "model": "eleven_v3"
+  },
+  "viper_inbound_v2": {
+    "file": "viper_inbound_v2.ogg",
+    "dur_sec": 4.89,
+    "text": "Incirlik Tower, Viper Two-One, two Vipers, twelve east, landing full stop.",
+    "speaker": "viper_lead",
+    "model": "eleven_v3"
+  },
+  "viper_inbound_v3": {
+    "file": "viper_inbound_v3.ogg",
+    "dur_sec": 3.61,
+    "text": "Tower, Viper Two-One, twelve east, two-ship, full stop.",
+    "speaker": "viper_lead",
+    "model": "eleven_v3"
+  },
+  "viper_cleared_v1": {
+    "file": "viper_cleared_v1.ogg",
+    "dur_sec": 5.05,
+    "text": "Viper Two-One, Incirlik Tower. Runway zero-five, wind calm. Cleared to land.",
+    "speaker": "tower_incirlik",
+    "model": "eleven_v3"
+  },
+  "viper_cleared_v2": {
+    "file": "viper_cleared_v2.ogg",
+    "dur_sec": 4.18,
+    "text": "Viper Two-One, Tower. Number one, zero-five, cleared to land.",
+    "speaker": "tower_incirlik",
+    "model": "eleven_v3"
+  },
+  "viper_cleared_v3": {
+    "file": "viper_cleared_v3.ogg",
+    "dur_sec": 4.65,
+    "text": "Viper Two-One, Incirlik Tower. Straight in zero-five approved, cleared to land.",
+    "speaker": "tower_incirlik",
+    "model": "eleven_v3"
+  },
+  "viper_readback_v1": {
+    "file": "viper_readback_v1.ogg",
+    "dur_sec": 2.9,
+    "text": "Viper Two-One, cleared to land, zero-five.",
+    "speaker": "viper_lead",
+    "model": "eleven_v3"
+  },
+  "viper_readback_v2": {
+    "file": "viper_readback_v2.ogg",
+    "dur_sec": 3.3,
+    "text": "Viper Two-One, cleared to land. Two's in trail.",
+    "speaker": "viper_lead",
+    "model": "eleven_v3"
+  },
+  "viper_readback_v3": {
+    "file": "viper_readback_v3.ogg",
+    "dur_sec": 3.06,
+    "text": "Viper Two-One, straight in, cleared to land.",
+    "speaker": "viper_lead",
+    "model": "eleven_v3"
+  },
+  "viper_landed_v1": {
+    "file": "viper_landed_v1.ogg",
+    "dur_sec": 3.84,
+    "text": "Viper Two-One, Incirlik Tower. Welcome back. Taxi to parking.",
+    "speaker": "tower_incirlik",
+    "model": "eleven_v3"
+  },
+  "viper_landed_v2": {
+    "file": "viper_landed_v2.ogg",
+    "dur_sec": 3.45,
+    "text": "Viper Two-One, Tower, welcome back. Ground when clear.",
+    "speaker": "tower_incirlik",
+    "model": "eleven_v3"
+  },
+  "viper_landed_v3": {
+    "file": "viper_landed_v3.ogg",
+    "dur_sec": 3.14,
+    "text": "Viper Two-One, welcome back. Taxi to the Rook ramp.",
+    "speaker": "tower_incirlik",
+    "model": "eleven_v3"
+  },
+  "magic_picture_v1": {
+    "file": "magic_picture_v1.ogg",
+    "dur_sec": 2.83,
+    "text": "All players, Magic. Picture clean.",
+    "speaker": "awacs_magic",
+    "model": "eleven_v3"
+  },
+  "magic_picture_v2": {
+    "file": "magic_picture_v2.ogg",
+    "dur_sec": 2.83,
+    "text": "Colt One-One, Magic. Picture clean.",
+    "speaker": "awacs_magic",
+    "model": "eleven_v3"
+  },
+  "magic_picture_v3": {
+    "file": "magic_picture_v3.ogg",
+    "dur_sec": 3.69,
+    "text": "Venom Three-One, Magic. Picture clean, no factor traffic.",
+    "speaker": "awacs_magic",
+    "model": "eleven_v3"
+  },
+  "magic_picture_v4": {
+    "file": "magic_picture_v4.ogg",
+    "dur_sec": 4.34,
+    "text": "All players, Magic. Bullseye weather unchanged. Picture clean.",
+    "speaker": "awacs_magic",
+    "model": "eleven_v3"
+  },
+  "colt_ops_v1": {
+    "file": "colt_ops_v1.ogg",
+    "dur_sec": 3.53,
+    "text": "Magic, Colt One-One, ops normal, state eight point four.",
+    "speaker": "colt_lead",
+    "model": "eleven_v3"
+  },
+  "colt_ops_v2": {
+    "file": "colt_ops_v2.ogg",
+    "dur_sec": 3.45,
+    "text": "Magic, Colt One-One, ops normal, state seven point one.",
+    "speaker": "colt_lead",
+    "model": "eleven_v3"
+  },
+  "colt_ops_v3": {
+    "file": "colt_ops_v3.ogg",
+    "dur_sec": 4.42,
+    "text": "Magic, Colt One-One, still on station. Ops normal, state six point eight.",
+    "speaker": "colt_lead",
+    "model": "eleven_v3"
+  }
+}

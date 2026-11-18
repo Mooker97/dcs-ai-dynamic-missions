@@ -1,0 +1,18 @@
+# Golden g03 voice lines.
+mission_id: g03-persiangulf-f18-strike
+model: eleven_v3
+lines:
+  - {id: ops_start_v1, speaker: ops_navarro, beat: mission_start, text: "Ranger, Bastion. Launchers confirmed east of Bandar Abbas. Cleared to proceed."}
+  - {id: ops_start_v2, speaker: ops_navarro, beat: mission_start, text: "Ranger, Bastion. Target is hot and confirmed. You're cleared out."}
+  - {id: awacs_wet_v1, speaker: awacs_kim, beat: feet_wet, text: "Ranger, Magic. Picture clean. Feet wet, push."}
+  - {id: awacs_wet_v2, speaker: awacs_kim, beat: feet_wet, text: "Ranger, Magic. No factor traffic. Push."}
+  - {id: awacs_sam_v1, speaker: awacs_kim, beat: sam_warning, text: "Ranger, Magic. Possible pop-up SAM near the target. Heads up."}
+  - {id: awacs_sam_v2, speaker: awacs_kim, beat: sam_warning, text: "Ranger, Magic. New emitter near target area. Expect a shooter."}
+  - {id: ops_splash_v1, speaker: ops_navarro, beat: launchers_destroyed, text: "Ranger, Bastion. Launchers destroyed. Strait is open."}
+  - {id: ops_splash_v2, speaker: ops_navarro, beat: launchers_destroyed, text: "Ranger, Bastion. Good effects on the launchers. Shipping can move."}
+  - {id: awacs_sam_down_v1, speaker: awacs_kim, beat: defences_down, text: "Ranger, Magic. Point defence SAM is down."}
+  - {id: awacs_sam_down_v2, speaker: awacs_kim, beat: defences_down, text: "Ranger, Magic. Emitter off the air. Nice."}
+  - {id: ops_rtb_v1, speaker: ops_navarro, beat: rtb_call, text: "Ranger, Bastion. Good work. Egress south and RTB."}
+  - {id: ops_rtb_v2, speaker: ops_navarro, beat: rtb_call, text: "Ranger, Bastion. Job done. Come home."}
+  - {id: ops_landed_v1, speaker: ops_navarro, beat: landed, text: "Ranger, Bastion. Wheels down. Mission complete."}
+  - {id: ops_landed_v2, speaker: ops_navarro, beat: landed, text: "Ranger, Bastion. Safe on deck. Well flown."}

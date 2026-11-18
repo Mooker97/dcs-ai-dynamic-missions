@@ -1,0 +1,90 @@
+# Golden g02: Caucasus 2008 Ka-50 flown by the RED coalition. Fixed seed.
+schema_version: 1
+id: g02-caucasus-ka50-red
+title: "Roki Shadow"
+campaign: evals
+content_mode: fictional
+theater: Caucasus
+era: 2008
+date: 2008-08-09
+start_time: "05:45"
+weather_preset: clear
+mission_type: CAS
+duration_min: 50
+blue_countries: [Georgia]
+red_countries: [Russia]
+cast: [ops_volkov, fac_orlova]
+areas:
+  - id: home
+    description: "Beslan, home base."
+    where: {kind: near_airbase, airbase: Beslan, radius_nm: 1}
+  - id: bridge
+    description: "Road bridge north of Tskhinvali the column is driving for."
+    where: {kind: near_named_place, place: Tskhinvali, radius_nm: 0.6, bearing_deg: 0, distance_nm: 4}
+    terrain: road
+  - id: valley
+    description: "Valley floor south of the bridge where the column is strung out."
+    where: {kind: near_named_place, place: Tskhinvali, radius_nm: 1.5, bearing_deg: 0, distance_nm: 1.5}
+    terrain: road
+  - id: ridge_sam
+    description: "Short-range SAM covering the column from a spur east of the road."
+    where: {kind: near_named_place, place: Tskhinvali, radius_nm: 0.8, bearing_deg: 90, distance_nm: 3}
+    terrain: high_ground
+player_flights:
+  - callsign: Akula
+    aircraft: Ka-50_3
+    count: 2
+    coalition: red
+    country: Russia
+    start_area: home
+    start_type: parking_cold
+    loadout: auto
+    tasking: "Fly south through the pass, contact Vershina and stop the column short of the bridge."
+objectives:
+  - id: stop_column
+    kind: destroy
+    description: "Destroy the armoured column in the valley."
+    area: valley
+    target: column
+    success_flag: column_stopped
+  - id: hold_bridge
+    kind: protect
+    description: "Keep the column off the bridge."
+    area: bridge
+    success_flag: bridge_held
+  - id: rtb
+    kind: land
+    description: "Recover at Beslan."
+    area: home
+    success_flag: landed
+threats:
+  - id: column
+    role: armor
+    area: valley
+    strength: medium
+    faction: south_coalition
+    skill: Good
+  - id: sam_ridge
+    role: sam_short
+    area: ridge_sam
+    strength: light
+    faction: south_coalition
+    skill: Average
+dynamic:
+  pools:
+    - id: reinforcements
+      roles: [ifv]
+      areas: [valley]
+      pick: [1, 2]
+      faction: south_coalition
+  encounters:
+    - id: second_echelon
+      kind: waves
+      pool: reinforcements
+      trigger: {type: beat, beat: column_stopped}
+      waves: 1
+      chance: 70
+      telegraph_beat: echelon_warning
+  director: {enabled: true, intensity: moderate, adaptive: true}
+  fog_of_war: {enabled: true, reveal_radius_km: 5, mark_refresh_sec: 15}
+seed: 2008

@@ -1,0 +1,65 @@
+# Golden eval bible (fictional). Invented factions on a real map; no real event is implied.
+schema_version: 1
+title: "Coastal Road"
+mode: fictional
+setting:
+  era: 1974
+  theater: Sinai
+  region: "Northern Sinai coast road between El Arish and the Negev airfields."
+  premise_summary: >-
+    An expeditionary F-4 wing flies interdiction against the Coastal Front, an invented army
+    that stockpiles fuel and ammunition along the coast road. Each depot destroyed buys the
+    ground forces another day.
+tone:
+  style: professional-terse
+  themes: [interdiction, risk and reward]
+player_role: "Anvil 1-1: F-4E, Expeditionary Wing Ramon (fictional)."
+factions:
+  - id: exp_wing
+    name: "Expeditionary Wing Ramon"
+    description: "A fictional multinational F-4 wing on loan to the coalition."
+    doctrine: "Low-level ingress, one pass, home."
+    dcs:
+      country: USA
+      coalition: blue
+      units: [F-4E-45MC]
+  - id: coastal_front
+    name: "Coastal Front"
+    description: "Invented army holding the coast road with Soviet-pattern kit."
+    doctrine: "Point defence of depots with guns and short-range missiles."
+    dcs:
+      country: Combined Joint Task Forces Red
+      coalition: red
+      units: [ZSU-23-4 Shilka, ZU-23 Emplacement, Strela-1 9P31, Ural-375, ATMZ-5, Infantry AK]
+      tech_veneer: "Generic 1970s Soviet-pattern equipment stands in for an invented army."
+characters:
+  - id: ops_ramon
+    name: "Lt. Col. Ezra Hale"
+    callsign: "Anvil Ops"
+    role: wing operations
+    faction: exp_wing
+    description: "Old fighter pilot; dry and exact."
+    voice:
+      design_prompt: "Male, fifties, General American, gravelly, measured, UHF radio."
+      accent: General American
+      age: 52
+      gender: male
+      cadence: measured
+      brevity: terse
+      radio_fx: uhf_clean
+  - id: wizzo
+    name: "Capt. Lena Brooks"
+    callsign: "Anvil 1-1 back seat"
+    role: weapon systems officer
+    faction: exp_wing
+    description: "Calls threats fast and flat."
+    voice:
+      design_prompt: "Female, thirties, General American, crisp, intercom, slightly breathy under G."
+      accent: General American
+      age: 31
+      gender: female
+      cadence: rapid
+      brevity: terse
+      radio_fx: intercom
+canon_rules:
+  - "Both factions are invented."

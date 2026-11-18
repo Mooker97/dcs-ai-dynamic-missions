@@ -1,0 +1,363 @@
+# Generic DMS voice lines (mission-agnostic radio chatter).
+#
+# Sources: "supporting Files/Generic Voice Lines.md" and
+# legacy/elevenlabs-integration/docs/VOICE-CATALOG.md (now data/voice/catalog.md).
+# Shape: VoiceLineSet (docs/CONTRACTS.md, dms_core.schemas.voice). Each line has a stable
+# snake_case id; `speaker` keys into `speakers` below, whose `voice` keys into
+# data/voice/voices.json. `audio` points at an existing rendered take where one exists.
+# Upper-case words in `text` mark emphasis from the original script.
+# `beat` names the event a line suits (mission_start, good_kill, ...); missions map beats to
+# lines in their own beats.yaml.
+version: 1
+speakers:
+  generic_ground:
+    voice: ground_troops
+    role: Friendly ground troops under fire (excited, high energy)
+  generic_jtac:
+    voice: jtac
+    role: JTAC / ground observer calling strike results and status
+  generic_control:
+    voice: mission_control
+    role: Mission controller (mission start, complete, abort)
+  generic_briefer:
+    voice: briefing_officer
+    role: Briefing officer opening the mission
+  generic_wingman:
+    voice: warning_system
+    role: Fighter pilot / threat warning calls
+lines:
+  - id: support_request_01
+    speaker: generic_ground
+    text: "We need air support, NOW!"
+    variants: []
+    beat: support_request
+    tags: [generic, ground_troops, requesting_support]
+    notes: "Marked recorded in legacy catalog, but no rendered file exists in assets/audio."
+  - id: support_request_02
+    speaker: generic_ground
+    text: "Taking HEAVY fire, requesting CAS immediately!"
+    variants: []
+    beat: support_request
+    tags: [generic, ground_troops, requesting_support]
+  - id: support_request_03
+    speaker: generic_ground
+    text: "We're pinned down here — need air support ASAP!"
+    variants: []
+    beat: support_request
+    tags: [generic, ground_troops, requesting_support]
+  - id: support_request_04
+    speaker: generic_ground
+    text: "Contacts in the OPEN, requesting strike!"
+    variants: []
+    beat: support_request
+    tags: [generic, ground_troops, requesting_support]
+  - id: support_request_05
+    speaker: generic_ground
+    text: "We need close air NOW! We're getting HAMMERED!"
+    variants: []
+    beat: support_request
+    tags: [generic, ground_troops, requesting_support]
+  - id: support_request_06
+    speaker: generic_ground
+    text: "Requesting immediate air support — multiple hostiles inbound!"
+    variants: []
+    beat: support_request
+    tags: [generic, ground_troops, requesting_support]
+  - id: support_request_07
+    speaker: generic_ground
+    text: "We can't hold much LONGER! Need air on station!"
+    variants: []
+    beat: support_request
+    tags: [generic, ground_troops, requesting_support]
+  - id: good_kill_01
+    speaker: generic_ground
+    text: "Good kill, GOOD kill!"
+    variants: []
+    beat: good_kill
+    tags: [generic, ground_troops, good_strike]
+    audio: assets/audio/generic/ground-troops/good-kill.wav
+  - id: good_kill_02
+    speaker: generic_ground
+    text: "Direct HIT! Beautiful, just beautiful!"
+    variants: []
+    beat: good_kill
+    tags: [generic, ground_troops, good_strike]
+  - id: good_kill_03
+    speaker: generic_ground
+    text: "Splash one! Hell YEAH!"
+    variants: []
+    beat: good_kill
+    tags: [generic, ground_troops, good_strike]
+  - id: good_kill_04
+    speaker: generic_ground
+    text: "Target destroyed! NICE work up there!"
+    variants: []
+    beat: good_kill
+    tags: [generic, ground_troops, good_strike]
+  - id: good_kill_05
+    speaker: generic_ground
+    text: "That's a HIT! Target neutralized, you NAILED it!"
+    variants: []
+    beat: good_kill
+    tags: [generic, ground_troops, good_strike]
+  - id: keep_going_01
+    speaker: generic_ground
+    text: "Good hit, good hit! Keep it coming, KEEP it coming! Don't let up!"
+    variants: []
+    beat: good_kill_more_remain
+    tags: [generic, ground_troops, good_strike]
+    audio: assets/audio/generic/ground-troops/good-kill-keep-em-coming.wav
+    notes: "assets/audio/generic/ground-troops/keep-em-coming.wav is probably a shorter take of the second half (\"Keep it coming...\")."
+  - id: keep_going_02
+    speaker: generic_ground
+    text: "THAT'S what I'm talking about! Don't stop now — MORE, MORE!"
+    variants: []
+    beat: good_kill_more_remain
+    tags: [generic, ground_troops, good_strike]
+  - id: taking_fire_01
+    speaker: generic_ground
+    text: "We're taking fire from the NORTH!"
+    variants: []
+    beat: friendlies_under_fire
+    tags: [generic, ground_troops, taking_fire]
+  - id: taking_fire_02
+    speaker: generic_ground
+    text: "Contact! Contact! Taking heavy fire!"
+    variants: []
+    beat: friendlies_under_fire
+    tags: [generic, ground_troops, taking_fire]
+  - id: taking_fire_03
+    speaker: generic_ground
+    text: "We're hit! We're HIT! Need backup NOW!"
+    variants: []
+    beat: friendlies_under_fire
+    tags: [generic, ground_troops, taking_fire]
+  - id: taking_fire_04
+    speaker: generic_ground
+    text: "Under attack! Under ATTACK!"
+    variants: []
+    beat: friendlies_under_fire
+    tags: [generic, ground_troops, taking_fire]
+  - id: taking_fire_05
+    speaker: generic_ground
+    text: "We've got multiple contacts engaging us!"
+    variants: []
+    beat: friendlies_under_fire
+    tags: [generic, ground_troops, taking_fire]
+  - id: tally_01
+    speaker: generic_ground
+    text: "Tally target, visual on hostile armor!"
+    variants: []
+    beat: target_spotted
+    tags: [generic, ground_troops, tally]
+  - id: tally_02
+    speaker: generic_ground
+    text: "Eyes on enemy position, stand by for coordinates!"
+    variants: []
+    beat: target_spotted
+    tags: [generic, ground_troops, tally]
+  - id: tally_03
+    speaker: generic_ground
+    text: "Visual on SAM site, marking now!"
+    variants: []
+    beat: target_spotted
+    tags: [generic, ground_troops, tally]
+  - id: tally_04
+    speaker: generic_ground
+    text: "Got 'em! Enemy convoy spotted heading west!"
+    variants: []
+    beat: target_spotted
+    tags: [generic, ground_troops, tally]
+  - id: tally_05
+    speaker: generic_ground
+    text: "Contact! Enemy infantry in the OPEN!"
+    variants: []
+    beat: target_spotted
+    tags: [generic, ground_troops, tally]
+  - id: miss_01
+    speaker: generic_jtac
+    text: "Negative impact, you MISSED the target!"
+    variants: []
+    beat: strike_missed
+    tags: [generic, jtac, negative_results]
+  - id: miss_02
+    speaker: generic_jtac
+    text: "No effect on target, recommend re-attack!"
+    variants: []
+    beat: strike_missed
+    tags: [generic, jtac, negative_results]
+  - id: miss_03
+    speaker: generic_jtac
+    text: "Target still standing, try again!"
+    variants: []
+    beat: strike_missed
+    tags: [generic, jtac, negative_results]
+  - id: winchester_bingo_01
+    speaker: generic_jtac
+    text: "Winchester! Winchester! We're out of ammunition!"
+    variants: []
+    beat: winchester_bingo
+    tags: [generic, jtac, winchester, bingo]
+  - id: winchester_bingo_02
+    speaker: generic_jtac
+    text: "Bingo fuel, we need to RTB NOW!"
+    variants: []
+    beat: winchester_bingo
+    tags: [generic, jtac, winchester, bingo]
+  - id: winchester_bingo_03
+    speaker: generic_jtac
+    text: "We're BLACK on ammo, can't provide fire support!"
+    variants: []
+    beat: winchester_bingo
+    tags: [generic, jtac, winchester, bingo]
+  - id: winchester_bingo_04
+    speaker: generic_jtac
+    text: "Running on fumes here, bingo fuel in 5 mikes!"
+    variants: []
+    beat: winchester_bingo
+    tags: [generic, jtac, winchester, bingo]
+  - id: friendly_fire_01
+    speaker: generic_wingman
+    text: "Check fire! CHECK FIRE! Friendlies in the area!"
+    variants: []
+    beat: friendly_fire_risk
+    tags: [generic, warning, friendly_fire]
+  - id: friendly_fire_02
+    speaker: generic_wingman
+    text: "Danger close! We're DANGER CLOSE to your target!"
+    variants: []
+    beat: friendly_fire_risk
+    tags: [generic, warning, friendly_fire]
+  - id: friendly_fire_03
+    speaker: generic_wingman
+    text: "Hold fire! Those are BLUE forces!"
+    variants: []
+    beat: friendly_fire_risk
+    tags: [generic, warning, friendly_fire]
+  - id: mission_start_01
+    speaker: generic_briefer
+    text: "Alright, listen up. Here's the situation..."
+    variants: []
+    beat: mission_start
+    tags: [generic, mission_control, mission_start]
+  - id: mission_start_02
+    speaker: generic_control
+    text: "All callsigns, mission is a GO. Good hunting out there."
+    variants: []
+    beat: mission_start
+    tags: [generic, mission_control, mission_start]
+    audio: assets/audio/generic/mission-start/mission-is-a-go.wav
+    notes: "Probably recorded as two takes: mission-is-a-go.wav and assets/audio/generic/mission-start/good-hunting.wav (\"Good hunting out there.\")."
+  - id: mission_start_03
+    speaker: generic_control
+    text: "Weapons free, gentlemen. Let's get this done."
+    variants: []
+    beat: mission_start
+    tags: [generic, mission_control, mission_start]
+    audio: assets/audio/generic/mission-start/weapons-free.wav
+  - id: mission_start_04
+    speaker: generic_control
+    text: "You've got your tasking. Stay sharp, stay alive."
+    variants: []
+    beat: mission_start
+    tags: [generic, mission_control, mission_start]
+    audio: assets/audio/generic/mission-start/stay-sharp.wav
+  - id: mission_start_05
+    speaker: generic_control
+    text: "Time to earn your paycheck. Good luck."
+    variants: []
+    beat: mission_start
+    tags: [generic, mission_control, mission_start]
+    notes: "Marked recorded in legacy catalog, but no rendered file exists in assets/audio."
+  - id: mission_complete_01
+    speaker: generic_control
+    text: "All objectives complete. RTB, RTB."
+    variants: []
+    beat: mission_complete
+    tags: [generic, mission_control, mission_complete]
+    audio: assets/audio/generic/mission-complete/obj-complete.wav
+  - id: mission_complete_02
+    speaker: generic_control
+    text: "Mission success. Outstanding work out there."
+    variants: []
+    beat: mission_complete
+    tags: [generic, mission_control, mission_complete]
+    audio: assets/audio/generic/mission-complete/mission-success.wav
+  - id: mission_complete_03
+    speaker: generic_control
+    text: "Package is complete. Come on home."
+    variants: []
+    beat: mission_complete
+    tags: [generic, mission_control, mission_complete]
+  - id: mission_complete_04
+    speaker: generic_control
+    text: "That's a wrap. Well done, everyone."
+    variants: []
+    beat: mission_complete
+    tags: [generic, mission_control, mission_complete]
+  - id: mission_complete_05
+    speaker: generic_control
+    text: "Objective secured. Mission accomplished."
+    variants: []
+    beat: mission_complete
+    tags: [generic, mission_control, mission_complete]
+  - id: abort_01
+    speaker: generic_control
+    text: "Abort! ABORT! Wave off, wave off!"
+    variants: []
+    beat: abort
+    tags: [generic, mission_control, abort]
+  - id: abort_02
+    speaker: generic_control
+    text: "Break off your attack run, friendlies in the area!"
+    variants: []
+    beat: abort
+    tags: [generic, mission_control, abort]
+  - id: abort_03
+    speaker: generic_control
+    text: "Negative on that run, weather's too bad!"
+    variants: []
+    beat: abort
+    tags: [generic, mission_control, abort]
+  - id: sam_warning_01
+    speaker: generic_wingman
+    text: "SAM launch! SAM launch! Missile in the air!"
+    variants: []
+    beat: sam_active
+    tags: [generic, warning, sam]
+  - id: sam_warning_02
+    speaker: generic_wingman
+    text: "Radar spike! Multiple SAMs tracking!"
+    variants: []
+    beat: sam_active
+    tags: [generic, warning, sam]
+  - id: sam_warning_03
+    speaker: generic_wingman
+    text: "You're being painted! Defensive maneuvers!"
+    variants: []
+    beat: sam_active
+    tags: [generic, warning, sam]
+  - id: bandit_01
+    speaker: generic_wingman
+    text: "Bandit! Bandit! Enemy fighter inbound!"
+    variants: []
+    beat: enemy_air
+    tags: [generic, warning, enemy_aircraft]
+  - id: bandit_02
+    speaker: generic_wingman
+    text: "Bogey on your six! BREAK LEFT!"
+    variants: []
+    beat: enemy_air
+    tags: [generic, warning, enemy_aircraft]
+  - id: weather_01
+    speaker: generic_wingman
+    text: "Visibility's dropping fast, conditions deteriorating!"
+    variants: []
+    beat: weather_deteriorating
+    tags: [generic, warning, weather]
+  - id: weather_02
+    speaker: generic_wingman
+    text: "Weather's closing in, recommend abort!"
+    variants: []
+    beat: weather_deteriorating
+    tags: [generic, warning, weather]

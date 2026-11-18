@@ -1,0 +1,63 @@
+# Golden eval bible (fictional). Invented factions; no real event is implied.
+schema_version: 1
+title: "Road to Kirikhan"
+mode: fictional
+setting:
+  era: 2014
+  theater: Syria
+  region: "Hatay province: the road from Antakya north to Kirikhan."
+  premise_summary: >-
+    A small task force supplies a border outpost by road. Kiowa scouts ride ahead of every
+    convoy because the last two were ambushed in the same orchards.
+tone:
+  style: professional-terse
+  themes: [vigilance, protecting others]
+player_role: "Scout 1-1: OH-58D, Task Force Orchard (fictional)."
+factions:
+  - id: tf_orchard
+    name: "Task Force Orchard"
+    description: "Fictional US task force running the road north."
+    doctrine: "Scouts out front, convoy never stops in the open."
+    dcs:
+      country: USA
+      coalition: blue
+      units: [OH58D, M1126 Stryker ICV, M 818, Hummer]
+  - id: orchard_cells
+    name: "Orchard cells"
+    description: "Small armed groups who ambush traffic and melt into the groves."
+    doctrine: "Hit the lead vehicle, fire for a minute, vanish."
+    dcs:
+      country: Insurgents
+      coalition: red
+      units: [HL_DSHK, Infantry AK, Soldier RPG]
+characters:
+  - id: convoy_lead
+    name: "1st Lt. Marcus Bell"
+    callsign: "Wagon Six"
+    role: convoy commander
+    faction: tf_orchard
+    description: "Young, careful, trusts the scouts with his life."
+    voice:
+      design_prompt: "Male, mid-twenties, General American, engine noise, FM radio, tense but controlled."
+      accent: General American
+      age: 25
+      gender: male
+      cadence: brisk
+      brevity: terse
+      radio_fx: vhf_noisy
+  - id: ops_hatay
+    name: "Maj. Irene Cho"
+    callsign: "Orchard Ops"
+    role: operations officer
+    faction: tf_orchard
+    description: "Calm voice of the TOC."
+    voice:
+      design_prompt: "Female, forties, General American, measured, UHF radio, unhurried."
+      accent: General American
+      age: 44
+      gender: female
+      cadence: measured
+      brevity: terse
+      radio_fx: uhf_clean
+canon_rules:
+  - "No real units or people."

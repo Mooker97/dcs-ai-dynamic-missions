@@ -1,0 +1,66 @@
+# Golden g01 beats.
+mission_id: g01-syria-a10-cas
+beats:
+  - id: mission_start
+    guaranteed: true
+    when: {event: player.spawned, players_only: true}
+    priority: 90
+    delay_sec: 10
+    speaker: ops_hale
+    lines: [ops_start_v1, ops_start_v2]
+    text: "Hawg, Lantern Ops. Outpost is under attack north of Saraqib. Contact Lantern Two-One."
+    mark: {type: text, at: "zone:engagement", text: "ENGAGEMENT AREA"}
+    effects: {set_flag: started}
+  - id: jtac_checkin
+    guaranteed: true
+    when: {event: zone.entered, zone: engagement, players_only: true}
+    priority: 80
+    speaker: jtac_reed
+    lines: [jtac_checkin_v1, jtac_checkin_v2]
+    text: "Hawg, Lantern Two-One. Technicals north of the outpost. Cleared hot."
+    effects: {set_flag: on_station}
+  - id: manpads_warning
+    when: {event: beat.fired, beat: jtac_checkin}
+    priority: 70
+    delay_sec: 30
+    speaker: jtac_reed
+    lines: [jtac_manpads_v1, jtac_manpads_v2]
+    text: "Hawg, Two-One. Possible MANPADS team moving in the orchards. Keep your speed up."
+  - id: attack_broken
+    guaranteed: true
+    when: {event: group.dead, group_prefix: technicals_north}
+    priority: 85
+    speaker: jtac_reed
+    lines: [jtac_broken_v1, jtac_broken_v2]
+    text: "Hawg, Two-One. Good hits. The attack is broken."
+    effects:
+      set_flag: attack_broken
+      outcome: {attack_broken: true}
+  - id: guns_silenced
+    when: {event: group.dead, group_prefix: aaa_east}
+    priority: 60
+    speaker: jtac_reed
+    lines: [jtac_guns_v1, jtac_guns_v2]
+    text: "Hawg, Two-One. Guns east of town are down."
+    effects:
+      set_flag: guns_silenced
+      outcome: {guns_silenced: true}
+  - id: rtb_call
+    when: {event: beat.fired, beat: attack_broken}
+    priority: 70
+    delay_sec: 20
+    speaker: ops_hale
+    lines: [ops_rtb_v1, ops_rtb_v2]
+    text: "Hawg, Lantern Ops. Outpost reports clear. RTB."
+  - id: landed
+    guaranteed: true
+    when: {event: unit.landed, players_only: true}
+    requires: {flags: [attack_broken]}
+    priority: 95
+    speaker: ops_hale
+    lines: [ops_landed_v1, ops_landed_v2]
+    text: "Hawg, Ops. Welcome back. Good work today."
+    effects:
+      set_flag: landed
+      outcome: {landed: true}
+      end_mission: success

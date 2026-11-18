@@ -1,0 +1,28 @@
+# Eval premise p17-blue-helmets. Schema: evals/run.py Premise. Give `prompt` to the story-writer skill verbatim,
+# then score: uv run python evals/run.py --score campaigns/<slug> --premise p17-blue-helmets
+id: p17-blue-helmets
+title: Blue Helmets
+genre: fictional
+prompt: 2024. A fictional ceasefire line across western Georgia is monitored by an international peacekeeping
+  mission. A Gazelle scout crew flies observation patrols, reports violations and must decide what to
+  do when the ceasefire starts to fail.
+expect:
+  theater: Caucasus
+  era: [2022, 2026]
+  mode: fictional
+  player_coalition: blue
+  airframes: [SA342M]
+  airframe_role: scout_helo
+  missions: [3, 5]
+  mission_types: [RECON]
+  story_elements:
+  - id: ceasefire
+    description: A failing ceasefire
+    any_of: [ceasefire]
+  - id: peacekeepers
+    description: Peacekeeping mandate
+    any_of: [peacekeep]
+  - id: violations
+    description: Reporting violations
+    any_of: [violation]
+notes: Fictional peacekeeping, observation-first missions.

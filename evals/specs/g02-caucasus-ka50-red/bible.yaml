@@ -1,0 +1,58 @@
+# Golden eval bible (fictional). The player flies for the RED coalition.
+schema_version: 1
+title: "Golden: Roki Shadow"
+mode: fictional
+setting:
+  era: 2008
+  theater: Caucasus
+  region: "Beslan airfield and the valleys south of the main ridge toward Tskhinvali."
+  premise_summary: >-
+    In an invented border crisis, a fictional army aviation squadron flies Ka-50s out of Beslan.
+    An armoured column of the fictional Southern Coalition pushes up the valley, and a lone
+    Black Shark pair must blunt it before a road bridge is lost.
+tone:
+  style: professional-terse
+  themes: [isolation, timing]
+player_role: "Akula 1-1: Ka-50 pair, fictional 55th Independent Squadron, home base Beslan."
+factions:
+  - id: sq55
+    name: "55th Independent Squadron"
+    description: "Fictional army aviation squadron; the player's unit."
+    dcs: {country: Russia, coalition: red, units: [Ka-50_3]}
+  - id: south_coalition
+    name: "Southern Coalition"
+    description: "Fictional mechanised force pushing north up the valley."
+    dcs:
+      country: Georgia
+      coalition: blue
+      units: [T-72B, BMP-2, Ural-375, Osa 9A33 ln]
+      tech_veneer: "Invented force; Soviet-pattern equipment stands in for its inventory."
+characters:
+  - id: ops_volkov
+    name: "Lt Col. Pavel Volkov"
+    callsign: "Granit"
+    role: squadron operations
+    faction: sq55
+    voice:
+      design_prompt: "Male, 50s, Russian-accented English, gravelly and unhurried on a tactical radio."
+      accent: Russian
+      age: 52
+      gender: male
+      cadence: measured
+      brevity: terse
+      radio_fx: uhf_clean
+  - id: fac_orlova
+    name: "Capt. Irina Orlova"
+    callsign: "Vershina"
+    role: forward air controller
+    faction: sq55
+    voice:
+      design_prompt: "Female, 30s, Russian-accented English, quick and precise over a noisy FM net."
+      accent: Russian
+      age: 34
+      gender: female
+      cadence: brisk
+      brevity: terse
+      radio_fx: vhf_noisy
+canon_rules:
+  - "Golden eval fixture; keep stable. No real units or events are depicted."

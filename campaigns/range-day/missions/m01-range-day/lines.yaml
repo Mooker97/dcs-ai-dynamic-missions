@@ -1,0 +1,1000 @@
+# m01 Range Day - voice lines. Schema: schemas/voice-lines.schema.json (VoiceLineSet).
+# Generated flat list, one entry per variant. Callsign first, no cheering.
+mission_id: m01-range-day
+model: eleven_v3
+lines:
+- id: range_open_v1
+  speaker: rco_anvil
+  beat: range_open
+  text: 'Python One-One, Anvil. Range Seven is hot. Two passes: target one the trucks, target two the tank.'
+  subtitle: 'Python One-One, Anvil. Range Seven is hot. Two passes: target one the trucks, target two the tank.'
+  radio_fx: uhf_clean
+  delivery: Unhurried, welcoming instructor.
+- id: range_open_v2
+  speaker: rco_anvil
+  beat: range_open
+  text: Python One-One, Anvil, good morning. Range Seven is yours. Trucks first, then the tank. One bomb each.
+  subtitle: Python One-One, Anvil, good morning. Range Seven is yours. Trucks first, then the tank. One bomb each.
+  radio_fx: uhf_clean
+- id: range_open_v3
+  speaker: rco_anvil
+  beat: range_open
+  text: Python One-One, Anvil. Radar contact. Range Seven is hot, two targets, one bomb per pass.
+  subtitle: Python One-One, Anvil. Radar contact. Range Seven is hot, two targets, one bomb per pass.
+  radio_fx: uhf_clean
+- id: cleared_t1_v1
+  speaker: rco_anvil
+  beat: cleared_t1
+  text: Python One-One, Anvil. Cleared hot target one, the truck line, run in from the north. Code one-six-eight-eight.
+  subtitle: Python One-One, Anvil. Cleared hot target one, the truck line, run in from the north. Code one-six-eight-eight.
+  radio_fx: uhf_clean
+- id: cleared_t1_v2
+  speaker: rco_anvil
+  beat: cleared_t1
+  text: Python One-One, Anvil. Target one, the trucks, west side of the range. From the north, cleared hot.
+  subtitle: Python One-One, Anvil. Target one, the trucks, west side of the range. From the north, cleared hot.
+  radio_fx: uhf_clean
+- id: cleared_t1_v3
+  speaker: rco_anvil
+  beat: cleared_t1
+  text: Python One-One, Anvil. Cleared hot target one. Run in north to south off ANVIL. One-six-eight-eight.
+  subtitle: Python One-One, Anvil. Cleared hot target one. Run in north to south off ANVIL. One-six-eight-eight.
+  radio_fx: uhf_clean
+- id: cleared_t2_v1
+  speaker: rco_anvil
+  beat: cleared_t2
+  text: Python One-One, Anvil. Cleared hot target two, the tank, one mile east of the trucks.
+  subtitle: Python One-One, Anvil. Cleared hot target two, the tank, one mile east of the trucks.
+  radio_fx: uhf_clean
+- id: cleared_t2_v2
+  speaker: rco_anvil
+  beat: cleared_t2
+  text: Python One-One, Anvil. Target two, the tank hulk, one mile east. From the north, cleared hot.
+  subtitle: Python One-One, Anvil. Target two, the tank hulk, one mile east. From the north, cleared hot.
+  radio_fx: uhf_clean
+- id: cleared_t2_v3
+  speaker: rco_anvil
+  beat: cleared_t2
+  text: Python One-One, Anvil. Reset north. Cleared hot target two, the tank. Same code.
+  subtitle: Python One-One, Anvil. Reset north. Cleared hot target two, the tank. Same code.
+  radio_fx: uhf_clean
+- id: range_complete_v1
+  speaker: rco_anvil
+  beat: range_complete
+  text: Python One-One, Anvil. Range work complete. Range is cold. Stay this frequency for Rook Ops.
+  subtitle: Python One-One, Anvil. Range work complete. Range is cold. Stay this frequency for Rook Ops.
+  radio_fx: uhf_clean
+- id: range_complete_v2
+  speaker: rco_anvil
+  beat: range_complete
+  text: Python One-One, Anvil. That's your passes. Range is cold. Master arm safe, stay with me for Ops.
+  subtitle: Python One-One, Anvil. That's your passes. Range is cold. Master arm safe, stay with me for Ops.
+  radio_fx: uhf_clean
+- id: range_complete_v3
+  speaker: rco_anvil
+  beat: range_complete
+  text: Python One-One, Anvil. Range closed. Rook Ops wants you on this frequency. Two bombs left.
+  subtitle: Python One-One, Anvil. Range closed. Rook Ops wants you on this frequency. Two bombs left.
+  radio_fx: uhf_clean
+- id: retask_v1
+  speaker: ops_lindqvist
+  beat: retask
+  text: Python, Rook Ops. Retask. Jackal Two-Three in contact near Tell Rifaat. Push CP DUST. Ops out.
+  subtitle: Python, Rook Ops. Retask. Jackal Two-Three in contact near Tell Rifaat. Push CP DUST. Ops out.
+  radio_fx: uhf_clean
+  delivery: Even, economical, a notch more urgent than routine.
+- id: retask_v2
+  speaker: ops_lindqvist
+  beat: retask
+  text: Python, Rook Ops. Alert tasking is live. Jackal Two-Three, troops in contact. Push CP DUST. Ops out.
+  subtitle: Python, Rook Ops. Alert tasking is live. Jackal Two-Three, troops in contact. Push CP DUST. Ops out.
+  radio_fx: uhf_clean
+- id: retask_v3
+  speaker: ops_lindqvist
+  beat: retask
+  text: Python, Rook Ops. Off the range. Jackal Two-Three needs your last two bombs. Push CP DUST. Ops out.
+  subtitle: Python, Rook Ops. Off the range. Jackal Two-Three needs your last two bombs. Push CP DUST. Ops out.
+  radio_fx: uhf_clean
+- id: jackal_checkin_v1
+  speaker: jtac_ortiz
+  beat: jackal_checkin
+  text: Python, Jackal Two-Three. Copy all. Patrol pinned by a compound south of us. Call fifteen miles out.
+  subtitle: Python, Jackal Two-Three. Copy all. Patrol pinned by a compound south of us. Call fifteen miles out.
+  radio_fx: vhf_noisy
+  delivery: Crisp, slightly breathless, small-arms in the background.
+- id: jackal_checkin_v2
+  speaker: jtac_ortiz
+  beat: jackal_checkin
+  text: Python, Jackal Two-Three. Copy all. Taking fire from a farm compound. Call me fifteen miles out.
+  subtitle: Python, Jackal Two-Three. Copy all. Taking fire from a farm compound. Call me fifteen miles out.
+  radio_fx: vhf_noisy
+- id: jackal_checkin_v3
+  speaker: jtac_ortiz
+  beat: jackal_checkin
+  text: Python, Jackal Two-Three, copy all. We're in the village, fire from the south. Call fifteen out.
+  subtitle: Python, Jackal Two-Three, copy all. We're in the village, fire from the south. Call fifteen out.
+  radio_fx: vhf_noisy
+- id: rtb_call_v1
+  speaker: ops_lindqvist
+  beat: rtb_call
+  text: Python, Rook Ops. RTB Incirlik. Tower three-six-zero-point-one. Ops out.
+  subtitle: Python, Rook Ops. RTB Incirlik. Tower three-six-zero-point-one. Ops out.
+  radio_fx: uhf_clean
+- id: rtb_call_v2
+  speaker: ops_lindqvist
+  beat: rtb_call
+  text: Python, Rook Ops. Copy all. Come home. Incirlik Tower on three-six-zero-point-one. Ops out.
+  subtitle: Python, Rook Ops. Copy all. Come home. Incirlik Tower on three-six-zero-point-one. Ops out.
+  radio_fx: uhf_clean
+- id: rtb_call_v3
+  speaker: ops_lindqvist
+  beat: rtb_call
+  text: Python, Rook Ops. Good work today. Bring it home, Incirlik Tower on the usual. Ops out.
+  subtitle: Python, Rook Ops. Good work today. Bring it home, Incirlik Tower on the usual. Ops out.
+  radio_fx: uhf_clean
+- id: on_deck_v1
+  speaker: ops_lindqvist
+  beat: on_deck
+  text: Python, Rook Ops. Copy on deck. Debrief in the vault after shutdown.
+  subtitle: Python, Rook Ops. Copy on deck. Debrief in the vault after shutdown.
+  radio_fx: uhf_clean
+- id: on_deck_v2
+  speaker: ops_lindqvist
+  beat: on_deck
+  text: Python, Rook Ops. On deck, copy. Bring the pod tape to the vault.
+  subtitle: Python, Rook Ops. On deck, copy. Bring the pod tape to the vault.
+  radio_fx: uhf_clean
+- id: on_deck_v3
+  speaker: ops_lindqvist
+  beat: on_deck
+  text: Python, Rook Ops. Copy you're down. Anvil's sending the range card over.
+  subtitle: Python, Rook Ops. Copy you're down. Anvil's sending the range card over.
+  radio_fx: uhf_clean
+- id: range_open_late_v1
+  speaker: rco_anvil
+  beat: range_open_late
+  text: Python One-One, Anvil. Range time expired. Card stays open. Rook Ops has you.
+  subtitle: Python One-One, Anvil. Range time expired. Card stays open. Rook Ops has you.
+  radio_fx: uhf_clean
+- id: range_open_late_v2
+  speaker: rco_anvil
+  beat: range_open_late
+  text: Python One-One, Anvil. Your range slot's gone. We'll re-fly the card. Over to Rook Ops.
+  subtitle: Python One-One, Anvil. Your range slot's gone. We'll re-fly the card. Over to Rook Ops.
+  radio_fx: uhf_clean
+- id: range_open_late_v3
+  speaker: rco_anvil
+  beat: range_open_late
+  text: Python One-One, Anvil. Range is closing. Card stays open. Stay this frequency for Ops.
+  subtitle: Python One-One, Anvil. Range is closing. Card stays open. Stay this frequency for Ops.
+  radio_fx: uhf_clean
+- id: recovery_timeout_v1
+  speaker: ops_lindqvist
+  beat: recovery_timeout
+  text: Python, Rook Ops. Closing the sortie log. Recover when able.
+  subtitle: Python, Rook Ops. Closing the sortie log. Recover when able.
+  radio_fx: uhf_clean
+- id: recovery_timeout_v2
+  speaker: ops_lindqvist
+  beat: recovery_timeout
+  text: Python, Rook Ops. Logging the sortie complete. Recover when able.
+  subtitle: Python, Rook Ops. Logging the sortie complete. Recover when able.
+  radio_fx: uhf_clean
+- id: recovery_timeout_v3
+  speaker: ops_lindqvist
+  beat: recovery_timeout
+  text: Python, Rook Ops. Sortie log closed. Bring it home when able.
+  subtitle: Python, Rook Ops. Sortie log closed. Bring it home when able.
+  radio_fx: uhf_clean
+- id: mission_start_v1
+  speaker: ops_lindqvist
+  beat: mission_start
+  text: Python, Rook Ops. Range Seven first, then two bombs on alert for Jackal. Ops out.
+  subtitle: Python, Rook Ops. Range Seven first, then two bombs on alert for Jackal. Ops out.
+  radio_fx: uhf_clean
+  delivery: Routine, measured.
+- id: mission_start_v2
+  speaker: ops_lindqvist
+  beat: mission_start
+  text: Python, Rook Ops. Range card first. Keep two bombs for the alert. Ops out.
+  subtitle: Python, Rook Ops. Range card first. Keep two bombs for the alert. Ops out.
+  radio_fx: uhf_clean
+- id: mission_start_v3
+  speaker: ops_lindqvist
+  beat: mission_start
+  text: Python, Rook Ops. Requal on Range Seven, alert CAS after. Anvil's waiting. Ops out.
+  subtitle: Python, Rook Ops. Requal on Range Seven, alert CAS after. Anvil's waiting. Ops out.
+  radio_fx: uhf_clean
+- id: ground_taxi_v1
+  speaker: tower_incirlik
+  beat: ground_taxi
+  text: Python One-One, Incirlik Ground. Taxi runway zero-five. Hold short.
+  subtitle: Python One-One, Incirlik Ground. Taxi runway zero-five. Hold short.
+  radio_fx: uhf_clean
+  delivery: Flat, practised, slightly bored.
+- id: ground_taxi_v2
+  speaker: tower_incirlik
+  beat: ground_taxi
+  text: Python One-One, Ground. Runway zero-five, taxi approved. Hold short.
+  subtitle: Python One-One, Ground. Runway zero-five, taxi approved. Hold short.
+  radio_fx: uhf_clean
+- id: ground_taxi_v3
+  speaker: tower_incirlik
+  beat: ground_taxi
+  text: Python One-One, Incirlik Ground. Taxi to zero-five. Report holding short.
+  subtitle: Python One-One, Incirlik Ground. Taxi to zero-five. Report holding short.
+  radio_fx: uhf_clean
+- id: tower_departure_v1
+  speaker: tower_incirlik
+  beat: tower_departure
+  text: Python One-One, Incirlik Tower. Airborne. Turn south. Anvil is on one-three-eight-point-zero.
+  subtitle: Python One-One, Incirlik Tower. Airborne. Turn south. Anvil is on one-three-eight-point-zero.
+  radio_fx: uhf_clean
+- id: tower_departure_v2
+  speaker: tower_incirlik
+  beat: tower_departure
+  text: Python One-One, Tower. Turn south. Anvil on VHF, one-three-eight-point-zero.
+  subtitle: Python One-One, Tower. Turn south. Anvil on VHF, one-three-eight-point-zero.
+  radio_fx: uhf_clean
+- id: tower_departure_v3
+  speaker: tower_incirlik
+  beat: tower_departure
+  text: Python One-One, Incirlik Tower. Southbound approved. Anvil, one-three-eight-point-zero.
+  subtitle: Python One-One, Incirlik Tower. Southbound approved. Anvil, one-three-eight-point-zero.
+  radio_fx: uhf_clean
+- id: coach_switches_v1
+  speaker: rco_anvil
+  beat: coach_switches
+  text: Anvil. Fence in. Master arm, arm. Laser arm, arm. A-G on the ICP. And check.
+  subtitle: Anvil. Fence in. Master arm, arm. Laser arm, arm. A-G on the ICP. And check.
+  radio_fx: uhf_clean
+  delivery: Instructor pace, a short pause after each switch.
+- id: coach_switches_v2
+  speaker: rco_anvil
+  beat: coach_switches
+  text: Anvil. Let's set up. Master arm to arm. Laser arm to arm. Then A-G on the ICP. And check.
+  subtitle: Anvil. Let's set up. Master arm to arm. Laser arm to arm. Then A-G on the ICP. And check.
+  radio_fx: uhf_clean
+- id: coach_switches_v3
+  speaker: rco_anvil
+  beat: coach_switches
+  text: Anvil. Fence in checks. Master arm, arm. Laser switch, arm. Air-to-ground mode, A-G button. And check.
+  subtitle: Anvil. Fence in checks. Master arm, arm. Laser switch, arm. Air-to-ground mode, A-G button. And check.
+  radio_fx: uhf_clean
+- id: coach_sms_v1
+  speaker: rco_anvil
+  beat: coach_sms
+  text: 'Anvil. SMS page: GBU-12, PRE mode, code one-six-eight-eight. And check.'
+  subtitle: 'Anvil. SMS page: GBU-12, PRE mode, code one-six-eight-eight. And check.'
+  radio_fx: uhf_clean
+  delivery: Instructor pace.
+- id: coach_sms_v2
+  speaker: rco_anvil
+  beat: coach_sms
+  text: 'Anvil. On the SMS: GBU-12 selected, release mode PRE, laser code one-six-eight-eight. And check.'
+  subtitle: 'Anvil. On the SMS: GBU-12 selected, release mode PRE, laser code one-six-eight-eight. And check.'
+  radio_fx: uhf_clean
+- id: coach_sms_v3
+  speaker: rco_anvil
+  beat: coach_sms
+  text: Anvil. Left display, SMS. GBU-12, PRE, code one-six-eight-eight. Nose fuse is fine as loaded. And check.
+  subtitle: Anvil. Left display, SMS. GBU-12, PRE, code one-six-eight-eight. Nose fuse is fine as loaded. And check.
+  radio_fx: uhf_clean
+- id: coach_tgp_v1
+  speaker: rco_anvil
+  beat: coach_tgp
+  text: Anvil. Pod on the right display. DMS down for the pod, TMS up to track. And check.
+  subtitle: Anvil. Pod on the right display. DMS down for the pod, TMS up to track. And check.
+  radio_fx: uhf_clean
+  delivery: Instructor pace.
+- id: coach_tgp_v2
+  speaker: rco_anvil
+  beat: coach_tgp
+  text: Anvil. Targeting pod, right display. DMS down makes it SOI. Slew to the target, TMS up. And check.
+  subtitle: Anvil. Targeting pod, right display. DMS down makes it SOI. Slew to the target, TMS up. And check.
+  radio_fx: uhf_clean
+- id: coach_tgp_v3
+  speaker: rco_anvil
+  beat: coach_tgp
+  text: Anvil. TGP page right side. DMS down, slew onto the trucks, TMS up for point track. And check.
+  subtitle: Anvil. TGP page right side. DMS down, slew onto the trucks, TMS up for point track. And check.
+  radio_fx: uhf_clean
+- id: coach_release_v1
+  speaker: rco_anvil
+  beat: coach_release
+  text: Anvil. Fly the steering line. Pickle and hold until it comes off. Laser by ten seconds.
+  subtitle: Anvil. Fly the steering line. Pickle and hold until it comes off. Laser by ten seconds.
+  radio_fx: uhf_clean
+- id: coach_release_v2
+  speaker: rco_anvil
+  beat: coach_release
+  text: Anvil. Centre the steering line, wings level. Hold the pickle till release. Lase from ten seconds.
+  subtitle: Anvil. Centre the steering line, wings level. Hold the pickle till release. Lase from ten seconds.
+  radio_fx: uhf_clean
+- id: coach_release_v3
+  speaker: rco_anvil
+  beat: coach_release
+  text: Anvil. Steering line centred, pickle and hold. After release, trigger for laser by ten seconds.
+  subtitle: Anvil. Steering line centred, pickle and hold. After release, trigger for laser by ten seconds.
+  radio_fx: uhf_clean
+- id: bomb_away_v1
+  speaker: rco_anvil
+  beat: bomb_away
+  text: Anvil. Bomb away. Keep the pod on it, laser on.
+  subtitle: Anvil. Bomb away. Keep the pod on it, laser on.
+  radio_fx: uhf_clean
+- id: bomb_away_v2
+  speaker: rco_anvil
+  beat: bomb_away
+  text: Anvil. Weapon off. Laser on, keep the cross on it.
+  subtitle: Anvil. Weapon off. Laser on, keep the cross on it.
+  radio_fx: uhf_clean
+- id: bomb_away_v3
+  speaker: rco_anvil
+  beat: bomb_away
+  text: Anvil. Release. Gentle turn, keep the pod looking.
+  subtitle: Anvil. Release. Gentle turn, keep the pod looking.
+  radio_fx: uhf_clean
+- id: t1_shack_v1
+  speaker: rco_anvil
+  beat: t1_shack
+  text: Anvil. Shack. Direct hit, target one. Good hands.
+  subtitle: Anvil. Shack. Direct hit, target one. Good hands.
+  radio_fx: uhf_clean
+  delivery: Dry approval.
+- id: t1_shack_v2
+  speaker: rco_anvil
+  beat: t1_shack
+  text: Anvil. Shack on target one. Nice and tidy.
+  subtitle: Anvil. Shack on target one. Nice and tidy.
+  radio_fx: uhf_clean
+- id: t1_shack_v3
+  speaker: rco_anvil
+  beat: t1_shack
+  text: Anvil. Direct hit, target one. Hands are back.
+  subtitle: Anvil. Direct hit, target one. Hands are back.
+  radio_fx: uhf_clean
+- id: t1_miss_tip_v1
+  speaker: rco_anvil
+  beat: t1_miss_tip
+  text: Anvil. No effect. Check laser arm, and code one-six-eight-eight on SMS and pod. Re-attack.
+  subtitle: Anvil. No effect. Check laser arm, and code one-six-eight-eight on SMS and pod. Re-attack.
+  radio_fx: uhf_clean
+- id: t1_miss_tip_v2
+  speaker: rco_anvil
+  beat: t1_miss_tip
+  text: Anvil. Long, no effect. Was the laser firing? Check laser arm and the L on the pod. Re-attack.
+  subtitle: Anvil. Long, no effect. Was the laser firing? Check laser arm and the L on the pod. Re-attack.
+  radio_fx: uhf_clean
+- id: t1_miss_tip_v3
+  speaker: rco_anvil
+  beat: t1_miss_tip
+  text: Anvil. No effect on target one. Laser arm, code match, cross on the trucks. Cleared re-attack.
+  subtitle: Anvil. No effect on target one. Laser arm, code match, cross on the trucks. Cleared re-attack.
+  radio_fx: uhf_clean
+- id: t1_timeout_v1
+  speaker: rco_anvil
+  beat: t1_timeout
+  text: Python One-One, Anvil. No score on target one. Moving on to target two.
+  subtitle: Python One-One, Anvil. No score on target one. Moving on to target two.
+  radio_fx: uhf_clean
+- id: t1_timeout_v2
+  speaker: rco_anvil
+  beat: t1_timeout
+  text: Python One-One, Anvil. Time's up on target one. Reset for target two.
+  subtitle: Python One-One, Anvil. Time's up on target one. Reset for target two.
+  radio_fx: uhf_clean
+- id: t1_timeout_v3
+  speaker: rco_anvil
+  beat: t1_timeout
+  text: Python One-One, Anvil. Leaving target one. We'll set up target two.
+  subtitle: Python One-One, Anvil. Leaving target one. We'll set up target two.
+  radio_fx: uhf_clean
+- id: t2_shack_both_v1
+  speaker: rco_anvil
+  beat: t2_shack_both
+  text: Anvil. Shack, target two. Two for two. You're qualified.
+  subtitle: Anvil. Shack, target two. Two for two. You're qualified.
+  radio_fx: uhf_clean
+  delivery: Dry approval, a hint of warmth.
+- id: t2_shack_both_v2
+  speaker: rco_anvil
+  beat: t2_shack_both
+  text: Anvil. Direct hit on the tank. Two for two, card's signed.
+  subtitle: Anvil. Direct hit on the tank. Two for two, card's signed.
+  radio_fx: uhf_clean
+- id: t2_shack_both_v3
+  speaker: rco_anvil
+  beat: t2_shack_both
+  text: Anvil. Shack. Two from two. Welcome back.
+  subtitle: Anvil. Shack. Two from two. Welcome back.
+  radio_fx: uhf_clean
+- id: t2_shack_one_v1
+  speaker: rco_anvil
+  beat: t2_shack_one
+  text: Anvil. Shack, target two. One for two. That's a qualifying score.
+  subtitle: Anvil. Shack, target two. One for two. That's a qualifying score.
+  radio_fx: uhf_clean
+- id: t2_shack_one_v2
+  speaker: rco_anvil
+  beat: t2_shack_one
+  text: Anvil. Direct hit on the tank. One of two, you're qualified.
+  subtitle: Anvil. Direct hit on the tank. One of two, you're qualified.
+  radio_fx: uhf_clean
+- id: t2_shack_one_v3
+  speaker: rco_anvil
+  beat: t2_shack_one
+  text: Anvil. Shack on the tank. One for two, that'll do.
+  subtitle: Anvil. Shack on the tank. One for two, that'll do.
+  radio_fx: uhf_clean
+- id: t2_miss_tip_v1
+  speaker: rco_anvil
+  beat: t2_miss_tip
+  text: Anvil. No effect. Keep the cross on the tank until impact. Don't bank past the pod.
+  subtitle: Anvil. No effect. Keep the cross on the tank until impact. Don't bank past the pod.
+  radio_fx: uhf_clean
+- id: t2_miss_tip_v2
+  speaker: rco_anvil
+  beat: t2_miss_tip
+  text: Anvil. No effect. Stay wings level longer, the pod masks in a hard turn.
+  subtitle: Anvil. No effect. Stay wings level longer, the pod masks in a hard turn.
+  radio_fx: uhf_clean
+- id: t2_miss_tip_v3
+  speaker: rco_anvil
+  beat: t2_miss_tip
+  text: Anvil. No effect on the tank. Laser on by ten seconds, cross steady. Re-attack.
+  subtitle: Anvil. No effect on the tank. Laser on by ten seconds, cross steady. Re-attack.
+  radio_fx: uhf_clean
+- id: t2_timeout_v1
+  speaker: rco_anvil
+  beat: t2_timeout
+  text: Python One-One, Anvil. No score on target two. Closing your passes.
+  subtitle: Python One-One, Anvil. No score on target two. Closing your passes.
+  radio_fx: uhf_clean
+- id: t2_timeout_v2
+  speaker: rco_anvil
+  beat: t2_timeout
+  text: Python One-One, Anvil. Time's up on target two. Closing your passes.
+  subtitle: Python One-One, Anvil. Time's up on target two. Closing your passes.
+  radio_fx: uhf_clean
+- id: t2_timeout_v3
+  speaker: rco_anvil
+  beat: t2_timeout
+  text: Python One-One, Anvil. That's the range time. Closing your passes.
+  subtitle: Python One-One, Anvil. That's the range time. Closing your passes.
+  radio_fx: uhf_clean
+- id: range_score_none_v1
+  speaker: rco_anvil
+  beat: range_score_none
+  text: Anvil. No qualifying hits today. We'll re-fly the card. Switches are the usual culprit.
+  subtitle: Anvil. No qualifying hits today. We'll re-fly the card. Switches are the usual culprit.
+  radio_fx: uhf_clean
+  delivery: Kind, matter of fact.
+- id: range_score_none_v2
+  speaker: rco_anvil
+  beat: range_score_none
+  text: Anvil. No score this time. Happens to everyone after a break. We'll fly it again.
+  subtitle: Anvil. No score this time. Happens to everyone after a break. We'll fly it again.
+  radio_fx: uhf_clean
+- id: range_score_none_v3
+  speaker: rco_anvil
+  beat: range_score_none
+  text: Anvil. No hits on the card. Check laser arm and code in the debrief. We'll re-fly it.
+  subtitle: Anvil. No hits on the card. Check laser arm and code in the debrief. We'll re-fly it.
+  radio_fx: uhf_clean
+- id: jackal_9line_v1
+  speaker: jtac_ortiz
+  beat: jackal_9line
+  text: Python, Jackal. Type two. Target is a compound one mile south of my position. Technicals and a ZU-23.
+  subtitle: Python, Jackal. Type two. Target is a compound one mile south of my position. Technicals and a ZU-23.
+  radio_fx: vhf_noisy
+  delivery: Crisp and tight, he's under fire.
+- id: jackal_9line_v2
+  speaker: jtac_ortiz
+  beat: jackal_9line
+  text: Python, Jackal. Type two control. Compound south of the village, about one mile. Technicals, one ZU-23.
+  subtitle: Python, Jackal. Type two control. Compound south of the village, about one mile. Technicals, one ZU-23.
+  radio_fx: vhf_noisy
+- id: jackal_9line_v3
+  speaker: jtac_ortiz
+  beat: jackal_9line
+  text: Python, Jackal. Type two. Farm compound one mile south of me. KORD technical and a ZU-23 nearby.
+  subtitle: Python, Jackal. Type two. Farm compound one mile south of me. KORD technical and a ZU-23 nearby.
+  radio_fx: vhf_noisy
+- id: jackal_9line_2_v1
+  speaker: jtac_ortiz
+  beat: jackal_9line_2
+  text: Jackal. Laser one-six-eight-eight. Friendlies in the village north, one mile. Attack heading west. Egress west.
+  subtitle: Jackal. Laser one-six-eight-eight. Friendlies in the village north, one mile. Attack heading west. Egress west.
+  radio_fx: vhf_noisy
+- id: jackal_9line_2_v2
+  speaker: jtac_ortiz
+  beat: jackal_9line_2
+  text: Jackal. Code one-six-eight-eight. Friendlies one mile north in the village. Run east to west, egress west.
+  subtitle: Jackal. Code one-six-eight-eight. Friendlies one mile north in the village. Run east to west, egress west.
+  radio_fx: vhf_noisy
+- id: jackal_9line_2_v3
+  speaker: jtac_ortiz
+  beat: jackal_9line_2
+  text: Jackal. Laser code one-six-eight-eight. We're the village, one mile north. Heading west, egress west.
+  subtitle: Jackal. Laser code one-six-eight-eight. We're the village, one mile north. Heading west, egress west.
+  radio_fx: vhf_noisy
+- id: cleared_live_v1
+  speaker: jtac_ortiz
+  beat: cleared_live
+  text: Python, Jackal. One-six-eight-eight. Cleared hot. Stay above one-two thousand.
+  subtitle: Python, Jackal. One-six-eight-eight. Cleared hot. Stay above one-two thousand.
+  radio_fx: vhf_noisy
+- id: cleared_live_v2
+  speaker: jtac_ortiz
+  beat: cleared_live
+  text: Python, Jackal. Code one-six-eight-eight. Cleared hot. Keep it above twelve thousand.
+  subtitle: Python, Jackal. Code one-six-eight-eight. Cleared hot. Keep it above twelve thousand.
+  radio_fx: vhf_noisy
+- id: cleared_live_v3
+  speaker: jtac_ortiz
+  beat: cleared_live
+  text: Python, Jackal. One-six-eight-eight confirmed. Cleared hot. High, above one-two thousand.
+  subtitle: Python, Jackal. One-six-eight-eight confirmed. Cleared hot. High, above one-two thousand.
+  radio_fx: vhf_noisy
+- id: extra_tech_warning_v1
+  speaker: jtac_ortiz
+  beat: extra_tech_warning
+  text: Python, Jackal. Second technical pulling into the compounds.
+  subtitle: Python, Jackal. Second technical pulling into the compounds.
+  radio_fx: vhf_noisy
+- id: extra_tech_warning_v2
+  speaker: jtac_ortiz
+  beat: extra_tech_warning
+  text: Python, Jackal. Another technical just drove in.
+  subtitle: Python, Jackal. Another technical just drove in.
+  radio_fx: vhf_noisy
+- id: extra_tech_warning_v3
+  speaker: jtac_ortiz
+  beat: extra_tech_warning
+  text: Python, Jackal. New technical in the compounds.
+  subtitle: Python, Jackal. New technical in the compounds.
+  radio_fx: vhf_noisy
+- id: aaa_shooting_v1
+  speaker: jtac_ortiz
+  beat: aaa_shooting
+  text: Python, Jackal. Triple-A up from the compounds.
+  subtitle: Python, Jackal. Triple-A up from the compounds.
+  radio_fx: vhf_noisy
+- id: aaa_shooting_v2
+  speaker: jtac_ortiz
+  beat: aaa_shooting
+  text: Python, Jackal. ZU-23 is shooting.
+  subtitle: Python, Jackal. ZU-23 is shooting.
+  radio_fx: vhf_noisy
+- id: aaa_shooting_v3
+  speaker: jtac_ortiz
+  beat: aaa_shooting
+  text: Python, Jackal. Triple-A, south of me, firing.
+  subtitle: Python, Jackal. Triple-A, south of me, firing.
+  radio_fx: vhf_noisy
+- id: aaa_down_v1
+  speaker: jtac_ortiz
+  beat: aaa_down
+  text: Jackal. ZU-23 is down. Good hit.
+  subtitle: Jackal. ZU-23 is down. Good hit.
+  radio_fx: vhf_noisy
+- id: aaa_down_v2
+  speaker: jtac_ortiz
+  beat: aaa_down
+  text: Jackal. Good hit on the triple-A.
+  subtitle: Jackal. Good hit on the triple-A.
+  radio_fx: vhf_noisy
+- id: aaa_down_v3
+  speaker: jtac_ortiz
+  beat: aaa_down
+  text: Jackal. Triple-A destroyed.
+  subtitle: Jackal. Triple-A destroyed.
+  radio_fx: vhf_noisy
+- id: live_hit_partial_v1
+  speaker: jtac_ortiz
+  beat: live_hit_partial
+  text: Jackal. Good hit. Still taking fire from the same compound.
+  subtitle: Jackal. Good hit. Still taking fire from the same compound.
+  radio_fx: vhf_noisy
+- id: live_hit_partial_v2
+  speaker: jtac_ortiz
+  beat: live_hit_partial
+  text: Jackal. One down. Still fire from that compound.
+  subtitle: Jackal. One down. Still fire from that compound.
+  radio_fx: vhf_noisy
+- id: live_hit_partial_v3
+  speaker: jtac_ortiz
+  beat: live_hit_partial
+  text: Jackal. Good hit, not done. Same compound.
+  subtitle: Jackal. Good hit, not done. Same compound.
+  radio_fx: vhf_noisy
+- id: live_good_effect_v1
+  speaker: jtac_ortiz
+  beat: live_good_effect
+  text: Python, Jackal. Good effect. Fire has stopped. Patrol is moving.
+  subtitle: Python, Jackal. Good effect. Fire has stopped. Patrol is moving.
+  radio_fx: vhf_noisy
+  delivery: Relief under control, never cheering.
+- id: live_good_effect_v2
+  speaker: jtac_ortiz
+  beat: live_good_effect
+  text: Python, Jackal. Good effect on the compound. We're moving.
+  subtitle: Python, Jackal. Good effect on the compound. We're moving.
+  radio_fx: vhf_noisy
+- id: live_good_effect_v3
+  speaker: jtac_ortiz
+  beat: live_good_effect
+  text: Python, Jackal. Good effect. Fire stopped. Thanks.
+  subtitle: Python, Jackal. Good effect. Fire stopped. Thanks.
+  radio_fx: vhf_noisy
+- id: live_nudge_v1
+  speaker: ops_lindqvist
+  beat: live_nudge
+  text: Python, Rook Ops. Say status.
+  subtitle: Python, Rook Ops. Say status.
+  radio_fx: uhf_clean
+- id: live_nudge_v2
+  speaker: ops_lindqvist
+  beat: live_nudge
+  text: Python, Rook Ops. Status on the compound?
+  subtitle: Python, Rook Ops. Status on the compound?
+  radio_fx: uhf_clean
+- id: live_nudge_v3
+  speaker: ops_lindqvist
+  beat: live_nudge
+  text: Python, Rook Ops. Say bombs remaining.
+  subtitle: Python, Rook Ops. Say bombs remaining.
+  radio_fx: uhf_clean
+- id: live_timeout_v1
+  speaker: jtac_ortiz
+  beat: live_timeout
+  text: Python, Jackal. Enemy breaking contact. Cease fire. Patrol pulling back.
+  subtitle: Python, Jackal. Enemy breaking contact. Cease fire. Patrol pulling back.
+  radio_fx: vhf_noisy
+- id: live_timeout_v2
+  speaker: jtac_ortiz
+  beat: live_timeout
+  text: Python, Jackal. They've gone quiet. Cease fire, we're pulling back.
+  subtitle: Python, Jackal. They've gone quiet. Cease fire, we're pulling back.
+  radio_fx: vhf_noisy
+- id: live_timeout_v3
+  speaker: jtac_ortiz
+  beat: live_timeout
+  text: Python, Jackal. Contact broken. Cease fire. Patrol moving north.
+  subtitle: Python, Jackal. Contact broken. Cease fire. Patrol moving north.
+  radio_fx: vhf_noisy
+- id: live_no_show_v1
+  speaker: ops_lindqvist
+  beat: live_no_show
+  text: Python, Rook Ops. Jackal's patrol has pulled back. Tasking cancelled.
+  subtitle: Python, Rook Ops. Jackal's patrol has pulled back. Tasking cancelled.
+  radio_fx: uhf_clean
+- id: live_no_show_v2
+  speaker: ops_lindqvist
+  beat: live_no_show
+  text: Python, Rook Ops. Jackal broke contact. Tasking cancelled.
+  subtitle: Python, Rook Ops. Jackal broke contact. Tasking cancelled.
+  radio_fx: uhf_clean
+- id: live_no_show_v3
+  speaker: ops_lindqvist
+  beat: live_no_show
+  text: Python, Rook Ops. Jackal's out of contact. Cancel the tasking.
+  subtitle: Python, Rook Ops. Jackal's out of contact. Cancel the tasking.
+  radio_fx: uhf_clean
+- id: jackal_checkout_v1
+  speaker: jtac_ortiz
+  beat: jackal_checkout
+  text: Python, Jackal. Copy all. Thanks for the help. Cleared off station.
+  subtitle: Python, Jackal. Copy all. Thanks for the help. Cleared off station.
+  radio_fx: vhf_noisy
+- id: jackal_checkout_v2
+  speaker: jtac_ortiz
+  beat: jackal_checkout
+  text: Python, Jackal. Copy all. BDA to Rook Ops. Cleared off.
+  subtitle: Python, Jackal. Copy all. BDA to Rook Ops. Cleared off.
+  radio_fx: vhf_noisy
+- id: jackal_checkout_v3
+  speaker: jtac_ortiz
+  beat: jackal_checkout
+  text: Python, Jackal. Copy all. Appreciate it. Cleared off station.
+  subtitle: Python, Jackal. Copy all. Appreciate it. Cleared off station.
+  radio_fx: vhf_noisy
+- id: player_hit_v1
+  speaker: ops_lindqvist
+  beat: player_hit
+  text: Python, Rook Ops. Say status of your jet.
+  subtitle: Python, Rook Ops. Say status of your jet.
+  radio_fx: uhf_clean
+- id: player_hit_v2
+  speaker: ops_lindqvist
+  beat: player_hit
+  text: Python, Rook Ops. You're hit? Say status.
+  subtitle: Python, Rook Ops. You're hit? Say status.
+  radio_fx: uhf_clean
+- id: player_hit_v3
+  speaker: ops_lindqvist
+  beat: player_hit
+  text: Python, Rook Ops. Say state and status.
+  subtitle: Python, Rook Ops. Say state and status.
+  radio_fx: uhf_clean
+- id: tower_recovery_v1
+  speaker: tower_incirlik
+  beat: tower_recovery
+  text: Python One-One, Incirlik Tower. Welcome back. Runway zero-five, cleared to land.
+  subtitle: Python One-One, Incirlik Tower. Welcome back. Runway zero-five, cleared to land.
+  radio_fx: uhf_clean
+- id: tower_recovery_v2
+  speaker: tower_incirlik
+  beat: tower_recovery
+  text: Python One-One, Tower. Number one, report three-mile final, zero-five.
+  subtitle: Python One-One, Tower. Number one, report three-mile final, zero-five.
+  radio_fx: uhf_clean
+- id: tower_recovery_v3
+  speaker: tower_incirlik
+  beat: tower_recovery
+  text: Python One-One, Tower, welcome back. Wind calm. Zero-five, cleared.
+  subtitle: Python One-One, Tower, welcome back. Wind calm. Zero-five, cleared.
+  radio_fx: uhf_clean
+- id: venom_cleared_v1
+  speaker: tower_incirlik
+  beat: venom_cleared
+  text: Venom Three-One, Incirlik Tower. Runway zero-five, wind calm. Cleared for takeoff.
+  subtitle: Venom Three-One, Incirlik Tower. Runway zero-five, wind calm. Cleared for takeoff.
+  radio_fx: uhf_clean
+- id: venom_cleared_v2
+  speaker: tower_incirlik
+  beat: venom_cleared
+  text: Venom Three-One, Tower. Hold short no longer required. Line up and go.
+  subtitle: Venom Three-One, Tower. Hold short no longer required. Line up and go.
+  radio_fx: uhf_clean
+- id: venom_cleared_v3
+  speaker: tower_incirlik
+  beat: venom_cleared
+  text: Venom Three-One, Incirlik Tower. C-130 departing ahead, caution wake. Cleared for takeoff.
+  subtitle: Venom Three-One, Incirlik Tower. C-130 departing ahead, caution wake. Cleared for takeoff.
+  radio_fx: uhf_clean
+- id: venom_rolling_v1
+  speaker: venom_lead
+  beat: venom_rolling
+  text: Venom Three-One, cleared for takeoff, zero-five.
+  subtitle: Venom Three-One, cleared for takeoff, zero-five.
+  radio_fx: uhf_clean
+  delivery: Easy, confident, through a mask.
+- id: venom_rolling_v2
+  speaker: venom_lead
+  beat: venom_rolling
+  text: Venom Three-One, cleared for takeoff. Thirty seconds spacing on Two.
+  subtitle: Venom Three-One, cleared for takeoff. Thirty seconds spacing on Two.
+  radio_fx: uhf_clean
+- id: venom_rolling_v3
+  speaker: venom_lead
+  beat: venom_rolling
+  text: Venom Three-One, rolling, flight of two.
+  subtitle: Venom Three-One, rolling, flight of two.
+  radio_fx: uhf_clean
+- id: venom_airborne_v1
+  speaker: tower_incirlik
+  beat: venom_airborne
+  text: Venom Three-One, Incirlik Tower. Airborne. Contact Magic. Good day.
+  subtitle: Venom Three-One, Incirlik Tower. Airborne. Contact Magic. Good day.
+  radio_fx: uhf_clean
+- id: venom_airborne_v2
+  speaker: tower_incirlik
+  beat: venom_airborne
+  text: Venom Three-One, Tower. Frequency change approved. Good day.
+  subtitle: Venom Three-One, Tower. Frequency change approved. Good day.
+  radio_fx: uhf_clean
+- id: venom_airborne_v3
+  speaker: tower_incirlik
+  beat: venom_airborne
+  text: Venom Three-One, Incirlik Tower. Switch Magic. Have a good one.
+  subtitle: Venom Three-One, Incirlik Tower. Switch Magic. Have a good one.
+  radio_fx: uhf_clean
+- id: colt_checkin_v1
+  speaker: colt_lead
+  beat: colt_checkin
+  text: Magic, Colt One-One, flight of two, on station, angels two-five.
+  subtitle: Magic, Colt One-One, flight of two, on station, angels two-five.
+  radio_fx: uhf_clean
+  delivery: Relaxed, crisp, through a mask.
+- id: colt_checkin_v2
+  speaker: colt_lead
+  beat: colt_checkin
+  text: Magic, Colt One-One, two Eagles, on station CAP north, two-five thousand.
+  subtitle: Magic, Colt One-One, two Eagles, on station CAP north, two-five thousand.
+  radio_fx: uhf_clean
+- id: colt_checkin_v3
+  speaker: colt_lead
+  beat: colt_checkin
+  text: Magic, Colt One-One, on station, angels two-five, state one-zero point two.
+  subtitle: Magic, Colt One-One, on station, angels two-five, state one-zero point two.
+  radio_fx: uhf_clean
+- id: magic_colt_v1
+  speaker: awacs_magic
+  beat: magic_colt
+  text: Colt One-One, Magic. Radar contact. Picture clean.
+  subtitle: Colt One-One, Magic. Radar contact. Picture clean.
+  radio_fx: uhf_clean
+  delivery: Flat, even, routine.
+- id: magic_colt_v2
+  speaker: awacs_magic
+  beat: magic_colt
+  text: Colt One-One, Magic. Radar contact. Cleared to patrol, picture clean.
+  subtitle: Colt One-One, Magic. Radar contact. Cleared to patrol, picture clean.
+  radio_fx: uhf_clean
+- id: magic_colt_v3
+  speaker: awacs_magic
+  beat: magic_colt
+  text: Magic copies Colt One-One on station. Picture clean.
+  subtitle: Magic copies Colt One-One on station. Picture clean.
+  radio_fx: uhf_clean
+- id: magic_venom_v1
+  speaker: awacs_magic
+  beat: magic_venom
+  text: Venom Three-One, Magic. Radar contact. Cleared to patrol, angels two-two.
+  subtitle: Venom Three-One, Magic. Radar contact. Cleared to patrol, angels two-two.
+  radio_fx: uhf_clean
+- id: magic_venom_v2
+  speaker: awacs_magic
+  beat: magic_venom
+  text: Venom Three-One, Magic. Radar contact. Patrol north of Kilis approved.
+  subtitle: Venom Three-One, Magic. Radar contact. Patrol north of Kilis approved.
+  radio_fx: uhf_clean
+- id: magic_venom_v3
+  speaker: awacs_magic
+  beat: magic_venom
+  text: Venom Three-One, Magic, radar contact. Picture clean, cleared to patrol.
+  subtitle: Venom Three-One, Magic, radar contact. Picture clean, cleared to patrol.
+  radio_fx: uhf_clean
+- id: magic_python_v1
+  speaker: awacs_magic
+  beat: magic_python
+  text: Python One-One, Magic. Radar contact. Picture clean. Colt is CAP north of Kilis.
+  subtitle: Python One-One, Magic. Radar contact. Picture clean. Colt is CAP north of Kilis.
+  radio_fx: uhf_clean
+- id: magic_python_v2
+  speaker: awacs_magic
+  beat: magic_python
+  text: Python One-One, Magic. Radar contact on the climb-out. No factor traffic.
+  subtitle: Python One-One, Magic. Radar contact on the climb-out. No factor traffic.
+  radio_fx: uhf_clean
+- id: magic_python_v3
+  speaker: awacs_magic
+  beat: magic_python
+  text: Python One-One, Magic, radar contact. Picture clean. Two C-130s in the Incirlik pattern.
+  subtitle: Python One-One, Magic, radar contact. Picture clean. Two C-130s in the Incirlik pattern.
+  radio_fx: uhf_clean
+- id: magic_python_dust_v1
+  speaker: awacs_magic
+  beat: magic_python_dust
+  text: Python One-One, Magic. Picture clean on your route to DUST. Venom is north of you.
+  subtitle: Python One-One, Magic. Picture clean on your route to DUST. Venom is north of you.
+  radio_fx: uhf_clean
+- id: magic_python_dust_v2
+  speaker: awacs_magic
+  beat: magic_python_dust
+  text: Python One-One, Magic. Route to DUST is clean. Friendly Vipers north, angels two-two.
+  subtitle: Python One-One, Magic. Route to DUST is clean. Friendly Vipers north, angels two-two.
+  radio_fx: uhf_clean
+- id: magic_python_dust_v3
+  speaker: awacs_magic
+  beat: magic_python_dust
+  text: Python One-One, Magic. Picture clean. Colt holding over the border, Venom north.
+  subtitle: Python One-One, Magic. Picture clean. Colt holding over the border, Venom north.
+  radio_fx: uhf_clean
+- id: viper_inbound_v1
+  speaker: viper_lead
+  beat: viper_inbound
+  text: Incirlik Tower, Viper Two-One, flight of two, twelve miles east, full stop.
+  subtitle: Incirlik Tower, Viper Two-One, flight of two, twelve miles east, full stop.
+  radio_fx: uhf_clean
+  delivery: Relaxed, slightly tired after a long patrol.
+- id: viper_inbound_v2
+  speaker: viper_lead
+  beat: viper_inbound
+  text: Incirlik Tower, Viper Two-One, two Vipers, twelve east, landing full stop.
+  subtitle: Incirlik Tower, Viper Two-One, two Vipers, twelve east, landing full stop.
+  radio_fx: uhf_clean
+- id: viper_inbound_v3
+  speaker: viper_lead
+  beat: viper_inbound
+  text: Tower, Viper Two-One, twelve east, two-ship, full stop.
+  subtitle: Tower, Viper Two-One, twelve east, two-ship, full stop.
+  radio_fx: uhf_clean
+- id: viper_cleared_v1
+  speaker: tower_incirlik
+  beat: viper_cleared
+  text: Viper Two-One, Incirlik Tower. Runway zero-five, wind calm. Cleared to land.
+  subtitle: Viper Two-One, Incirlik Tower. Runway zero-five, wind calm. Cleared to land.
+  radio_fx: uhf_clean
+- id: viper_cleared_v2
+  speaker: tower_incirlik
+  beat: viper_cleared
+  text: Viper Two-One, Tower. Number one, zero-five, cleared to land.
+  subtitle: Viper Two-One, Tower. Number one, zero-five, cleared to land.
+  radio_fx: uhf_clean
+- id: viper_cleared_v3
+  speaker: tower_incirlik
+  beat: viper_cleared
+  text: Viper Two-One, Incirlik Tower. Straight in zero-five approved, cleared to land.
+  subtitle: Viper Two-One, Incirlik Tower. Straight in zero-five approved, cleared to land.
+  radio_fx: uhf_clean
+- id: viper_readback_v1
+  speaker: viper_lead
+  beat: viper_readback
+  text: Viper Two-One, cleared to land, zero-five.
+  subtitle: Viper Two-One, cleared to land, zero-five.
+  radio_fx: uhf_clean
+- id: viper_readback_v2
+  speaker: viper_lead
+  beat: viper_readback
+  text: Viper Two-One, cleared to land. Two's in trail.
+  subtitle: Viper Two-One, cleared to land. Two's in trail.
+  radio_fx: uhf_clean
+- id: viper_readback_v3
+  speaker: viper_lead
+  beat: viper_readback
+  text: Viper Two-One, straight in, cleared to land.
+  subtitle: Viper Two-One, straight in, cleared to land.
+  radio_fx: uhf_clean
+- id: viper_landed_v1
+  speaker: tower_incirlik
+  beat: viper_landed
+  text: Viper Two-One, Incirlik Tower. Welcome back. Taxi to parking.
+  subtitle: Viper Two-One, Incirlik Tower. Welcome back. Taxi to parking.
+  radio_fx: uhf_clean
+- id: viper_landed_v2
+  speaker: tower_incirlik
+  beat: viper_landed
+  text: Viper Two-One, Tower, welcome back. Ground when clear.
+  subtitle: Viper Two-One, Tower, welcome back. Ground when clear.
+  radio_fx: uhf_clean
+- id: viper_landed_v3
+  speaker: tower_incirlik
+  beat: viper_landed
+  text: Viper Two-One, welcome back. Taxi to the Rook ramp.
+  subtitle: Viper Two-One, welcome back. Taxi to the Rook ramp.
+  radio_fx: uhf_clean
+- id: magic_picture_v1
+  speaker: awacs_magic
+  beat: magic_picture
+  text: All players, Magic. Picture clean.
+  subtitle: All players, Magic. Picture clean.
+  radio_fx: uhf_clean
+- id: magic_picture_v2
+  speaker: awacs_magic
+  beat: magic_picture
+  text: Colt One-One, Magic. Picture clean.
+  subtitle: Colt One-One, Magic. Picture clean.
+  radio_fx: uhf_clean
+- id: magic_picture_v3
+  speaker: awacs_magic
+  beat: magic_picture
+  text: Venom Three-One, Magic. Picture clean, no factor traffic.
+  subtitle: Venom Three-One, Magic. Picture clean, no factor traffic.
+  radio_fx: uhf_clean
+- id: magic_picture_v4
+  speaker: awacs_magic
+  beat: magic_picture
+  text: All players, Magic. Bullseye weather unchanged. Picture clean.
+  subtitle: All players, Magic. Bullseye weather unchanged. Picture clean.
+  radio_fx: uhf_clean
+- id: colt_ops_v1
+  speaker: colt_lead
+  beat: colt_ops
+  text: Magic, Colt One-One, ops normal, state eight point four.
+  subtitle: Magic, Colt One-One, ops normal, state eight point four.
+  radio_fx: uhf_clean
+- id: colt_ops_v2
+  speaker: colt_lead
+  beat: colt_ops
+  text: Magic, Colt One-One, ops normal, state seven point one.
+  subtitle: Magic, Colt One-One, ops normal, state seven point one.
+  radio_fx: uhf_clean
+- id: colt_ops_v3
+  speaker: colt_lead
+  beat: colt_ops
+  text: Magic, Colt One-One, still on station. Ops normal, state six point eight.
+  subtitle: Magic, Colt One-One, still on station. Ops normal, state six point eight.
+  radio_fx: uhf_clean

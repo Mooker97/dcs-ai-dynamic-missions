@@ -1,0 +1,12 @@
+# Golden expectations checked by evals/run.py --golden
+# Red-coalition player; the two "faction is not red" warnings are expected.
+theater: Caucasus
+mission_type: CAS
+player_aircraft: [Ka-50_3]
+max_warnings: 2        # cap on validate warnings (set to the observed count)
+min_groups: 4          # plan.groups lower bound (set to observed)
+runtime:               # exact counts in plan.runtime (set to observed)
+  beats: 7
+  pools: 1
+  encounters: 1
+  voice: 14

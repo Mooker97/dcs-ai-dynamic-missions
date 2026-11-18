@@ -1,0 +1,449 @@
+# m04 The Last Launcher — combined SEAD + LGB interdiction of the convoy moving the NPF's last radar SAM.
+# Schema: schemas/mission-spec.schema.json (MissionSpec). Validate: uv run dms validate <this file>
+#
+# STATE DIGEST (read at design time, 2026-10-28; m01-m03 not yet flown, so campaign start values):
+#   sam_threat 2, intel 1, insurgent_supply 2, partner_morale 0, collateral 0; no flags, no outcomes.
+# - Dramatic question: does PYTHON stop the convoy carrying the Engineer's last SAM before it reaches
+#   the Euphrates crossings, without hitting the civilian lorries on the same roads?
+# - sam_threat 2 => the carried SAM is the SA-6 element (m01 has not killed it; pools pinned to
+#   sa6_gainful_battery so the 1S91 radar always exists); an SA-8 (pool pinned to sa8 / sa8_section,
+#   HARM-able) spawns dark on the high ground above the rolled road as overwatch. The kill that counts is the 1S91 radar.
+# - intel 1 => all three candidate routes stay open (intel >= 2 drops the southern one, see beats).
+# - partner_morale 0 => no NBB observer report; PYTHON searches cold, Rook Ops passes an ISR hint
+#   after 10 minutes in the box (partner_morale >= 1 => Jackal relays the route early, see beats).
+# - collateral 0 => standard ROE (PID, Rook Ops clearance near buildings); the closing line differs.
+# - Outcome keys (arc, exact): sam_carrier_destroyed, overwatch_sam_destroyed, escort_destroyed,
+#   convoy_escaped, civilians_hit, player_lost.
+# - Threads paid off: the Engineer's last launcher; Pike's PID call on the decoy convoy.
+# RE-CHECK before flying: if m01-m03 change sam_threat/intel/partner_morale/collateral, the beats
+# adapt at runtime (requires.qualities), but if m01 destroyed the SA-6 radar the arc wants an SA-8
+# pair as the carried SAM: change the sam_carrier_* pools to roles [sam_short], templates [sa8_section],
+# and the carrier_destroyed beat's type_name to "Osa 9A33 ln", then re-plan.
+schema_version: 1
+id: m04-last-launcher
+title: "The Last Launcher"
+campaign: viper-detachment
+content_mode: fictional
+theater: Syria
+era: 2016
+date: 2016-11-14
+start_time: "06:30"
+weather_preset: broken             # arc: dawn, broken 12,000 ft, valley mist burning off
+mission_type: DEAD
+duration_min: 90
+blue_countries: [USA, Combined Joint Task Forces Blue]
+red_countries: [Insurgents, Combined Joint Task Forces Red]
+cast: [ops_lindqvist, wingman_pike, jtac_ortiz, awacs_magic, tower_incirlik]
+
+areas:
+  # --- home, start options and the push -------------------------------------------------------
+  - id: incirlik
+    description: "Incirlik ramp. Home base; the ramp variant starts cold here. Entering it before the retask cues Ground."
+    where: {kind: near_airbase, airbase: Incirlik, radius_nm: 1}
+  - id: incirlik_approach
+    description: "Ten-mile circle round Incirlik; entering it after the RTB call cues Tower."
+    where: {kind: near_airbase, airbase: Incirlik, radius_nm: 10}
+  - id: push_hammer
+    description: "Push point HAMMER north of Al Bab, over the NBB-held border plain. Magic check-in for both start options; the air start begins 20 NM short of it."
+    where: {kind: latlon, lat: 36.62, lon: 37.42, radius_nm: 8}
+    terrain: open
+  - id: egress_anvil
+    description: "Egress point ANVIL on the border north of Al Bab, on the line from the search box back to Incirlik. Lost comms: RTB via ANVIL."
+    where: {kind: latlon, lat: 36.78, lon: 37.30, radius_nm: 5}
+    terrain: open
+  - id: search_box
+    description: "The search box: farmland and roads from Al Bab and the Garrison east to the Euphrates, Manbij to Lake Assad."
+    where:
+      kind: zone
+      points:
+        - {lat: 36.62, lon: 37.62}
+        - {lat: 36.62, lon: 38.22}
+        - {lat: 35.92, lon: 38.22}
+        - {lat: 35.92, lon: 37.62}
+  - id: kuweires_garrison
+    description: "Kuweires air base (the Garrison), NPF-held. Known ZU-23 guns on the perimeter."
+    where: {kind: near_airbase, airbase: Kuweires, radius_nm: 1.5}
+    terrain: open
+  - id: nbb_village
+    description: "NBB company position north of Tell Rifaat; Jackal Two-Three lives here."
+    where: {kind: latlon, lat: 36.52, lon: 37.10, radius_nm: 0.5}
+    terrain: open
+  - id: awacs_orbit
+    description: "Magic's E-3 orbit over southern Turkey."
+    where: {kind: latlon, lat: 37.15, lon: 36.80, radius_nm: 5}
+  - id: tanker_track
+    description: "AR track for Shell (KC-135) over southern Turkey, west of Gaziantep."
+    where: {kind: latlon, lat: 37.05, lon: 36.40, radius_nm: 5}
+
+  # --- the three candidate routes (convoy spawns at *_start, drives to *_end) -----------------
+  - id: route_n_start
+    description: "Northern route, last-seen point on the road east of Al Bab toward Manbij."
+    where: {kind: latlon, lat: 36.44, lon: 37.76, radius_nm: 1}
+    terrain: road
+  - id: route_n_end
+    description: "Northern route end: road east of Manbij toward the northern bridge over the Euphrates."
+    where: {kind: latlon, lat: 36.56, lon: 38.06, radius_nm: 1}
+    terrain: road
+  - id: route_c_start
+    description: "Central route, last-seen point on the farm road north-east of the Garrison."
+    where: {kind: latlon, lat: 36.26, lon: 37.80, radius_nm: 1}
+    terrain: road
+  - id: route_c_end
+    description: "Central route end: west approach to the Tishrin dam crossing."
+    where: {kind: latlon, lat: 36.37, lon: 38.11, radius_nm: 1}
+    terrain: road
+  - id: route_s_start
+    description: "Southern route, last-seen point near Deir Hafer, east of the Garrison."
+    where: {kind: latlon, lat: 36.14, lon: 37.73, radius_nm: 1}
+    terrain: road
+  - id: route_s_end
+    description: "Southern route end: Maskanah on the Lake Assad shore."
+    where: {kind: latlon, lat: 35.99, lon: 38.00, radius_nm: 1}
+    terrain: road
+  - id: ow_n
+    description: "Overwatch ground above the northern route, between Al Bab and Manbij."
+    where: {kind: latlon, lat: 36.52, lon: 37.86, radius_nm: 1.5}
+    terrain: high_ground
+  - id: ow_c
+    description: "Overwatch ground above the central route."
+    where: {kind: latlon, lat: 36.33, lon: 37.93, radius_nm: 1.5}
+    terrain: high_ground
+  - id: ow_s
+    description: "Overwatch ground above the southern route, north of the lake."
+    where: {kind: latlon, lat: 36.05, lon: 37.86, radius_nm: 1.5}
+    terrain: high_ground
+  - id: civ_west
+    description: "Market road east of Al Bab; morning civilian traffic starts here."
+    where: {kind: latlon, lat: 36.37, lon: 37.62, radius_nm: 1}
+    terrain: road
+  - id: civ_east
+    description: "Road west of Manbij where the morning traffic is heading."
+    where: {kind: latlon, lat: 36.50, lon: 37.90, radius_nm: 1}
+    terrain: road
+
+player_flights:
+  # Two start variants (ramp -> out/m04-last-launcher-ramp.miz, air -> out/m04-last-launcher-air.miz);
+  # only one is flown. Both are PYTHON on the radio (cockpit callsign Python 1-1). slot: player =
+  # lead is the SP Player, #2 is Pike as an AI wingman (skill High).
+  - callsign: Python
+    aircraft: F-16C_50
+    count: 2
+    coalition: blue
+    country: USA
+    start_area: incirlik
+    start_type: parking_cold
+    variant: ramp
+    slot: player
+    loadout: auto                    # DEAD -> F-16C_50 preset 'sead' (2x AGM-88C, 2x GBU-12, ALQ-184, HTS, LITENING, 2x AIM-120C, 2x AIM-9X)
+    tasking: >-
+      RAMP START. Cold start Incirlik, depart, tank on Shell if needed, push HAMMER, check in with
+      Magic, take the retask from Rook Ops, find and stop the SAM convoy, egress ANVIL, RTB Incirlik.
+  - callsign: Python
+    aircraft: F-16C_50
+    count: 2
+    coalition: blue
+    country: USA
+    start_area: incirlik
+    start_type: air
+    variant: air
+    slot: player
+    air_start:
+      altitude_ft: 20000
+      speed_kts: 420
+      distance_nm_before_first_wp: 20
+      toward: push_hammer
+    loadout: auto
+    tasking: >-
+      AIR START. Airborne 20 NM short of HAMMER at 20,000 ft, 420 kt, on the Incirlik-HAMMER line.
+      Push HAMMER, check in with Magic, take the retask, find and stop the SAM convoy, egress ANVIL, RTB Incirlik.
+
+objectives:
+  - id: stop_convoy
+    kind: destroy
+    description: "Destroy the SA-6 radar vehicle (1S91 Straight Flush) moving east with its launchers before it reaches the Euphrates crossings."
+    primary: true
+    # target, not area: a destroy objective with an area makes the planner plant its own hvt group
+    # there. The carrier is whichever of sam_carrier_n/c/s the route roll picks; _n stands for all
+    # three (two-area pools add no TGT steerpoint, so the route keeps TGT = search box centre).
+    target: sam_carrier_n
+    success_flag: sam_carrier_destroyed
+    failure_flag: convoy_escaped
+  - id: suppress_overwatch
+    kind: destroy
+    description: "Suppress, and if possible destroy, the SA-8 overwatch on the high ground above the convoy's road (HARM it when it emits)."
+    primary: false
+    # The SA-8 covers the carrier's road; the overwatch_* pools have one area each and would add a
+    # TGT steerpoint on the northern high ground (leaking the route), so this names the convoy it covers.
+    target: sam_carrier_n
+    success_flag: overwatch_sam_destroyed
+  - id: no_civilians
+    kind: protect
+    description: "Do not hit the civilian traffic on the same roads. PID every vehicle before release."
+    primary: true
+    area: search_box                 # gives the route its TGT steerpoint (centre of the box); a destroy objective with an area would spawn a target group
+    failure_flag: civilians_hit
+  - id: rtb
+    kind: land
+    description: "Recover to Incirlik (or a divert)."
+    primary: false
+    area: incirlik
+    success_flag: landed
+  - id: survive
+    kind: survive
+    description: "Bring both jets home."
+    primary: true
+    failure_flag: player_lost
+
+threats:
+  - id: aaa_garrison
+    role: aaa
+    area: kuweires_garrison
+    strength: light
+    faction: npf
+    skill: Average
+    hidden_on_map: false             # known and briefed
+    notes: "ZU-23 emplacements and a ZU-23 technical on the Garrison perimeter. Stay above 10,000 ft AGL."
+  # The SA-8 overwatch is dynamic (pools overwatch_n/c/s pinned to sa8 / sa8_section, ambush_sam
+  # encounters triggered by the route roll): only the rolled road has one, dark until PYTHON is close.
+
+support:
+  - id: magic
+    role: awacs
+    callsign: "Magic"
+    area: awacs_orbit
+    composition: "1x E-3A"
+    faction: usaf_rook
+    speaker: awacs_magic
+    frequency_mhz: 251.0               # UHF AM; DCS callsign Magic 1-1
+  - id: shell
+    role: tanker
+    callsign: "Shell"
+    area: tanker_track
+    composition: "1x KC-135"
+    faction: usaf_rook
+    frequency_mhz: 276.1               # UHF AM; DCS callsign Shell 1-1
+    tacan: "51Y"
+  - id: jackal
+    role: jtac
+    callsign: "Jackal Two-Three"
+    area: nbb_village
+    composition: "1x Hummer"
+    faction: usaf_rook               # TSgt Ortiz is USAF, embedded with the Brigade
+    speaker: jtac_ortiz
+    frequency_mhz: 138.5               # VHF AM: the F-16 has no FM radio
+    modulation: AM
+  - id: nbb_company
+    role: friendly_ground
+    callsign: "Jackal company"
+    area: nbb_village
+    composition: "2x M1043 HMMWV Armament, 1x M-113, 3x Soldier M4, 1x Soldier M249"
+    faction: partner_nbb             # CJTF Blue
+
+
+dynamic:
+  pools:
+    # The carried SAM (one group, routed). Synthesised from npf_heavy: SA-6 radar(s) + launcher.
+    - id: sam_carrier_n
+      roles: [sam_medium]
+      areas: [route_n_start, route_n_end]
+      pick: [1, 1]
+      faction: npf_heavy
+      templates: [sa6_gainful_battery]   # guarantees the "Kub 1S91 str" radar for carrier_destroyed
+      notes: "The Engineer's surviving SA-6 element on its own tracks. Radar silent while moving."
+    - id: sam_carrier_c
+      roles: [sam_medium]
+      areas: [route_c_start, route_c_end]
+      pick: [1, 1]
+      faction: npf_heavy
+      templates: [sa6_gainful_battery]   # guarantees the "Kub 1S91 str" radar for carrier_destroyed
+      notes: "As sam_carrier_n, central route."
+    - id: sam_carrier_s
+      roles: [sam_medium]
+      areas: [route_s_start, route_s_end]
+      pick: [1, 1]
+      faction: npf_heavy
+      templates: [sa6_gainful_battery]   # guarantees the "Kub 1S91 str" radar for carrier_destroyed
+      notes: "As sam_carrier_n, southern route."
+    # SA-8 overwatch on the high ground above each road (bible: npf_heavy has two or three SA-8s).
+    - id: overwatch_n
+      roles: [sam_short]
+      areas: [ow_n]
+      pick: [1, 1]
+      faction: npf_heavy
+      templates: [sa8, sa8_section]
+      notes: "SA-8 (single or section) above the northern road, between Al Bab and Manbij. HARM target."
+    - id: overwatch_c
+      roles: [sam_short]
+      areas: [ow_c]
+      pick: [1, 1]
+      faction: npf_heavy
+      templates: [sa8, sa8_section]
+      notes: "SA-8 above the central road."
+    - id: overwatch_s
+      roles: [sam_short]
+      areas: [ow_s]
+      pick: [1, 1]
+      faction: npf_heavy
+      templates: [sa8, sa8_section]
+      notes: "SA-8 above the southern road, north of the lake."
+    # Technical escort on the same road (insurgent_supply 2: one DShK group of three).
+    - id: escort_n
+      roles: [technicals]
+      areas: [route_n_start, route_n_end]
+      pick: [1, 1]
+      faction: npf
+      notes: "DShK technicals, same start and destination as the carrier."
+    - id: escort_c
+      roles: [technicals]
+      areas: [route_c_start, route_c_end]
+      pick: [1, 1]
+      faction: npf
+    - id: escort_s
+      roles: [technicals]
+      areas: [route_s_start, route_s_end]
+      pick: [1, 1]
+      faction: npf
+    # Decoy: civilian lorries westbound on the convoy's own road (pool runs end -> start).
+    - id: civ_decoy_n
+      roles: [civilian]
+      areas: [route_n_end, route_n_start]
+      pick: [1, 1]
+      faction: plain_civilians
+      notes: "Unarmed civilian lorries and cars. Look like a convoy from 15,000 ft. Never a target."
+    - id: civ_decoy_c
+      roles: [civilian]
+      areas: [route_c_end, route_c_start]
+      pick: [1, 1]
+      faction: plain_civilians
+    - id: civ_decoy_s
+      roles: [civilian]
+      areas: [route_s_end, route_s_start]
+      pick: [1, 1]
+      faction: plain_civilians
+    - id: civ_traffic
+      roles: [civilian]
+      areas: [civ_west, civ_east]
+      pick: [1, 1]
+      faction: plain_civilians
+      notes: "Ordinary morning traffic Al Bab -> Manbij, independent of the convoy."
+    - id: river_manpads
+      roles: [manpads]
+      areas: [route_n_end, route_c_end, route_s_end]
+      pick: [1, 1]
+      faction: npf
+      notes: "Igla team at one of the crossings, waiting for the convoy."
+
+  encounters:
+    # Exactly one route is chosen per play by the silent route_* beats (beats.yaml). The twelve
+    # per-route encounters are chance 0 = beat-started only: the route beat (route_n/c/s, or
+    # route_*_known when intel >= 2) starts its four via start_encounter, which ignores chance.
+    # So exactly 4 route encounters + morning_traffic + crossing_manpads = at most 6 live per play.
+    # (The beat trigger stays for the test harness's exclusive-sibling grouping; effects run before
+    # beat.fired, so the manual start always wins and the zero-chance trigger is a no-op.)
+    - id: convoy_n
+      kind: convoy
+      pool: sam_carrier_n
+      trigger: {type: beat, beat: route_n}
+      chance: 0
+      notes: "Carrier group drives route_n_start -> route_n_end (On Road)."
+    - id: convoy_c
+      kind: convoy
+      pool: sam_carrier_c
+      trigger: {type: beat, beat: route_c}
+      chance: 0
+    - id: convoy_s
+      kind: convoy
+      pool: sam_carrier_s
+      trigger: {type: beat, beat: route_s}
+      chance: 0
+    - id: escort_run_n
+      kind: convoy
+      pool: escort_n
+      trigger: {type: beat, beat: route_n}
+      chance: 0
+    - id: escort_run_c
+      kind: convoy
+      pool: escort_c
+      trigger: {type: beat, beat: route_c}
+      chance: 0
+    - id: escort_run_s
+      kind: convoy
+      pool: escort_s
+      trigger: {type: beat, beat: route_s}
+      chance: 0
+    - id: decoy_n
+      kind: convoy
+      pool: civ_decoy_n
+      trigger: {type: beat, beat: route_n}
+      chance: 0
+      notes: "Civilian lorries westbound toward the SAM convoy: they meet mid-route."
+    - id: decoy_c
+      kind: convoy
+      pool: civ_decoy_c
+      trigger: {type: beat, beat: route_c}
+      chance: 0
+    - id: decoy_s
+      kind: convoy
+      pool: civ_decoy_s
+      trigger: {type: beat, beat: route_s}
+      chance: 0
+    - id: overwatch_amb_n
+      kind: ambush_sam
+      pool: overwatch_n
+      trigger: {type: beat, beat: route_n}
+      chance: 0
+      telegraph_beat: overwatch_warning
+      notes: "SA-8 dark above the northern road until PYTHON is close; Rook Ops warns 30-60 s before it goes hot."
+    - id: overwatch_amb_c
+      kind: ambush_sam
+      pool: overwatch_c
+      trigger: {type: beat, beat: route_c}
+      chance: 0
+      telegraph_beat: overwatch_warning
+    - id: overwatch_amb_s
+      kind: ambush_sam
+      pool: overwatch_s
+      trigger: {type: beat, beat: route_s}
+      chance: 0
+      telegraph_beat: overwatch_warning
+    - id: morning_traffic
+      kind: convoy
+      pool: civ_traffic
+      trigger: {type: time, after_min: 2}
+      chance: 80
+      notes: "Background traffic; not every morning."
+    - id: crossing_manpads
+      kind: ambush_sam
+      pool: river_manpads
+      trigger: {type: beat, beat: retask}
+      chance: 60
+      telegraph_beat: manpads_warning
+      notes: "Igla team at a random crossing; telegraphed when PYTHON gets close and low."
+  director:
+    enabled: true
+    intensity: intense
+    adaptive: true
+  fog_of_war:
+    enabled: true
+    reveal_radius_km: 8
+    mark_refresh_sec: 15
+
+seed: null
+
+notes: >-
+  Director intent: a long, quiet ingress (ramp variant: Ground, Tower, maybe Shell; air variant: 20 NM
+  to HAMMER). The story starts at the Magic check-in at HAMMER, reachable by both variants;
+  a late check-in fires if the flight enters the box without passing HAMMER. Rook Ops' retask is the
+  turn: time-critical target, three candidate roads, 40-minute window. Exactly one route is rolled
+  (1/3 each; intel >= 2 drops the southern road), and its SAM carrier, technical escort and a
+  westbound civilian decoy spawn together 40+ km from the push point, with an SA-8 overwatch
+  (pool pinned to sa8 / sa8_section, ambush_sam: dark until close) on the high ground above that road. Tension builds
+  through the search (Jackal's observers if partner_morale >= 1, otherwise an ISR hint after 10
+  minutes); Pike's PID call on the decoy is the moral beat. Peak: Rook Ops warns when the SA-8 is
+  telegraphed or revealed (fog of war, 8 km), Pike calls it when it shoots; HARM it, then lase the moving 1S91
+  radar among civilian traffic. The window always resolves (radar destroyed, or the escape call at
+  40 minutes after a 5-minute warning), so the RTB call is guaranteed. Long relax on the way home;
+  Lindqvist's closing line depends on outcome and campaign collateral. Varies per play: route,
+  decoy meeting point, morning traffic (80%), crossing MANPADS (60%) and its crossing, line variants.
+  Live encounters per play: 4 for the rolled road (carrier, escort, decoy, SA-8) + traffic + MANPADS = 6.
+  Spine timeout: recovery_timeout 25 min after the RTB call sets `landed` if the player never lands.

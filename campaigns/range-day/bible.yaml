@@ -1,0 +1,286 @@
+# Story bible - Range Day. Canonical. Change canon here first, then log it in continuity.md.
+# Schema: schemas/story-bible.schema.json (dms_core.schemas.story.StoryBible)
+#
+# MODE RATIONALE (fictional): the range, the detachment, the alert tasking and the calendar are
+# invented. Incirlik, the Ceyhan delta and the Tell Rifaat plain are real terrain only.
+
+schema_version: 1
+title: "Range Day"
+mode: fictional
+
+setting:
+  era: 2016
+  theater: Syria
+  region: >-
+    Incirlik air base (Adana, southern Turkey) as home. Range Seven is a fictional air-to-ground
+    range on the flat farmland of the Ceyhan delta, about 18 NM south of Incirlik. The alert
+    tasking area is the farmland north of Tell Rifaat, about 85 NM south-east of Incirlik, where
+    a partner-force patrol is working with a USAF JTAC.
+  premise_summary: >-
+    PYTHON 1-1, an F-16C pilot of the fictional Rook detachment at Incirlik, is back on flying
+    status after a long ground tour and must requalify on laser-guided bombs before being
+    scheduled for combat sorties. The range controller Anvil coaches two GBU-12 passes on Range
+    Seven. The jet also carries two bombs for alert close air support, and halfway through the
+    ride Rook Ops retasks PYTHON to a JTAC whose patrol is taking fire from a farm compound near
+    Tell Rifaat.
+
+tone:
+  style: professional-coaching
+  themes:
+    - "getting the hands back: switchology under no pressure, then under some"
+    - "the procedure is the safety"
+    - "trust between the jet and the man on the ground"
+
+player_role: >-
+  PYTHON 1-1: single-ship F-16C Block 50 (DCS F-16C_50), Rook detachment (fictional), USAF,
+  Incirlik. Back from a long ground tour; this sortie is the requalification ride. Hot start on
+  the Incirlik ramp. Diverts Adana Sakirpasa and Hatay.
+
+factions:
+  - id: usaf_rook
+    name: "Rook detachment (USAF)"
+    description: >-
+      Six F-16CM Block 50s deployed to Incirlik, plus the range staff on loan to the detachment
+      and a USAF JTAC team embedded with the partner force.
+    doctrine: "Deliberate and ROE-bound. PID before weapons release; the range is run by the book."
+    dcs:
+      country: USA
+      coalition: blue
+      units: [F-16C_50, F-15C, E-3A, JTAC, Soldier M4, Hummer, M1043 HMMWV Armament]
+
+  - id: partner_nbb
+    name: "Northern Border Brigade (NBB)"
+    description: "Locally raised partner force holding the villages north of Tell Rifaat."
+    doctrine: "Hold the villages and patrol the plain; call for air when the technicals come."
+    dcs:
+      country: Combined Joint Task Forces Blue
+      coalition: blue
+      units: [Soldier M4, Soldier M249, M1043 HMMWV Armament, Hummer]
+      tech_veneer: "Invented partner force, flown under the CJTF Blue flag so that no real nation or militia is depicted."
+
+  - id: range_targets
+    name: "Range Seven target arrays"
+    description: "Scrap vehicles laid out as bombing targets on Range Seven: a truck line and a tank hulk."
+    doctrine: "Inert. They do not move or shoot."
+    dcs:
+      country: Combined Joint Task Forces Red
+      coalition: red
+      units: [Ural-375, ATMZ-5, T-72B]
+      tech_veneer: "The range targets are red-coalition vehicles so the TGP and F10 map treat them as targets. The T-72 stands in for a tank hulk."
+
+  - id: npf
+    name: "Northern Plains Front (NPF)"
+    description: "The insurgency: mobile groups around technicals, fighting from farm compounds."
+    doctrine: "Hit the partner patrols from compounds, then scatter. Technicals with ZU-23s cover the compounds."
+    dcs:
+      country: Insurgents
+      coalition: red
+      units: [UAZ-469, tt_KORD, tt_ZU-23, Infantry AK Ins]
+
+characters:
+  - id: rco_anvil
+    name: "Flight Lieutenant Sam Keogh (RAAF exchange officer)"
+    callsign: "Anvil"
+    role: Range Control Officer, Range Seven; clears each pass and scores each bomb
+    faction: usaf_rook
+    real_person: false
+    description: >-
+      An RAAF exchange weapons instructor who runs Range Seven from the tower on the delta. Has
+      requalified dozens of pilots coming back from staff jobs and knows exactly which switch
+      they forget.
+    arc: "Coaches PYTHON through the switches, signs the range card, and hands the jet to Rook Ops for the live tasking."
+    voice:
+      eleven_voice_id: T3RkkRObzq7rCMQT4zhL
+      design_prompt: >-
+        Australian Air Force officer in his late thirties, warm mid-low voice, unhurried and
+        precise, the tone of an instructor who has said these steps a hundred times and still
+        means them. Speaks on a clean UHF range frequency from a quiet tower, every number
+        spoken clearly, with a short pause between each switch he calls so the student can keep
+        up. Never raises his voice; a dry, approving word when a bomb hits.
+      accent: Australian
+      age: 38
+      gender: male
+      cadence: measured
+      brevity: chatty
+      radio_fx: uhf_clean
+      notes: "Verbal habit: calls each switch, then 'and check', and pauses. Procedural tell: scores every bomb in metres and clock position ('shack', 'ten metres at six o'clock')."
+
+  - id: ops_lindqvist
+    name: "Maj. Erika Lindqvist"
+    callsign: "Rook Ops"
+    role: Rook detachment operations officer; owns the alert tasking
+    faction: usaf_rook
+    real_person: false
+    description: "The detachment's ops officer. Spare with words, clear about ROE, never rushes a pilot into a weapon release."
+    arc: "Retasks PYTHON off the range to the JTAC, then calls the jet home."
+    voice:
+      eleven_voice_id: XrExE9yKIg1WjnnlVkGX
+      design_prompt: >-
+        American female Air Force major in her forties, mid-low even voice, professional and
+        economical, speaking on a squadron UHF frequency from an ops desk. Calm under pressure,
+        every word chosen; she gives tasking in the same steady tone whether it is routine or
+        urgent, and closes each call with a short clear instruction.
+      accent: General American
+      age: 44
+      gender: female
+      cadence: measured
+      brevity: normal
+      radio_fx: uhf_clean
+      notes: "Verbal habit: ends tasking calls with 'Ops out.' Procedural tell: always restates the frequency when she hands the jet over."
+
+  - id: jtac_ortiz
+    name: "TSgt. Rafael Ortiz"
+    callsign: "Jackal Two-Three"
+    role: USAF JTAC with an NBB patrol north of Tell Rifaat
+    faction: usaf_rook
+    real_person: false
+    description: "Tactical air control party veteran living with an NBB company. Patient on a talk-on, unforgiving about PID."
+    arc: "His patrol is pinned by a compound; how quickly PYTHON gets a bomb on it decides whether the patrol has to pull back."
+    voice:
+      eleven_voice_id: PtGjyQZ7kCARwCuiOKQL
+      design_prompt: >-
+        Male US Air Force JTAC in his mid thirties, light South Texas accent, mid pitch with a
+        little grit. Crisp, deliberate radio delivery with every number spoken clearly; in
+        contact he gets faster and tighter but never loud. Speaking into a handheld radio
+        outdoors, with wind and distant small-arms fire sometimes behind him.
+      accent: South Texas American
+      age: 34
+      gender: male
+      cadence: brisk
+      brevity: normal
+      radio_fx: vhf_noisy
+      notes: "Verbal habit: 'copy all' before he answers anything. Procedural tell: reads back the laser code before every clearance."
+
+  - id: tower_incirlik
+    name: "Incirlik Tower controller"
+    callsign: "Incirlik Tower"
+    role: Incirlik ground and tower controller
+    faction: usaf_rook
+    real_person: false
+    description: "A busy, practised tower controller."
+    arc: "Departure and recovery calls only."
+    voice:
+      eleven_voice_id: IqaWsJgCV6ihH2Uh6Jb2
+      design_prompt: >-
+        American male air traffic controller in his late twenties, clear neutral voice, brisk
+        and flat, standard phraseology only, speaking on a tower UHF frequency with a light hiss
+        of airfield radio behind him. Sounds practised and slightly bored, never chatty.
+      accent: General American
+      age: 28
+      gender: male
+      cadence: brisk
+      brevity: terse
+      radio_fx: uhf_clean
+      notes: "Verbal habit: 'welcome back' on every recovery. Only standard phraseology."
+
+  - id: awacs_magic
+    name: "Magic (E-3 weapons controller)"
+    callsign: "Magic"
+    role: E-3 AWACS weapons controller over southern Turkey
+    faction: usaf_rook
+    real_person: false
+    description: "The E-3 controller running the picture for every coalition jet in the area."
+    arc: "Background: picture calls to PYTHON, Colt and Venom all sortie."
+    voice:
+      eleven_voice_id: 2qVLKOamXa29yju9mqTK
+      design_prompt: >-
+        American AWACS weapons controller in his thirties, calm flat mid-low voice, very even
+        pace, speaking from a console in an E-3 with a faint hum of the aircraft behind him.
+        Every call is short and standard; numbers spoken clearly, nothing emotional.
+      accent: General American
+      age: 35
+      gender: male
+      cadence: measured
+      brevity: normal
+      radio_fx: uhf_clean
+      notes: "Verbal habit: 'picture clean' closes most calls. Procedural tell: answers every check-in with 'radar contact'."
+
+  - id: colt_lead
+    name: "Capt. 'Dutch' Aldana"
+    callsign: "Colt 1-1"
+    role: F-15C flight lead on the defensive patrol over the border
+    faction: usaf_rook
+    real_person: false
+    description: "Eagle driver flying the friendly CAP; never sees anything and reports it precisely."
+    arc: "Background: checks in with Magic and reports ops normal."
+    voice:
+      eleven_voice_id: vIuLMrDs3Mbl0w5kvuKe
+      design_prompt: >-
+        American fighter pilot in his early thirties with a light Southern hint, relaxed but
+        crisp, speaking through an oxygen mask with a slight muffled edge on a clean UHF
+        frequency. Short standard calls, a little bored on a quiet CAP.
+      accent: Southern American
+      age: 32
+      gender: male
+      cadence: brisk
+      brevity: terse
+      radio_fx: uhf_clean
+      notes: "Verbal habit: gives his fuel state in thousands on every ops check."
+
+  - id: venom_lead
+    name: "Maj. Tom Reyes"
+    callsign: "Venom 3-1"
+    role: F-16C flight lead departing Incirlik for a patrol, on the departure frequency
+    faction: usaf_rook
+    real_person: false
+    description: "Another Rook flight lead launching as PYTHON starts up."
+    arc: "Background: takes off at mission start."
+    voice:
+      eleven_voice_id: iP95p4xoKVk53GoZ742B
+      design_prompt: >-
+        American fighter pilot in his late thirties, mid voice, easy confident delivery through
+        an oxygen mask, standard phraseology only, on a clean UHF airfield frequency.
+      accent: General American
+      age: 38
+      gender: male
+      cadence: brisk
+      brevity: terse
+      radio_fx: uhf_clean
+      notes: "Verbal habit: reads back clearances in full."
+
+  - id: viper_lead
+    name: "Capt. Ben Okafor"
+    callsign: "Viper 2-1"
+    role: F-16C flight lead recovering to Incirlik on the local frequency
+    faction: usaf_rook
+    real_person: false
+    description: "A Rook two-ship coming home from an early patrol."
+    arc: "Background: recovers to Incirlik during PYTHON's departure."
+    voice:
+      eleven_voice_id: cjVigY5qzO86Huf0OWal
+      design_prompt: >-
+        American fighter pilot in his early thirties, clear mid voice, relaxed and tidy on the
+        radio after a long sortie, speaking through an oxygen mask on a clean UHF airfield
+        frequency. Standard phraseology, slightly tired.
+      accent: General American
+      age: 31
+      gender: male
+      cadence: measured
+      brevity: terse
+      radio_fx: uhf_clean
+      notes: "Verbal habit: 'full stop' on every recovery call."
+
+timeline:
+  - date: "2016-11-10"
+    event: "PYTHON 1-1 flies the laser-guided bomb requalification ride on Range Seven, on two-bomb alert for close air support."
+    fictional: true
+
+sources:
+  - claim: "Incirlik Air Base is in Adana province, southern Turkey, and has hosted USAF fighter detachments."
+    source_url: "https://en.wikipedia.org/wiki/Incirlik_Air_Base"
+    confidence: high
+    note: "Terrain and home base only."
+  - claim: "The DCS F-16C Viper models a USAF F-16C Block 50 with the LITENING targeting pod and GBU-12 laser-guided bombs; the default laser code is 1688."
+    source_url: "https://www.digitalcombatsimulator.com/en/products/planes/f-16c_viper/"
+    confidence: medium
+    note: "The 1688 default is DCS practice; the kneeboard tells the player to check it on the SMS and TGP pages."
+
+canon_rules:
+  - "Mode fictional: Range Seven, Rook detachment, the alert tasking and the calendar are invented; Incirlik, the Ceyhan delta and Tell Rifaat are real terrain only. No real unit, operation or person is depicted."
+  - "Coalition: the player flies the F-16C_50, which is blue in the DCS catalog, so the USAF and the partner force are blue and the insurgents and the range target arrays are red."
+  - "The player is PYTHON 1-1, single ship. Hot start on the Incirlik ramp is the only start option."
+  - "Comms plan: two radios, no retuning. UHF COM1 stays on Incirlik Tower 360.1 AM all sortie (the flight frequency), so the player hears the airfield traffic. VHF COM2 is the tactical net on 138.0 AM: Anvil, Rook Ops, Jackal Two-Three, Magic and Colt. Anvil and Rook Ops transmit from immortal radio vehicles so the spec can pin their frequency."
+  - "Laser code 1688 for every bomb and the pod, all sortie."
+  - "Weapons release on the range requires Anvil's 'cleared hot'; in the live tasking, Jackal's 'cleared hot' and a PID on the pod."
+  - "Stakes vocabulary: if the compound keeps firing, the patrol has to pull back off the plain and the range card stays unsigned."
+  - "Radio is callsign-first and brevity-correct. Anvil may be wordier on the range because coaching is his job; nobody cheers on the net."

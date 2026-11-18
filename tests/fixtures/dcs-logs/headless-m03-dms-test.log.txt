@@ -1,0 +1,12 @@
+=== Log opened UTC 2026-10-28 12:51:21
+2026-10-28 12:51:20.778 INFO    APP (Main): Disabling vectored exception handler, some debug info will be unavailable.
+2026-10-28 12:51:20.780 INFO    EDCORE (Main): Created boot pool: n:16
+2026-10-28 12:52:24.150 INFO    SCRIPTING (Main): [DMS][Narrative] started with 62 beats (minGap 8s)
+2026-10-28 12:52:24.150 INFO    SCRIPTING (Main): [DMS][Init] DMS 0.3.0.dev0+635bb9c started: mission=m03-troops-in-contact seed=1698822424 debug=true budgets(ground=150 air=16 spm=5) templates=7 pools=6 zones=19 encounters=6 beats=62 modules=[Spawner,Ground,Director,Encounters,Narrative,Comms,Intel,Ambient]
+2026-10-28 12:52:26.213 INFO    SCRIPTING (Main): [DMS][Narrative] beat 'air_start_greeting' triggered by player.spawned
+2026-10-28 12:52:26.801 INFO    SCRIPTING (Main): [DMS][Narrative] Proxy Python 1-1 entered zone incirlik_approach
+2026-10-28 12:52:26.801 INFO    SCRIPTING (Main): [DMS][Narrative] beat 'early_rtb' not eligible (requires) on zone.entered
+2026-10-28 12:53:26.853 INFO    SCRIPTING (Main): [DMS][Test] proxy loiter start over ip_tusk (magic_handoff fired), until rook_rtb or t=2773
+2026-10-28 12:54:17.853 WARNING SCRIPTING (Main): [DMS][Ground] 'DMS_civ_traffic_1' stuck - giving up after 3 retries
+2026-10-28 12:54:20.917 WARNING SCRIPTING (Main): [DMS][Intel] mark: group 'armor' not found/alive
+2026-10-28 12:54:42.417 INFO    SCRIPTING (Main): [DMS.OUTCOME] {"beats":["mission_start","air_start_greeting","ramp_start_detect","civ_warning","ground_taxi","tower_departure","magic_handoff","jtac_checkin","nine_line_1","talk_on_1","assault_wave_report","pike_tally_1","cleared_hot_1","assault_wave_report","jtac_retask","nine_line_2","talk_on_2","nbb_status_10","danger_close_cleared","assault_wave_report","armor_nine_line","pike_tracks","nbb_wavering_mid","nbb_withdraw_mid"],"flags":{"checked_in":true,"danger_close":true,"fight_over":true,"nbb_withdrew":true,"next_target":true,"nine_line_1":true,"on_station":true,"ramp_start":true,"started":true,"talk_on_1_done":true},"kind":"update","missionId":"m03-troops-in-contact","outcome":{"position_held":false},"qualities":{"collateral":0,"insurgent_supply":2,"intel":1,"partner_morale":0,"sam_threat":2},"qualityDeltas":{},"t":2164}

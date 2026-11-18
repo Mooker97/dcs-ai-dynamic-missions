@@ -81,7 +81,8 @@ def _wsl_saved_games(mnt: Path, home_name: str) -> Path | None:
     except OSError:
         return None
     same = [sg for sg in found if sg.parent.name.lower() == home_name.lower()]
-    return (same or found or [None])[0]
+    pick = same or found
+    return pick[0] if pick else None
 
 
 def saved_games_dir(

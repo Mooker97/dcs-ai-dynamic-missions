@@ -1409,8 +1409,7 @@ CHECKS.camera_cues = function(c)
     for _, msg in ipairs(order) do
       local w, g = want[msg], gotAll[msg] or 0
       if g ~= w.n then
-        problems[#problems + 1] =
-          string.format("%s: cue shown %d time(s), want %d", table.concat(w.beats, "+"), g, w.n)
+        problems[#problems + 1] = string.format("%s: cue shown %d time(s), want %d", table.concat(w.beats, "+"), g, w.n)
       end
     end
     if #notAll > 0 then

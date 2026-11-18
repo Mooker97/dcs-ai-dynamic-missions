@@ -23,7 +23,7 @@ uv run ruff check . && uv run ruff format .
 uv run mypy packages                # strict
 uv run python tools/bundle_lua.py   # lua/src -> dist/dms.lua (manifest order)
 uv run dms --help                   # validate | plan | voice | build | check | run | schema | bundle-lua
-                                    # | install | doctor | outcome | debrief | new-campaign | catalog
+                                    # | install | doctor | outcome | debrief | new-campaign | catalog | art
                                     # (see CONTRACTS "File formats")
 uv run dms-mcp                      # MCP server (stdio)
 ```

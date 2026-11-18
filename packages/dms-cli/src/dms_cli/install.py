@@ -59,13 +59,48 @@ def _known_folder_saved_games() -> Path | None:
         return None
 
 
-def saved_games_dir() -> Path:
+def is_wsl(osrelease: Path = Path("/proc/sys/kernel/osrelease")) -> bool:
+    """True under Windows Subsystem for Linux (``$WSL_DISTRO_NAME`` or a Microsoft kernel)."""
+    if os.environ.get("WSL_DISTRO_NAME", "").strip():
+        return True
+    try:
+        return "microsoft" in osrelease.read_text(encoding="utf-8").lower()
+    except OSError:
+        return False
+
+
+def _wsl_saved_games(mnt: Path, home_name: str) -> Path | None:
+    """``<mnt>/*/Users/*/Saved Games`` holding ``DCS`` or ``DCS.openbeta``; the Windows user
+    named like the WSL user first, else the first in sorted order."""
+    try:
+        found = sorted(
+            sg
+            for sg in mnt.glob("*/Users/*/Saved Games")
+            if any((sg / d).is_dir() for d in _VARIANT_DIRS.values())
+        )
+    except OSError:
+        return None
+    same = [sg for sg in found if sg.parent.name.lower() == home_name.lower()]
+    return (same or found or [None])[0]
+
+
+def saved_games_dir(
+    *, wsl: Callable[[], bool] = is_wsl, mnt: Path = Path("/mnt"), home: Path | None = None
+) -> Path:
     """``$DMS_DCS_SAVED_GAMES`` (the Saved Games dir itself), else the Windows known folder,
-    else ``~/Saved Games``."""
+    else (under WSL) ``/mnt/*/Users/*/Saved Games`` with a DCS folder, else ``~/Saved Games``."""
     env = os.environ.get(SAVED_GAMES_ENV, "").strip()
     if env:
         return Path(env)
-    return _known_folder_saved_games() or Path.home() / "Saved Games"
+    home = home if home is not None else Path.home()
+    known = _known_folder_saved_games()
+    if known is not None:
+        return known
+    if wsl():
+        hit = _wsl_saved_games(mnt, home.name)
+        if hit is not None:
+            return hit
+    return home / "Saved Games"
 
 
 def _log_mtime(dcs_dir: Path) -> float:

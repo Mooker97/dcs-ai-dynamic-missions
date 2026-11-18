@@ -1038,6 +1038,58 @@ def install_cmd(
     _echo(dumps(plan_obj.to_dict(dry_run)))
 
 
+# ---- art ---------------------------------------------------------------------------------------
+
+
+@app.command("art")
+@_guard
+def art_cmd(
+    target: Annotated[Path, typer.Argument(help="Mission folder or mission-spec.yaml.")],
+    images: Annotated[
+        list[Path] | None,
+        typer.Argument(help="Images (.png/.jpg) in display order. None: list the current set."),
+    ] = None,
+    append: Annotated[
+        bool, typer.Option("--append", help="Add after the current pictures (don't replace).")
+    ] = False,
+    do_build: Annotated[
+        bool, typer.Option("--build", help="Rebuild every variant's .miz afterwards.")
+    ] = False,
+    do_install: Annotated[
+        bool, typer.Option("--install", help="Rebuild, then install into DCS (implies --build).")
+    ] = False,
+    dcs: DcsOpt = "auto",
+    dry_run: Annotated[bool, typer.Option("--dry-run", help="Print, change nothing.")] = False,
+) -> None:
+    """Set the briefing pictures: briefing.png, briefing-2.png, ... in the order given."""
+    from . import art
+
+    mp = resolve_mission(target, root=_root())
+    names = [p.name for p in art.current_art(mp.dir)]
+    if images:
+        change = art.set_art(mp.dir, images, append=append, dry_run=dry_run)
+        verb = "would " if dry_run else ""
+        for old, dst in change.moved:
+            _echo(f"{verb}move {old.name} -> {dst.relative_to(mp.dir).as_posix()}")
+        for src, dst in change.copied:
+            _echo(f"{verb}copy {src} -> {dst.name}")
+        if dry_run:
+            names = (names if append else []) + [dst.name for _, dst in change.copied]
+        else:
+            names = [p.name for p in art.current_art(mp.dir)]
+    _echo(f"briefing pictures ({len(names)}): " + (", ".join(names) or "none"))
+    if dry_run or not (do_build or do_install):
+        return
+    plan_path = mp.out_dir / PLAN_FILE
+    if not plan_path.is_file():
+        raise CliError(f"no plan at {plan_path}; run `dms plan` first")
+    if not _build_and_check(plan_path, None, None, None, ""):
+        _echo("the .miz was written but check found problems")
+        raise typer.Exit(1)
+    if do_install:
+        _install(mp.dir, dcs, dry_run=False, include_test=False)
+
+
 @app.command()
 @_guard
 def doctor(as_json: JsonOpt = False) -> None:

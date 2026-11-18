@@ -195,3 +195,58 @@ def test_missing_key_warns(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> N
     (tmp_path / ".env").write_text(f"ELEVENLABS_API_KEY={FAKE_KEY}\n", encoding="utf-8")
     rows = inst.check_elevenlabs(tmp_path)
     assert rows[0].status == "OK" and FAKE_KEY not in rows[0].detail
+
+
+# ---- WSL Saved Games fallback --------------------------------------------------------------------
+
+
+def _fake_mnt(tmp_path: Path, *users: str) -> Path:
+    mnt = tmp_path / "mnt"
+    for user in users:
+        (mnt / "c" / "Users" / user / "Saved Games" / "DCS").mkdir(parents=True)
+    (mnt / "c" / "Users" / "nodcs" / "Saved Games").mkdir(parents=True)
+    return mnt
+
+
+def test_wsl_finds_windows_saved_games(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv(inst.SAVED_GAMES_ENV, raising=False)
+    mnt = _fake_mnt(tmp_path, "alice", "mook")
+    got = inst.saved_games_dir(wsl=lambda: True, mnt=mnt, home=Path("/home/mook"))
+    assert got == mnt / "c" / "Users" / "mook" / "Saved Games"
+    other = inst.saved_games_dir(wsl=lambda: True, mnt=mnt, home=Path("/home/zed"))
+    assert other == mnt / "c" / "Users" / "alice" / "Saved Games"
+
+
+def test_wsl_without_dcs_falls_back_to_home(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv(inst.SAVED_GAMES_ENV, raising=False)
+    mnt = _fake_mnt(tmp_path)
+    home = tmp_path / "home" / "mook"
+    assert inst.saved_games_dir(wsl=lambda: True, mnt=mnt, home=home) == home / "Saved Games"
+
+
+def test_not_wsl_ignores_mnt(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv(inst.SAVED_GAMES_ENV, raising=False)
+    mnt = _fake_mnt(tmp_path, "mook")
+    home = tmp_path / "home" / "mook"
+    assert inst.saved_games_dir(wsl=lambda: False, mnt=mnt, home=home) == home / "Saved Games"
+
+
+def test_env_var_beats_wsl(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(inst.SAVED_GAMES_ENV, str(tmp_path / "custom"))
+    mnt = _fake_mnt(tmp_path, "mook")
+    got = inst.saved_games_dir(wsl=lambda: True, mnt=mnt, home=Path("/home/mook"))
+    assert got == tmp_path / "custom"
+
+
+def test_is_wsl_detection(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    rel = tmp_path / "osrelease"
+    monkeypatch.delenv("WSL_DISTRO_NAME", raising=False)
+    rel.write_text("6.18.33.2-microsoft-standard-WSL2\n", encoding="utf-8")
+    assert inst.is_wsl(rel)
+    rel.write_text("6.8.0-generic\n", encoding="utf-8")
+    assert not inst.is_wsl(rel)
+    assert not inst.is_wsl(tmp_path / "missing")
+    monkeypatch.setenv("WSL_DISTRO_NAME", "Ubuntu")
+    assert inst.is_wsl(tmp_path / "missing")

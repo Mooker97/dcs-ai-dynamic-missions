@@ -1,0 +1,356 @@
+# m01 Range Day - LGB requalification on Range Seven, then an alert CAS retask near Tell Rifaat.
+# Schema: schemas/mission-spec.schema.json (MissionSpec). Validate: uv run dms validate <this dir>
+#
+# STATE DIGEST: new campaign, trust 0, no flags. Dramatic question: are PYTHON's hands back in
+# time to put a real bomb on the compound? Outcome keys (arc): range_hits (count 0-2),
+# range_qualified (at least one shack), compound_destroyed, player_lost.
+# A refresher by design: Anvil coaches the switches on the radio; the kneeboard has the GBU-12
+# cheat sheet. Threats are light (one ZU-23 technical at the compound, a possible second
+# technical, no SAMs), and every release can be made from above the ZU-23's reach.
+#
+# START: one variant, 'hot' -> out/m01-range-day-hot.miz: hot start (engines running) on the
+# Incirlik ramp. Single ship, PYTHON 1-1. Group name "Python 1".
+# Spine: only range_open is a zone beat (the headless AI proxy flies the guaranteed zone beats,
+# then loiters there until the RTB call). Everything after it chains off beats, flags and
+# timeouts, so it completes even when nothing is hit.
+schema_version: 1
+id: m01-range-day
+title: "Range Day"
+campaign: range-day
+content_mode: fictional
+theater: Syria
+era: 2016
+date: 2016-11-10
+start_time: "09:00"
+weather_preset: clear
+mission_type: STRIKE
+duration_min: 70
+blue_countries: [USA, Combined Joint Task Forces Blue]
+red_countries: [Insurgents, Combined Joint Task Forces Red]
+cast: [rco_anvil, ops_lindqvist, jtac_ortiz, tower_incirlik, awacs_magic, colt_lead, venom_lead, viper_lead]
+
+areas:
+  # --- home -----------------------------------------------------------------------------------
+  - id: incirlik
+    description: "Incirlik air base, home of Rook detachment. The jet starts hot on the ramp here."
+    where: {kind: near_airbase, airbase: Incirlik, radius_nm: 1}
+  - id: incirlik_approach
+    description: "Recovery circle around Incirlik; entering it after the RTB call brings the tower call."
+    where: {kind: near_airbase, airbase: Incirlik, radius_nm: 12}
+
+  # --- Range Seven ----------------------------------------------------------------------------
+  - id: ip_anvil
+    description: "IP ANVIL, 8 NM north of Range Seven on the run-in line. Passes run north to south."
+    where: {kind: latlon, lat: 36.833, lon: 35.450, radius_nm: 2}
+  - id: range_ring
+    description: "15 NM circle around Range Seven: entering it opens the range (first guaranteed beat)."
+    where: {kind: latlon, lat: 36.700, lon: 35.450, radius_nm: 15}
+  - id: range_seven
+    description: "Range Seven: flat farmland on the Ceyhan delta, about 18 NM south of Incirlik."
+    where: {kind: latlon, lat: 36.700, lon: 35.450, radius_nm: 1.2}
+    terrain: open
+  - id: range_t1
+    description: "Target one: a line of scrap trucks on the west side of the range."
+    where: {kind: latlon, lat: 36.700, lon: 35.440, radius_nm: 0.05}
+    terrain: open
+  - id: range_t2
+    description: "Target two: a tank hulk one mile east of the truck line."
+    where: {kind: latlon, lat: 36.700, lon: 35.462, radius_nm: 0.05}
+    terrain: open
+
+  # --- live tasking near Tell Rifaat ----------------------------------------------------------
+  - id: cp_dust
+    description: "CP DUST, the contact point west of the fight, on the line from the range."
+    where: {kind: latlon, lat: 36.628, lon: 36.889, radius_nm: 3}
+  - id: live_ring
+    description: "15 NM circle around the compounds: entering it after the retask brings Jackal's 9-line."
+    where: {kind: latlon, lat: 36.502, lon: 37.102, radius_nm: 15}
+  - id: compounds
+    description: "The farm compounds south of Jackal's village, where the NPF fire is coming from. The TGT steerpoint for the live tasking."
+    where: {kind: latlon, lat: 36.502, lon: 37.102, radius_nm: 1}
+    terrain: open
+  - id: pumphouse
+    description: "'The Pumphouse': compound on the irrigation canal, 3.3 km south-south-east of the village."
+    where: {kind: latlon, lat: 36.500, lon: 37.121, radius_nm: 0.12}
+    terrain: open
+  - id: ridge_farm
+    description: "'Ridge Farm': farm on the low rise 3.6 km south-south-west of the village."
+    where: {kind: latlon, lat: 36.496, lon: 37.088, radius_nm: 0.12}
+    terrain: open
+  - id: canal_farm
+    description: "'Canal Farm': farm buildings 2.2 km south-west of the village."
+    where: {kind: latlon, lat: 36.512, lon: 37.086, radius_nm: 0.12}
+    terrain: open
+  - id: jackal_village
+    description: "NBB-held village north of Tell Rifaat where Jackal Two-Three and the patrol are. NO STRIKE."
+    where: {kind: latlon, lat: 36.528, lon: 37.105, radius_nm: 0.15}
+    terrain: urban
+  # --- background traffic -------------------------------------------------------------------
+  - id: ops_site
+    description: "Rook Ops' radio vehicle beside the Incirlik ramp (immortal transmitter for the ops net)."
+    where: {kind: near_airbase, airbase: Incirlik, radius_nm: 0.2, bearing_deg: 200, distance_nm: 1.6}
+    terrain: open
+  - id: range_control
+    description: "Anvil's range control vehicle, 2 NM north-west of the targets."
+    where: {kind: latlon, lat: 36.725, lon: 35.415, radius_nm: 0.1}
+    terrain: open
+  - id: viper_hold
+    description: "Holding point 40 NM east of Incirlik where Viper 2-1 waits to recover."
+    where: {kind: near_airbase, airbase: Incirlik, radius_nm: 4, bearing_deg: 80, distance_nm: 40}
+  - id: viper_initial
+    description: "Initial point 12 NM east-north-east of Incirlik for the runway 05 recovery."
+    where: {kind: near_airbase, airbase: Incirlik, radius_nm: 2, bearing_deg: 70, distance_nm: 12}
+  - id: venom_patrol
+    description: "Venom 3-1's patrol orbit north of Kilis, about 10 NM north of PYTHON's transit line."
+    where: {kind: latlon, lat: 36.880, lon: 36.800, radius_nm: 6}
+  - id: colt_cap
+    description: "Colt 1-1's F-15C CAP orbit over the border south of Gaziantep."
+    where: {kind: latlon, lat: 36.950, lon: 37.350, radius_nm: 6}
+  - id: magic_orbit
+    description: "E-3 orbit well inside Turkey, about 60 NM north-east of Incirlik."
+    where: {kind: latlon, lat: 37.400, lon: 36.400, radius_nm: 8}
+  - id: egress_west
+    description: "EGRESS point west of Azaz, on the way home from the fight."
+    where: {kind: latlon, lat: 36.575, lon: 36.950, radius_nm: 3}
+
+player_flights:
+  - callsign: Python
+    aircraft: F-16C_50
+    count: 1
+    coalition: blue
+    country: USA
+    start_area: incirlik
+    start_type: parking_hot
+    variant: hot
+    slot: player
+    loadout: lgb_strike               # 4x GBU-12 on TERs, 2x 370 gal, ALQ-184, LITENING, 2x AIM-120C, 2x AIM-9X
+    frequency_mhz: 360.1              # UHF COM1 = Incirlik Tower all sortie (airfield traffic); tactical net on VHF 138.0
+    tasking: >-
+      HOT START on the Incirlik ramp, engines running. Taxi and depart runway 05, turn south to IP
+      ANVIL, two coached GBU-12 passes on Range Seven (one bomb per target), then on Rook Ops'
+      retask push to CP DUST and Jackal Two-Three near Tell Rifaat with the last two bombs.
+      Egress west, RTB Incirlik.
+
+objectives:
+  - id: range_pass_1
+    kind: destroy
+    description: "Range pass one: one GBU-12 on the truck line."
+    primary: false
+    area: range_t1
+    target: range_trucks
+    success_flag: t1_hit
+  - id: range_pass_2
+    kind: destroy
+    description: "Range pass two: one GBU-12 on the tank hulk."
+    primary: false
+    area: range_t2
+    target: range_tank
+    success_flag: t2_hit
+  - id: live_compound
+    kind: destroy
+    description: "Silence the compound firing on Jackal's patrol with the last two GBU-12s."
+    primary: true
+    area: compounds
+    target: compound_aaa
+    success_flag: compound_hit
+  - id: protect_patrol
+    kind: protect
+    description: "No bombs on the village where the patrol is."
+    primary: true
+    failure_flag: friendlies_hit
+  - id: rtb
+    kind: land
+    description: "Recover to Incirlik (or a briefed divert)."
+    primary: true
+    area: incirlik
+    success_flag: landed
+  - id: survive
+    kind: survive
+    description: "Bring the jet back."
+    primary: true
+    failure_flag: player_lost
+
+threats:
+  - id: range_trucks
+    role: hvt
+    area: range_t1
+    strength: light
+    faction: range_targets
+    skill: Average
+    hidden_on_map: false
+    templates: [supply_convoy]
+    notes: "Range target one: scrap trucks (Ural-375 line with a bowser). Inert."
+  - id: range_tank
+    role: armor
+    area: range_t2
+    strength: light
+    faction: range_targets
+    skill: Average
+    hidden_on_map: false
+    templates: [t72_single]
+    notes: "Range target two: a tank hulk. Inert."
+  - id: compound_aaa
+    role: aaa
+    area: compounds
+    strength: light
+    faction: npf
+    skill: Average
+    hidden_on_map: false               # briefed: a ZU-23 technical around the compounds
+    templates: [zu23_technical]
+    notes: "One ZU-23 technical covering the compounds. Effective below about 8,000 ft AGL."
+
+support:
+  - id: jackal
+    role: jtac
+    callsign: "Jackal Two-Three"
+    area: jackal_village
+    composition: "1x Hummer, 2x Soldier M4"
+    faction: partner_nbb
+    speaker: jtac_ortiz
+    frequency_mhz: 138.0               # VHF tactical net with Anvil, Rook Ops and Magic (bible comms rule)
+    immortal: true
+  - id: anvil
+    role: friendly_ground
+    callsign: "Anvil"
+    area: range_control
+    composition: "1x Hummer"
+    faction: usaf_rook
+    speaker: rco_anvil
+    frequency_mhz: 138.0
+    immortal: true
+  - id: rook_ops
+    role: friendly_ground
+    callsign: "Rook Ops"
+    area: ops_site
+    composition: "1x Hummer"
+    faction: usaf_rook
+    speaker: ops_lindqvist
+    frequency_mhz: 138.0
+    immortal: true
+  - id: magic
+    role: awacs
+    callsign: "Magic"
+    area: magic_orbit
+    composition: "1x E-3A"
+    faction: usaf_rook
+    speaker: awacs_magic
+    frequency_mhz: 138.0
+    immortal: true
+
+# Background traffic: AI flights the player sees on F10 and hears on the radio. Immortal, so
+# nothing in the story depends on them.
+flights:
+  - id: venom31
+    callsign: "Venom 3-1"
+    aircraft: F-16C_50
+    count: 2
+    start_area: incirlik
+    start_type: runway                 # rolls on runway 05 at mission start, while PYTHON is on the ramp
+    speaker: venom_lead
+    frequency_mhz: 360.1
+    immortal: true
+    orders:
+      - {do: fly, to: venom_patrol, alt_ft: 22000, speed_kts: 420}
+      - {do: hold, at: venom_patrol, alt_ft: 22000, max_min: 120}
+  - id: viper21
+    callsign: "Viper 2-1"
+    aircraft: F-16C_50
+    count: 2
+    start_area: viper_hold
+    start_type: air
+    start_alt_ft: 18000
+    start_speed_kts: 350
+    speaker: viper_lead
+    frequency_mhz: 360.1
+    immortal: true
+    orders:
+      - {do: hold, at: viper_hold, alt_ft: 18000, max_min: 7}
+      - {do: fly, to: viper_initial, alt_ft: 3000, speed_kts: 300}
+      - {do: land, at: incirlik, ground_min: 600}
+  - id: colt11
+    callsign: "Colt 1-1"
+    aircraft: F-15C
+    count: 2
+    start_area: colt_cap
+    start_type: air
+    start_alt_ft: 25000
+    start_speed_kts: 400
+    speaker: colt_lead
+    frequency_mhz: 138.0
+    immortal: true
+    orders:
+      - {do: hold, at: colt_cap, alt_ft: 25000, max_min: 150}
+
+dynamic:
+  pools:
+    - id: compound_fighters
+      roles: [hvt]
+      areas: [pumphouse, ridge_farm, canal_farm]
+      pick: [1, 1]
+      faction: npf
+      templates: [hvt_vehicle]
+      notes: "The fighters firing on the patrol: a KORD technical and a UAZ in one of three compounds, picked each play."
+    - id: extra_tech
+      roles: [technicals]
+      areas: [pumphouse, ridge_farm, canal_farm]
+      pick: [1, 1]
+      faction: npf
+      templates: [technical_mg]
+      notes: "A second technical that drives into a compound after the clearance, some plays."
+  encounters:
+    - id: compound_fight
+      kind: pool
+      pool: compound_fighters
+      trigger: {type: time, after_min: 0.5}
+      chance: 100
+      notes: "Always: the fighters exist. Which compound is random each play."
+    - id: second_technical
+      kind: pool
+      pool: extra_tech
+      trigger: {type: beat, beat: cleared_live}
+      chance: 50
+      telegraph_beat: extra_tech_warning
+      notes: "Half the plays, a second technical turns up after Jackal's clearance. Jackal calls it."
+  director:
+    enabled: true
+    intensity: calm
+    adaptive: false
+  fog_of_war:
+    enabled: false
+
+ambient:
+  enabled: true
+  density: high
+
+test:
+  require_result: success
+  # Headless runs only: the AI stand-in flies the sortie like a player and drops the GBU-12s.
+  proxy_orders:
+    - {do: hold, at: ip_anvil, alt_ft: 15000, speed_kts: 420, until: {event: beat.fired, beat: cleared_t1}, max_min: 10}
+    - {do: strike, at: range_t1, group: range_trucks, alt_ft: 15000, speed_kts: 450, max_min: 3}
+    - {do: hold, at: ip_anvil, alt_ft: 15000, speed_kts: 420, until: {event: beat.fired, beat: cleared_t2}, max_min: 8}
+    - {do: strike, at: range_t2, group: range_tank, alt_ft: 15000, speed_kts: 450, max_min: 4}
+    - {do: hold, at: range_seven, alt_ft: 15000, speed_kts: 420, until: {event: beat.fired, beat: retask}, max_min: 8}
+    - {do: fly, to: cp_dust, alt_ft: 18000, speed_kts: 450}
+    - {do: hold, at: cp_dust, alt_ft: 18000, speed_kts: 420, until: {event: beat.fired, beat: cleared_live}, max_min: 10}
+    - {do: strike, at: compounds, group: compound_fighters, alt_ft: 15000, speed_kts: 450, max_min: 5}
+    - {do: rtb, alt_ft: 20000, speed_kts: 450}
+
+seed: null
+
+notes: >-
+  Timeline (T+ from range_open, the first guaranteed beat). Ramp extra before T+0: hot start,
+  Ground taxi call, Tower departure (about 5 min). T+0: entering 15 NM of Range Seven, Anvil
+  opens the range. T+0.5-1: Anvil coaches master arm and laser arm, then SMS GBU-12 PRE 1688,
+  then TGP SOI and TMS track. T+1.5: cleared hot target one (trucks), from the north via IP
+  ANVIL. T+3-6: pass one; shack or a no-effect tip (laser arm, code) after a miss; a 6 min
+  timeout moves on. T+5-12: pass two (tank hulk), same pattern. T+8-14: range complete; Rook Ops
+  retasks to Jackal near Tell Rifaat (about 80 NM, 11 min), Jackal checks in on the same
+  frequency. T+20-25: inside 15 NM of the compounds, Jackal's 9-line in two parts, then cleared
+  hot; a ZU-23 technical shoots at anything low; half the plays a second technical turns up. The
+  compound attack is the climax. T+25-35: good effect (or Jackal's patrol breaks contact after
+  10 min), check-out, RTB call. T+50: Incirlik Tower, landing ends the mission. If the player
+  never reaches the compounds, Jackal's patrol pulls back 20 min after check-in and the RTB call
+  still comes. Flight time: hot ramp start about 60-70 min. Director calm (refresher, first
+  mission). Variation per play: which compound holds the fighters, the second technical (50
+  percent), where the ZU-23 sits, line variants.

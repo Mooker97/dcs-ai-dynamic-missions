@@ -1,0 +1,612 @@
+# m01 Range Day - beats. Schema: schemas/beats.schema.json (BeatSheet). Compiled into DMS_CONFIG.beats.
+# group_prefix values are spec ids (threat / pool / support); planned group names start with them.
+# Guaranteed spine (in order):
+#   range_open (zone range_ring) -> cleared_t1 -> cleared_t2 (flag t1_done) -> range_complete
+#   (flag t2_done) -> retask -> jackal_checkin -> rtb_call (flag live_done) -> on_deck (landing).
+# Only range_open waits on a zone. Every kill-dependent step has a timeout sibling that sets the
+# same flag (t1_timeout, t2_timeout, live_timeout, live_no_show), and on_deck has recovery_timeout.
+mission_id: m01-range-day
+beats:
+  # ======================= Guaranteed spine ===================================================
+  - id: range_open
+    when: {event: zone.entered, zone: range_ring, players_only: true}
+    requires: {flags_not: [range_opened]}
+    priority: 92
+    once: true
+    guaranteed: true
+    speaker: rco_anvil
+    lines: [range_open_v1, range_open_v2, range_open_v3]
+    text: "Python One-One, Anvil. Range Seven is hot. Two passes: target one the trucks, target two the tank."
+    mark: {type: circle, at: "zone:range_seven", radius_m: 2000, text: "RANGE SEVEN"}
+    effects:
+      set_flag: range_opened
+      outcome:
+        range_hits: 0
+        range_qualified: false
+        compound_destroyed: false
+        player_lost: false
+
+  - id: cleared_t1
+    when: {event: flag, flag: range_opened}
+    delay_sec: 55
+    priority: 90
+    once: true
+    guaranteed: true
+    speaker: rco_anvil
+    lines: [cleared_t1_v1, cleared_t1_v2, cleared_t1_v3]
+    text: "Python One-One, Anvil. Cleared hot target one, the truck line, run in from the north. Code one-six-eight-eight."
+    mark: {type: circle, at: "zone:range_t1", radius_m: 150, text: "TGT 1 - TRUCKS"}
+    effects: {set_flag: cleared_t1}
+
+  - id: cleared_t2
+    when: {event: flag, flag: t1_done}
+    delay_sec: 20
+    priority: 90
+    once: true
+    guaranteed: true
+    speaker: rco_anvil
+    lines: [cleared_t2_v1, cleared_t2_v2, cleared_t2_v3]
+    text: "Python One-One, Anvil. Cleared hot target two, the tank, one mile east of the trucks."
+    mark: {type: circle, at: "zone:range_t2", radius_m: 150, text: "TGT 2 - TANK"}
+    effects: {set_flag: cleared_t2}
+
+  - id: range_complete
+    when: {event: flag, flag: t2_done}
+    delay_sec: 10
+    priority: 90
+    once: true
+    guaranteed: true
+    speaker: rco_anvil
+    lines: [range_complete_v1, range_complete_v2, range_complete_v3]
+    text: "Python One-One, Anvil. Range work complete. Range is cold. Stay this frequency for Rook Ops."
+    effects: {set_flag: range_closed}
+
+  - id: retask
+    when: {event: beat.fired, beat: range_complete}
+    delay_sec: 25
+    priority: 92
+    once: true
+    guaranteed: true
+    speaker: ops_lindqvist
+    lines: [retask_v1, retask_v2, retask_v3]
+    text: "Python, Rook Ops. Retask. Jackal Two-Three in contact near Tell Rifaat. Push CP DUST. Ops out."
+    mark: {type: circle, at: "zone:cp_dust", radius_m: 3000, text: "CP DUST"}
+    effects: {set_flag: retasked}
+
+  - id: jackal_checkin
+    when: {event: beat.fired, beat: retask}
+    delay_sec: 35
+    priority: 90
+    once: true
+    guaranteed: true
+    speaker: jtac_ortiz
+    lines: [jackal_checkin_v1, jackal_checkin_v2, jackal_checkin_v3]
+    text: "Python, Jackal Two-Three. Copy all. Patrol pinned by a compound south of us. Call fifteen miles out."
+    mark: {type: text, at: "zone:jackal_village", text: "JACKAL 2-3 - FRIENDLIES - NO STRIKE"}
+    effects: {set_flag: jtac_in}
+
+  - id: rtb_call
+    when: {event: flag, flag: live_done}
+    delay_sec: 30
+    priority: 88
+    once: true
+    guaranteed: true
+    speaker: ops_lindqvist
+    lines: [rtb_call_v1, rtb_call_v2, rtb_call_v3]
+    text: "Python, Rook Ops. RTB Incirlik. Tower three-six-zero-point-one. Ops out."
+    effects: {set_flag: rtb_called}
+
+  - id: on_deck
+    when: {event: unit.landed, players_only: true}
+    requires: {flags: [rtb_called]}
+    priority: 88
+    once: true
+    guaranteed: true
+    speaker: ops_lindqvist
+    lines: [on_deck_v1, on_deck_v2, on_deck_v3]
+    text: "Python, Rook Ops. Copy on deck. Debrief in the vault after shutdown."
+    effects: {set_flag: landed, end_mission: success}
+
+  # ---- spine timeouts -------------------------------------------------------------------------
+  - id: range_open_late
+    when: {event: timer, after_sec: 1800}
+    requires: {beats_not_fired: [range_open]}
+    priority: 80
+    once: true
+    speaker: rco_anvil
+    lines: [range_open_late_v1, range_open_late_v2, range_open_late_v3]
+    text: "Python One-One, Anvil. Range time expired. Card stays open. Rook Ops has you."
+    effects: {set_flag: t2_done}
+
+  - id: recovery_timeout
+    when: {event: beat.fired, beat: rtb_call}
+    delay_sec: 1800
+    requires: {beats_not_fired: [on_deck]}
+    priority: 80
+    once: true
+    speaker: ops_lindqvist
+    lines: [recovery_timeout_v1, recovery_timeout_v2, recovery_timeout_v3]
+    text: "Python, Rook Ops. Closing the sortie log. Recover when able."
+    effects: {set_flag: landed, end_mission: success}
+
+  - id: player_lost
+    when: {event: unit.dead, players_only: true}
+    priority: 100
+    once: true
+    effects: {set_flag: player_lost, outcome: {player_lost: true}, end_mission: failure}
+
+  # ======================= Departure (hot ramp) ===============================================
+  - id: mission_start
+    when: {event: player.spawned, players_only: true}
+    delay_sec: 10
+    priority: 60
+    once: true
+    speaker: ops_lindqvist
+    lines: [mission_start_v1, mission_start_v2, mission_start_v3]
+    text: "Python, Rook Ops. Range Seven first, then two bombs on alert for Jackal. Ops out."
+
+  - id: ground_taxi
+    when: {event: beat.fired, beat: mission_start}
+    delay_sec: 45
+    requires: {flags_not: [range_opened]}
+    priority: 55
+    once: true
+    speaker: tower_incirlik
+    lines: [ground_taxi_v1, ground_taxi_v2, ground_taxi_v3]
+    text: "Python One-One, Incirlik Ground. Taxi runway zero-five. Hold short."
+
+  - id: tower_departure
+    when: {event: unit.takeoff, players_only: true}
+    requires: {flags_not: [range_opened]}
+    delay_sec: 5
+    priority: 55
+    once: true
+    speaker: tower_incirlik
+    lines: [tower_departure_v1, tower_departure_v2, tower_departure_v3]
+    text: "Python One-One, Incirlik Tower. Airborne. Turn south. Anvil is on one-three-eight-point-zero."
+
+  # ======================= Range coaching =====================================================
+  - id: coach_switches
+    when: {event: flag, flag: range_opened}
+    delay_sec: 12
+    priority: 70
+    once: true
+    speaker: rco_anvil
+    lines: [coach_switches_v1, coach_switches_v2, coach_switches_v3]
+    text: "Anvil. Fence in. Master arm, arm. Laser arm, arm. A-G on the ICP. And check."
+
+  - id: coach_sms
+    when: {event: beat.fired, beat: coach_switches}
+    delay_sec: 14
+    priority: 70
+    once: true
+    speaker: rco_anvil
+    lines: [coach_sms_v1, coach_sms_v2, coach_sms_v3]
+    text: "Anvil. SMS page: GBU-12, PRE mode, code one-six-eight-eight. And check."
+
+  - id: coach_tgp
+    when: {event: beat.fired, beat: coach_sms}
+    delay_sec: 14
+    priority: 70
+    once: true
+    speaker: rco_anvil
+    lines: [coach_tgp_v1, coach_tgp_v2, coach_tgp_v3]
+    text: "Anvil. Pod on the right display. DMS down for the pod, TMS up to track. And check."
+
+  - id: coach_release
+    when: {event: beat.fired, beat: cleared_t1}
+    delay_sec: 12
+    priority: 65
+    once: true
+    speaker: rco_anvil
+    lines: [coach_release_v1, coach_release_v2, coach_release_v3]
+    text: "Anvil. Fly the steering line. Pickle and hold until it comes off. Laser by ten seconds."
+
+  - id: bomb_away
+    when: {event: unit.shot, players_only: true}
+    requires: {flags: [range_opened], flags_not: [range_closed]}
+    priority: 60
+    once: false
+    cooldown_sec: 30
+    speaker: rco_anvil
+    lines: [bomb_away_v1, bomb_away_v2, bomb_away_v3]
+    text: "Anvil. Bomb away. Keep the pod on it, laser on."
+
+  - id: t1_shack
+    when: {event: unit.dead, group_prefix: range_trucks}
+    requires: {flags_not: [t1_done]}
+    priority: 75
+    once: true
+    speaker: rco_anvil
+    lines: [t1_shack_v1, t1_shack_v2, t1_shack_v3]
+    text: "Anvil. Shack. Direct hit, target one. Good hands."
+    effects: {set_flag: [t1_done, qualified, t1_hit], outcome: {range_hits: 1, range_qualified: true}}
+
+  - id: t1_miss_tip
+    when: {event: beat.fired, beat: bomb_away}
+    delay_sec: 45
+    requires: {flags: [cleared_t1], flags_not: [t1_done]}
+    priority: 62
+    once: true
+    speaker: rco_anvil
+    lines: [t1_miss_tip_v1, t1_miss_tip_v2, t1_miss_tip_v3]
+    text: "Anvil. No effect. Check laser arm, and code one-six-eight-eight on SMS and pod. Re-attack."
+
+  - id: t1_timeout
+    when: {event: beat.fired, beat: cleared_t1}
+    delay_sec: 360
+    requires: {beats_not_fired: [t1_shack]}
+    priority: 72
+    once: true
+    speaker: rco_anvil
+    lines: [t1_timeout_v1, t1_timeout_v2, t1_timeout_v3]
+    text: "Python One-One, Anvil. No score on target one. Moving on to target two."
+    effects: {set_flag: t1_done}
+
+  - id: t2_shack_both
+    when: {event: unit.dead, group_prefix: range_tank}
+    requires: {flags_not: [t2_done], beats_fired: [t1_shack]}
+    priority: 76
+    once: true
+    speaker: rco_anvil
+    lines: [t2_shack_both_v1, t2_shack_both_v2, t2_shack_both_v3]
+    text: "Anvil. Shack, target two. Two for two. You're qualified."
+    effects: {set_flag: [t2_done, qualified, t2_hit], outcome: {range_hits: 2, range_qualified: true}}
+
+  - id: t2_shack_one
+    when: {event: unit.dead, group_prefix: range_tank}
+    requires: {flags_not: [t2_done], beats_not_fired: [t1_shack]}
+    priority: 75
+    once: true
+    speaker: rco_anvil
+    lines: [t2_shack_one_v1, t2_shack_one_v2, t2_shack_one_v3]
+    text: "Anvil. Shack, target two. One for two. That's a qualifying score."
+    effects: {set_flag: [t2_done, qualified, t2_hit], outcome: {range_hits: 1, range_qualified: true}}
+
+  - id: t2_miss_tip
+    when: {event: beat.fired, beat: bomb_away}
+    delay_sec: 45
+    requires: {flags: [cleared_t2], flags_not: [t2_done]}
+    priority: 62
+    once: true
+    speaker: rco_anvil
+    lines: [t2_miss_tip_v1, t2_miss_tip_v2, t2_miss_tip_v3]
+    text: "Anvil. No effect. Keep the cross on the tank until impact. Don't bank past the pod."
+
+  - id: t2_timeout
+    when: {event: beat.fired, beat: cleared_t2}
+    delay_sec: 360
+    requires: {beats_not_fired: [t2_shack_both, t2_shack_one]}
+    priority: 72
+    once: true
+    speaker: rco_anvil
+    lines: [t2_timeout_v1, t2_timeout_v2, t2_timeout_v3]
+    text: "Python One-One, Anvil. No score on target two. Closing your passes."
+    effects: {set_flag: t2_done}
+
+  - id: range_score_none
+    when: {event: beat.fired, beat: range_complete}
+    delay_sec: 6
+    requires: {flags_not: [qualified], beats_fired: [range_open]}
+    priority: 60
+    once: true
+    speaker: rco_anvil
+    lines: [range_score_none_v1, range_score_none_v2, range_score_none_v3]
+    text: "Anvil. No qualifying hits today. We'll re-fly the card. Switches are the usual culprit."
+
+  # ======================= Live tasking =======================================================
+  - id: jackal_9line
+    when: {event: zone.entered, zone: live_ring, players_only: true}
+    requires: {flags: [jtac_in], flags_not: [live_done]}
+    priority: 85
+    once: true
+    speaker: jtac_ortiz
+    lines: [jackal_9line_v1, jackal_9line_v2, jackal_9line_v3]
+    text: "Python, Jackal. Type two. Target is a compound one mile south of my position. Technicals and a ZU-23."
+    mark: {type: circle, at: "zone:compounds", radius_m: 1500, text: "TGT - COMPOUNDS"}
+    effects: {set_flag: in_attack}
+
+  - id: jackal_9line_2
+    when: {event: beat.fired, beat: jackal_9line}
+    delay_sec: 14
+    priority: 84
+    once: true
+    speaker: jtac_ortiz
+    lines: [jackal_9line_2_v1, jackal_9line_2_v2, jackal_9line_2_v3]
+    text: "Jackal. Laser one-six-eight-eight. Friendlies in the village north, one mile. Attack heading west. Egress west."
+
+  - id: cleared_live
+    when: {event: beat.fired, beat: jackal_9line_2}
+    delay_sec: 15
+    priority: 86
+    once: true
+    speaker: jtac_ortiz
+    lines: [cleared_live_v1, cleared_live_v2, cleared_live_v3]
+    text: "Python, Jackal. One-six-eight-eight. Cleared hot. Stay above one-two thousand."
+    effects: {set_flag: cleared_live}
+
+  - id: extra_tech_warning
+    when: {event: encounter.spawned, encounter: second_technical}
+    priority: 70
+    once: true
+    speaker: jtac_ortiz
+    lines: [extra_tech_warning_v1, extra_tech_warning_v2, extra_tech_warning_v3]
+    text: "Python, Jackal. Second technical pulling into the compounds."
+
+  - id: aaa_shooting
+    when: {event: unit.shot, group_prefix: compound_aaa}
+    priority: 58
+    once: false
+    cooldown_sec: 60
+    speaker: jtac_ortiz
+    lines: [aaa_shooting_v1, aaa_shooting_v2, aaa_shooting_v3]
+    text: "Python, Jackal. Triple-A up from the compounds."
+
+  - id: aaa_down
+    when: {event: group.dead, group_prefix: compound_aaa}
+    priority: 66
+    once: true
+    speaker: jtac_ortiz
+    lines: [aaa_down_v1, aaa_down_v2, aaa_down_v3]
+    text: "Jackal. ZU-23 is down. Good hit."
+
+  - id: live_hit_partial
+    when: {event: unit.dead, group_prefix: compound_fighters}
+    requires: {flags_not: [live_done]}
+    priority: 64
+    once: true
+    speaker: jtac_ortiz
+    lines: [live_hit_partial_v1, live_hit_partial_v2, live_hit_partial_v3]
+    text: "Jackal. Good hit. Still taking fire from the same compound."
+
+  - id: live_good_effect
+    when: {event: group.dead, group_prefix: compound_fighters}
+    requires: {flags_not: [live_done]}
+    priority: 87
+    once: true
+    speaker: jtac_ortiz
+    lines: [live_good_effect_v1, live_good_effect_v2, live_good_effect_v3]
+    text: "Python, Jackal. Good effect. Fire has stopped. Patrol is moving."
+    effects: {set_flag: [live_done, compound_hit], outcome: {compound_destroyed: true}}
+
+  - id: live_nudge
+    when: {event: beat.fired, beat: cleared_live}
+    delay_sec: 240
+    requires: {beats_not_fired: [live_good_effect]}
+    priority: 60
+    once: true
+    speaker: ops_lindqvist
+    lines: [live_nudge_v1, live_nudge_v2, live_nudge_v3]
+    text: "Python, Rook Ops. Say status."
+
+  - id: live_timeout
+    when: {event: beat.fired, beat: cleared_live}
+    delay_sec: 600
+    requires: {beats_not_fired: [live_good_effect]}
+    priority: 80
+    once: true
+    speaker: jtac_ortiz
+    lines: [live_timeout_v1, live_timeout_v2, live_timeout_v3]
+    text: "Python, Jackal. Enemy breaking contact. Cease fire. Patrol pulling back."
+    effects: {set_flag: live_done, outcome: {compound_destroyed: false}}
+
+  - id: live_no_show
+    when: {event: beat.fired, beat: jackal_checkin}
+    delay_sec: 1200
+    requires: {beats_not_fired: [cleared_live]}
+    priority: 80
+    once: true
+    speaker: ops_lindqvist
+    lines: [live_no_show_v1, live_no_show_v2, live_no_show_v3]
+    text: "Python, Rook Ops. Jackal's patrol has pulled back. Tasking cancelled."
+    effects: {set_flag: live_done, outcome: {compound_destroyed: false}}
+
+  - id: jackal_checkout
+    when: {event: flag, flag: live_done}
+    delay_sec: 10
+    requires: {beats_fired: [jackal_9line]}
+    priority: 82
+    once: true
+    speaker: jtac_ortiz
+    lines: [jackal_checkout_v1, jackal_checkout_v2, jackal_checkout_v3]
+    text: "Python, Jackal. Copy all. Thanks for the help. Cleared off station."
+    effects: {clear_flag: in_attack}
+
+  - id: player_hit
+    when: {event: unit.hit, players_only: true}
+    priority: 50
+    once: false
+    cooldown_sec: 60
+    speaker: ops_lindqvist
+    lines: [player_hit_v1, player_hit_v2, player_hit_v3]
+    text: "Python, Rook Ops. Say status of your jet."
+
+  # ======================= Recovery ===========================================================
+  - id: tower_recovery
+    when: {event: zone.entered, zone: incirlik_approach, players_only: true}
+    requires: {flags: [rtb_called]}
+    priority: 60
+    once: true
+    speaker: tower_incirlik
+    lines: [tower_recovery_v1, tower_recovery_v2, tower_recovery_v3]
+    text: "Python One-One, Incirlik Tower. Welcome back. Runway zero-five, cleared to land."
+
+  # ======================= Background traffic (immortal AI flights, optional) =================
+  # UHF COM1 (Incirlik Tower 360.1): Venom departs, Viper recovers. VHF COM2 (138.0): Magic, Colt.
+  - id: venom_cleared
+    when: {event: timer, after_sec: 4}
+    priority: 40
+    once: true
+    speaker: tower_incirlik
+    lines: [venom_cleared_v1, venom_cleared_v2, venom_cleared_v3]
+    text: "Venom Three-One, Incirlik Tower. Runway zero-five, wind calm. Cleared for takeoff."
+
+  - id: venom_rolling
+    when: {event: beat.fired, beat: venom_cleared}
+    delay_sec: 3
+    priority: 40
+    once: true
+    speaker: venom_lead
+    lines: [venom_rolling_v1, venom_rolling_v2, venom_rolling_v3]
+    text: "Venom Three-One, cleared for takeoff, zero-five."
+
+  - id: venom_airborne
+    when: {event: beat.fired, beat: venom_rolling}
+    delay_sec: 75
+    priority: 35
+    once: true
+    speaker: tower_incirlik
+    lines: [venom_airborne_v1, venom_airborne_v2, venom_airborne_v3]
+    text: "Venom Three-One, Incirlik Tower. Airborne. Contact Magic. Good day."
+
+  - id: colt_checkin
+    when: {event: timer, after_sec: 120}
+    priority: 35
+    once: true
+    speaker: colt_lead
+    lines: [colt_checkin_v1, colt_checkin_v2, colt_checkin_v3]
+    text: "Magic, Colt One-One, flight of two, on station, angels two-five."
+
+  - id: magic_colt
+    when: {event: beat.fired, beat: colt_checkin}
+    delay_sec: 3
+    priority: 35
+    once: true
+    speaker: awacs_magic
+    lines: [magic_colt_v1, magic_colt_v2, magic_colt_v3]
+    text: "Colt One-One, Magic. Radar contact. Picture clean."
+
+  - id: magic_venom
+    when: {event: flight.arrived, flight: venom31}
+    priority: 30
+    once: true
+    speaker: awacs_magic
+    lines: [magic_venom_v1, magic_venom_v2, magic_venom_v3]
+    text: "Venom Three-One, Magic. Radar contact. Cleared to patrol, angels two-two."
+
+  - id: magic_python
+    when: {event: beat.fired, beat: tower_departure}
+    delay_sec: 25
+    priority: 45
+    once: true
+    speaker: awacs_magic
+    lines: [magic_python_v1, magic_python_v2, magic_python_v3]
+    text: "Python One-One, Magic. Radar contact. Picture clean. Colt is CAP north of Kilis."
+
+  - id: magic_python_dust
+    when: {event: beat.fired, beat: jackal_checkin}
+    delay_sec: 45
+    requires: {flags_not: [in_attack]}
+    priority: 40
+    once: true
+    speaker: awacs_magic
+    lines: [magic_python_dust_v1, magic_python_dust_v2, magic_python_dust_v3]
+    text: "Python One-One, Magic. Picture clean on your route to DUST. Venom is north of you."
+
+  - id: viper_inbound
+    when: {event: flight.arrived, flight: viper21}
+    priority: 40
+    once: true
+    speaker: viper_lead
+    lines: [viper_inbound_v1, viper_inbound_v2, viper_inbound_v3]
+    text: "Incirlik Tower, Viper Two-One, flight of two, twelve miles east, full stop."
+
+  - id: viper_cleared
+    when: {event: beat.fired, beat: viper_inbound}
+    delay_sec: 3
+    priority: 40
+    once: true
+    speaker: tower_incirlik
+    lines: [viper_cleared_v1, viper_cleared_v2, viper_cleared_v3]
+    text: "Viper Two-One, Incirlik Tower. Runway zero-five, wind calm. Cleared to land."
+
+  - id: viper_readback
+    when: {event: beat.fired, beat: viper_cleared}
+    delay_sec: 3
+    priority: 40
+    once: true
+    speaker: viper_lead
+    lines: [viper_readback_v1, viper_readback_v2, viper_readback_v3]
+    text: "Viper Two-One, cleared to land, zero-five."
+
+  - id: viper_landed
+    when: {event: flight.landed, flight: viper21}
+    delay_sec: 20
+    priority: 35
+    once: true
+    speaker: tower_incirlik
+    lines: [viper_landed_v1, viper_landed_v2, viper_landed_v3]
+    text: "Viper Two-One, Incirlik Tower. Welcome back. Taxi to parking."
+
+  # Periodic airspace chatter on VHF: fixed times (the director only relaxes after a fight), skipped mid-attack.
+  - id: magic_picture
+    when: {event: timer, after_sec: 780}
+    requires: {flags_not: [in_attack]}
+    priority: 20
+    once: true
+    speaker: awacs_magic
+    lines: [magic_picture_v1, magic_picture_v2, magic_picture_v3, magic_picture_v4]
+    text: "All players, Magic. Picture clean."
+
+  - id: magic_picture_2
+    when: {event: timer, after_sec: 1380}
+    requires: {flags_not: [in_attack]}
+    priority: 20
+    once: true
+    speaker: awacs_magic
+    lines: [magic_picture_v1, magic_picture_v2, magic_picture_v3, magic_picture_v4]
+    text: "All players, Magic. Picture clean."
+
+  - id: magic_picture_3
+    when: {event: timer, after_sec: 2100}
+    requires: {flags_not: [in_attack]}
+    priority: 20
+    once: true
+    speaker: awacs_magic
+    lines: [magic_picture_v1, magic_picture_v2, magic_picture_v3, magic_picture_v4]
+    text: "All players, Magic. Picture clean."
+
+  - id: magic_picture_4
+    when: {event: timer, after_sec: 2880}
+    requires: {flags_not: [in_attack]}
+    priority: 20
+    once: true
+    speaker: awacs_magic
+    lines: [magic_picture_v1, magic_picture_v2, magic_picture_v3, magic_picture_v4]
+    text: "All players, Magic. Picture clean."
+
+  - id: magic_picture_5
+    when: {event: timer, after_sec: 3600}
+    requires: {flags_not: [in_attack]}
+    priority: 20
+    once: true
+    speaker: awacs_magic
+    lines: [magic_picture_v1, magic_picture_v2, magic_picture_v3, magic_picture_v4]
+    text: "All players, Magic. Picture clean."
+
+  - id: colt_ops
+    when: {event: timer, after_sec: 1080}
+    requires: {flags_not: [in_attack], beats_fired: [colt_checkin]}
+    priority: 15
+    once: true
+    speaker: colt_lead
+    lines: [colt_ops_v1, colt_ops_v2, colt_ops_v3]
+    text: "Magic, Colt One-One, ops normal, state eight point four."
+
+  - id: colt_ops_2
+    when: {event: timer, after_sec: 2460}
+    requires: {flags_not: [in_attack], beats_fired: [colt_checkin]}
+    priority: 15
+    once: true
+    speaker: colt_lead
+    lines: [colt_ops_v1, colt_ops_v2, colt_ops_v3]
+    text: "Magic, Colt One-One, ops normal, state eight point four."
+
+  - id: colt_ops_3
+    when: {event: timer, after_sec: 3300}
+    requires: {flags_not: [in_attack], beats_fired: [colt_checkin]}
+    priority: 15
+    once: true
+    speaker: colt_lead
+    lines: [colt_ops_v1, colt_ops_v2, colt_ops_v3]
+    text: "Magic, Colt One-One, ops normal, state eight point four."

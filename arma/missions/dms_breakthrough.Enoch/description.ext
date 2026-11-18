@@ -1,0 +1,173 @@
+// DMS "Breakthrough" - Livonia (Enoch), CBA + ACE + LAMBS + RHS. Solo player commanding one M1A2 Abrams.
+author = "DMS";
+onLoadName = "Breakthrough";
+onLoadMission = "Command one M1A2 Abrams through a Russian screen and take the crossroads village.";
+briefingName = "DMS - Breakthrough";
+overviewText = "Command an M1A2 SEP Abrams with a Bradley section behind you. Advance about 3 km across Livonia farmland, break the Russian armour screen and take the crossroads village. Two A-10 strikes on call. Requires CBA, ACE, LAMBS Danger, RHS AFRF and RHS USAF.";
+
+respawn = 0;
+respawnDialog = 0;
+disabledAI = 1;
+enableDebugConsole = 1;
+corpseManagerMode = 0;
+wreckManagerMode = 0;
+
+class Header
+{
+	gameType = "Coop";
+	minPlayers = 1;
+	maxPlayers = 1;
+};
+
+class Params
+{
+	class DMS_seed
+	{
+		title = "Random seed (0 = random, logged)";
+		values[] = {0, 1, 2, 3, 7, 42, 1337, 4242};
+		texts[] = {"Random", "1", "2", "3", "7", "42", "1337", "4242"};
+		default = 0;
+	};
+	class DMS_site
+	{
+		title = "Objective";
+		values[] = {0, 1, 2, 3};
+		texts[] = {"From seed", "Bielawa, from the Lukow road", "Topolin, from the Radacz road", "Grabin, from the Zapadlisko road"};
+		default = 0;
+	};
+	class DMS_debug
+	{
+		title = "Debug (log to screen, enemy markers)";
+		values[] = {0, 1};
+		texts[] = {"Off", "On"};
+		default = 0;
+	};
+	class DMS_testMode
+	{
+		title = "Test mode (AI tank plays unattended)";
+		values[] = {0, 1};
+		texts[] = {"Off", "On"};
+		default = 0;
+	};
+	class DMS_testMinutes
+	{
+		title = "Test mode time limit (minutes)";
+		values[] = {15, 20, 30, 45, 60, 90};
+		texts[] = {"15", "20", "30", "45", "60", "90"};
+		default = 45;
+	};
+	class DMS_testTimeScale
+	{
+		title = "Test mode time scale for mission delays (percent)";
+		values[] = {100, 50, 25, 15, 10};
+		texts[] = {"100% (real)", "50%", "25%", "15%", "10%"};
+		default = 100;
+	};
+	class DMS_testStartDist
+	{
+		title = "Test mode start distance from the objective along the road (m, below 1500 = normal)";
+		values[] = {0, 1500, 2000};
+		texts[] = {"Normal", "1500", "2000"};
+		default = 0;
+	};
+	class DMS_testAssist
+	{
+		title = "Test mode fight assist (s after a stage starts before its remaining enemies are removed; 0 = off)";
+		values[] = {0, 120, 180, 300};
+		texts[] = {"Off", "120", "180", "300"};
+		default = 0;
+	};
+	class DMS_testForce
+	{
+		title = "Test mode forced failure";
+		values[] = {0, 1};
+		texts[] = {"None", "Tank destroyed after first contact"};
+		default = 0;
+	};
+};
+
+class CfgFunctions
+{
+	class DMS
+	{
+		tag = "DMS";
+		class mission
+		{
+			file = "functions";
+			class config {};
+			class log {};
+			class rng {};
+			class t {};
+			class mods {};
+			class findPos {};
+			class site {};
+			class tank {};
+			class section {};
+			class enemy {};
+			class air {};
+			class objective {};
+			class end {};
+			class testMode {};
+		};
+	};
+};
+
+class CfgCommunicationMenu
+{
+	class DMS_AirSupport
+	{
+		text = "CAS: A-10 bomb run on marked position";
+		submenu = "";
+		expression = "['REQUEST', [_this select 0, _this select 1]] remoteExecCall ['DMS_fnc_air', 2];";
+		icon = "\a3\Ui_f\data\GUI\Cfg\CommunicationMenu\cas_ca.paa";
+		cursor = "\a3\Ui_f\data\IGUI\Cfg\Cursors\iconCursorSupport_ca.paa";
+		enable = "1";
+		removeAfterExpressionCall = 1;
+	};
+};
+
+class CfgDebriefing
+{
+	class DMS_Win
+	{
+		title = "Mission complete";
+		subtitle = "Crossroads taken";
+		description = "The armour screen was broken and the crossroads village is in friendly hands.";
+	};
+	class DMS_FailTank
+	{
+		title = "Mission failed";
+		subtitle = "Tank destroyed";
+		description = "Your M1A2 was destroyed.";
+	};
+	class DMS_FailDead
+	{
+		title = "Mission failed";
+		subtitle = "Commander killed";
+		description = "You were killed.";
+	};
+	class DMS_Draw
+	{
+		title = "Mission ended";
+		subtitle = "Attack stalled";
+		description = "Your tank was immobilised and the attack stalled short of the objective. The crew survived.";
+	};
+	class DMS_FailMods
+	{
+		title = "Mission cannot start";
+		subtitle = "Required mods missing";
+		description = "Load CBA_A3, ACE, LAMBS Danger, RHS AFRF and RHS USAF, then start the mission again.";
+	};
+	class DMS_FailSetup
+	{
+		title = "Mission cannot start";
+		subtitle = "Setup failed";
+		description = "The tank could not be created. See the [DMS] lines in the .rpt log.";
+	};
+	class DMS_TestEnd
+	{
+		title = "Test run ended";
+		subtitle = "Time limit";
+		description = "The unattended test run reached its time limit.";
+	};
+};

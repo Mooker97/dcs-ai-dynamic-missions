@@ -1,0 +1,256 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 900">
+  <defs>
+    <linearGradient id="stk-grip" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#16191c"/>
+      <stop offset="0.22" stop-color="#262a2e"/>
+      <stop offset="0.5" stop-color="#3d4248"/>
+      <stop offset="0.7" stop-color="#565c63"/>
+      <stop offset="0.82" stop-color="#3f444a"/>
+      <stop offset="1" stop-color="#1b1e21"/>
+    </linearGradient>
+    <radialGradient id="stk-toplight" cx="0.62" cy="0.18" r="0.75">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="0.45" stop-color="#ffffff" stop-opacity="0.06"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="stk-frontshade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#000000" stop-opacity="0.55"/>
+      <stop offset="0.3" stop-color="#000000" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="stk-palm" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#7d848c" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#7d848c" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="stk-cap" cx="0.35" cy="0.3" r="0.8">
+      <stop offset="0" stop-color="#9aa1a8"/>
+      <stop offset="0.35" stop-color="#4b5157"/>
+      <stop offset="1" stop-color="#16181b"/>
+    </radialGradient>
+    <radialGradient id="stk-well" cx="0.5" cy="0.4" r="0.6">
+      <stop offset="0" stop-color="#050607"/>
+      <stop offset="0.8" stop-color="#14171a"/>
+      <stop offset="1" stop-color="#2c3136"/>
+    </radialGradient>
+    <radialGradient id="stk-button" cx="0.38" cy="0.32" r="0.75">
+      <stop offset="0" stop-color="#6c7279"/>
+      <stop offset="0.5" stop-color="#2a2e32"/>
+      <stop offset="1" stop-color="#0e1012"/>
+    </radialGradient>
+    <linearGradient id="stk-blade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#1a1d20"/>
+      <stop offset="0.45" stop-color="#5d636a"/>
+      <stop offset="0.7" stop-color="#8d949b"/>
+      <stop offset="1" stop-color="#2e3236"/>
+    </linearGradient>
+    <linearGradient id="stk-paddle" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#121416"/>
+      <stop offset="0.5" stop-color="#4a5056"/>
+      <stop offset="1" stop-color="#202326"/>
+    </linearGradient>
+    <linearGradient id="stk-collar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#15171a"/>
+      <stop offset="0.45" stop-color="#4c5258"/>
+      <stop offset="0.62" stop-color="#7c838a"/>
+      <stop offset="0.8" stop-color="#3a3f44"/>
+      <stop offset="1" stop-color="#15171a"/>
+    </linearGradient>
+    <linearGradient id="stk-shaft" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#1e2124"/>
+      <stop offset="0.35" stop-color="#6b7178"/>
+      <stop offset="0.55" stop-color="#b3b9bf"/>
+      <stop offset="0.75" stop-color="#4d5359"/>
+      <stop offset="1" stop-color="#16181b"/>
+    </linearGradient>
+    <linearGradient id="stk-boot" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#08090a"/>
+      <stop offset="0.45" stop-color="#26292c"/>
+      <stop offset="0.62" stop-color="#34383c"/>
+      <stop offset="1" stop-color="#0a0b0c"/>
+    </linearGradient>
+    <linearGradient id="stk-basetop" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4a5056"/>
+      <stop offset="1" stop-color="#25292d"/>
+    </linearGradient>
+    <linearGradient id="stk-basefront" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#121416"/>
+      <stop offset="0.5" stop-color="#2f3337"/>
+      <stop offset="0.7" stop-color="#3b4045"/>
+      <stop offset="1" stop-color="#111315"/>
+    </linearGradient>
+    <filter id="stk-blur" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="9"/>
+    </filter>
+    <filter id="stk-soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2.2"/>
+    </filter>
+    <clipPath id="stk-gripclip">
+      <path d="M200 640 C188 610 178 580 182 545 C186 515 170 500 172 470 C174 440 186 430 184 405 C182 380 168 368 170 340 C172 310 182 290 178 260 C170 232 146 204 152 168 C160 130 240 110 300 118 C345 124 378 156 378 200 C378 235 364 255 366 285 C370 330 398 380 396 440 C394 500 368 545 360 580 C354 605 352 625 348 640 Z"/>
+    </clipPath>
+  </defs>
+
+  <!-- ===== base (top surface + cropped front face) ===== -->
+  <path d="M70 815 L70 870 L480 870 L480 815 Z" fill="url(#stk-basefront)"/>
+  <ellipse cx="275" cy="815" rx="205" ry="48" fill="url(#stk-basetop)"/>
+  <ellipse cx="275" cy="815" rx="205" ry="48" fill="none" stroke="#8a9198" stroke-opacity="0.5" stroke-width="1.2"/>
+  <ellipse cx="275" cy="812" rx="180" ry="38" fill="none" stroke="#1a1d20" stroke-width="1.5"/>
+  <ellipse cx="275" cy="812" rx="179" ry="37" fill="none" stroke="#5b6168" stroke-opacity="0.45" stroke-width="0.8" transform="translate(0 1.5)"/>
+  <!-- base screws -->
+  <g fill="#15181b" stroke="#6d747b" stroke-width="0.8">
+    <circle cx="118" cy="808" r="5"/>
+    <circle cx="432" cy="808" r="5"/>
+    <circle cx="190" cy="846" r="5"/>
+    <circle cx="362" cy="846" r="5"/>
+  </g>
+  <g stroke="#6d747b" stroke-width="1" fill="none">
+    <path d="M115 808 H121"/>
+    <path d="M429 808 H435"/>
+    <path d="M187 846 H193"/>
+    <path d="M359 846 H365"/>
+  </g>
+  <!-- contact shadow on base -->
+  <ellipse cx="282" cy="806" rx="110" ry="20" fill="#000000" opacity="0.55" filter="url(#stk-blur)"/>
+
+  <!-- ===== rubber boot ===== -->
+  <path d="M232 712 C226 740 196 772 178 800 C210 816 340 816 372 800 C354 772 324 740 318 712 Z" fill="url(#stk-boot)"/>
+  <g fill="none" stroke="#000000" stroke-opacity="0.75" stroke-width="2">
+    <path d="M226 732 C250 742 300 742 324 732"/>
+    <path d="M214 750 C246 762 304 762 336 750"/>
+    <path d="M200 768 C240 782 310 782 350 768"/>
+    <path d="M188 785 C232 800 318 800 362 785"/>
+  </g>
+  <g fill="none" stroke="#5a6066" stroke-opacity="0.45" stroke-width="1.2">
+    <path d="M226 735 C250 745 300 745 324 735"/>
+    <path d="M214 753 C246 765 304 765 336 753"/>
+    <path d="M200 771 C240 785 310 785 350 771"/>
+    <path d="M188 788 C232 803 318 803 362 788"/>
+  </g>
+  <path d="M232 712 C226 740 196 772 178 800 C210 816 340 816 372 800 C354 772 324 740 318 712 Z" fill="none" stroke="#7b828a" stroke-opacity="0.35" stroke-width="1.2"/>
+
+  <!-- ===== shaft ===== -->
+  <rect x="250" y="655" width="50" height="64" fill="url(#stk-shaft)"/>
+  <ellipse cx="275" cy="719" rx="25" ry="6" fill="#0f1113"/>
+  <path d="M250 676 H300 M250 698 H300" stroke="#0e1012" stroke-opacity="0.6" stroke-width="1.2" fill="none"/>
+
+  <!-- ===== grip collar (bottom ring) ===== -->
+  <path d="M196 628 L352 628 L346 664 C320 676 230 676 204 664 Z" fill="url(#stk-collar)"/>
+  <ellipse cx="274" cy="664" rx="71" ry="11" fill="#1a1d20"/>
+  <ellipse cx="274" cy="628" rx="78" ry="14" fill="#2b2f33" stroke="#7d848c" stroke-opacity="0.5" stroke-width="1"/>
+  <path d="M204 648 C230 658 318 658 348 648" fill="none" stroke="#0c0e10" stroke-width="1.6"/>
+  <circle cx="232" cy="652" r="3.2" fill="#0e1012" stroke="#80878e" stroke-width="0.7"/>
+  <circle cx="318" cy="652" r="3.2" fill="#0e1012" stroke="#80878e" stroke-width="0.7"/>
+
+  <!-- ===== S4 paddle lever (behind grip front edge) ===== -->
+  <path d="M184 512 C170 524 160 548 160 578 C160 600 166 618 176 626 L190 622 C184 610 180 592 181 572 C182 548 188 530 196 520 Z" fill="url(#stk-paddle)"/>
+  <path d="M184 512 C170 524 160 548 160 578 C160 600 166 618 176 626" fill="none" stroke="#8b9299" stroke-opacity="0.55" stroke-width="1.2"/>
+  <circle cx="190" cy="516" r="5" fill="#0d0f11" stroke="#6f767d" stroke-width="0.8"/>
+
+  <!-- ===== trigger blade (TG) ===== -->
+  <path d="M180 332 C160 330 140 342 134 362 C129 380 134 398 146 408 C156 415 170 414 180 408 C174 396 172 384 174 370 C176 356 180 346 184 340 Z" fill="url(#stk-blade)"/>
+  <path d="M180 332 C160 330 140 342 134 362 C129 380 134 398 146 408" fill="none" stroke="#c4cad0" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M146 360 C143 374 145 388 152 398" fill="none" stroke="#0f1113" stroke-opacity="0.5" stroke-width="1.6"/>
+
+  <!-- ===== grip body ===== -->
+  <path d="M200 640 C188 610 178 580 182 545 C186 515 170 500 172 470 C174 440 186 430 184 405 C182 380 168 368 170 340 C172 310 182 290 178 260 C170 232 146 204 152 168 C160 130 240 110 300 118 C345 124 378 156 378 200 C378 235 364 255 366 285 C370 330 398 380 396 440 C394 500 368 545 360 580 C354 605 352 625 348 640 Z" fill="url(#stk-grip)"/>
+  <g clip-path="url(#stk-gripclip)">
+    <rect x="130" y="100" width="280" height="560" fill="url(#stk-toplight)"/>
+    <rect x="130" y="100" width="280" height="560" fill="url(#stk-frontshade)"/>
+    <!-- right (thumb) face plane: a soft lighter panel -->
+    <path d="M300 150 C340 160 362 190 360 230 C358 262 352 290 360 330 C372 380 384 420 380 470 C376 520 356 560 346 640 L384 640 L420 100 L300 100 Z" fill="#000000" opacity="0.28"/>
+    <!-- palm rest bulge highlight -->
+    <ellipse cx="352" cy="430" rx="34" ry="96" fill="url(#stk-palm)"/>
+    <!-- specular stripe down the back -->
+    <path d="M330 300 C342 360 352 420 344 520 C340 560 334 600 330 640" fill="none" stroke="#c9cfd5" stroke-opacity="0.18" stroke-width="7" filter="url(#stk-soft)"/>
+    <!-- head underside shadow -->
+    <path d="M178 262 C230 282 300 284 366 270" fill="none" stroke="#000000" stroke-opacity="0.45" stroke-width="10" filter="url(#stk-soft)"/>
+  </g>
+  <!-- seam lines -->
+  <path d="M300 122 C318 170 314 220 302 262 C292 300 296 360 304 420 C312 480 306 560 296 636" fill="none" stroke="#0b0d0f" stroke-width="1.6"/>
+  <path d="M301.5 122 C319.5 170 315.5 220 303.5 262 C293.5 300 297.5 360 305.5 420 C313.5 480 307.5 560 297.5 636" fill="none" stroke="#7a8188" stroke-opacity="0.35" stroke-width="0.8"/>
+  <path d="M182 268 C220 284 310 290 364 276" fill="none" stroke="#0b0d0f" stroke-width="1.4"/>
+  <!-- grip screws -->
+  <g fill="#0f1113" stroke="#7c838a" stroke-width="0.8">
+    <circle cx="318" cy="345" r="4"/>
+    <circle cx="326" cy="520" r="4"/>
+    <circle cx="232" cy="600" r="4"/>
+    <circle cx="246" cy="200" r="3.5"/>
+  </g>
+  <g fill="none" stroke="#7c838a" stroke-width="0.9">
+    <path d="M315.5 345 H320.5 M318 342.5 V347.5"/>
+    <path d="M323.5 520 H328.5 M326 517.5 V522.5"/>
+    <path d="M229.5 600 H234.5 M232 597.5 V602.5"/>
+    <path d="M243.5 200 H248.5 M246 197.5 V202.5"/>
+  </g>
+  <!-- rim light so the silhouette holds on dark pages -->
+  <path d="M200 640 C188 610 178 580 182 545 C186 515 170 500 172 470 C174 440 186 430 184 405 C182 380 168 368 170 340 C172 310 182 290 178 260 C170 232 146 204 152 168 C160 130 240 110 300 118 C345 124 378 156 378 200 C378 235 364 255 366 285 C370 330 398 380 396 440 C394 500 368 545 360 580 C354 605 352 625 348 640" fill="none" stroke="#a7aeb5" stroke-opacity="0.5" stroke-width="1.4"/>
+  <path d="M162 150 C190 124 262 112 304 121 C340 126 368 150 374 184" fill="none" stroke="#e3e8ec" stroke-opacity="0.45" stroke-width="2.2" filter="url(#stk-soft)"/>
+
+  <!-- ===== H1 trim hat (top centre, domed ribbed cap) ===== -->
+  <ellipse cx="282" cy="132" rx="30" ry="11" fill="url(#stk-well)"/>
+  <ellipse cx="282" cy="132" rx="30" ry="11" fill="none" stroke="#7f868d" stroke-opacity="0.55" stroke-width="1"/>
+  <path d="M262 130 C262 108 302 108 302 130 C302 138 262 138 262 130 Z" fill="url(#stk-cap)"/>
+  <g fill="none" stroke="#111315" stroke-width="1.4" stroke-opacity="0.85">
+    <path d="M282 114 V134"/>
+    <path d="M271 118 C273 124 274 130 274 134"/>
+    <path d="M293 118 C291 124 290 130 290 134"/>
+    <path d="M264 126 C276 129 288 129 300 126"/>
+  </g>
+  <ellipse cx="275" cy="117" rx="6" ry="2.6" fill="#ffffff" opacity="0.45" filter="url(#stk-soft)"/>
+
+  <!-- ===== S2 weapon release (top left-front, recessed round button) ===== -->
+  <ellipse cx="192" cy="160" rx="19" ry="15" fill="#0b0c0e" transform="rotate(-28 192 160)"/>
+  <ellipse cx="192" cy="160" rx="19" ry="15" fill="none" stroke="#858c93" stroke-opacity="0.55" stroke-width="1" transform="rotate(-28 192 160)"/>
+  <ellipse cx="193" cy="159" rx="13" ry="10" fill="url(#stk-button)" transform="rotate(-28 193 159)"/>
+  <ellipse cx="188" cy="154" rx="4" ry="2" fill="#ffffff" opacity="0.35" transform="rotate(-28 188 154)"/>
+
+  <!-- ===== H2 TMS hat (top right of head, under the thumb) ===== -->
+  <g transform="translate(346 186) rotate(-18)">
+    <ellipse rx="19" ry="14" fill="url(#stk-well)"/>
+    <ellipse rx="19" ry="14" fill="none" stroke="#7f868d" stroke-opacity="0.5" stroke-width="1"/>
+    <path d="M-12 -2 C-12 -14 12 -14 12 -2 C12 6 -12 6 -12 -2 Z" fill="url(#stk-cap)"/>
+    <path d="M-7 -4 H7 M0 -10 V3" stroke="#121416" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <ellipse cx="-5" cy="-9" rx="3.5" ry="1.6" fill="#ffffff" opacity="0.45"/>
+  </g>
+
+  <!-- ===== H3 DMS hat (right side, below H2) ===== -->
+  <g transform="translate(352 238) rotate(-8)">
+    <ellipse rx="16" ry="12" fill="url(#stk-well)"/>
+    <ellipse rx="16" ry="12" fill="none" stroke="#7f868d" stroke-opacity="0.5" stroke-width="1"/>
+    <path d="M-10 -1 C-10 -11 10 -11 10 -1 C10 5 -10 5 -10 -1 Z" fill="url(#stk-cap)"/>
+    <path d="M-6 -3 H6 M0 -8 V2" stroke="#121416" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    <ellipse cx="-4" cy="-7" rx="3" ry="1.4" fill="#ffffff" opacity="0.45"/>
+  </g>
+
+  <!-- ===== H4 CMS hat (lower thumb, right side, 4-way + push, bigger cap) ===== -->
+  <g transform="translate(340 304) rotate(6)">
+    <ellipse rx="22" ry="17" fill="url(#stk-well)"/>
+    <ellipse rx="22" ry="17" fill="none" stroke="#7f868d" stroke-opacity="0.5" stroke-width="1"/>
+    <path d="M-15 -1 C-15 -17 15 -17 15 -1 C15 8 -15 8 -15 -1 Z" fill="url(#stk-cap)"/>
+    <circle cx="0" cy="-4" r="5" fill="#1a1d20" stroke="#6b7279" stroke-width="0.8"/>
+    <path d="M-12 -4 H-7 M7 -4 H12 M0 -14 V-9 M0 1 V5" stroke="#121416" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <ellipse cx="-6" cy="-11" rx="4" ry="1.8" fill="#ffffff" opacity="0.45"/>
+  </g>
+
+  <!-- ===== S1 index / NWS button (front, above trigger) ===== -->
+  <ellipse cx="180" cy="300" rx="11" ry="14" fill="#0b0c0e"/>
+  <ellipse cx="177" cy="300" rx="8" ry="11" fill="url(#stk-button)"/>
+  <ellipse cx="174" cy="295" rx="2.5" ry="3.5" fill="#ffffff" opacity="0.35"/>
+  <ellipse cx="180" cy="300" rx="11" ry="14" fill="none" stroke="#848b92" stroke-opacity="0.5" stroke-width="0.9"/>
+
+  <!-- ===== S3 pinky button (front, lower) ===== -->
+  <ellipse cx="182" cy="476" rx="10" ry="13" fill="#0b0c0e"/>
+  <ellipse cx="179" cy="476" rx="7.5" ry="10" fill="url(#stk-button)"/>
+  <ellipse cx="176" cy="471" rx="2.3" ry="3.2" fill="#ffffff" opacity="0.35"/>
+  <ellipse cx="182" cy="476" rx="10" ry="13" fill="none" stroke="#848b92" stroke-opacity="0.5" stroke-width="0.9"/>
+
+  <!-- ===== anchors for the page's callouts ===== -->
+  <circle data-anchor="H1" data-side="right" cx="282" cy="124" r="0" fill="none"/>
+  <circle data-anchor="S2" data-side="left" cx="193" cy="159" r="0" fill="none"/>
+  <circle data-anchor="H2" data-side="right" cx="346" cy="183" r="0" fill="none"/>
+  <circle data-anchor="H3" data-side="right" cx="352" cy="236" r="0" fill="none"/>
+  <circle data-anchor="H4" data-side="right" cx="340" cy="301" r="0" fill="none"/>
+  <circle data-anchor="S1" data-side="left" cx="177" cy="300" r="0" fill="none"/>
+  <circle data-anchor="TG" data-side="left" cx="152" cy="376" r="0" fill="none"/>
+  <circle data-anchor="S3" data-side="left" cx="179" cy="476" r="0" fill="none"/>
+  <circle data-anchor="S4" data-side="left" cx="170" cy="575" r="0" fill="none"/>
+  <circle data-anchor="XY" data-side="right" cx="300" cy="760" r="0" fill="none"/>
+</svg>

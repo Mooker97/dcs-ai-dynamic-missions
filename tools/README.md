@@ -6,6 +6,8 @@
 | `dcs_harness/run_mission.py` | runs one `.miz` in a real DCS, unattended, and writes a JSON report |
 | `arma_harness/run_mission.py` | the same for Arma 3 dedicated servers |
 | `nightly.py` + `nightly.yaml` | rebuilds and runs a list of DCS test missions one at a time (below) |
+| `hotas_map/` | Warthog HOTAS bindings: read DCS bindings, clear leftover defaults, publish the bindings page ([README](hotas_map/README.md)) |
+| `pedal_rudder/` | racing pedals (clutch, throttle) as the DCS rudder axis via Export.lua, no virtual device ([README](pedal_rudder/README.md)) |
 | `tests/` | parser tests for the harnesses and the nightly tests (fake subprocess, nothing launched) |
 
 ## Nightly (`tools/nightly.py`)

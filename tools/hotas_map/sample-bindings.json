@@ -1,0 +1,89 @@
+{
+  "generated": "2026-11-02T12:00:00Z",
+  "source": "SAMPLE DATA (not your bindings) - E:/SteamLibrary/steamapps/common/DCSWorld + Saved Games/DCS/Config/Input",
+  "aircraft": [
+    {
+      "id": "F-16C_50",
+      "label": "F-16C Viper",
+      "devices": {
+        "stick": {
+          "buttons": {
+            "JOY_BTN1": [{ "name": "Gun Trigger - FIRST DETENT", "category": "HOTAS", "modifiers": [], "source": "default" }],
+            "JOY_BTN6": [{ "name": "Gun Trigger - SECOND DETENT", "category": "HOTAS", "modifiers": [], "source": "default" }],
+            "JOY_BTN2": [{ "name": "WPN REL - Weapon Release", "category": "HOTAS", "modifiers": [], "source": "default" }],
+            "JOY_BTN4": [{ "name": "Paddle Switch", "category": "HOTAS", "modifiers": [], "source": "default" }],
+            "JOY_BTN5": [{ "name": "NWS/A/R DISC/MSL STEP", "category": "HOTAS", "modifiers": [], "source": "default" }],
+            "JOY_BTN7": [
+              { "name": "TMS Up - Target Management Switch", "category": "HOTAS", "modifiers": [], "source": "default" },
+              { "name": "Track IR recenter", "category": "View", "modifiers": ["JOY_BTN4"], "source": "yours" }
+            ],
+            "JOY_BTN8": [{ "name": "TMS Right", "category": "HOTAS", "modifiers": [], "source": "default" }],
+            "JOY_BTN9": [{ "name": "TMS Down", "category": "HOTAS", "modifiers": [], "source": "default" }],
+            "JOY_BTN10": [{ "name": "TMS Left", "category": "HOTAS", "modifiers": [], "source": "default" }],
+            "JOY_BTN11": [{ "name": "DMS Up - Display Management Switch", "category": "HOTAS", "modifiers": [], "source": "default" }],
+            "JOY_BTN13": [{ "name": "DMS Down", "category": "HOTAS", "modifiers": [], "source": "default" }],
+            "JOY_BTN15": [{ "name": "CMS Up - Countermeasures Management Switch", "category": "HOTAS", "modifiers": [], "source": "default" }],
+            "JOY_BTN19": [{ "name": "Trim/AP DISC Switch - DISC", "category": "HOTAS", "modifiers": [], "source": "yours" }],
+            "JOY_BTN_POV1_U": [{ "name": "TRIM Nose Down", "category": "HOTAS", "modifiers": [], "source": "default" }],
+            "JOY_BTN_POV1_D": [{ "name": "TRIM Nose Up", "category": "HOTAS", "modifiers": [], "source": "default" }],
+            "JOY_BTN_POV1_L": [{ "name": "TRIM Left Wing Down", "category": "HOTAS", "modifiers": [], "source": "default" }],
+            "JOY_BTN_POV1_R": [{ "name": "TRIM Right Wing Down", "category": "HOTAS", "modifiers": [], "source": "default" }]
+          },
+          "axes": {
+            "JOY_X": [{ "name": "Roll", "source": "default", "invert": false, "deadzone": 0, "curvature": 0 }],
+            "JOY_Y": [{ "name": "Pitch", "source": "yours", "invert": false, "deadzone": 0.02, "curvature": 0.15 }]
+          }
+        },
+        "throttle": {
+          "buttons": {
+            "JOY_BTN1": [{ "name": "RDR CURSOR Switch - Depress", "category": "HOTAS", "modifiers": [], "source": "default" }],
+            "JOY_BTN2": [{ "name": "MAN RNG / UNCAGE - Press", "category": "HOTAS", "modifiers": [], "source": "default" }],
+            "JOY_BTN3": [{ "name": "COMM Switch - COMM 1 (UHF)", "category": "HOTAS", "modifiers": [], "source": "default" }],
+            "JOY_BTN5": [{ "name": "COMM Switch - COMM 2 (VHF)", "category": "HOTAS", "modifiers": [], "source": "default" }],
+            "JOY_BTN7": [{ "name": "SPEED BRAKE - OPEN", "category": "HOTAS", "modifiers": [], "source": "default" }],
+            "JOY_BTN8": [{ "name": "SPEED BRAKE - CLOSE", "category": "HOTAS", "modifiers": [], "source": "default" }],
+            "JOY_BTN9": [{ "name": "DOG FIGHT Switch - DOG FIGHT", "category": "HOTAS", "modifiers": [], "source": "default" }],
+            "JOY_BTN10": [{ "name": "DOG FIGHT Switch - MISSILE OVERRIDE", "category": "HOTAS", "modifiers": [], "source": "default" }],
+            "JOY_BTN16": [{ "name": "MASTER ARM 3-pos Switch: MASTER ARM<>OFF", "category": "Weapons", "modifiers": [], "source": "yours" }],
+            "JOY_BTN22": [{ "name": "LANDING GEAR Handle - UP", "category": "Gear", "modifiers": [], "source": "yours" }],
+            "JOY_BTN23": [{ "name": "LANDING GEAR Handle - DN", "category": "Gear", "modifiers": [], "source": "yours" }],
+            "JOY_BTN_POV1_U": [{ "name": "ICP DRIFT C/O Switch - NORM", "category": "HOTAS", "modifiers": [], "source": "default" }],
+            "JOY_BTN33": [{ "name": "Unmapped test binding", "category": null, "modifiers": [], "source": "yours" }]
+          },
+          "axes": {
+            "JOY_Z": [{ "name": "Thrust", "source": "default", "invert": true, "deadzone": 0, "curvature": 0 }],
+            "JOY_X": [{ "name": "RDR CURSOR Switch - X axis", "source": "yours", "invert": false, "deadzone": 0.03, "curvature": 0.3 }],
+            "JOY_Y": [{ "name": "RDR CURSOR Switch - Y axis", "source": "yours", "invert": true, "deadzone": 0.03, "curvature": 0.3 }],
+            "JOY_SLIDER1": [{ "name": "Zoom View", "source": "yours", "invert": null, "deadzone": null, "curvature": null }]
+          }
+        }
+      }
+    },
+    {
+      "id": "AH-64D_BLK_II_PLT",
+      "label": "AH-64D Apache (pilot)",
+      "devices": {
+        "stick": {
+          "buttons": {
+            "JOY_BTN1": [{ "name": "Weapon Trigger - 1st Detent", "category": "Cyclic", "modifiers": [], "source": "default" }],
+            "JOY_BTN6": [{ "name": "Weapon Trigger - 2nd Detent", "category": "Cyclic", "modifiers": [], "source": "default" }],
+            "JOY_BTN4": [{ "name": "Force Trim/Hold Mode Switch - R/HDG", "category": "Cyclic", "modifiers": [], "source": "yours" }],
+            "JOY_BTN_POV1_U": [{ "name": "Cyclic Trim Forward", "category": "Cyclic", "modifiers": [], "source": "default" }]
+          },
+          "axes": {
+            "JOY_X": [{ "name": "Cyclic Roll", "source": "default", "invert": false, "deadzone": 0, "curvature": 0 }],
+            "JOY_Y": [{ "name": "Cyclic Pitch", "source": "default", "invert": false, "deadzone": 0, "curvature": 0 }]
+          }
+        },
+        "throttle": {
+          "buttons": {
+            "JOY_BTN15": [{ "name": "Chop Button", "category": "Collective", "modifiers": [], "source": "yours" }]
+          },
+          "axes": {
+            "JOY_Z": [{ "name": "Collective", "source": "yours", "invert": true, "deadzone": 0, "curvature": 0 }]
+          }
+        }
+      }
+    }
+  ]
+}
